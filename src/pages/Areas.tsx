@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IArea } from "@/interfaces/IArea";
 import { getAllAreas } from "@/services/areas.service";
+
 import { useEffect, useState } from "react";
 
 function Areas() {
