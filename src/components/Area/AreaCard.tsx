@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent } from "../ui/card";
 import { Apple } from "lucide-react";
 import { IArea } from "@/interfaces/IArea";

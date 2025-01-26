@@ -1,4 +1,3 @@
-import RouteProtector from "@/auth/RouteProtector";
 import Areas from "@/pages/Areas";
 import Competencias from "@/pages/Competencias";
 
@@ -10,22 +9,10 @@ interface IRouteToCreate {
 export const routes: IRouteToCreate[] = [
   {
     path: "/",
-    element: (
-      <RouteProtector>
-        <Areas />
-      </RouteProtector>
-    ),
+    element: <Areas />,
   },
   {
     path: "/competencias",
-    element: (
-      <RouteProtector>
-        <Competencias />
-      </RouteProtector>
-    ),
+    element: <Competencias />,
   },
-  // {
-  //   path: "/callback",
-  //   element: <Callback />,
-  // },
 ];
