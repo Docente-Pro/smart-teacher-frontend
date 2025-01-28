@@ -1,5 +1,8 @@
+import Header from "@/components/Header";
 import { useAuth0 } from "@auth0/auth0-react";
 import React, { useEffect, useState } from "react";
+
+import ToggleDarkMode from "@/components/ToggleDarkMode";
 
 interface Props {
   children: React.ReactNode;
@@ -7,18 +10,15 @@ interface Props {
 
 function RouteProtector({ children }: Props) {
   const { isAuthenticated, isLoading, loginWithRedirect, getIdTokenClaims, logout } = useAuth0();
-  const [hasRole, setHasRole] = useState(false);
-
-  console.log(hasRole);
+  const [hasSubscriberRole, setHasSubscriberRole] = useState();
 
   useEffect(() => {
     const checkUserRole = async () => {
       const claims = await getIdTokenClaims();
-      console.log('Claims:', claims); // Agrega este console.log para inspeccionar los claims
 
       if (claims) {
         const roles = claims["https://smart-teacher.com/roles"] || []; // Usa el mismo namespace aquí
-        setHasRole(roles.includes("Subscriber"));
+        setHasSubscriberRole(roles.includes("Subscriber"));
       }
     };
 
@@ -36,7 +36,7 @@ function RouteProtector({ children }: Props) {
     return <div>Redirecting...</div>;
   }
 
-  if (!hasRole) {
+  if (hasSubscriberRole === false) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         Access Denied
@@ -47,7 +47,13 @@ function RouteProtector({ children }: Props) {
     );
   }
 
-  return children;
+  return (
+    <>
+      <Header />
+      <ToggleDarkMode />
+      {children}
+    </>
+  );
 }
 
 export default RouteProtector;

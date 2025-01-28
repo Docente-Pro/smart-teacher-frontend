@@ -1,6 +1,6 @@
-import { useState } from "react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,25 +8,29 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { LogOut, User } from "lucide-react"
+} from "@/components/ui/dropdown-menu";
+import { LogOut, User } from "lucide-react";
+import { logoUrl } from "@/utils/images/index.images";
 
 export default function Header() {
-  const [user, setUser] = useState({
+  const [user, _setUser] = useState({
     name: "Usuario Ejemplo",
     email: "usuario@ejemplo.com",
     avatarUrl: "/placeholder.svg?height=40&width=40",
-  })
+  });
 
   const handleLogout = () => {
     // Aquí iría la lógica para cerrar sesión
-    console.log("Cerrando sesión...")
-  }
+    console.log("Cerrando sesión...");
+  };
 
   return (
     <header className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Plataforma Educativa</h1>
+        <div className="flex items-center gap-4">
+          <img src={logoUrl} className="w-14" alt="logo-image" />
+          <h1 className="text-2xl font-bold text-gray-900">Smart Teacher</h1>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -56,6 +60,5 @@ export default function Header() {
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }
-

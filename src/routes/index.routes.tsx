@@ -1,6 +1,8 @@
 import RouteProtector from "@/auth/RouteProtector";
+import UserValidation from "@/auth/UserValidation";
 import Areas from "@/pages/Areas";
 import Competencias from "@/pages/Competencias";
+import CuestionarioInicial from "@/pages/CuestionarioInicial";
 
 interface IRouteToCreate {
   path: string;
@@ -12,7 +14,9 @@ export const routes: IRouteToCreate[] = [
     path: "/",
     element: (
       <RouteProtector>
-        <Areas />
+        <UserValidation>
+          <Areas />
+        </UserValidation>
       </RouteProtector>
     ),
   },
@@ -24,8 +28,12 @@ export const routes: IRouteToCreate[] = [
       </RouteProtector>
     ),
   },
-  // {
-  //   path: "/callback",
-  //   element: <Callback />,
-  // },
+  {
+    path: "cuestionario-inicial",
+    element: (
+      <RouteProtector>
+        <CuestionarioInicial />
+      </RouteProtector>
+    ),
+  },
 ];
