@@ -20,7 +20,7 @@ function AreaCard({ area }: EducationCardProps) {
     >
       <CardContent className="text-center text-white flex flex-col items-center justify-center gap-4 p-6">
         <Apple size={48} />
-        <p className="text-white font-semibold">{area.descripcion}</p>
+        <p className="text-white font-semibold">{area.nombre}</p>
       </CardContent>
     </Card>
   );

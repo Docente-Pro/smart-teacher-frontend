@@ -4,6 +4,9 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { encrypt } from "@/utils/cryptoUtil";
+import Header from "@/components/Header";
+import { userStore } from "@/store/user.store";
+import CustomizedSidebar from "@/components/CustomizedSidebar";
 
 interface Props {
   children: React.ReactNode;
@@ -48,7 +51,14 @@ function UserValidation({ children }: Props) {
     return null; // No renderizar children si se redirige al cuestionario
   }
 
-  return <div>{children}</div>;
+  return (
+    <div>
+      <CustomizedSidebar>
+        <Header />
+        {children}
+      </CustomizedSidebar>
+    </div>
+  );
 }
 
 export default UserValidation;

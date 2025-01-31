@@ -21,6 +21,16 @@ export const routes: IRouteToCreate[] = [
     ),
   },
   {
+    path: "/crear-sesion",
+    element: (
+      <RouteProtector>
+        <UserValidation>
+          <Areas />
+        </UserValidation>
+      </RouteProtector>
+    ),
+  },
+  {
     path: "/competencias",
     element: (
       <RouteProtector>

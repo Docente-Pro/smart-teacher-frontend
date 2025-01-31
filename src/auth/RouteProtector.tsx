@@ -2,8 +2,6 @@ import Header from "@/components/Header";
 import { useAuth0 } from "@auth0/auth0-react";
 import React, { useEffect, useState } from "react";
 
-import ToggleDarkMode from "@/components/ToggleDarkMode";
-
 interface Props {
   children: React.ReactNode;
 }
@@ -49,8 +47,6 @@ function RouteProtector({ children }: Props) {
 
   return (
     <>
-      <Header />
-      <ToggleDarkMode />
       {children}
     </>
   );

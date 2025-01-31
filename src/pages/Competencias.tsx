@@ -13,7 +13,7 @@ function Competencias() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [competencias, setCompetencias] = useState<ICompetencia[]>();
   const [filteredCompetencies, setFilteredCompetencies] = useState<ICompetencia[]>();
-  const [isByAreaID, setIsByAreaID] = useState<boolean>();
+  const [isByAreaID, setIsByAreaID] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
@@ -35,9 +35,7 @@ function Competencias() {
         setCompetencias(response.data.data);
       });
     }
-  }, []);
-
-  console.log(competencias);
+  }, [nombreArea]);
 
   useEffect(() => {
     handleChange();
@@ -59,7 +57,7 @@ function Competencias() {
         <ArrowLeft className="cursor-pointer" onClick={() => navigate(-1)} />
         <h1 className="text-2xl font-bold">Competencias Educativas</h1>
       </div>
-      {competencias && filteredCompetencies && isByAreaID && (
+      {competencias && filteredCompetencies && (
         <>
           <FilterBar
             searchTerm={searchTerm}
