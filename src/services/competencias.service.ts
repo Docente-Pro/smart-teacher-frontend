@@ -1,5 +1,10 @@
 import { instance } from "./instance";
 function getAllCompetencies() {
-    return instance.get("/competencia");
+  return instance.get("/competencia");
 }
-export { getAllCompetencies };
+
+function getCompetencyById(id: number) {
+  return instance.get(`/competencia/area/${id}`);
+}
+
+export { getAllCompetencies, getCompetencyById };

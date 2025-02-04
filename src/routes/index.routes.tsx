@@ -3,6 +3,7 @@ import UserValidation from "@/auth/UserValidation";
 import Areas from "@/pages/Areas";
 import Competencias from "@/pages/Competencias";
 import CuestionarioInicial from "@/pages/CuestionarioInicial";
+import CuestionarioSesion from "@/pages/CuestionarioSesion";
 
 interface IRouteToCreate {
   path: string;
@@ -25,7 +26,7 @@ export const routes: IRouteToCreate[] = [
     element: (
       <RouteProtector>
         <UserValidation>
-          <Areas />
+          <CuestionarioSesion />
         </UserValidation>
       </RouteProtector>
     ),

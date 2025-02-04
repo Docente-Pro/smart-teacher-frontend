@@ -15,7 +15,7 @@ export function AppSidebar() {
   const items = [
     {
       title: "Crear Sesión",
-      url: "#",
+      url: "crear-sesion",
       icon: FileText,
     },
     {
@@ -34,7 +34,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel>Smart Teacher</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
