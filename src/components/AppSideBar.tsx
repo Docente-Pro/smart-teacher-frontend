@@ -34,7 +34,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Smart Teacher</SidebarGroupLabel>
+          <SidebarGroupLabel>Docente Pro</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (

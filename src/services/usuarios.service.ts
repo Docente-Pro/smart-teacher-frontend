@@ -1,11 +1,11 @@
-import { IUsuarioToSave } from "@/interfaces/IUsuario";
+import { IUsuarioToCreate } from "@/interfaces/IUsuario";
 import { instance } from "./instance";
 
 function getAllUsuarios() {
   return instance.get("/usuario");
 }
 
-function createNewUsuario(usuario: IUsuarioToSave) {
+function createNewUsuario(usuario: IUsuarioToCreate) {
   return instance.post("/usuario", usuario);
 }
 

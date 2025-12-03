@@ -1,14 +1,10 @@
-import { IUsuario } from "@/interfaces/IUsuario";
+import { IUsuarioToCreate } from "@/interfaces/IUsuario";
 
-export const initialStateUsuario: IUsuario = {
-  id: "",
+export const initialStateUsuario: IUsuarioToCreate = {
   nombre: "",
-  unidadId: 0,
-  fechaInicio: new Date(),
-  fechaFin: new Date(),
-  problematicaId: 0,
-  gradoId: 0,
-  educacionId: 0,
-  respondioCuestionario: false,
+  email: "",
   nombreInstitucion: "",
+  nivelId: 0,
+  gradoId: 0,
+  problematicaId: 0,
 };

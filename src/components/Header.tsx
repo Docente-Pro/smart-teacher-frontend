@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User } from "lucide-react";
-import { logoUrl } from "@/utils/images/index.images";
+import { logo_image, logoUrl } from "@/utils/images/index.images";
 import ToggleDarkMode from "./ToggleDarkMode";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Link, useLocation } from "react-router";
@@ -37,8 +37,8 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <Link to={isInitialQuestionnaire ? "#" : "/"}>
           <div className="flex items-center gap-4">
-            <img src={logoUrl} className="w-14" alt="logo-image" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Smart Teacher</h1>
+            <img src={logo_image} className="w-14" alt="logo-image" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Docente Pro</h1>
           </div>
         </Link>
 

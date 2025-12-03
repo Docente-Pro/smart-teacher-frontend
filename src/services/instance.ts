@@ -1,7 +1,10 @@
+const prod_url = import.meta.env.VITE_PRODUCTION_API_URL;
+const dev_url = import.meta.env.VITE_LOCAL_API_URL;
+
 import axios from "axios";
 export const instance = axios.create({
-    baseURL: "http://localhost:3000/api",
-    headers: {
-        "Content-Type": "application/json",
-    },
+  baseURL: prod_url,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });

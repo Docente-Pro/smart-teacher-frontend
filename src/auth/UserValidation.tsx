@@ -28,6 +28,8 @@ function UserValidation({ children }: Props) {
         email: encryptedEmail,
       })
         .then((response) => {
+          console.log(response);
+
           setuserFromDB(response.data[0]);
         })
         .catch((error) => {

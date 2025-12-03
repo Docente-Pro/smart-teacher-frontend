@@ -1,15 +1,15 @@
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Label } from "../../components/ui/label";
 import { Dispatch, SetStateAction } from "react";
-import { IUsuarioToSave } from "@/interfaces/IUsuario";
+import { IUsuarioToCreate } from "@/interfaces/IUsuario";
 
 interface Props {
   array: any[];
-  setValuesOfUser: Dispatch<SetStateAction<IUsuarioToSave>>;
+  setValuesOfUser: Dispatch<SetStateAction<IUsuarioToCreate>>;
   placeholder: string;
-  valueToSet: keyof IUsuarioToSave;
+  valueToSet: keyof IUsuarioToCreate;
   label: string;
-  state: IUsuarioToSave;
+  state: IUsuarioToCreate;
 }
 
 function CustomSelectCI({ array, setValuesOfUser, placeholder, valueToSet, label, state }: Props) {

@@ -1,24 +1,75 @@
+import { ISesion } from "./ISesion";
+
+// Interface para crear un nuevo usuario (onboarding)
+export interface IUsuarioToCreate {
+  nombre: string;
+  email: string;
+  nombreInstitucion: string;
+  nivelId: number;
+  gradoId: number;
+  problematicaId: number;
+  suscripcion?: {
+    fechaInicio: string;
+    fechaFin?: string;
+    plan?: string;
+    activa?: boolean;
+  };
+}
+
+// Interface para actualizar un usuario
+export interface IUsuarioToUpdate {
+  nombre?: string;
+  email?: string;
+  nombreInstitucion?: string;
+  nivelId?: number;
+  gradoId?: number;
+  problematicaId?: number;
+}
+
+// Interface completa del usuario (respuesta del backend)
 export interface IUsuario {
   id: string;
   nombre: string;
-  unidadId: number;
-  fechaInicio: Date;
-  fechaFin: Date;
-  problematicaId: number;
-  createdAt?: Date;
-  gradoId: number;
-  educacionId: number;
-  respondioCuestionario: boolean;
+  email: string;
   nombreInstitucion: string;
+  nivelId?: number;
+  gradoId?: number;
+  problematicaId?: number;
+  createdAt: string;
+  nivel?: {
+    id: number;
+    nombre: string;
+    descripcion: string;
+    imagen: string;
+  };
+  grado?: {
+    id: number;
+    nombre: string;
+    nivelId: number;
+  };
+  problematica?: {
+    id: number;
+    nombre: string;
+    descripcion: string;
+  };
+  suscripcion?: {
+    id: string;
+    fechaInicio: string;
+    fechaFin?: string;
+    activa: boolean;
+    plan: string;
+  };
+  sesiones?: ISesion[];
 }
 
-export interface IUsuarioToSave {
-  nombre: string;
-  unidadId: number;
-  problematicaId: number;
-  gradoId: number;
-  educacionId: number;
-  respondioCuestionario: boolean;
-  nombreInstitucion: string;
-  email: string
+// Interface para crear sesión (ahora sin problematicaId en el body)
+export interface ISesionToCreate {
+  titulo: string;
+  usuarioId: string;
+  nivelId: number;      // Se puede pre-llenar del usuario
+  gradoId: number;      // Se puede pre-llenar del usuario
+  problematicaId: number; // Se puede pre-llenar del usuario
+  duracion: number;
+  fechaInicio?: string;
+  fechaFin?: string;
 }

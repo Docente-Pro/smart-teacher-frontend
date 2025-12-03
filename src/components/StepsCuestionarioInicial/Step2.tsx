@@ -1,60 +1,74 @@
 import { IProblematica } from "@/interfaces/IProblematica";
-import { IUnidad } from "@/interfaces/IUnidad";
-import { IUsuarioToSave } from "@/interfaces/IUsuario";
+import { IUsuarioToCreate } from "@/interfaces/IUsuario";
 import { getAllProblematicas } from "@/services/problematica.service";
-import { getAllUnidades } from "@/services/unidad.service";
 import CustomInputCI from "@/utils/CuestionarioInicial/CustomInputCI";
-import CustomSelectCI from "@/utils/CuestionarioInicial/CustomSelectCI";
 import { User } from "@auth0/auth0-react";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import LoadingComponent from "../LoadingComponent";
 import { createNewUsuario } from "@/services/usuarios.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useNavigate } from "react-router";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Check } from "lucide-react";
 
 interface Props {
-  state: IUsuarioToSave;
-  setValuesOfUser: Dispatch<SetStateAction<IUsuarioToSave>>;
+  state: IUsuarioToCreate;
+  setValuesOfUser: Dispatch<SetStateAction<IUsuarioToCreate>>;
   setCurrentStep: Dispatch<SetStateAction<number>>;
   userFromAuth0: User;
 }
 
 function Step2({ state, userFromAuth0, setValuesOfUser, setCurrentStep }: Props) {
-  const [unidades, setUnidades] = useState<IUnidad[]>();
   const [problematicas, setProblematicas] = useState<IProblematica[]>();
   const [loading, setLoading] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    getAllUnidades().then((response) => {
-      setUnidades(response.data.data);
-    });
     getAllProblematicas().then((response) => {
       setProblematicas(response.data.data);
     });
   }, []);
 
   function handleChange() {
-    if (state.unidadId && state.problematicaId) {
+    if (state.problematicaId) {
+      setLoading(true);
       createNewUsuario({
         nombre: userFromAuth0.name || "",
-        unidadId: state.unidadId,
-        problematicaId: state.problematicaId,
-        gradoId: state.gradoId,
-        educacionId: state.educacionId,
-        respondioCuestionario: true,
-        nombreInstitucion: state.nombre,
         email: userFromAuth0.email || "",
-      }).then((response) => {
-        if (response.data.data) {
-          handleToaster("¡Tu cuestionario ha sido completado con éxito!", "success");
+        nombreInstitucion: state.nombreInstitucion,
+        nivelId: state.nivelId,
+        gradoId: state.gradoId,
+        problematicaId: state.problematicaId,
+        suscripcion: {
+          fechaInicio: new Date().toISOString(),
+          plan: "free",
+          activa: true,
+        },
+      })
+        .then((response) => {
+          if (response.data.data) {
+            handleToaster("¡Tu cuestionario ha sido completado con éxito!", "success");
+            setLoading(false);
+            navigate("/");
+          }
+        })
+        .catch((error) => {
           setLoading(false);
-          navigate("/");
-        }
-      });
+
+          // Verificar si el error es por email duplicado
+          if (error.response?.data?.message?.includes("Unique constraint failed") || error.response?.data?.message?.includes("email")) {
+            handleToaster("Este usuario ya está registrado. Redirigiendo...", "info");
+            // Si ya existe, simplemente redirigir
+            setTimeout(() => {
+              navigate("/");
+            }, 1500);
+          } else {
+            handleToaster("Error al guardar el cuestionario", "error");
+          }
+        });
     } else {
-      handleToaster("Por favor, llena todos los campos", "error");
+      handleToaster("Por favor, selecciona una problemática", "error");
     }
   }
 
@@ -63,34 +77,50 @@ function Step2({ state, userFromAuth0, setValuesOfUser, setCurrentStep }: Props)
   }
 
   return (
-    <div>
-      <section className="mb-8 text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4 dark:text-white">Selecciona tu unidad y problemática</h2>
-        <p className="text-gray-600 dark:text-gray-300">
-          Por favor, selecciona la unidad y la problemática que mejor describan los temas que llevarás durante toda la unidad. Esto nos
-          ayudará a personalizar tus sesiones de manera más efectiva.
+    <div className="space-y-8 ">
+      <section className="text-center space-y-4">
+        <h2 className="text-4xl font-bold text-gray-900 dark:text-white">Selecciona tu problemática</h2>
+        <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+          Elige la problemática que mejor describa el contexto de tus estudiantes. Esto nos ayudará a personalizar tus sesiones de manera
+          más efectiva.
         </p>
       </section>
-      <section className="w-full flex flex-col gap-2">
-        <CustomSelectCI
-          array={unidades || []}
-          setValuesOfUser={setValuesOfUser}
-          placeholder="Selecciona una unidad"
-          valueToSet="unidadId"
-          label="Unidad"
-          state={state}
-        />
-      </section>
 
-      <section className="w-full flex flex-col gap-2">
-        <CustomSelectCI
-          array={problematicas || []}
-          setValuesOfUser={setValuesOfUser}
-          placeholder="Selecciona una problemática"
-          valueToSet="problematicaId"
-          label="Problemática"
-          state={state}
-        />
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[600px] overflow-y-auto overflow-x-hidden pr-2 pb-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent px-20 py-4">
+        {problematicas?.map((problematica) => (
+          <Card
+            key={problematica.id}
+            className={`cursor-pointer transition-all duration-200 hover:shadow-xl hover:scale-[1.02] overflow-hidden ${
+              state.problematicaId === problematica.id
+                ? "border-blue-500 border-2 bg-blue-50 dark:bg-blue-950 shadow-lg"
+                : "hover:border-gray-400"
+            }`}
+            onClick={() =>
+              setValuesOfUser((prevState) => ({
+                ...prevState,
+                problematicaId: problematica.id,
+              }))
+            }
+          >
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between gap-3">
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-white leading-tight break-words">
+                  {problematica.nombre}
+                </CardTitle>
+                {state.problematicaId === problematica.id && (
+                  <div className="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <Check className="w-5 h-5 text-white" />
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base text-gray-600 dark:text-gray-400 line-clamp-4 leading-relaxed break-words">
+                {problematica.descripcion}
+              </CardDescription>
+            </CardContent>
+          </Card>
+        ))}
       </section>
 
       <CustomInputCI handleNextStep={handleChange} beforeButton handleBeforeStep={handleBeforeStep} />
