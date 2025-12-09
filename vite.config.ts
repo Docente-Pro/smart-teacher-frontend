@@ -11,5 +11,12 @@ export default defineConfig({
     server: {
         port: 5173,
         strictPort: true,
+        proxy: {
+            "/api/htmldocs": {
+                target: "https://htmldocs.com",
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api\/htmldocs/, "/api"),
+            },
+        },
     },
 });

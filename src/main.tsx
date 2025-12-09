@@ -3,30 +3,36 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { routes } from "./routes/index.routes";
-import { Auth0Provider } from "@auth0/auth0-react";
+import { CustomAuth0Provider } from "./providers/CustomAuth0Provider";
 import { Toaster } from "sonner";
+import { useSessionRestore } from "./hooks/useSessionRestore";
+import { GlobalLoading } from "./components/GlobalLoading";
+import { useLoadingStore } from "./store/loading.store";
 
-const redirectUri = window.location.origin;
+// Componente wrapper para usar el hook de restauración de sesión
+function App() {
+  useSessionRestore();
+  const { isLoading, loadingMessage } = useLoadingStore();
+  
+  return (
+    <>
+      {isLoading && <GlobalLoading message={loadingMessage} />}
+      <Routes>
+        {routes.map((routes, index) => (
+          <Route key={index} path={routes.path} element={routes.element} />
+        ))}
+      </Routes>
+    </>
+  );
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Auth0Provider
-      domain={import.meta.env.VITE_AUTH0_DOMAIN}
-      clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
-      authorizationParams={{
-        redirect_uri: redirectUri,
-        scope: "openid profile email",
-      }}
-      cacheLocation="localstorage"
-    >
-      <BrowserRouter>
-        <Routes>
-          {routes.map((routes, index) => (
-            <Route key={index} path={routes.path} element={routes.element} />
-          ))}
-        </Routes>
+    <BrowserRouter>
+      <CustomAuth0Provider>
+        <App />
         <Toaster />
-      </BrowserRouter>
-    </Auth0Provider>
+      </CustomAuth0Provider>
+    </BrowserRouter>
   </StrictMode>
 );

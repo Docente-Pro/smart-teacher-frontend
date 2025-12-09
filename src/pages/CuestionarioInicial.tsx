@@ -5,7 +5,7 @@ import Step2 from "@/components/StepsCuestionarioInicial/Step2";
 import { initialStateCuestionarioInicial } from "@/constants/initialStateCuestionarioInicial";
 import { IUsuarioToCreate } from "@/interfaces/IUsuario";
 import { getUsuarioByEmail } from "@/services/usuarios.service";
-import { userStore } from "@/store/user.store";
+import { useUserStore } from "@/store/user.store";
 import { encrypt } from "@/utils/cryptoUtil";
 import { useAuth0 } from "@auth0/auth0-react";
 import { log } from "console";
@@ -19,7 +19,7 @@ function CuestionarioInicial() {
   const [loading, setLoading] = useState<boolean>(true);
   const [redirectToHome, setRedirectToHome] = useState<boolean>(false);
 
-  const { setUsuario } = userStore();
+  const { setUsuario } = useUserStore();
 
   const navigate = useNavigate();
 

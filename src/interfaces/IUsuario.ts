@@ -1,4 +1,5 @@
 import { ISesion } from "./ISesion";
+import { ISuscripcion } from "./ISuscripcion";
 
 // Interface para crear un nuevo usuario (onboarding)
 export interface IUsuarioToCreate {
@@ -24,6 +25,7 @@ export interface IUsuarioToUpdate {
   nivelId?: number;
   gradoId?: number;
   problematicaId?: number;
+  problematicaCompleta?: boolean;
 }
 
 // Interface completa del usuario (respuesta del backend)
@@ -52,13 +54,7 @@ export interface IUsuario {
     nombre: string;
     descripcion: string;
   };
-  suscripcion?: {
-    id: string;
-    fechaInicio: string;
-    fechaFin?: string;
-    activa: boolean;
-    plan: string;
-  };
+  suscripcion?: ISuscripcion;
   sesiones?: ISesion[];
 }
 

@@ -1,0 +1,10 @@
+export { DocumentStyles } from "./DocumentStyles";
+export { DocumentHeader } from "./DocumentHeader";
+export { DatosGeneralesSection } from "./DatosGeneralesSection";
+export { PropositoAprendizajeSection } from "./PropositoAprendizajeSection";
+export { PropositoSesionSection } from "./AdditionalSections";
+export { EnfoquesTransversalesSection } from "./EnfoquesTransversalesSection";
+export { PreparacionSesionSection } from "./PreparacionSesionSection";
+export { SecuenciaDidacticaSection } from "./SecuenciaDidacticaSection";
+export { ReflexionesSection } from "./ReflexionesSection";
+export { FirmasSection } from "./FirmasSection";

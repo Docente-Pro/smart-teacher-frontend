@@ -1,0 +1,218 @@
+import { IUsuario } from "@/interfaces/IUsuario";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowRight, ArrowLeft, Sparkles, Lightbulb, Wand2 } from "lucide-react";
+import { useSesionStore } from "@/store/sesion.store";
+import { handleToaster } from "@/utils/Toasters/handleToasters";
+import { instance } from "@/services/instance";
+
+interface Props {
+  pagina: number;
+  setPagina: (pagina: number) => void;
+  usuarioFromState: IUsuario;
+}
+
+function Step6({ pagina, setPagina }: Props) {
+  const { sesion, updateSesion } = useSesionStore();
+  const [queAprenderan, setQueAprenderan] = useState("");
+  const [como, setComo] = useState("");
+  const [paraQue, setParaQue] = useState("");
+  const [loadingIA, setLoadingIA] = useState(false);
+
+  // Inicializar desde el store si ya hay datos
+  useEffect(() => {
+    if (sesion?.propositoSesion) {
+      setQueAprenderan(sesion.propositoSesion.queAprenderan || "");
+      setComo(sesion.propositoSesion.como || "");
+      setParaQue(sesion.propositoSesion.paraQue || "");
+    }
+  }, [sesion]);
+
+  async function generarPropositoConIA() {
+    if (!sesion) return;
+
+    setLoadingIA(true);
+    try {
+      const response = await instance.post("/ia/generar-proposito-sesion", {
+        area: sesion.datosGenerales.area,
+        grado: sesion.datosGenerales.grado || "5to",
+        competencia: sesion.propositoAprendizaje.competencia,
+        capacidades: sesion.propositoAprendizaje.capacidades,
+        duracion: sesion.datosGenerales.duracion
+      });
+
+      const data = response.data;
+
+      if (data.success && data.data) {
+        setQueAprenderan(data.data.queAprenderan || "");
+        setComo(data.data.como || "");
+        setParaQue(data.data.paraQue || "");
+        
+        handleToaster("Propósito generado exitosamente con IA", "success");
+      }
+    } catch (error) {
+      console.error("Error al generar propósito con IA:", error);
+      handleToaster("Error al generar propósito con IA", "error");
+    } finally {
+      setLoadingIA(false);
+    }
+  }
+
+  function handleNextStep() {
+    if (!queAprenderan.trim()) {
+      handleToaster("Por favor completa '¿Qué aprenderán?'", "error");
+      return;
+    }
+    if (!como.trim()) {
+      handleToaster("Por favor completa '¿Cómo?'", "error");
+      return;
+    }
+    if (!paraQue.trim()) {
+      handleToaster("Por favor completa '¿Para qué?'", "error");
+      return;
+    }
+
+    // Actualizar el store
+    if (sesion) {
+      updateSesion({
+        propositoSesion: {
+          queAprenderan: queAprenderan.trim(),
+          como: como.trim(),
+          paraQue: paraQue.trim()
+        }
+      });
+    }
+
+    setPagina(pagina + 1);
+  }
+
+  if (!sesion) return null;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg mb-6 shadow-lg">
+            <Sparkles className="h-4 w-4" />
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-amber-600 text-xs font-bold">
+              6
+            </div>
+            <span className="text-sm font-semibold tracking-wide">PASO 6 DE 9</span>
+          </div>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4 tracking-tight">
+            Propósito de la Sesión
+          </h1>
+          <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">
+            Define el propósito pedagógico de esta sesión de aprendizaje
+          </p>
+          
+          {/* Botón Generar con IA */}
+          <Button
+            onClick={generarPropositoConIA}
+            disabled={loadingIA}
+            className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg"
+          >
+            <Wand2 className="h-5 w-5 mr-2" />
+            {loadingIA ? "Generando con IA..." : "Generar Propósito con IA"}
+          </Button>
+        </div>
+
+        {/* ¿Qué aprenderán? */}
+        <Card className="mb-6 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <div className="h-10 w-10 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
+                <Lightbulb className="h-6 w-6 text-white" />
+              </div>
+              ¿Qué aprenderán?
+            </CardTitle>
+            <CardDescription className="text-base">
+              Describe qué competencias, capacidades o conocimientos desarrollarán los estudiantes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Ejemplo: Los estudiantes aprenderán a resolver problemas de multiplicación usando diferentes estrategias y representaciones..."
+              value={queAprenderan}
+              onChange={(e) => setQueAprenderan(e.target.value)}
+              rows={4}
+              className="resize-none"
+            />
+          </CardContent>
+        </Card>
+
+        {/* ¿Cómo? */}
+        <Card className="mb-6 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                <Lightbulb className="h-6 w-6 text-white" />
+              </div>
+              ¿Cómo?
+            </CardTitle>
+            <CardDescription className="text-base">
+              Explica la metodología, estrategias o actividades que se usarán
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Ejemplo: A través de situaciones problemáticas contextualizadas, trabajo colaborativo, uso de material concreto y representaciones gráficas..."
+              value={como}
+              onChange={(e) => setComo(e.target.value)}
+              rows={4}
+              className="resize-none"
+            />
+          </CardContent>
+        </Card>
+
+        {/* ¿Para qué? */}
+        <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <div className="h-10 w-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                <Lightbulb className="h-6 w-6 text-white" />
+              </div>
+              ¿Para qué?
+            </CardTitle>
+            <CardDescription className="text-base">
+              Indica la finalidad o aplicación práctica del aprendizaje
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Ejemplo: Para que puedan aplicar la multiplicación en situaciones de su vida diaria y desarrollar su razonamiento matemático..."
+              value={paraQue}
+              onChange={(e) => setParaQue(e.target.value)}
+              rows={4}
+              className="resize-none"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Botones de navegación */}
+        <div className="flex justify-between items-center">
+          <Button
+            onClick={() => setPagina(pagina - 1)}
+            variant="outline"
+            className="h-14 px-8 text-lg font-semibold border-2"
+          >
+            <ArrowLeft className="mr-2 h-5 w-5" />
+            Anterior
+          </Button>
+          <Button
+            onClick={handleNextStep}
+            className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
+          >
+            Continuar
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Step6;

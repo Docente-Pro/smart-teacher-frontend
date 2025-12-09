@@ -4,6 +4,4 @@ export interface ICreateUnidad {
 }
 
 export interface ICreateProblematica {
-  nombre: string;
-  descripcion: string;
-}
+  problematicaId: number;}

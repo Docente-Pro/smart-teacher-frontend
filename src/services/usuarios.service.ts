@@ -1,4 +1,4 @@
-import { IUsuarioToCreate } from "@/interfaces/IUsuario";
+import { IUsuarioToCreate, IUsuarioToUpdate } from "@/interfaces/IUsuario";
 import { instance } from "./instance";
 
 function getAllUsuarios() {
@@ -17,4 +17,8 @@ function getUsuarioByEmail(data: { email: string }) {
   return instance.post(`/usuario/email`, data);
 }
 
-export { getAllUsuarios, createNewUsuario, getUsuarioById, getUsuarioByEmail };
+function updateUsuario(id: string, data: IUsuarioToUpdate) {
+  return instance.patch(`/usuario/${id}`, data);
+}
+
+export { getAllUsuarios, createNewUsuario, getUsuarioById, getUsuarioByEmail, updateUsuario };
