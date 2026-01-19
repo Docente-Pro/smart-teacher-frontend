@@ -107,8 +107,15 @@ export function useCustomAuth() {
       await injectTokensIntoAuth0(tokens);
       
       return tokens;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al refrescar sesión:', error);
+      
+      // Si el error indica que se requiere reautenticación, limpiar todo y redirigir
+      if (error.message === 'REQUIRES_REAUTH' || error.requiresReauth) {
+        const { handleSessionExpiration } = await import('@/utils/auth-helpers');
+        handleSessionExpiration();
+      }
+      
       throw error;
     }
   };

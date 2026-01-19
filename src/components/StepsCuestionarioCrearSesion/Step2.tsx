@@ -11,6 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Target, CheckCircle2, ArrowRight, ArrowLeft, Award, Sparkles } from "lucide-react";
 import { useSesionStore } from "@/store/sesion.store";
 import { getAllAreas } from "@/services/areas.service";
+import { SelectorTemas } from "@/components/SelectorTemas";
+import { useCompetenciaSugerida } from "@/hooks/useCompetenciaSugerida";
+import { CompetenciaSugerida } from "@/components/CompetenciaSugerida";
 
 interface Props {
   pagina: number;
@@ -25,6 +28,14 @@ function Step2({ pagina, setPagina }: Props) {
   const [loadingCompetencias, setLoadingCompetencias] = useState(true);
   const [loadingCapacidades, setLoadingCapacidades] = useState(false);
   const [competenciaSeleccionada, setCompetenciaSeleccionada] = useState<string>("");
+  const [areaId, setAreaId] = useState<number | null>(null);
+
+  // Hook para sugerencia de competencia por IA
+  const { sugerencia, loading: loadingSugerencia, clearSugerencia } = useCompetenciaSugerida({
+    areaId,
+    temaId: sesion?.temaId || null,
+    enabled: !!areaId && !!sesion?.temaId,
+  });
 
   // Cargar competencias basándose en el área seleccionada
   useEffect(() => {
@@ -39,6 +50,7 @@ function Step2({ pagina, setPagina }: Props) {
         const areaEncontrada = areas.find((a: any) => a.nombre === sesion.datosGenerales.area);
         
         if (areaEncontrada) {
+          setAreaId(areaEncontrada.id); // Guardar areaId para el hook de sugerencia
           const response = await getCompetencyById(areaEncontrada.id);
           setCompetencias(response.data.data || response.data);
         }
@@ -99,13 +111,32 @@ function Step2({ pagina, setPagina }: Props) {
     }
   }, [sesion]);
 
+  // Aplicar automáticamente la sugerencia de la IA
+  useEffect(() => {
+    if (sugerencia) {
+      // Aplicar siempre que llegue una nueva sugerencia
+      console.log('🤖 Aplicando sugerencia automática:', sugerencia.competencia.nombre);
+      setCompetenciaSeleccionada(sugerencia.competencia.nombre);
+    }
+  }, [sugerencia]);
+
   function handleClick(competenciaNombre: string) {
+    // Limpiar sugerencia cuando el usuario selecciona manualmente
+    if (sugerencia) {
+      clearSugerencia();
+    }
     // Limpiar capacidades al cambiar de competencia
     setCapacidadesSeleccionadas([]);
     setCompetenciaSeleccionada(competenciaNombre);
   }
 
   function handleNextStep() {
+    // Validar que haya tema curricular
+    if (!sesion?.temaCurricular || sesion.temaCurricular.trim() === "") {
+      handleToaster("Por favor selecciona o crea un tema curricular", "error");
+      return;
+    }
+
     if (competenciaSeleccionada) {
       setPagina(pagina + 1);
     } else {
@@ -128,12 +159,28 @@ function Step2({ pagina, setPagina }: Props) {
             <span className="text-sm font-semibold tracking-wide">PASO 2 DE 9</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 tracking-tight">
-            Competencias y Capacidades
+            Tema, Competencias y Capacidades
           </h1>
           <p className="text-xl text-slate-600 dark:text-slate-400">
-            Selecciona las competencias y capacidades que trabajarás en esta sesión
+            Define el tema curricular y selecciona las competencias que trabajarás
           </p>
         </div>
+
+        {/* 🆕 Selector de Tema Curricular */}
+        <div className="mb-8">
+          <SelectorTemas />
+        </div>
+
+        {/* 🤖 Sugerencia de Competencia por IA */}
+        {(loadingSugerencia || sugerencia) && (
+          <div className="mb-8">
+            <CompetenciaSugerida
+              sugerencia={sugerencia}
+              loading={loadingSugerencia}
+              variant="auto"
+            />
+          </div>
+        )}
 
         {/* Selección de Competencia */}
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
@@ -290,7 +337,7 @@ function Step2({ pagina, setPagina }: Props) {
           </Button>
           <Button
             onClick={handleNextStep}
-            disabled={!competenciaSeleccionada}
+            disabled={!competenciaSeleccionada || !sesion?.temaCurricular}
             className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continuar

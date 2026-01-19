@@ -116,3 +116,35 @@ export async function generateAndDownloadPDF(
     throw error;
   }
 }
+
+/**
+ * Genera un PDF Blob desde un elemento HTML (sin descargar)
+ * @param element Elemento HTML a convertir
+ * @param options Opciones adicionales de generación
+ * @returns Blob del PDF generado
+ */
+export async function generatePDFBlob(
+  element: HTMLElement,
+  options: Partial<GeneratePDFOptions> = {}
+): Promise<Blob> {
+  try {
+    const html = htmlElementToString(element);
+    
+    const response = await generatePDFFromHTML({
+      html,
+      format: "pdf",
+      size: "A4",
+      orientation: "portrait",
+      ...options,
+    });
+
+    if (response.data instanceof Blob) {
+      return response.data;
+    } else {
+      throw new Error("Formato de respuesta inválido");
+    }
+  } catch (error) {
+    console.error("Error al generar PDF Blob:", error);
+    throw error;
+  }
+}

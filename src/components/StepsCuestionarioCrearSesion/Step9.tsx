@@ -1,8 +1,11 @@
 import { IUsuario } from "@/interfaces/IUsuario";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Edit, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, FileText, Edit, Sparkles, Check, X } from "lucide-react";
 import { useSesionStore } from "@/store/sesion.store";
+import { handleToaster } from "@/utils/Toasters/handleToasters";
 
 interface Props {
   pagina: number;
@@ -11,7 +14,13 @@ interface Props {
 }
 
 function Step9({ pagina, setPagina }: Props) {
-  const { sesion } = useSesionStore();
+  const { sesion, updateSesion } = useSesionStore();
+  const [editingGrade, setEditingGrade] = useState(false);
+  const [gradeValue, setGradeValue] = useState("");
+
+  useEffect(() => {
+    setGradeValue(sesion?.datosGenerales.grado || "");
+  }, [sesion]);
 
   function handleGenerarPDF() {
     // Navegar a la página de resultado donde se generará el PDF
@@ -28,9 +37,9 @@ function Step9({ pagina, setPagina }: Props) {
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-green-600 text-xs font-bold">
-              9
+              8
             </div>
-            <span className="text-sm font-semibold tracking-wide">PASO 9 DE 9</span>
+            <span className="text-sm font-semibold tracking-wide">PASO 8 DE 8</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4 tracking-tight">
             ¡Sesión Completada!
@@ -42,18 +51,69 @@ function Step9({ pagina, setPagina }: Props) {
 
         {/* Resumen de la sesión */}
         <div className="space-y-6">
+          {/* Título de la Sesión */}
+          {sesion.titulo && (
+            <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
+                <CardTitle className="text-xl">Título de la Sesión</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <p className="text-2xl font-bold text-slate-900 dark:text-white text-center">
+                  {sesion.titulo}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Datos Generales */}
           <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-xl">
             <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl">Datos Generales</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setPagina(1)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4 grid grid-cols-2 gap-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl">Datos Generales</CardTitle>
+                  <div className="flex items-center gap-2">
+                    {editingGrade ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            // Cancelar edición
+                            setGradeValue(sesion?.datosGenerales.grado || "");
+                            setEditingGrade(false);
+                          }}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            if (!sesion) return;
+                            updateSesion({
+                              datosGenerales: {
+                                ...sesion.datosGenerales,
+                                grado: gradeValue
+                              }
+                            });
+                            setEditingGrade(false);
+                            handleToaster("Grado actualizado", "success");
+                          }}
+                          className="bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          Guardar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="ghost" size="sm" onClick={() => setEditingGrade(true)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar Grado
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Institución</p>
                 <p className="text-slate-900 dark:text-white">{sesion.datosGenerales.institucion || "No especificado"}</p>
@@ -70,12 +130,14 @@ function Step9({ pagina, setPagina }: Props) {
                 <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Duración</p>
                 <p className="text-slate-900 dark:text-white">{sesion.datosGenerales.duracion || "No especificado"}</p>
               </div>
-              {sesion.datosGenerales.grado && (
-                <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Grado</p>
-                  <p className="text-slate-900 dark:text-white">{sesion.datosGenerales.grado}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Grado</p>
+                {editingGrade ? (
+                  <Input value={gradeValue} onChange={(e) => setGradeValue((e as any).target.value)} />
+                ) : (
+                  <p className="text-slate-900 dark:text-white">{sesion.datosGenerales.grado || "No especificado"}</p>
+                )}
+              </div>
               {sesion.datosGenerales.nivel && (
                 <div>
                   <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Nivel</p>
@@ -179,18 +241,27 @@ function Step9({ pagina, setPagina }: Props) {
               </div>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">¿Qué aprenderán?</p>
-                <p className="text-slate-900 dark:text-white">{sesion.propositoSesion.queAprenderan}</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">¿Cómo?</p>
-                <p className="text-slate-900 dark:text-white">{sesion.propositoSesion.como}</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">¿Para qué?</p>
-                <p className="text-slate-900 dark:text-white">{sesion.propositoSesion.paraQue}</p>
-              </div>
+              {typeof sesion.propositoSesion === 'string' ? (
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Propósito</p>
+                  <p className="text-slate-900 dark:text-white">{sesion.propositoSesion}</p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">¿Qué aprenderán?</p>
+                    <p className="text-slate-900 dark:text-white">{(sesion.propositoSesion as any).queAprenderan}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">¿Cómo?</p>
+                    <p className="text-slate-900 dark:text-white">{(sesion.propositoSesion as any).como}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">¿Para qué?</p>
+                    <p className="text-slate-900 dark:text-white">{(sesion.propositoSesion as any).paraQue}</p>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -240,21 +311,68 @@ function Step9({ pagina, setPagina }: Props) {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-4 space-y-3">
+            <CardContent className="pt-4 space-y-4">
+              {/* INICIO */}
               <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
                   Inicio - {sesion.secuenciaDidactica.inicio.tiempo} ({sesion.secuenciaDidactica.inicio.procesos.length} procesos)
                 </p>
+                {sesion.secuenciaDidactica.inicio.procesos.map((proceso: any, idx) => (
+                  proceso.problemaMatematico && (
+                    <div key={idx} className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      {proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
+                        <img 
+                          src={proceso.imagenProblema} 
+                          alt="Problema" 
+                          className="w-full max-w-sm rounded-lg shadow-md mb-2"
+                        />
+                      )}
+                      <p className="text-sm text-slate-700 dark:text-slate-300">{proceso.problemaMatematico}</p>
+                    </div>
+                  )
+                ))}
               </div>
+              
+              {/* DESARROLLO */}
               <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
                   Desarrollo - {sesion.secuenciaDidactica.desarrollo.tiempo} ({sesion.secuenciaDidactica.desarrollo.procesos.length} procesos)
                 </p>
+                {sesion.secuenciaDidactica.desarrollo.procesos.map((proceso: any, idx) => (
+                  proceso.problemaMatematico && (
+                    <div key={idx} className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      {proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
+                        <img 
+                          src={proceso.imagenProblema} 
+                          alt="Problema" 
+                          className="w-full max-w-sm rounded-lg shadow-md mb-2"
+                        />
+                      )}
+                      <p className="text-sm text-slate-700 dark:text-slate-300">{proceso.problemaMatematico}</p>
+                    </div>
+                  )
+                ))}
               </div>
+              
+              {/* CIERRE */}
               <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
                   Cierre - {sesion.secuenciaDidactica.cierre.tiempo} ({sesion.secuenciaDidactica.cierre.procesos.length} procesos)
                 </p>
+                {sesion.secuenciaDidactica.cierre.procesos.map((proceso: any, idx) => (
+                  proceso.problemaMatematico && (
+                    <div key={idx} className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      {proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
+                        <img 
+                          src={proceso.imagenProblema} 
+                          alt="Problema" 
+                          className="w-full max-w-sm rounded-lg shadow-md mb-2"
+                        />
+                      )}
+                      <p className="text-sm text-slate-700 dark:text-slate-300">{proceso.problemaMatematico}</p>
+                    </div>
+                  )
+                ))}
               </div>
             </CardContent>
           </Card>

@@ -8,6 +8,7 @@ import { ArrowRight, ArrowLeft, Sparkles, PlayCircle, Circle, CheckCircle, Plus,
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { instance } from "@/services/instance";
+import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 
 interface Props {
   pagina: number;
@@ -24,7 +25,7 @@ interface Proceso {
 
 function Step8({ pagina, setPagina }: Props) {
   const { sesion, updateSesion } = useSesionStore();
-  
+
   // Estados para INICIO
   const [inicioTiempo, setInicioTiempo] = useState("15 min");
   const [inicioProcesos, setInicioProcesos] = useState<Proceso[]>([]);
@@ -42,11 +43,11 @@ function Step8({ pagina, setPagina }: Props) {
     proceso: "",
     estrategias: "",
     recursosDidacticos: "",
-    tiempo: ""
+    tiempo: "",
   });
   const [seccionActual, setSeccionActual] = useState<"inicio" | "desarrollo" | "cierre">("inicio");
   const [loadingIA, setLoadingIA] = useState(false);
-  const [procesoEnEdicion, setProcesoEnEdicion] = useState<{seccion: "inicio" | "desarrollo" | "cierre", index: number} | null>(null);
+  const [procesoEnEdicion, setProcesoEnEdicion] = useState<{ seccion: "inicio" | "desarrollo" | "cierre"; index: number } | null>(null);
   const [procesoEditado, setProcesoEditado] = useState<Proceso | null>(null);
 
   // Función para calcular el tiempo total de la sesión
@@ -56,7 +57,7 @@ function Step8({ pagina, setPagina }: Props) {
     // Función auxiliar para extraer minutos de un string (ej: "15 min", "1h 30min", "45")
     const extraerMinutos = (tiempo: string): number => {
       if (!tiempo) return 0;
-      
+
       const str = tiempo.toLowerCase().trim();
       let minutos = 0;
 
@@ -81,9 +82,9 @@ function Step8({ pagina, setPagina }: Props) {
     };
 
     // Sumar tiempos de todos los procesos
-    inicioProcesos.forEach(p => totalMinutos += extraerMinutos(p.tiempo));
-    desarrolloProcesos.forEach(p => totalMinutos += extraerMinutos(p.tiempo));
-    cierreProcesos.forEach(p => totalMinutos += extraerMinutos(p.tiempo));
+    inicioProcesos.forEach((p) => (totalMinutos += extraerMinutos(p.tiempo)));
+    desarrolloProcesos.forEach((p) => (totalMinutos += extraerMinutos(p.tiempo)));
+    cierreProcesos.forEach((p) => (totalMinutos += extraerMinutos(p.tiempo)));
 
     return totalMinutos;
   }
@@ -91,7 +92,7 @@ function Step8({ pagina, setPagina }: Props) {
   // Función para formatear minutos a formato legible
   function formatearTiempo(minutos: number): string {
     if (minutos === 0) return "0 min";
-    
+
     const horas = Math.floor(minutos / 60);
     const mins = minutos % 60;
 
@@ -108,17 +109,17 @@ function Step8({ pagina, setPagina }: Props) {
   useEffect(() => {
     if (sesion?.secuenciaDidactica) {
       const { inicio, desarrollo, cierre } = sesion.secuenciaDidactica;
-      
+
       if (inicio) {
         setInicioTiempo(inicio.tiempo || "15 min");
         setInicioProcesos(inicio.procesos || []);
       }
-      
+
       if (desarrollo) {
         setDesarrolloTiempo(desarrollo.tiempo || "60 min");
         setDesarrolloProcesos(desarrollo.procesos || []);
       }
-      
+
       if (cierre) {
         setCierreTiempo(cierre.tiempo || "15 min");
         setCierreProcesos(cierre.procesos || []);
@@ -160,7 +161,7 @@ function Step8({ pagina, setPagina }: Props) {
     if (seccion === "inicio") proceso = inicioProcesos[index];
     else if (seccion === "desarrollo") proceso = desarrolloProcesos[index];
     else proceso = cierreProcesos[index];
-    
+
     setProcesoEnEdicion({ seccion, index });
     setProcesoEditado({ ...proceso });
   }
@@ -172,9 +173,9 @@ function Step8({ pagina, setPagina }: Props) {
 
   function guardarEdicionProceso() {
     if (!procesoEnEdicion || !procesoEditado) return;
-    
+
     const { seccion, index } = procesoEnEdicion;
-    
+
     if (seccion === "inicio") {
       const updated = [...inicioProcesos];
       updated[index] = procesoEditado;
@@ -188,7 +189,7 @@ function Step8({ pagina, setPagina }: Props) {
       updated[index] = procesoEditado;
       setCierreProcesos(updated);
     }
-    
+
     setProcesoEnEdicion(null);
     setProcesoEditado(null);
     handleToaster("Proceso actualizado exitosamente", "success");
@@ -200,11 +201,15 @@ function Step8({ pagina, setPagina }: Props) {
     setLoadingIA(true);
     try {
       const response = await instance.post("/ia/generar-secuencia-didactica", {
+        temaId: sesion.temaId, // 🆕 ID del tema del currículo
         datosGenerales: sesion.datosGenerales,
         propositoAprendizaje: sesion.propositoAprendizaje,
         propositoSesion: sesion.propositoSesion,
         criteriosEvaluacion: sesion.propositoAprendizaje.criteriosEvaluacion,
-        preparacion: sesion.preparacion
+        preparacion: sesion.preparacion,
+        tipoGrafico: sesion.preparacion?.tipoGraficoPreferido && sesion.preparacion.tipoGraficoPreferido !== "AUTO" 
+          ? sesion.preparacion.tipoGraficoPreferido 
+          : undefined, // Tipo de gráfico preferido (undefined = automático)
       });
 
       const data = response.data;
@@ -227,6 +232,16 @@ function Step8({ pagina, setPagina }: Props) {
           setCierreTiempo(data.data.cierre.tiempo || "15 min");
           setCierreProcesos(data.data.cierre.procesos || []);
         }
+
+        // ⭐ GUARDAR TODO EN EL STORE (título + secuenciaDidactica)
+        updateSesion({
+          titulo: data.data.titulo || sesion.titulo,
+          secuenciaDidactica: {
+            inicio: data.data.inicio || { tiempo: "15 min", procesos: [] },
+            desarrollo: data.data.desarrollo || { tiempo: "60 min", procesos: [] },
+            cierre: data.data.cierre || { tiempo: "15 min", procesos: [] },
+          },
+        });
 
         handleToaster("Secuencia didáctica generada exitosamente con IA", "success");
       }
@@ -258,17 +273,17 @@ function Step8({ pagina, setPagina }: Props) {
         secuenciaDidactica: {
           inicio: {
             tiempo: inicioTiempo,
-            procesos: inicioProcesos
+            procesos: inicioProcesos,
           },
           desarrollo: {
             tiempo: desarrolloTiempo,
-            procesos: desarrolloProcesos
+            procesos: desarrolloProcesos,
           },
           cierre: {
             tiempo: cierreTiempo,
-            procesos: cierreProcesos
-          }
-        }
+            procesos: cierreProcesos,
+          },
+        },
       });
     }
 
@@ -291,10 +306,13 @@ function Step8({ pagina, setPagina }: Props) {
       <div className="space-y-6">
         {procesos.map((proc, index) => {
           const estaEditando = procesoEnEdicion?.seccion === seccion && procesoEnEdicion?.index === index;
-          
+
           if (estaEditando && procesoEditado) {
             return (
-              <div key={index} className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 rounded-xl border-2 border-emerald-400 dark:border-emerald-600 shadow-xl">
+              <div
+                key={index}
+                className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 rounded-xl border-2 border-emerald-400 dark:border-emerald-600 shadow-xl"
+              >
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
                     {index + 1}
@@ -306,14 +324,14 @@ function Step8({ pagina, setPagina }: Props) {
                     <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1 block">Proceso</label>
                     <Input
                       value={procesoEditado.proceso}
-                      onChange={(e) => setProcesoEditado({...procesoEditado, proceso: e.target.value})}
+                      onChange={(e) => setProcesoEditado({ ...procesoEditado, proceso: e.target.value })}
                     />
                   </div>
                   <div>
                     <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1 block">Estrategias</label>
                     <Textarea
                       value={procesoEditado.estrategias}
-                      onChange={(e) => setProcesoEditado({...procesoEditado, estrategias: e.target.value})}
+                      onChange={(e) => setProcesoEditado({ ...procesoEditado, estrategias: e.target.value })}
                       rows={3}
                     />
                   </div>
@@ -322,14 +340,14 @@ function Step8({ pagina, setPagina }: Props) {
                       <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1 block">Recursos</label>
                       <Input
                         value={procesoEditado.recursosDidacticos}
-                        onChange={(e) => setProcesoEditado({...procesoEditado, recursosDidacticos: e.target.value})}
+                        onChange={(e) => setProcesoEditado({ ...procesoEditado, recursosDidacticos: e.target.value })}
                       />
                     </div>
                     <div>
                       <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1 block">Tiempo</label>
                       <Input
                         value={procesoEditado.tiempo}
-                        onChange={(e) => setProcesoEditado({...procesoEditado, tiempo: e.target.value})}
+                        onChange={(e) => setProcesoEditado({ ...procesoEditado, tiempo: e.target.value })}
                       />
                     </div>
                   </div>
@@ -345,9 +363,12 @@ function Step8({ pagina, setPagina }: Props) {
               </div>
             );
           }
-          
+
           return (
-            <div key={index} className="group relative p-6 bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 hover:border-emerald-400 dark:hover:border-emerald-600">
+            <div
+              key={index}
+              className="group relative p-6 bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 hover:border-emerald-400 dark:hover:border-emerald-600"
+            >
               <div className="flex items-start justify-between gap-4 mb-5">
                 <div className="flex items-start gap-4 flex-1">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0">
@@ -381,8 +402,86 @@ function Step8({ pagina, setPagina }: Props) {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="space-y-4 ml-11">
+                {/* Mostrar gráficos/imágenes del problema matemático si existen */}
+                {(proc as any).problemaMatematico && (
+                  <div className="space-y-3">
+                    {/* Gráfico del problema (Rough.js) - soporta 'grafico' o 'graficoProblema' */}
+                    {((proc as any).grafico || (proc as any).graficoProblema) && (
+                      <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
+                        <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-2">📝 Problema Matemático:</p>
+                        <div className="flex justify-center">
+                          <GraficoRenderer grafico={(proc as any).grafico || (proc as any).graficoProblema} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback: Imagen del problema (legacy) */}
+                    {!(proc as any).grafico &&
+                      !(proc as any).graficoProblema &&
+                      (proc as any).imagenProblema &&
+                      (proc as any).imagenProblema !== "GENERATE_IMAGE" && (
+                        <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                          <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-2">📝 Problema Matemático:</p>
+                          <img
+                            src={(proc as any).imagenProblema}
+                            alt="Problema matemático"
+                            className="w-full max-w-md rounded-lg shadow-md mb-2"
+                          />
+                        </div>
+                      )}
+
+                    {/* Texto del problema */}
+                    <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-l-4 border-blue-500">
+                      <p className="text-slate-700 dark:text-slate-300">{(proc as any).problemaMatematico}</p>
+                    </div>
+
+                    {/* Gráfico de la solución (Rough.js) - soporta 'graficoSolucion' */}
+                    {(proc as any).graficoSolucion && (
+                      <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                        <p className="text-sm font-bold text-green-700 dark:text-green-400 mb-2">✅ Solución:</p>
+                        <div className="flex justify-center">
+                          <GraficoRenderer grafico={(proc as any).graficoSolucion} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback: Imagen de la solución (legacy) */}
+                    {!(proc as any).graficoSolucion &&
+                      (proc as any).imagenSolucion &&
+                      (proc as any).imagenSolucion !== "GENERATE_IMAGE" && (
+                        <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                          <p className="text-sm font-bold text-green-700 dark:text-green-400 mb-2">✅ Solución:</p>
+                          <img
+                            src={(proc as any).imagenSolucion}
+                            alt="Solución del problema"
+                            className="w-full max-w-md rounded-lg shadow-md mb-2"
+                          />
+                        </div>
+                      )}
+
+                    {/* Texto de la solución */}
+                    {(proc as any).solucionProblema && (
+                      <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border-l-4 border-green-500">
+                        <pre className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-sans text-sm">
+                          {(proc as any).solucionProblema}
+                        </pre>
+                      </div>
+                    )}
+
+                    {/* 🆕 Gráfico de la operación matemática (ecuacion_cajas, operacion_vertical, etc.) */}
+                    {(proc as any).graficoOperacion && (
+                      <div className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg border-2 border-purple-300 dark:border-purple-700 overflow-x-auto max-w-full">
+                        <p className="text-sm font-bold text-purple-700 dark:text-purple-400 mb-2">🔢 Operación Matemática:</p>
+                        <div className="flex justify-center">
+                          <GraficoRenderer grafico={(proc as any).graficoOperacion} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Estrategias:</p>
                   <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.estrategias}</p>
@@ -408,18 +507,14 @@ function Step8({ pagina, setPagina }: Props) {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-emerald-600 text-xs font-bold">
-              8
-            </div>
-            <span className="text-sm font-semibold tracking-wide">PASO 8 DE 9</span>
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-emerald-600 text-xs font-bold">7</div>
+            <span className="text-sm font-semibold tracking-wide">PASO 7 DE 8</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Secuencia Didáctica
           </h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">
-            Planifica las actividades de tu sesión
-          </p>
-          
+          <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">Planifica las actividades de tu sesión</p>
+
           {/* Botón IA */}
           <Button
             onClick={generarConIA}
@@ -443,11 +538,11 @@ function Step8({ pagina, setPagina }: Props) {
           >
             <PlayCircle className="h-5 w-5" />
             <span>Inicio</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-              seccionActual === "inicio" 
-                ? "bg-white/20 text-white" 
-                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-            }`}>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                seccionActual === "inicio" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+              }`}
+            >
               {inicioProcesos.length}
             </span>
           </button>
@@ -461,11 +556,13 @@ function Step8({ pagina, setPagina }: Props) {
           >
             <Circle className="h-5 w-5" />
             <span>Desarrollo</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-              seccionActual === "desarrollo" 
-                ? "bg-white/20 text-white" 
-                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-            }`}>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                seccionActual === "desarrollo"
+                  ? "bg-white/20 text-white"
+                  : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+              }`}
+            >
               {desarrolloProcesos.length}
             </span>
           </button>
@@ -479,11 +576,11 @@ function Step8({ pagina, setPagina }: Props) {
           >
             <CheckCircle className="h-5 w-5" />
             <span>Cierre</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-              seccionActual === "cierre" 
-                ? "bg-white/20 text-white" 
-                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-            }`}>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                seccionActual === "cierre" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+              }`}
+            >
               {cierreProcesos.length}
             </span>
           </button>
@@ -510,28 +607,34 @@ function Step8({ pagina, setPagina }: Props) {
                   <div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Inicio</p>
                     <p className="font-semibold text-green-600 dark:text-green-400">
-                      {formatearTiempo(inicioProcesos.reduce((acc, p) => {
-                        const mins = p.tiempo ? parseInt(p.tiempo.match(/\d+/)?.[0] || '0') : 0;
-                        return acc + mins;
-                      }, 0))}
+                      {formatearTiempo(
+                        inicioProcesos.reduce((acc, p) => {
+                          const mins = p.tiempo ? parseInt(p.tiempo.match(/\d+/)?.[0] || "0") : 0;
+                          return acc + mins;
+                        }, 0)
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Desarrollo</p>
                     <p className="font-semibold text-blue-600 dark:text-blue-400">
-                      {formatearTiempo(desarrolloProcesos.reduce((acc, p) => {
-                        const mins = p.tiempo ? parseInt(p.tiempo.match(/\d+/)?.[0] || '0') : 0;
-                        return acc + mins;
-                      }, 0))}
+                      {formatearTiempo(
+                        desarrolloProcesos.reduce((acc, p) => {
+                          const mins = p.tiempo ? parseInt(p.tiempo.match(/\d+/)?.[0] || "0") : 0;
+                          return acc + mins;
+                        }, 0)
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Cierre</p>
                     <p className="font-semibold text-orange-600 dark:text-orange-400">
-                      {formatearTiempo(cierreProcesos.reduce((acc, p) => {
-                        const mins = p.tiempo ? parseInt(p.tiempo.match(/\d+/)?.[0] || '0') : 0;
-                        return acc + mins;
-                      }, 0))}
+                      {formatearTiempo(
+                        cierreProcesos.reduce((acc, p) => {
+                          const mins = p.tiempo ? parseInt(p.tiempo.match(/\d+/)?.[0] || "0") : 0;
+                          return acc + mins;
+                        }, 0)
+                      )}
                     </p>
                   </div>
                 </div>
@@ -542,13 +645,15 @@ function Step8({ pagina, setPagina }: Props) {
 
         {/* Contenido de la sección activa */}
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-          <CardHeader className={`${
-            seccionActual === "inicio" 
-              ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950" 
-              : seccionActual === "desarrollo"
-              ? "bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950"
-              : "bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950"
-          }`}>
+          <CardHeader
+            className={`${
+              seccionActual === "inicio"
+                ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950"
+                : seccionActual === "desarrollo"
+                ? "bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950"
+                : "bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-3">
                 {seccionActual === "inicio" && <PlayCircle className="h-7 w-7 text-green-600 dark:text-green-400" />}
@@ -617,9 +722,7 @@ function Step8({ pagina, setPagina }: Props) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">
-                  Recursos Didácticos
-                </label>
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">Recursos Didácticos</label>
                 <Input
                   placeholder="Ej: Fichas, material concreto, proyector..."
                   value={nuevoProceso.recursosDidacticos}
@@ -628,9 +731,7 @@ function Step8({ pagina, setPagina }: Props) {
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">
-                  Tiempo Estimado
-                </label>
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">Tiempo Estimado</label>
                 <Input
                   placeholder="Ej: 10 min, 20 min..."
                   value={nuevoProceso.tiempo}
@@ -652,11 +753,7 @@ function Step8({ pagina, setPagina }: Props) {
 
         {/* Botones de navegación */}
         <div className="flex justify-between items-center">
-          <Button
-            onClick={() => setPagina(pagina - 1)}
-            variant="outline"
-            className="h-14 px-8 text-lg font-semibold border-2"
-          >
+          <Button onClick={() => setPagina(pagina - 1)} variant="outline" className="h-14 px-8 text-lg font-semibold border-2">
             <ArrowLeft className="mr-2 h-5 w-5" />
             Anterior
           </Button>

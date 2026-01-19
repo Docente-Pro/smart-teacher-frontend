@@ -1,12 +1,13 @@
 import Step1 from "@/components/StepsCuestionarioCrearSesion/Step1";
 import Step2 from "@/components/StepsCuestionarioCrearSesion/Step2";
-import Step3 from "@/components/StepsCuestionarioCrearSesion/Step3";
-
 import Step6 from "@/components/StepsCuestionarioCrearSesion/Step6";
 import Step5 from "@/components/StepsCuestionarioCrearSesion/Step5";
 import Step7 from "@/components/StepsCuestionarioCrearSesion/Step7";
 import Step8 from "@/components/StepsCuestionarioCrearSesion/Step8";
 import Step9 from "@/components/StepsCuestionarioCrearSesion/Step9";
+import Step4 from "@/components/StepsCuestionarioCrearSesion/Step4";
+import { StepIndicator } from "@/components/StepsCuestionarioCrearSesion/StepIndicator";
+import { SessionDrawer } from "@/components/StepsCuestionarioCrearSesion/SessionDrawer";
 import { IUsuario } from "@/interfaces/IUsuario";
 import { useAuth0 } from "@/hooks/useAuth0";
 import { useState, useEffect } from "react";
@@ -15,7 +16,17 @@ import { instance } from "@/services/instance";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useSesionStore } from "@/store/sesion.store";
 import { initialStateSesion } from "@/constants/initialStateSesion";
-import Step4 from "@/components/StepsCuestionarioCrearSesion/Step4";
+
+const STEPS = [
+  { number: 1, title: "Datos Generales", description: "Información básica" },
+  { number: 2, title: "Propósito", description: "Aprendizaje esperado" },
+  { number: 3, title: "Sesión", description: "Qué, cómo, para qué" },
+  { number: 4, title: "Criterios", description: "Evaluación" },
+  { number: 5, title: "Problemas", description: "Análisis" },
+  { number: 6, title: "Preparación", description: "Recursos" },
+  { number: 7, title: "Generar IA", description: "Secuencia" },
+  { number: 8, title: "Finalizar", description: "Revisión" },
+];
 
 function CuestionarioSesion() {
   const { user } = useAuth0();
@@ -74,42 +85,51 @@ function CuestionarioSesion() {
   }, [user?.id]);
 
   return (
-    <div className="mx-auto">
-      {currentStep === 1 && usuarioFromState && sesion && (
-        <Step1 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* Step Indicator */}
+      <StepIndicator 
+        steps={STEPS} 
+        currentStep={currentStep} 
+        onStepClick={setCurrentStep} 
+      />
 
-      {currentStep === 2 && usuarioFromState && sesion && (
-        <Step2 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-      )}
+      {/* Session Summary Drawer */}
+      <SessionDrawer />
 
-      {currentStep === 3 && usuarioFromState && sesion && (
-        <Step3 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-      )}
+      {/* Main Content */}
+      <div className="mx-auto">
+        {currentStep === 1 && usuarioFromState && sesion && (
+          <Step1 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+        )}
 
-      {currentStep === 4 && usuarioFromState && sesion && (
-        <Step4 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-      )}
+        {currentStep === 2 && usuarioFromState && sesion && (
+          <Step2 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+        )}
 
-      {currentStep === 5 && usuarioFromState && sesion && (
-        <Step6 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-      )}
+        {currentStep === 3 && usuarioFromState && sesion && (
+          <Step4 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+        )}
 
-      {currentStep === 6 && usuarioFromState && sesion && (
-        <Step5 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-      )}
+        {currentStep === 4 && usuarioFromState && sesion && (
+          <Step6 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+        )}
 
-      {currentStep === 7 && usuarioFromState && sesion && (
-        <Step7 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-      )}
+        {currentStep === 5 && usuarioFromState && sesion && (
+          <Step5 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+        )}
 
-      {currentStep === 8 && usuarioFromState && sesion && (
-        <Step8 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-      )}
+        {currentStep === 6 && usuarioFromState && sesion && (
+          <Step7 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+        )}
 
-      {currentStep === 9 && usuarioFromState && sesion && (
-        <Step9 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-      )}
+        {currentStep === 7 && usuarioFromState && sesion && (
+          <Step8 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+        )}
+
+        {currentStep === 8 && usuarioFromState && sesion && (
+          <Step9 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+        )}
+      </div>
     </div>
   );
 }

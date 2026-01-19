@@ -78,7 +78,7 @@ export const logoutWithBackend = async (): Promise<LogoutResponse> => {
  * Status codes posibles:
  * - 200: Refresh exitoso
  * - 400: refresh_token faltante
- * - 401: Refresh token inválido o expirado
+ * - 401: Refresh token inválido o expirado (puede incluir requiresReauth: true)
  */
 export const refreshAccessToken = async (refreshToken: string): Promise<RefreshTokenResponse> => {
   try {
@@ -91,6 +91,14 @@ export const refreshAccessToken = async (refreshToken: string): Promise<RefreshT
     console.error('Error al refrescar token:', error);
     
     const errorData: ErrorResponse = error.response?.data;
+    
+    // Si el backend indica que se requiere reautenticación, lanzar un error especial
+    if (error.response?.status === 401 && errorData?.requiresReauth) {
+      const reauthError = new Error('REQUIRES_REAUTH');
+      (reauthError as any).requiresReauth = true;
+      throw reauthError;
+    }
+    
     throw new Error(
       errorData?.message || 
       'Error al refrescar la sesión'

@@ -1,0 +1,162 @@
+/**
+ * Estilos para el componente BarrasComparacion
+ */
+@import './colores-minedu.css';
+
+.barras-comparacion {
+  padding: var(--spacing-lg);
+  background: var(--color-fondo);
+  border-radius: var(--border-radius);
+}
+
+/* ========== TÍTULO DEL EJE Y ========== */
+.eje-y-titulo {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-texto-secundario);
+  margin-bottom: var(--spacing-md);
+  font-weight: 500;
+}
+
+/* ========== CONTENEDOR DEL GRÁFICO ========== */
+.grafico-container {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+/* ========== EJE Y ========== */
+.eje-y {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-right: var(--spacing-md);
+  border-right: 2px solid var(--color-border);
+  min-height: 300px;
+}
+
+.marca-y {
+  font-size: var(--font-size-xs);
+  color: var(--color-texto-secundario);
+  text-align: right;
+  font-family: var(--font-family-mono);
+}
+
+/* ========== CONTENEDOR DE BARRAS ========== */
+.barras-container {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-lg);
+  padding: 0 var(--spacing-lg);
+  min-height: 300px;
+  border-bottom: 2px solid var(--color-texto-principal);
+  position: relative;
+}
+
+/* ========== WRAPPER DE BARRA ========== */
+.barra-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 50px;
+}
+
+/* ========== VISUAL DE LA BARRA ========== */
+.barra-visual {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.barra {
+  width: 100%;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  position: relative;
+  transition: all var(--transition-normal);
+  min-height: 30px;
+  cursor: pointer;
+}
+
+.barra:hover {
+  opacity: 0.8;
+  transform: scaleY(1.02);
+}
+
+/* ========== COLORES DE BARRAS ========== */
+.barra-rojo { background: var(--color-rojo); }
+.barra-naranja { background: var(--color-naranja); }
+.barra-amarillo { background: var(--color-amarillo); }
+.barra-verde { background: var(--color-verde); }
+.barra-azul { background: var(--color-azul); }
+.barra-morado { background: var(--color-morado); }
+.barra-neutro { background: var(--color-neutro); }
+
+/* ========== VALOR DE LA BARRA ========== */
+.valor {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: bold;
+  font-size: var(--font-size-base);
+  color: var(--color-texto-principal);
+  white-space: nowrap;
+}
+
+/* ========== ETIQUETA DE LA BARRA ========== */
+.barra-etiqueta {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-texto-principal);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+.barra-etiqueta .icono {
+  font-size: 24px;
+  line-height: 1;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .barras-container {
+    gap: var(--spacing-sm);
+    padding: 0 var(--spacing-sm);
+    min-height: 250px;
+  }
+  
+  .barra-wrapper {
+    min-width: 40px;
+  }
+  
+  .valor {
+    font-size: var(--font-size-sm);
+  }
+  
+  .barra-etiqueta {
+    font-size: var(--font-size-xs);
+  }
+  
+  .barra-etiqueta .icono {
+    font-size: 18px;
+  }
+}
+
+/* ========== IMPRESIÓN ========== */
+@media print {
+  .barras-comparacion {
+    page-break-inside: avoid;
+  }
+  
+  .barra:hover {
+    opacity: 1;
+    transform: none;
+  }
+}

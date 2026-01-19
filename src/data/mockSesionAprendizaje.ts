@@ -19,11 +19,7 @@ export const mockSesionAprendizaje: ISesionAprendizaje = {
 
   // Título y Propósito
   titulo: "Resolvemos problemas de multiplicación en situaciones de la vida cotidiana",
-  propositoSesion: {
-    queAprenderan: "Los estudiantes aprenderán a resolver problemas de multiplicación usando diferentes estrategias y representaciones.",
-    como: "A través de situaciones problemáticas contextualizadas, trabajo colaborativo, uso de material concreto y representaciones gráficas.",
-    paraQue: "Para que puedan aplicar la multiplicación en situaciones de su vida diaria y desarrollar su razonamiento matemático."
-  },
+  propositoSesion: "Los estudiantes aprenderán a resolver problemas de multiplicación usando diferentes estrategias y representaciones. A través de situaciones problemáticas contextualizadas, trabajo colaborativo, uso de material concreto y representaciones gráficas. Para que puedan aplicar la multiplicación en situaciones de su vida diaria y desarrollar su razonamiento matemático.",
 
   // Propósito del Aprendizaje
   propositoAprendizaje: {

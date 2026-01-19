@@ -1,7 +1,7 @@
 import { Document, Footer } from "@htmldocs/react";
 import { Button } from "@/components/ui/button";
 import { FileDown, Printer } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { usePDFGeneration } from "@/hooks/usePDFGeneration";
 import { DocumentStyles } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
@@ -100,7 +100,7 @@ function DocTest() {
             <Button 
               onClick={handleDownloadPDF} 
               disabled={isGenerating}
-              style={{gap: "0.5rem"}} 
+              style={{gap: "0.5rem"}}
               className="bg-gradient-to-r from-blue-600 to-cyan-600"
             >
               <FileDown className="h-4 w-4" />

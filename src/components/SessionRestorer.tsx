@@ -39,9 +39,17 @@ export function SessionRestorer({ children }: { children: React.ReactNode }) {
           console.log('🔄 Restaurando sesión con refresh token...');
           await refreshSession(refreshToken);
           console.log('✅ Sesión restaurada exitosamente');
-        } catch (error) {
+        } catch (error: any) {
           console.error('❌ Error al restaurar sesión:', error);
-          // Limpiar refresh token inválido
+          
+          // Si el error indica requiresReauth, no hacer nada más
+          // porque handleSessionExpiration ya se encargó de todo
+          if (error.message === 'REQUIRES_REAUTH' || error.requiresReauth) {
+            // Ya se limpió y redirigió en handleSessionExpiration
+            return;
+          }
+          
+          // Para otros errores, limpiar refresh token inválido
           localStorage.removeItem('refresh_token');
           
           // Redirigir a login solo si estamos en una ruta protegida

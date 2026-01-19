@@ -1,0 +1,88 @@
+/**
+ * Variables CSS - Colores Educativos MINEDU
+ * Paleta de colores para gráficos educativos
+ */
+
+:root {
+  /* ========== COLORES PRINCIPALES ========== */
+  --color-azul: #4A90E2;
+  --color-rojo: #E24A4A;
+  --color-amarillo: #F5D547;
+  --color-verde: #7ED321;
+  --color-naranja: #F5A623;
+  --color-morado: #BD10E0;
+  --color-neutro: #95A5A6;
+  
+  /* ========== COLORES PASTEL (FONDOS) ========== */
+  --color-azul-claro: #E3F2FD;
+  --color-rojo-claro: #FFEBEE;
+  --color-amarillo-claro: #FFF9E6;
+  --color-verde-claro: #E8F5E9;
+  --color-naranja-claro: #FFF3E0;
+  --color-morado-claro: #F3E5F5;
+  --color-neutro-claro: #ECEFF1;
+  
+  /* ========== COLORES DE TEXTO ========== */
+  --color-texto-principal: #2C3E50;
+  --color-texto-secundario: #7F8C8D;
+  --color-texto-claro: #FFFFFF;
+  
+  /* ========== COLORES DE INTERFAZ ========== */
+  --color-fondo: #FFFFFF;
+  --color-fondo-secundario: #F8F9FA;
+  --color-border: #E3F2FD;
+  --color-border-oscuro: #BDC3C7;
+  
+  /* ========== SOMBRAS ========== */
+  --sombra-suave: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --sombra-media: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --sombra-fuerte: 0 8px 16px rgba(0, 0, 0, 0.15);
+  
+  /* ========== BORDES ========== */
+  --border-radius: 8px;
+  --border-radius-small: 4px;
+  --border-radius-large: 12px;
+  
+  /* ========== ESPACIADO ========== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* ========== TIPOGRAFÍA ========== */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  --font-family-mono: 'Courier New', Courier, monospace;
+  
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  
+  /* ========== TRANSICIONES ========== */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+/* ========== MODO OSCURO (OPCIONAL) ========== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-fondo: #1E1E1E;
+    --color-fondo-secundario: #252526;
+    --color-texto-principal: #FFFFFF;
+    --color-texto-secundario: #CCCCCC;
+    --color-border: #3E3E42;
+  }
+}
+
+/* ========== UTILIDADES PARA IMPRESIÓN ========== */
+@media print {
+  :root {
+    /* Asegurar que los colores se impriman correctamente */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

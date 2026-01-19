@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { refreshAccessToken } from "@/services/backendAuth.service";
+import { handleSessionExpiration } from "@/utils/auth-helpers";
 
 /**
  * Hook que verifica si el usuario tiene una sesión válida
@@ -28,9 +29,16 @@ export const useSessionRestore = () => {
           const newTokens = await refreshAccessToken(refreshToken);
           setTokens(newTokens);
           console.log('✅ Sesión restaurada correctamente');
-        } catch (error) {
-          console.error('❌ Error al refrescar token, cerrando sesión:', error);
-          clearAuth();
+        } catch (error: any) {
+          console.error('❌ Error al refrescar token:', error);
+          
+          // Si el error indica que se requiere reautenticación, limpiar todo y redirigir
+          if (error.message === 'REQUIRES_REAUTH' || error.requiresReauth) {
+            handleSessionExpiration();
+          } else {
+            // Para otros errores, solo limpiar auth
+            clearAuth();
+          }
         }
       } else if (isAuthenticated) {
         console.log('✅ Sesión activa restaurada desde localStorage');

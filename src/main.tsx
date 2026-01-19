@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import "./features/graficos-educativos/presentation/styles/GraficosComunes.css";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { routes } from "./routes/index.routes";
 import { CustomAuth0Provider } from "./providers/CustomAuth0Provider";

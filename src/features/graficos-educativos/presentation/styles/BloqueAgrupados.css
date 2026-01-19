@@ -1,0 +1,114 @@
+/**
+ * Estilos para el componente BloqueAgrupados
+ */
+@import './colores-minedu.css';
+
+.bloques-agrupados {
+  padding: var(--spacing-lg);
+  display: flex;
+  gap: var(--spacing-xl);
+}
+
+.bloques-agrupados.disposicion-horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.bloques-agrupados.disposicion-vertical {
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ========== GRUPO DE BLOQUES ========== */
+.grupo-bloques {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* ========== ETIQUETA DEL GRUPO ========== */
+.etiqueta-grupo {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-texto-principal);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+}
+
+.etiqueta-grupo .icono {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* ========== CONTENEDOR DE BLOQUES ========== */
+.bloques-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  max-width: 400px;
+  justify-content: center;
+}
+
+/* ========== BLOQUES INDIVIDUALES ========== */
+.bloque {
+  border-radius: var(--border-radius-small);
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.bloque:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* ========== COLORES DE BLOQUES ========== */
+.bloque-azul { background: var(--color-azul); }
+.bloque-rojo { background: var(--color-rojo); }
+.bloque-amarillo { background: var(--color-amarillo); }
+.bloque-verde { background: var(--color-verde); }
+.bloque-naranja { background: var(--color-naranja); }
+.bloque-morado { background: var(--color-morado); }
+.bloque-neutro { background: var(--color-neutro); }
+
+/* ========== CANTIDAD TOTAL ========== */
+.cantidad-total {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-azul);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--color-azul-claro);
+  border-radius: var(--border-radius-small);
+  margin-top: var(--spacing-xs);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .bloques-agrupados {
+    padding: var(--spacing-md);
+    gap: var(--spacing-lg);
+  }
+  
+  .bloques-container {
+    max-width: 300px;
+  }
+  
+  .etiqueta-grupo {
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* ========== IMPRESIÓN ========== */
+@media print {
+  .bloques-agrupados {
+    page-break-inside: avoid;
+  }
+  
+  .bloque:hover {
+    transform: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+}

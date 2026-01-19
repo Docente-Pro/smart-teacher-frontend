@@ -31,11 +31,7 @@ export const initialStateSesion: ISesionAprendizaje = {
     competenciasTransversales: []
   },
 
-  propositoSesion: {
-    queAprenderan: "",
-    como: "",
-    paraQue: ""
-  },
+  propositoSesion: "",
 
   enfoquesTransversales: [],
 

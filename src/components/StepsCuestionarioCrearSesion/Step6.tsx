@@ -16,17 +16,22 @@ interface Props {
 
 function Step6({ pagina, setPagina }: Props) {
   const { sesion, updateSesion } = useSesionStore();
-  const [queAprenderan, setQueAprenderan] = useState("");
-  const [como, setComo] = useState("");
-  const [paraQue, setParaQue] = useState("");
+  const [propositoSesionText, setPropositoSesionText] = useState("");
   const [loadingIA, setLoadingIA] = useState(false);
+
+  console.log(sesion);
+  
 
   // Inicializar desde el store si ya hay datos
   useEffect(() => {
     if (sesion?.propositoSesion) {
-      setQueAprenderan(sesion.propositoSesion.queAprenderan || "");
-      setComo(sesion.propositoSesion.como || "");
-      setParaQue(sesion.propositoSesion.paraQue || "");
+      // soportar string o el objeto antiguo
+      if (typeof sesion.propositoSesion === 'string') {
+        setPropositoSesionText(sesion.propositoSesion);
+      } else {
+        const legacy = sesion.propositoSesion as any;
+        setPropositoSesionText(legacy.queAprenderan || legacy.texto || "");
+      }
     }
   }, [sesion]);
 
@@ -46,10 +51,14 @@ function Step6({ pagina, setPagina }: Props) {
       const data = response.data;
 
       if (data.success && data.data) {
-        setQueAprenderan(data.data.queAprenderan || "");
-        setComo(data.data.como || "");
-        setParaQue(data.data.paraQue || "");
+        console.log(data.data);
         
+        // El endpoint ahora puede devolver un único string `propositoSesion`.
+        const proposito = data.data.propositoSesion ||
+          // fallback: concatenar si vienen partes
+          [data.data.queAprenderan, data.data.como, data.data.paraQue].filter(Boolean).join(" ");
+
+        setPropositoSesionText(proposito || "");
         handleToaster("Propósito generado exitosamente con IA", "success");
       }
     } catch (error) {
@@ -61,27 +70,15 @@ function Step6({ pagina, setPagina }: Props) {
   }
 
   function handleNextStep() {
-    if (!queAprenderan.trim()) {
-      handleToaster("Por favor completa '¿Qué aprenderán?'", "error");
-      return;
-    }
-    if (!como.trim()) {
-      handleToaster("Por favor completa '¿Cómo?'", "error");
-      return;
-    }
-    if (!paraQue.trim()) {
-      handleToaster("Por favor completa '¿Para qué?'", "error");
+    if (!propositoSesionText.trim()) {
+      handleToaster("Por favor completa el propósito de la sesión", "error");
       return;
     }
 
-    // Actualizar el store
+    // Actualizar el store con el string único
     if (sesion) {
       updateSesion({
-        propositoSesion: {
-          queAprenderan: queAprenderan.trim(),
-          como: como.trim(),
-          paraQue: paraQue.trim()
-        }
+        propositoSesion: propositoSesionText.trim()
       });
     }
 
@@ -89,6 +86,9 @@ function Step6({ pagina, setPagina }: Props) {
   }
 
   if (!sesion) return null;
+
+  console.log(propositoSesionText);
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
@@ -98,9 +98,9 @@ function Step6({ pagina, setPagina }: Props) {
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-amber-600 text-xs font-bold">
-              6
+              5
             </div>
-            <span className="text-sm font-semibold tracking-wide">PASO 6 DE 9</span>
+            <span className="text-sm font-semibold tracking-wide">PASO 5 DE 8</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Propósito de la Sesión
@@ -120,73 +120,25 @@ function Step6({ pagina, setPagina }: Props) {
           </Button>
         </div>
 
-        {/* ¿Qué aprenderán? */}
-        <Card className="mb-6 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+        {/* Propósito único de la sesión (qué, cómo y para qué en una sola oración) */}
+        <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
               <div className="h-10 w-10 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
                 <Lightbulb className="h-6 w-6 text-white" />
               </div>
-              ¿Qué aprenderán?
+              Propósito de la sesión
             </CardTitle>
             <CardDescription className="text-base">
-              Describe qué competencias, capacidades o conocimientos desarrollarán los estudiantes
+              Redacta en una sola oración qué aprenderán, cómo lo harán y para qué lo aprenderán
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
-              placeholder="Ejemplo: Los estudiantes aprenderán a resolver problemas de multiplicación usando diferentes estrategias y representaciones..."
-              value={queAprenderan}
-              onChange={(e) => setQueAprenderan(e.target.value)}
-              rows={4}
-              className="resize-none"
-            />
-          </CardContent>
-        </Card>
-
-        {/* ¿Cómo? */}
-        <Card className="mb-6 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <Lightbulb className="h-6 w-6 text-white" />
-              </div>
-              ¿Cómo?
-            </CardTitle>
-            <CardDescription className="text-base">
-              Explica la metodología, estrategias o actividades que se usarán
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Ejemplo: A través de situaciones problemáticas contextualizadas, trabajo colaborativo, uso de material concreto y representaciones gráficas..."
-              value={como}
-              onChange={(e) => setComo(e.target.value)}
-              rows={4}
-              className="resize-none"
-            />
-          </CardContent>
-        </Card>
-
-        {/* ¿Para qué? */}
-        <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <div className="h-10 w-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-                <Lightbulb className="h-6 w-6 text-white" />
-              </div>
-              ¿Para qué?
-            </CardTitle>
-            <CardDescription className="text-base">
-              Indica la finalidad o aplicación práctica del aprendizaje
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Ejemplo: Para que puedan aplicar la multiplicación en situaciones de su vida diaria y desarrollar su razonamiento matemático..."
-              value={paraQue}
-              onChange={(e) => setParaQue(e.target.value)}
-              rows={4}
+              placeholder="Ejemplo: Hoy aprenderemos a identificar paralelogramos mediante actividades prácticas de medición, para aplicar esa comprensión en resolver problemas geométricos cotidianos."
+              value={propositoSesionText}
+              onChange={(e) => setPropositoSesionText(e.target.value)}
+              rows={5}
               className="resize-none"
             />
           </CardContent>

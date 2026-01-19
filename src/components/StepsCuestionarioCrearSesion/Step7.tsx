@@ -3,10 +3,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, ArrowLeft, Sparkles, Package, Plus, Trash2, Wand2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowRight, ArrowLeft, Sparkles, Package, Plus, Trash2, Wand2, BarChart3 } from "lucide-react";
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { instance } from "@/services/instance";
+import { TipoGraficoMatematica } from "@/features/graficos-educativos/domain/types";
 
 interface Props {
   pagina: number;
@@ -20,6 +22,7 @@ function Step7({ pagina, setPagina }: Props) {
   const [nuevoQuehacer, setNuevoQuehacer] = useState("");
   const [recursos, setRecursos] = useState<string[]>([]);
   const [nuevoRecurso, setNuevoRecurso] = useState("");
+  const [tipoGraficoPreferido, setTipoGraficoPreferido] = useState<string>("AUTO");
   const [loadingIA, setLoadingIA] = useState(false);
 
   // Inicializar desde el store si ya hay datos
@@ -27,6 +30,7 @@ function Step7({ pagina, setPagina }: Props) {
     if (sesion?.preparacion) {
       setQuehacerAntes(sesion.preparacion.quehacerAntes || []);
       setRecursos(sesion.preparacion.recursosMateriales || []);
+      setTipoGraficoPreferido((sesion.preparacion as any).tipoGraficoPreferido || "AUTO");
     }
   }, [sesion]);
 
@@ -96,8 +100,9 @@ function Step7({ pagina, setPagina }: Props) {
       updateSesion({
         preparacion: {
           quehacerAntes: quehacerAntes,
-          recursosMateriales: recursos
-        }
+          recursosMateriales: recursos,
+          tipoGraficoPreferido: tipoGraficoPreferido
+        } as any
       });
     }
 
@@ -114,9 +119,9 @@ function Step7({ pagina, setPagina }: Props) {
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-purple-600 text-xs font-bold">
-              7
+              6
             </div>
-            <span className="text-sm font-semibold tracking-wide">PASO 7 DE 9</span>
+            <span className="text-sm font-semibold tracking-wide">PASO 6 DE 8</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Preparación de la Sesión
@@ -240,6 +245,139 @@ function Step7({ pagina, setPagina }: Props) {
                 <Plus className="h-5 w-5 mr-2" />
                 Agregar
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Selector de Tipo de Gráfico */}
+        <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <div className="h-10 w-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
+              Tipo de Gráfico para Problemas Matemáticos
+            </CardTitle>
+            <CardDescription className="text-base">
+              Si tu sesión de <strong>{sesion?.datosGenerales?.area || 'Matemática'}</strong> incluye problemas con representaciones visuales, 
+              selecciona el tipo de gráfico que mejor se adapte a tu contenido. Esto hará que la IA genere visualizaciones más apropiadas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
+                  Tipo de Gráfico Preferido
+                </label>
+                <Select value={tipoGraficoPreferido} onValueChange={setTipoGraficoPreferido}>
+                  <SelectTrigger className="w-full h-12">
+                    <SelectValue placeholder="🎨 Selecciona un tipo de gráfico o deja en automático..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[400px]">
+                    <SelectItem value="AUTO" className="font-medium">
+                      ✨ Automático - La IA elige el más apropiado
+                    </SelectItem>
+                    
+                    <div className="px-2 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 border-t mt-2">
+                      NÚMEROS Y OPERACIONES
+                    </div>
+                    <SelectItem value={TipoGraficoMatematica.ECUACION_CAJAS}>
+                      📦 Ecuación con Cajas · Suma, resta, incógnitas
+                    </SelectItem>
+                    <SelectItem value={TipoGraficoMatematica.OPERACION_VERTICAL}>
+                      ➕ Operación Vertical · Algoritmos con llevadas
+                    </SelectItem>
+                    <SelectItem value={TipoGraficoMatematica.RECTA_NUMERICA}>
+                      📏 Recta Numérica · Secuencias, ubicación
+                    </SelectItem>
+                    <SelectItem value={TipoGraficoMatematica.BLOQUES_AGRUPADOS}>
+                      🧱 Bloques Agrupados · Conteo, agrupación
+                    </SelectItem>
+                    
+                    <div className="px-2 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 border-t mt-2">
+                      FRACCIONES
+                    </div>
+                    <SelectItem value={TipoGraficoMatematica.CIRCULOS_FRACCION}>
+                      🍰 Círculos de Fracción · Partes de un todo
+                    </SelectItem>
+                    <SelectItem value={TipoGraficoMatematica.BARRAS_FRACCION}>
+                      📏 Barras de Fracción · Comparación visual
+                    </SelectItem>
+                    
+                    <div className="px-2 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 border-t mt-2">
+                      DATOS Y ESTADÍSTICA
+                    </div>
+                    <SelectItem value={TipoGraficoMatematica.BARRAS_COMPARACION}>
+                      📊 Barras de Comparación · Gráficos estadísticos
+                    </SelectItem>
+                    <SelectItem value={TipoGraficoMatematica.TABLA_VALORES}>
+                      📋 Tabla de Valores · Organizar información
+                    </SelectItem>
+                    <SelectItem value={TipoGraficoMatematica.TABLA_DOBLE_ENTRADA}>
+                      📊 Tabla Doble Entrada · Cruce de datos
+                    </SelectItem>
+                    
+                    <div className="px-2 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 border-t mt-2">
+                      GEOMETRÍA Y MEDIDAS
+                    </div>
+                    <SelectItem value={TipoGraficoMatematica.FIGURAS_GEOMETRICAS}>
+                      🔷 Figuras Geométricas · Formas planas
+                    </SelectItem>
+                    <SelectItem value={TipoGraficoMatematica.MEDIDAS_COMPARACION}>
+                      📐 Medidas Comparación · Longitud, peso, tiempo
+                    </SelectItem>
+                    
+                    <div className="px-2 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 border-t mt-2">
+                      PROBLEMAS COTIDIANOS
+                    </div>
+                    <SelectItem value={TipoGraficoMatematica.DIAGRAMA_DINERO}>
+                      💰 Diagrama de Dinero · Compra-venta, billetes
+                    </SelectItem>
+                    <SelectItem value={TipoGraficoMatematica.TABLA_PRECIOS}>
+                      💵 Tabla de Precios · Cálculo de costos
+                    </SelectItem>
+                    
+                    <div className="px-2 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 border-t mt-2">
+                      PENSAMIENTO LÓGICO
+                    </div>
+                    <SelectItem value={TipoGraficoMatematica.PATRON_VISUAL}>
+                      🔄 Patrón Visual · Secuencias, regularidades
+                    </SelectItem>
+                    <SelectItem value={TipoGraficoMatematica.DIAGRAMA_VENN}>
+                      ⭕ Diagrama de Venn · Conjuntos, clasificación
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {tipoGraficoPreferido && (
+                <div className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 rounded-lg border-2 border-emerald-200 dark:border-emerald-800">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100 mb-1">
+                        ✨ Gráfico seleccionado
+                      </p>
+                      <p className="text-sm text-emerald-700 dark:text-emerald-300 leading-relaxed">
+                        La IA generará problemas matemáticos usando principalmente <strong>este tipo de visualización</strong>, 
+                        haciendo tu sesión más coherente, enfocada y apropiada para el contenido de{' '}
+                        <strong>{sesion?.datosGenerales?.area || 'Matemática'}</strong> que estás planificando.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {!tipoGraficoPreferido && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    💡 <strong>Modo automático:</strong> La IA analizará tu competencia y capacidades para elegir 
+                    el tipo de gráfico más apropiado automáticamente.
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

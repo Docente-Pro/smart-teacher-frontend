@@ -1,0 +1,226 @@
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                   ARQUITECTURA DE INTERFACES POR ÁREA                         ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CAPA BASE                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                            ┌──────────────────┐
+                            │  IProcesoBase    │
+                            ├──────────────────┤
+                            │ proceso          │
+                            │ estrategias      │
+                            │ recursosDidacticos│
+                            │ tiempo           │
+                            └────────┬─────────┘
+                                     │
+                    ┌────────────────┼────────────────┐
+                    │                │                │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          CAPA DE EXTENSIONES                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+    │ IProcesoMatematica│  │IProcesoComunicacion│ │ IProcesoCiencia │
+    ├──────────────────┤  ├──────────────────┤  ├──────────────────┤
+    │ + Base props     │  │ + Base props     │  │ + Base props     │
+    │ ──────────────── │  │ ──────────────── │  │ ──────────────── │
+    │ problemaMatematico│  │ (futuras props)  │  │ (futuras props)  │
+    │ descripcionImgProb│ │                  │  │                  │
+    │ imagenProblema   │  │                  │  │                  │
+    │ solucionProblema │  │                  │  │                  │
+    │ descripcionImgSol│  │                  │  │                  │
+    │ imagenSolucion   │  │                  │  │                  │
+    └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
+             │                     │                      │
+             │                     │                      │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           CAPA DE FASES                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+             │                     │                      │
+    ┌────────▼─────────┐  ┌────────▼─────────┐  ┌────────▼─────────┐
+    │IFaseInicio       │  │IFaseInicio       │  │IFaseInicio       │
+    │  Matematica      │  │  Comunicacion    │  │  Ciencia         │
+    ├──────────────────┤  ├──────────────────┤  ├──────────────────┤
+    │ tiempo           │  │ tiempo           │  │ tiempo           │
+    │ procesos[]       │  │ procesos[]       │  │ procesos[]       │
+    └──────────────────┘  └──────────────────┘  └──────────────────┘
+
+    ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+    │IFaseDesarrollo   │  │IFaseDesarrollo   │  │IFaseDesarrollo   │
+    │  Matematica      │  │  Comunicacion    │  │  Ciencia         │
+    ├──────────────────┤  ├──────────────────┤  ├──────────────────┤
+    │ tiempo           │  │ tiempo           │  │ tiempo           │
+    │ procesos[]       │  │ procesos[]       │  │ procesos[]       │
+    └──────────────────┘  └──────────────────┘  └──────────────────┘
+
+    ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+    │IFaseCierre       │  │IFaseCierre       │  │IFaseCierre       │
+    │  Matematica      │  │  Comunicacion    │  │  Ciencia         │
+    ├──────────────────┤  ├──────────────────┤  ├──────────────────┤
+    │ tiempo           │  │ tiempo           │  │ tiempo           │
+    │ procesos[]       │  │ procesos[]       │  │ procesos[]       │
+    └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
+             │                     │                      │
+             │                     │                      │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      CAPA DE SECUENCIAS                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+             │                     │                      │
+    ┌────────▼─────────┐  ┌────────▼─────────┐  ┌────────▼─────────┐
+    │ISecuencia        │  │ISecuencia        │  │ISecuencia        │
+    │ Didactica        │  │ Didactica        │  │ Didactica        │
+    │ Matematica       │  │ Comunicacion     │  │ Ciencia          │
+    ├──────────────────┤  ├──────────────────┤  ├──────────────────┤
+    │ inicio           │  │ inicio           │  │ inicio           │
+    │ desarrollo       │  │ desarrollo       │  │ desarrollo       │
+    │ cierre           │  │ cierre           │  │ cierre           │
+    └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
+             │                     │                      │
+             │                     │                      │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    CAPA DE SESIÓN COMPLETA                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+             │                     │                      │
+    ┌────────▼─────────────────────▼──────────────────────▼─────────┐
+    │          ISesionAprendizajeMatematica                          │
+    │          ISesionAprendizajeComunicacion                        │
+    │          ISesionAprendizajeCiencia                             │
+    │          ISesionAprendizajePersonalSocial                      │
+    ├────────────────────────────────────────────────────────────────┤
+    │ datosGenerales                                                 │
+    │ titulo                                                         │
+    │ propositoAprendizaje                                          │
+    │ propositoSesion                                               │
+    │ enfoquesTransversales                                         │
+    │ preparacion                                                   │
+    │ secuenciaDidactica  ◄── Específica del área                  │
+    │ reflexiones                                                   │
+    │ firmas                                                        │
+    └────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         TYPE GUARDS Y UTILIDADES                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │  Type Guards                                                 │
+    ├──────────────────────────────────────────────────────────────┤
+    │  ✓ tieneProblemaMatematico(proceso): boolean                 │
+    │  ✓ tieneSolucionMatematica(proceso): boolean                 │
+    │  ✓ esImagenValida(url): boolean                              │
+    │  ✓ esSesionMatematica(sesion): sesion is ISesionMatematica   │
+    │  ✓ esSesionComunicacion(sesion): boolean                     │
+    └──────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │  Helpers de Análisis                                         │
+    ├──────────────────────────────────────────────────────────────┤
+    │  ✓ contarProblemasMatematicos(sesion): number                │
+    │  ✓ obtenerEstadisticasImagenes(sesion): Estadisticas         │
+    │  ✓ obtenerProcesosConProblemas(sesion): IProcesoMatematica[] │
+    │  ✓ obtenerTipoArea(area): TipoArea                           │
+    └──────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │  Helpers de Descarga                                         │
+    ├──────────────────────────────────────────────────────────────┤
+    │  ✓ descargarImagen(url, nombre): Promise<void>               │
+    │  ✓ descargarImagenesDelProceso(proceso): Promise<void>       │
+    │  ✓ descargarImagenesDeLaSesion(sesion): Promise<void>        │
+    └──────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            COMPONENTES REACT                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │  ProcesoMatematicaCard                                       │
+    ├──────────────────────────────────────────────────────────────┤
+    │  Tarjeta completa con:                                       │
+    │  • Header con nombre del proceso                             │
+    │  • Estrategias y recursos                                    │
+    │  • Problema matemático con imagen                            │
+    │  • Solución expandible con imagen                            │
+    └──────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │  ProblemaMatematicaCompacto                                  │
+    ├──────────────────────────────────────────────────────────────┤
+    │  Vista compacta con miniatura de imagen                      │
+    └──────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │  GaleriaImagenesProblemas                                    │
+    ├──────────────────────────────────────────────────────────────┤
+    │  Grid de todas las imágenes de problemas                     │
+    └──────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │  DescargadorImagenes                                         │
+    ├──────────────────────────────────────────────────────────────┤
+    │  Botones para descargar imágenes individuales o todas        │
+    └──────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │  EstadoImagenes                                              │
+    ├──────────────────────────────────────────────────────────────┤
+    │  Indicadores de estado de generación de imágenes             │
+    └──────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          FLUJO DE DATOS                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+    ┌──────────────┐
+    │   Backend    │  Genera JSON con GPT-4
+    │   (API)      │  Detecta área y agrega propiedades específicas
+    └──────┬───────┘  Genera imágenes con DALL-E para Matemática
+           │
+           ▼
+    ┌──────────────┐
+    │  Frontend    │  Recibe ISesionAprendizajePorArea
+    │              │  Detecta área con obtenerTipoArea()
+    └──────┬───────┘  Renderiza con componente específico
+           │
+           ▼
+    ┌──────────────┐
+    │  Componente  │  Si es Matemática → ProcesoMatematicaCard
+    │  Específico  │  Si es Comunicación → ProcesoGenerico
+    └──────────────┘  Si es Ciencia → ProcesoGenerico
+                      etc.
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                        EJEMPLO DE USO                                         ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+    const sesion = await fetch('/api/sesiones/123').then(r => r.json());
+    
+    // Type narrowing
+    if (esSesionMatematica(sesion)) {
+      // TypeScript sabe que es ISesionAprendizajeMatematica
+      const stats = obtenerEstadisticasImagenes(sesion);
+      
+      console.log(`Problemas: ${stats.totalProblemas}`);
+      console.log(`Completado: ${stats.porcentajeCompletado}%`);
+      
+      // Renderizar
+      return <ProcesoMatematicaCard proceso={proceso} />;
+    }
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          VENTAJAS                                             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+    ✅ Type Safety         →  TypeScript detecta errores en compilación
+    ✅ Escalabilidad       →  Fácil agregar nuevas áreas
+    ✅ Mantenibilidad      →  Código organizado y separado
+    ✅ Reutilización       →  Componentes base compartidos
+    ✅ Documentación       →  Interfaces autodocumentadas
+    ✅ Flexibilidad        →  Propiedades opcionales
+    ✅ Extensibilidad      →  Preparado para futuras propiedades
+
+```

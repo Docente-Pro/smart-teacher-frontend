@@ -38,3 +38,6 @@ export type { IGrado } from './IGrado';
 export type { IProblematica } from './IProblematica';
 export type { IUnidad } from './IUnidad';
 export type { IUsuario } from './IUsuario';
+
+// Interfaces por área (Matemática, Comunicación, etc.)
+export * from './areas';

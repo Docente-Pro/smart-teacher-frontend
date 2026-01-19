@@ -1,0 +1,146 @@
+/**
+ * Estilos para el componente EcuacionCajas
+ */
+@import './colores-minedu.css';
+
+.ecuacion-cajas {
+  padding: var(--spacing-lg);
+  position: relative;
+  min-height: 100px;
+}
+
+.ecuacion-linea {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ========== CAJAS ========== */
+.caja {
+  min-width: 60px;
+  height: 50px;
+  border: 2px solid var(--color-azul);
+  border-radius: var(--border-radius-small);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  background: white;
+  transition: all var(--transition-normal);
+  padding: var(--spacing-sm);
+}
+
+.caja-azul {
+  border-color: var(--color-azul);
+  background: var(--color-azul-claro);
+  color: var(--color-azul);
+}
+
+.caja-rojo {
+  border-color: var(--color-rojo);
+  background: var(--color-rojo-claro);
+  color: var(--color-rojo);
+}
+
+.caja-amarillo {
+  border-color: var(--color-amarillo);
+  background: var(--color-amarillo-claro);
+  color: #B8860B;
+}
+
+.caja-verde {
+  border-color: var(--color-verde);
+  background: var(--color-verde-claro);
+  color: var(--color-verde);
+}
+
+.caja-naranja {
+  border-color: var(--color-naranja);
+  background: var(--color-naranja-claro);
+  color: var(--color-naranja);
+}
+
+.caja-morado {
+  border-color: var(--color-morado);
+  background: var(--color-morado-claro);
+  color: var(--color-morado);
+}
+
+.caja-neutro {
+  border-color: var(--color-neutro);
+  background: var(--color-neutro-claro);
+  color: var(--color-texto-principal);
+}
+
+.caja.destacado {
+  border-width: 3px;
+  box-shadow: var(--sombra-media);
+  transform: scale(1.05);
+  font-weight: 700;
+}
+
+/* ========== OPERADORES ========== */
+.operador {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--color-texto-principal);
+  padding: 0 var(--spacing-xs);
+  user-select: none;
+}
+
+/* ========== AGRUPACIONES ========== */
+.agrupaciones-container {
+  position: relative;
+  margin-top: var(--spacing-lg);
+}
+
+.agrupacion {
+  position: absolute;
+  bottom: -30px;
+}
+
+.llave {
+  width: 100%;
+  height: 20px;
+  display: block;
+}
+
+.texto-agrupacion {
+  display: block;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-texto-secundario);
+  margin-top: var(--spacing-xs);
+  font-weight: 500;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .caja {
+    min-width: 50px;
+    height: 45px;
+    font-size: var(--font-size-md);
+  }
+  
+  .operador {
+    font-size: 20px;
+  }
+}
+
+/* ========== IMPRESIÓN ========== */
+@media print {
+  .ecuacion-cajas {
+    page-break-inside: avoid;
+  }
+  
+  .caja {
+    border-width: 1.5px;
+  }
+  
+  .caja.destacado {
+    border-width: 2px;
+  }
+}

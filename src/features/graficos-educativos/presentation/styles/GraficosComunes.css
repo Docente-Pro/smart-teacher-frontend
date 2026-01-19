@@ -1,0 +1,136 @@
+/**
+ * Estilos compartidos para todos los componentes de gráficos educativos
+ */
+
+.grafico-titulo {
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 18px;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.grafico-descripcion {
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 16px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Contenedores específicos */
+.recta-numerica-container,
+.circulos-fraccion-container,
+.barras-fraccion-container,
+.diagrama-dinero-container,
+.figuras-geometricas-container,
+.patron-visual-container,
+.diagrama-venn-container,
+.tabla-doble-entrada-container,
+.operacion-vertical-container,
+.medidas-comparacion-container {
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 16px 0;
+}
+
+.recta-numerica-container svg,
+.circulos-fraccion-container svg,
+.barras-fraccion-container svg,
+.diagrama-dinero-container svg,
+.figuras-geometricas-container svg,
+.patron-visual-container svg,
+.diagrama-venn-container svg,
+.tabla-doble-entrada-container svg,
+.operacion-vertical-container svg,
+.medidas-comparacion-container svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Estilos para errores y mensajes */
+.grafico-educativo-error {
+  padding: 16px;
+  background-color: #fef2f2;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  color: #991b1b;
+  font-family: 'Arial', sans-serif;
+}
+
+.error-mensaje {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.error-detalle {
+  font-size: 14px;
+  margin: 4px 0;
+}
+
+.grafico-educativo-no-soportado {
+  padding: 16px;
+  background-color: #fffbeb;
+  border: 2px dashed #f59e0b;
+  border-radius: 8px;
+  color: #92400e;
+  font-family: 'Arial', sans-serif;
+  text-align: center;
+}
+
+.mensaje-no-soportado {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.sugerencia {
+  font-size: 14px;
+  color: #78350f;
+}
+
+/* Animaciones suaves */
+.grafico-educativo {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .recta-numerica-container svg,
+  .circulos-fraccion-container svg,
+  .barras-fraccion-container svg,
+  .diagrama-dinero-container svg,
+  .figuras-geometricas-container svg,
+  .patron-visual-container svg,
+  .diagrama-venn-container svg,
+  .tabla-doble-entrada-container svg,
+  .operacion-vertical-container svg,
+  .medidas-comparacion-container svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .grafico-titulo {
+    font-size: 16px;
+  }
+
+  .grafico-descripcion {
+    font-size: 13px;
+  }
+}

@@ -37,11 +37,7 @@ export interface IPropositoAprendizaje {
   competenciasTransversales: string[];  // Simplificado a string[]
 }
 
-export interface IPropositoSesion {
-  queAprenderan: string;
-  como: string;
-  paraQue: string;
-}
+export type IPropositoSesion = string;
 
 export interface IEnfoqueTransversal {
   nombre: string;
@@ -51,6 +47,7 @@ export interface IEnfoqueTransversal {
 export interface IPreparacionSesion {
   quehacerAntes: string[];
   recursosMateriales: string[];
+  tipoGraficoPreferido?: string;  // Tipo de gráfico preferido para problemas matemáticos
 }
 
 export interface IActividadDidactica {
@@ -146,6 +143,8 @@ export interface IFirmas {
 export interface ISesionAprendizaje {
   datosGenerales: IDatosGenerales;
   titulo: string;
+  temaCurricular?: string; // 🆕 Tema seleccionado o personalizado del currículo
+  temaId?: number; // 🆕 ID del tema del currículo (null si es personalizado)
   propositoAprendizaje: IPropositoAprendizaje;
   propositoSesion: IPropositoSesion;
   enfoquesTransversales: IEnfoqueTransversal[];

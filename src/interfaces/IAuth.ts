@@ -102,6 +102,7 @@ export interface ErrorResponse {
   message: string;
   error?: string;
   required?: string[];
+  requiresReauth?: boolean; // Indica que el usuario debe volver a autenticarse
 }
 
 // ============================================

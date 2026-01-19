@@ -1,0 +1,117 @@
+/**
+ * Estilos para el componente TablaPrecios
+ */
+@import './colores-minedu.css';
+
+.tabla-precios {
+  padding: var(--spacing-md);
+  background: var(--color-fondo);
+  border-radius: var(--border-radius);
+}
+
+.tabla-precios table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+/* ========== ENCABEZADOS ========== */
+.tabla-precios th {
+  background: var(--color-azul);
+  color: var(--color-texto-claro);
+  padding: var(--spacing-md);
+  text-align: left;
+  font-weight: 600;
+  font-size: var(--font-size-base);
+}
+
+/* ========== CELDAS ========== */
+.tabla-precios td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-base);
+  color: var(--color-texto-principal);
+}
+
+.tabla-precios tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tabla-precios tbody tr:hover {
+  background: var(--color-azul-claro);
+  transition: background var(--transition-fast);
+}
+
+/* ========== COLUMNA PRODUCTO ========== */
+.producto {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-weight: 500;
+}
+
+.producto .icono {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* ========== COLUMNAS NUMÉRICAS ========== */
+.precio, 
+.cantidad, 
+.total {
+  text-align: right;
+  font-family: var(--font-family-mono);
+  font-weight: 500;
+}
+
+/* ========== TOTAL ========== */
+.fila-total {
+  background: var(--color-azul-claro);
+  font-weight: bold;
+}
+
+.fila-total td {
+  padding: var(--spacing-md);
+  border-top: 2px solid var(--color-azul);
+}
+
+.total-general {
+  font-size: var(--font-size-md);
+  color: var(--color-azul);
+  font-weight: 700;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .tabla-precios {
+    overflow-x: auto;
+  }
+  
+  .tabla-precios th,
+  .tabla-precios td {
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+  }
+  
+  .producto .icono {
+    font-size: 16px;
+  }
+}
+
+/* ========== IMPRESIÓN ========== */
+@media print {
+  .tabla-precios {
+    page-break-inside: avoid;
+  }
+  
+  .tabla-precios tbody tr:hover {
+    background: transparent;
+  }
+  
+  .tabla-precios table {
+    border: 1px solid var(--color-border-oscuro);
+  }
+}

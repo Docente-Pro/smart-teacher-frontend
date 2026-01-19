@@ -1,0 +1,79 @@
+/**
+ * Estilos para el componente TablaValores
+ */
+@import './colores-minedu.css';
+
+.tabla-valores {
+  padding: var(--spacing-md);
+  background: var(--color-fondo);
+  border-radius: var(--border-radius);
+  overflow-x: auto;
+}
+
+.tabla-valores table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* ========== ENCABEZADOS ========== */
+.tabla-valores th {
+  background: var(--color-azul-claro);
+  color: var(--color-texto-principal);
+  padding: var(--spacing-md);
+  text-align: left;
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  border-bottom: 2px solid var(--color-azul);
+}
+
+/* ========== CELDAS ========== */
+.tabla-valores td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+  color: var(--color-texto-principal);
+}
+
+/* ========== VARIANTE CON BORDES ========== */
+.tabla-valores.con-bordes table {
+  border: 1px solid var(--color-border);
+}
+
+.tabla-valores.con-bordes th,
+.tabla-valores.con-bordes td {
+  border: 1px solid var(--color-border);
+}
+
+/* ========== VARIANTE SIN BORDES ========== */
+.tabla-valores.sin-bordes tbody tr {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabla-valores.sin-bordes tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* ========== HOVER ========== */
+.tabla-valores tbody tr:hover {
+  background: var(--color-fondo-secundario);
+  transition: background var(--transition-fast);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .tabla-valores th,
+  .tabla-valores td {
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* ========== IMPRESIÓN ========== */
+@media print {
+  .tabla-valores {
+    page-break-inside: avoid;
+  }
+  
+  .tabla-valores tbody tr:hover {
+    background: transparent;
+  }
+}

@@ -163,9 +163,9 @@ function Step4({ pagina, setPagina }: Props) {
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-blue-600 text-xs font-bold">
-              4
+              3
             </div>
-            <span className="text-sm font-semibold tracking-wide">PASO 4 DE 9</span>
+            <span className="text-sm font-semibold tracking-wide">PASO 3 DE 8</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Evaluación y Evidencias
