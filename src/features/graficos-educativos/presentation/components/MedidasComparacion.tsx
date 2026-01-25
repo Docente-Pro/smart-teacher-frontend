@@ -120,7 +120,6 @@ export const MedidasComparacion: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="medidas-comparacion-container">
-      {data.titulo && <h3 className="grafico-titulo">{data.titulo}</h3>}
       <svg ref={svgRef} width="650" height={height} />
     </div>
   );

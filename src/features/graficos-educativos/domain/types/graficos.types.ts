@@ -20,7 +20,8 @@ export enum TipoGraficoMatematica {
   DIAGRAMA_VENN = "diagrama_venn",
   TABLA_DOBLE_ENTRADA = "tabla_doble_entrada",
   OPERACION_VERTICAL = "operacion_vertical",
-  BALANZA_EQUILIBRIO = "balanza_equilibrio"
+  BALANZA_EQUILIBRIO = "balanza_equilibrio",
+  NUMEROS_ORDINALES = "numeros_ordinales"
 }
 
 export enum ColorGrafico {
@@ -311,6 +312,22 @@ export interface GraficoBalanzaEquilibrio extends ConfiguracionGrafico {
   pregunta?: string;
 }
 
+// ============= NÚMEROS ORDINALES =============
+
+export interface NumeroOrdinal {
+  numero: number;
+  color?: ColorGrafico;
+  destacado?: boolean;
+  tamano?: 'pequeno' | 'mediano' | 'grande';
+}
+
+export interface GraficoNumerosOrdinales extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.NUMEROS_ORDINALES;
+  elementos: NumeroOrdinal[];
+  orientacion?: 'horizontal' | 'vertical';
+  mostrarTexto?: boolean; // Mostrar "primero", "segundo", etc.
+}
+
 // ============= TIPOS DE EXPORTACIÓN =============
 
 export type TipoGraficoConfiguracion = 
@@ -330,5 +347,6 @@ export type TipoGraficoConfiguracion =
   | GraficoTablaDobleEntrada
   | GraficoOperacionVertical
   | GraficoBalanzaEquilibrio
+  | GraficoNumerosOrdinales
   | ConfiguracionGrafico;
 

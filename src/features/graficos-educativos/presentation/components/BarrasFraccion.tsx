@@ -101,7 +101,6 @@ export const BarrasFraccion: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="barras-fraccion-container">
-      {data.titulo && <h3 className="grafico-titulo">{data.titulo}</h3>}
       <svg ref={svgRef} width="500" height={height} />
     </div>
   );

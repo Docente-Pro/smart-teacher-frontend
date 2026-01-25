@@ -166,7 +166,6 @@ export const TablaDobleEntrada: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="tabla-doble-entrada-container">
-      {data.titulo && <h3 className="grafico-titulo">{data.titulo}</h3>}
       <svg ref={svgRef} width={width} height={height} />
     </div>
   );

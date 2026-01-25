@@ -118,7 +118,6 @@ export const CirculosFraccion: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="circulos-fraccion-container">
-      {data.titulo && <h3 className="grafico-titulo">{data.titulo}</h3>}
       <svg ref={svgRef} width={width} height={height} />
     </div>
   );

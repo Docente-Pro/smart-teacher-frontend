@@ -114,7 +114,6 @@ export const RectaNumerica: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="recta-numerica-container">
-      {data.titulo && <h3 className="grafico-titulo">{data.titulo}</h3>}
       <svg ref={svgRef} width="600" height="120" />
     </div>
   );

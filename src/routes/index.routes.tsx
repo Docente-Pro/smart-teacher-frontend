@@ -20,6 +20,7 @@ import DemoLoading from "@/pages/DemoLoading";
 import MisSesiones from "@/pages/MisSesiones";
 import Evaluaciones from "@/pages/Evaluaciones";
 import DocTest from "@/pages/DocTest";
+import GraficosPlayground from "@/pages/GraficosPlayground";
 
 interface IRouteToCreate {
   path: string;
@@ -179,6 +180,10 @@ export const routes: IRouteToCreate[] = [
         </PostLoginValidator>
       </RouteProtector>
     ),
+  },
+  {
+    path: "/graficos-playground",
+    element: <GraficosPlayground />,
   },
 
 ];

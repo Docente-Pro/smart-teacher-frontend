@@ -161,7 +161,6 @@ export const PatronVisual: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="patron-visual-container">
-      {data.titulo && <h3 className="grafico-titulo">{data.titulo}</h3>}
       <svg ref={svgRef} width={width} height="180" />
     </div>
   );

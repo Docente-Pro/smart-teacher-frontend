@@ -17,6 +17,7 @@ import { TablaDobleEntrada } from './TablaDobleEntrada';
 import { OperacionVertical } from './OperacionVertical';
 import { MedidasComparacion } from './MedidasComparacion';
 import { BalanzaEquilibrio } from './BalanzaEquilibrio';
+import { NumerosOrdinales } from './NumerosOrdinales';
 
 interface Props {
   grafico: ConfiguracionGrafico | null | undefined;
@@ -72,6 +73,7 @@ export const GraficoRenderer: React.FC<Props> = ({
     'operacion_vertical': OperacionVertical,
     'medidas_comparacion': MedidasComparacion,
     'balanza_equilibrio': BalanzaEquilibrio,
+    'numeros_ordinales': NumerosOrdinales,
   };
 
   const Component = componentMap[grafico!.tipoGrafico];

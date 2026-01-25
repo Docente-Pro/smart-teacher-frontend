@@ -160,7 +160,6 @@ export const OperacionVertical: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="operacion-vertical-container">
-      {data.titulo && <h3 className="grafico-titulo">{data.titulo}</h3>}
       <svg ref={svgRef} width="400" height="350" />
     </div>
   );
