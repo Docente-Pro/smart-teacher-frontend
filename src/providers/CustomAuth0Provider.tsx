@@ -39,6 +39,7 @@ export function CustomAuth0Provider({ children }: CustomAuth0ProviderProps) {
       authorizationParams={{
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
         scope: 'openid profile email',
+        redirect_uri: window.location.origin,
       }}
       cacheLocation="localstorage" // Usar localStorage para que persistan los tokens inyectados
       useRefreshTokens={false} // El backend maneja los refresh tokens

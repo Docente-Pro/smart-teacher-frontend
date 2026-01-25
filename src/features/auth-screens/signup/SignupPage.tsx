@@ -4,22 +4,69 @@ import { useAuth0 } from "@auth0/auth0-react";
 import SignupForm from "./components/SignupForm";
 import SocialLogin from "./components/SocialLogin";
 import { useUserStatus } from "@/hooks/useUserStatus";
+import { useAuthStore } from "@/store/auth.store";
+import { createNewUsuario } from "@/services/usuarios.service";
+import { handleToaster } from "@/utils/Toasters/handleToasters";
 
 function SignupPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth0();
+  const { isAuthenticated, user: auth0User, isLoading: auth0Loading } = useAuth0();
   const { isPremium, isLoading } = useUserStatus();
+  const { user: backendUser } = useAuthStore();
+
+  // Manejar el retorno de Auth0 después del login social
+  useEffect(() => {
+    const handleSocialSignup = async () => {
+      // Solo procesar si está autenticado con Auth0 pero NO tiene usuario en backend
+      if (isAuthenticated && auth0User && !auth0Loading && !backendUser) {
+        console.log('🔍 Usuario autenticado con Auth0, verificando en backend...');
+        
+        try {
+          // Crear usuario en el backend con los datos de Auth0
+          await createNewUsuario({
+            nombre: auth0User.name || auth0User.email?.split('@')[0] || 'Usuario',
+            email: auth0User.email!,
+            nombreInstitucion: "",
+            nivelId: 1,
+            gradoId: 1,
+            problematicaId: 1,
+            suscripcion: {
+              fechaInicio: new Date().toISOString(),
+              plan: "free",
+              activa: true,
+            },
+          });
+
+          handleToaster("¡Cuenta creada exitosamente!", "success");
+          // El PostLoginValidator se encargará de la redirección
+          navigate("/dashboard");
+        } catch (error: any) {
+          console.error('Error creando usuario:', error);
+          
+          // Si el usuario ya existe, es OK, solo redirigir
+          if (error.response?.status === 409 || error.message?.includes('already exists')) {
+            console.log('Usuario ya existe en backend, continuando...');
+            navigate("/dashboard");
+          } else {
+            handleToaster("Error al crear el usuario. Intenta de nuevo.", "error");
+          }
+        }
+      }
+    };
+
+    handleSocialSignup();
+  }, [isAuthenticated, auth0User, auth0Loading, backendUser, navigate]);
 
   // Redirigir si ya está autenticado
   useEffect(() => {
-    if (isAuthenticated && !isLoading) {
+    if (isAuthenticated && backendUser && !isLoading) {
       if (isPremium) {
         navigate("/dashboard");
       } else {
         navigate("/");
       }
     }
-  }, [isAuthenticated, isPremium, isLoading, navigate]);
+  }, [isAuthenticated, backendUser, isPremium, isLoading, navigate]);
 
   return (
     <div className="min-h-screen flex">

@@ -9,6 +9,8 @@ function SocialLogin() {
     loginWithRedirect({
       authorizationParams: {
         connection: provider,
+        redirect_uri: window.location.origin,
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
       },
     });
   };
