@@ -182,7 +182,7 @@ export const routes: IRouteToCreate[] = [
     ),
   },
   {
-    path: "/graficos-playground",
+    path: "/graficos",
     element: <GraficosPlayground />,
   },
 
