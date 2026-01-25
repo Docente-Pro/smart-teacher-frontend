@@ -3,7 +3,7 @@ const dev_url = import.meta.env.VITE_LOCAL_API_URL;
 
 import axios from "axios";
 export const instance = axios.create({
-  baseURL: dev_url,
+  baseURL: prod_url,
   headers: {
     "Content-Type": "application/json",
   },
