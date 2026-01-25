@@ -67,8 +67,8 @@ function Step5({ pagina, setPagina }: Props) {
   async function sugerirEnfoquesConIA() {
     if (!sesion) return;
 
-    // Validar que se haya completado el propósito de la sesión (soporta string o el objeto antiguo)
-    const propositoTexto = typeof sesion.propositoSesion === 'string' ? sesion.propositoSesion : (sesion.propositoSesion?.queAprenderan || '');
+    // Validar que se haya completado el propósito de la sesión
+    const propositoTexto = sesion.propositoSesion || '';
     if (!propositoTexto) {
       handleToaster("Completa el propósito de la sesión primero (Step 6)", "warning");
       return;
@@ -191,14 +191,14 @@ function Step5({ pagina, setPagina }: Props) {
           {/* Botón Sugerir con IA */}
           <Button
             onClick={sugerirEnfoquesConIA}
-              disabled={loadingIA || !(typeof sesion.propositoSesion === 'string' ? sesion.propositoSesion : sesion.propositoSesion?.queAprenderan)}
+            disabled={loadingIA || !sesion.propositoSesion}
             className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg"
           >
             <Wand2 className="h-5 w-5 mr-2" />
             {loadingIA ? "Generando sugerencias..." : "Sugerir Enfoques con IA"}
           </Button>
           
-          {!(typeof sesion.propositoSesion === 'string' ? sesion.propositoSesion : sesion.propositoSesion?.queAprenderan) && (
+          {!sesion.propositoSesion && (
             <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
               ⚠️ Completa el propósito de la sesión primero (Step 6)
             </p>

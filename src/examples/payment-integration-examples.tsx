@@ -6,7 +6,9 @@
 // ===========================================
 // 1. EJEMPLO: Botón de Crear Sesión con Límite
 // ===========================================
+import { Route, Routes } from "react-router-dom";
 import { CreateSessionButton } from "@/components/Pricing/CreateSessionButton";
+import PagoExitoso from "@/pages/PagoExitoso";
 
 function Dashboard() {
   return (

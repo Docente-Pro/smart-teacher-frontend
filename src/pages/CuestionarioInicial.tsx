@@ -8,7 +8,6 @@ import { getUsuarioByEmail } from "@/services/usuarios.service";
 import { useUserStore } from "@/store/user.store";
 import { encrypt } from "@/utils/cryptoUtil";
 import { useAuth0 } from "@auth0/auth0-react";
-import { log } from "console";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 

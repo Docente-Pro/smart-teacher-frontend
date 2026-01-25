@@ -5,7 +5,6 @@
  * Copia y pega en cualquier componente React para ver los gráficos en acción.
  */
 
-import React from 'react';
 import { GraficoRenderer } from './index';
 
 /**

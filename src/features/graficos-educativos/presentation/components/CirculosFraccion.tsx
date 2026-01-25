@@ -27,7 +27,6 @@ export const CirculosFraccion: React.FC<Props> = ({ data }) => {
     const margen = 80;
     
     const circulosPorFila = Math.min(elementos.length, 4);
-    const filas = Math.ceil(elementos.length / circulosPorFila);
 
     elementos.forEach((fraccion, idx) => {
       const fila = Math.floor(idx / circulosPorFila);

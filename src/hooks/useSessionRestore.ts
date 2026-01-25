@@ -27,7 +27,15 @@ export const useSessionRestore = () => {
         try {
           // Intentar refrescar el token
           const newTokens = await refreshAccessToken(refreshToken);
-          setTokens(newTokens);
+          // Adaptar RefreshTokenResponse a lo que espera setTokens
+          setTokens({
+            access_token: newTokens.access_token,
+            id_token: newTokens.id_token,
+            expires_in: newTokens.expires_in,
+            token_type: newTokens.token_type,
+            refresh_token: refreshToken,
+            user: {} as any // Usuario ya existe en el store
+          });
           console.log('✅ Sesión restaurada correctamente');
         } catch (error: any) {
           console.error('❌ Error al refrescar token:', error);

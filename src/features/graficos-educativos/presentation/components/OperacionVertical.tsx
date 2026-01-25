@@ -62,21 +62,21 @@ export const OperacionVertical: React.FC<Props> = ({ data }) => {
     const margen = 80;
 
     // Calcular el número más largo para alinear correctamente
-    const maxDigitos = Math.max(...numeros.map(n => n.toString().length), 
+    const maxDigitos = Math.max(...numeros.map((n: number) => n.toString().length), 
                                  resultado ? resultado.toString().length : 0);
     const anchoTotal = maxDigitos * digitoAncho;
 
     let currentY = margen;
 
     // Dibujar cada número
-    numeros.forEach((numero, idx) => {
+    numeros.forEach((numero: number, idx: number) => {
       const numeroStr = numero.toString();
       const digitos = numeroStr.split('');
 
       // Alinear a la derecha
       const offsetX = margen + ((maxDigitos - digitos.length) * digitoAncho);
 
-      digitos.forEach((digito, digitoIdx) => {
+      digitos.forEach((digito: string, digitoIdx: number) => {
         const x = offsetX + (digitoIdx * digitoAncho);
         
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -140,7 +140,7 @@ export const OperacionVertical: React.FC<Props> = ({ data }) => {
     }
 
     // Llevadas o préstamos (números pequeños arriba)
-    llevadasPrestas.forEach(({ posicion, valor }) => {
+    llevadasPrestas.forEach(({ posicion, valor }: { posicion: number; valor: number }) => {
       const x = margen + (maxDigitos - posicion - 1) * digitoAncho + digitoAncho / 2;
       const y = margen - 20;
 

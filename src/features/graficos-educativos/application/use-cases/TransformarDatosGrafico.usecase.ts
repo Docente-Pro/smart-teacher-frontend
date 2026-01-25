@@ -17,7 +17,7 @@ export class TransformarDatosGraficoUseCase {
     datosBackend: any,
     opciones: OpcionesTransformacion = {}
   ): ConfiguracionGrafico | null {
-    const { validarEstructura = true, aplicarDefectos = true } = opciones;
+    const { aplicarDefectos = true } = opciones;
 
     if (!datosBackend) {
       return null;

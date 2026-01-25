@@ -40,7 +40,7 @@ export const PatronVisual: React.FC<Props> = ({ data }) => {
 
     // Repetir el patrón
     for (let rep = 0; rep < repeticiones; rep++) {
-      elementos.forEach((elem, idx) => {
+      elementos.forEach((elem, _idx) => {
         const centerX = currentX + tamañoElemento / 2;
         const centerY = y + tamañoElemento / 2;
 

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useAuth0 } from "@/hooks/useAuth0";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { 
@@ -19,7 +18,7 @@ import {
 } from "lucide-react";
 
 function Evaluaciones() {
-  const { user } = useAuth0();
+  const { user: _user } = useAuth0();
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState<"crear" | "historial">("crear");
 

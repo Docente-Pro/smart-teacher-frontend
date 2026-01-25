@@ -1,7 +1,7 @@
 import { Document, Footer } from "@htmldocs/react";
 import { Button } from "@/components/ui/button";
 import { FileDown, Printer } from "lucide-react";
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import { usePDFGeneration } from "@/hooks/usePDFGeneration";
 import { DocumentStyles } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";

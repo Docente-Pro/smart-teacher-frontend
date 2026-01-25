@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User } from "lucide-react";
-import { logo_image, logoUrl } from "@/utils/images/index.images";
+import { logo_image } from "@/utils/images/index.images";
 import ToggleDarkMode from "./ToggleDarkMode";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Link, useLocation } from "react-router";

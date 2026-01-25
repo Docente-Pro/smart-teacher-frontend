@@ -10,9 +10,9 @@ export async function createUserInDatabase(userData: ISignupFormData) {
   return await createNewUsuario({
     nombre: userData.nombre,
     email: userData.email,
-    nombreInstitucion: userData.nombreInstitucion,
-    nivelId: userData.nivelId,
-    gradoId: userData.gradoId,
+    nombreInstitucion: "", // Valor por defecto
+    nivelId: 1, // Valor por defecto
+    gradoId: 1, // Valor por defecto
     problematicaId: 1, // Valor por defecto
     suscripcion: {
       fechaInicio: new Date().toISOString(),

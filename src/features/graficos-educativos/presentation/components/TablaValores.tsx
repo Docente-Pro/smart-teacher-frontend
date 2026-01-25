@@ -87,7 +87,7 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
 
     // Filas de datos
     let currentY = headerHeight + 10;
-    elementos.forEach((fila, idxFila) => {
+    elementos.forEach((fila, _idxFila) => {
       // Línea divisoria horizontal
       if (mostrarBordes) {
         const hLine = rc.line(10, currentY, tableWidth + 10, currentY, {
@@ -110,7 +110,7 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
         text.setAttribute('font-size', '13');
         text.setAttribute('fill', '#2C3E50');
         text.setAttribute('class', 'rough-text');
-        text.textContent = celda;
+        text.textContent = typeof celda === 'number' ? celda.toString() : celda;
         svgRef.current?.appendChild(text);
 
         // Líneas verticales

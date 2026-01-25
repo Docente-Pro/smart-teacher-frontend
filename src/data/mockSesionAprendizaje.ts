@@ -87,6 +87,8 @@ export const mockSesionAprendizaje: ISesionAprendizaje = {
   // Secuencia Didáctica
   secuenciaDidactica: {
     inicio: {
+      tiempo: "15 minutos",
+      procesos: [],
       motivacion: [
         "La docente inicia la sesión con una dinámica llamada 'La tiendita del aula'. Coloca sobre la mesa diferentes objetos agrupados (lápices en paquetes de 6, borradores en cajas de 4, cuadernos en grupos de 5).",
         "Invita a 3 estudiantes a pasar al frente y pregunta: 'Si María compra 3 paquetes de lápices y cada paquete tiene 6 lápices, ¿cuántos lápices tiene en total?' Los estudiantes manipulan el material y cuentan.",
@@ -102,6 +104,8 @@ export const mockSesionAprendizaje: ISesionAprendizaje = {
       acuerdosConvivencia: "Se establecen acuerdos: escuchar con atención, participar activamente, trabajar en equipo respetando las ideas de todos, y pedir ayuda cuando la necesiten."
     },
     desarrollo: {
+      tiempo: "55 minutos",
+      procesos: [],
       procesosDidacticos: [
         {
           numero: 1,
@@ -166,6 +170,8 @@ export const mockSesionAprendizaje: ISesionAprendizaje = {
       }
     },
     cierre: {
+      tiempo: "20 minutos",
+      procesos: [],
       metacognicion: [
         {
           pregunta: "¿Qué aprendimos hoy?",

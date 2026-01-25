@@ -24,7 +24,7 @@ export const BalanzaEquilibrio: React.FC<Props> = ({ data }) => {
   const {
     ladoIzquierdo,
     ladoDerecho,
-    estado,
+    estado: _estado,
     mostrarEcuacion = true,
     pregunta
   } = data;

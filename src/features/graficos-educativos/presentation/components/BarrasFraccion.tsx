@@ -12,7 +12,7 @@ interface Props {
  * Permite comparación visual de fracciones
  */
 export const BarrasFraccion: React.FC<Props> = ({ data }) => {
-  const { elementos, orientacion = 'horizontal' } = data;
+  const { elementos, orientacion: _orientacion = 'horizontal' } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {

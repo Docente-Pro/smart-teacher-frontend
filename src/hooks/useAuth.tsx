@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (_email: string, _password: string) => {
     // Esta función se implementará en el LoginForm
     // Solo la dejamos aquí para consistencia con la interfaz
     throw new Error('Use loginWithPassword from auth0.service');
