@@ -1,5 +1,4 @@
-import RouteProtector from "@/auth/RouteProtector";
-import { PostLoginValidator } from "@/auth/PostLoginValidator";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Areas from "@/pages/Areas";
 import Competencias from "@/pages/Competencias";
 import CuestionarioInicial from "@/pages/CuestionarioInicial";
@@ -47,138 +46,129 @@ export const routes: IRouteToCreate[] = [
   {
     path: "/onboarding",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <OnboardingPage />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/dashboard",
     element: (
-      <RouteProtector>
-        <PostLoginValidator>
-          
-            <Dashboard />
-        </PostLoginValidator>
-      </RouteProtector>
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
     ),
   },
   {
     path: "/areas",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <Areas />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/crear-sesion",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <CuestionarioSesion />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/competencias",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <Competencias />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/cuestionario-inicial",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <CuestionarioInicial />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/planes",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <Planes />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/pago-exitoso",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <PagoExitoso />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/pago-fallido",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <PagoFallido />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/pago-pendiente",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <PagoPendiente />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/suscripcion-vencida",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <SuscripcionVencida />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/payment-success",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <PaymentSuccess />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/payment-failure",
     element: (
-      <RouteProtector>
+      <ProtectedRoute>
         <PaymentFailure />
-      </RouteProtector>
+      </ProtectedRoute>
     ),
   },
   {
     path: "/mis-sesiones",
     element: (
-      <RouteProtector>
-        <PostLoginValidator>
-          <MisSesiones />
-        </PostLoginValidator>
-      </RouteProtector>
+      <ProtectedRoute>
+        <MisSesiones />
+      </ProtectedRoute>
     ),
   },
   {
     path: "/evaluaciones",
     element: (
-      <RouteProtector>
-        <PostLoginValidator>
-          <Evaluaciones />
-        </PostLoginValidator>
-      </RouteProtector>
+      <ProtectedRoute>
+        <Evaluaciones />
+      </ProtectedRoute>
     ),
   },
   {
     path: "/result",
     element: (
-      <RouteProtector>
-        <PostLoginValidator>
-          <DocTest />
-        </PostLoginValidator>
-      </RouteProtector>
+      <ProtectedRoute>
+        <DocTest />
+      </ProtectedRoute>
     ),
   },
   {

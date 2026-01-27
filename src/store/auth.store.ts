@@ -70,8 +70,44 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
 
       setTokens: (tokens) => {
-        const decodedUser = parseJwt(tokens.id_token);
         const expiresAt = Date.now() + tokens.expires_in * 1000;
+
+        // Si ya viene el usuario del backend, convertirlo a EnrichedUser
+        if (tokens.user && tokens.user.id) {
+          console.log('💾 Seteando usuario del backend:', tokens.user);
+          
+          // Crear EnrichedUser desde UserData
+          const enrichedUser: EnrichedUser = {
+            // Campos requeridos de JWT (usamos valores dummy ya que Auth0 los maneja)
+            sub: tokens.user.id,
+            email: tokens.user.email,
+            name: tokens.user.nombre, // Convertir 'nombre' a 'name'
+            exp: Math.floor(Date.now() / 1000) + 86400,
+            iat: Math.floor(Date.now() / 1000),
+            // Campos adicionales del backend
+            id: tokens.user.id,
+            perfilCompleto: tokens.user.perfilCompleto,
+            plan: tokens.user.plan,
+            suscripcionActiva: tokens.user.suscripcionActiva,
+            sesionesUsadas: tokens.user.sesionesUsadas,
+            sesionesRestantes: tokens.user.sesionesRestantes,
+            problematicaCompleta: tokens.user.problematicaCompleta,
+          };
+          
+          set({
+            accessToken: tokens.access_token,
+            idToken: tokens.id_token,
+            refreshToken: tokens.refresh_token,
+            expiresAt,
+            user: enrichedUser,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return;
+        }
+
+        // Si no, decodificar del JWT (login tradicional)
+        const decodedUser = parseJwt(tokens.id_token);
 
         // Combinar datos del JWT con datos adicionales del backend
         // Los datos del backend tienen PRIORIDAD sobre el JWT

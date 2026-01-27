@@ -1,9 +1,11 @@
-import { useAuth0 } from '@auth0/auth0-react';
-import { Button } from '@/components/ui/button';
-import { SOCIAL_PROVIDERS } from '../constants/loginConstants';
+import { useAuth0 } from "@auth0/auth0-react";
+import { Button } from "@/components/ui/button";
+import { SOCIAL_PROVIDERS } from "../constants/loginConstants";
+import { useNavigate } from "react-router";
 
 function SocialLogin() {
   const { loginWithRedirect } = useAuth0();
+  const navigate = useNavigate();
 
   const handleSocialLogin = (provider: string) => {
     loginWithRedirect({
@@ -12,7 +14,7 @@ function SocialLogin() {
         redirect_uri: window.location.origin,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
       },
-    });
+    }).then(() => navigate("/dashboard"));
   };
 
   return (

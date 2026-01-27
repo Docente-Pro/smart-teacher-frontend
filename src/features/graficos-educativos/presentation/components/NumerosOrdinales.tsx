@@ -28,8 +28,11 @@ const numerosOrdinalesTexto: Record<number, string> = {
  * Útil para enseñar secuencias, orden y posiciones
  */
 export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
-  const { elementos, orientacion = 'horizontal', mostrarTexto = false } = data;
+  const { elementos, mostrarTexto = false } = data;
   const svgRef = useRef<SVGSVGElement>(null);
+  
+  // Siempre usar orientación horizontal
+  const orientacion = 'horizontal';
 
   // Mapeo de colores
   const colorMap: Record<ColorGrafico, string> = {
@@ -64,10 +67,10 @@ export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
 
-    const anchoBase = 100;
-    const altoBase = 100;
-    const espacioEntreCajas = 15;
-    const margen = 40;
+    const anchoBase = 120;
+    const altoBase = 120;
+    const espacioEntreCajas = 16;
+    const margen = 30;
     const maxCajasPorFila = 6; // Máximo de cajas por fila en modo horizontal
 
     elementos.forEach((elemento, index) => {
@@ -76,11 +79,11 @@ export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
       let alto = altoBase;
       
       if (elemento.tamano === 'pequeno') {
-        ancho = 70;
-        alto = 70;
+        ancho = 90;
+        alto = 90;
       } else if (elemento.tamano === 'grande') {
-        ancho = 130;
-        alto = 130;
+        ancho = 150;
+        alto = 150;
       }
 
       // Calcular posición
@@ -144,7 +147,7 @@ export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
 
       // Número ordinal (1°, 2°, etc.)
       const numeroOrdinal = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      const fontSize = elemento.tamano === 'pequeno' ? 32 : elemento.tamano === 'grande' ? 44 : 38;
+      const fontSize = elemento.tamano === 'pequeno' ? 36 : elemento.tamano === 'grande' ? 52 : 44;
       
       // Determinar color del texto según el fondo para mejor contraste
       const coloresOscuros = [ColorGrafico.AZUL, ColorGrafico.ROJO, ColorGrafico.MORADO, ColorGrafico.VERDE, ColorGrafico.NEUTRO];
@@ -161,20 +164,20 @@ export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
       numeroOrdinal.textContent = `${elemento.numero}°`;
       svgRef.current!.appendChild(numeroOrdinal);
 
-      // Texto descriptivo debajo (si está activado)
-      if (mostrarTexto && numerosOrdinalesTexto[elemento.numero]) {
+      // Etiqueta personalizada debajo (solo si el elemento tiene etiqueta)
+      if (elemento.etiqueta) {
         const textoDescriptivo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        const yTexto = orientacion === 'horizontal' ? y + alto + 20 : y + alto / 2;
+        const yTexto = orientacion === 'horizontal' ? y + alto + 24 : y + alto / 2;
         const xTexto = orientacion === 'horizontal' ? x + ancho / 2 : x + ancho + 15;
         
         textoDescriptivo.setAttribute('x', xTexto.toString());
         textoDescriptivo.setAttribute('y', yTexto.toString());
         textoDescriptivo.setAttribute('text-anchor', orientacion === 'horizontal' ? 'middle' : 'start');
-        textoDescriptivo.setAttribute('font-size', '14');
-        textoDescriptivo.setAttribute('font-weight', '600');
+        textoDescriptivo.setAttribute('font-size', '16');
+        textoDescriptivo.setAttribute('font-weight', '700');
         textoDescriptivo.setAttribute('font-family', 'Arial, sans-serif');
-        textoDescriptivo.setAttribute('fill', '#64748b');
-        textoDescriptivo.textContent = numerosOrdinalesTexto[elemento.numero];
+        textoDescriptivo.setAttribute('fill', '#1e293b');
+        textoDescriptivo.textContent = elemento.etiqueta;
         svgRef.current!.appendChild(textoDescriptivo);
       }
     });
@@ -185,11 +188,13 @@ export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
   const calcularDimensiones = () => {
     if (!elementos || elementos.length === 0) return { width: 400, height: 200 };
 
-    const anchoBase = 100;
-    const altoBase = 100;
-    const espacioEntreCajas = 15;
-    const margen = 40;
-    const espacioTexto = mostrarTexto ? 45 : 10;
+    const anchoBase = 120;
+    const altoBase = 120;
+    const espacioEntreCajas = 16;
+    const margen = 30;
+    // Espacio para etiquetas personalizadas si existen
+    const tieneEtiquetas = elementos.some(e => e.etiqueta);
+    const espacioTexto = tieneEtiquetas ? 45 : 10;
     const maxCajasPorFila = 6;
 
     if (orientacion === 'horizontal') {

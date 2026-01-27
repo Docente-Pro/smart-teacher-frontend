@@ -319,6 +319,7 @@ export interface NumeroOrdinal {
   color?: ColorGrafico;
   destacado?: boolean;
   tamano?: 'pequeno' | 'mediano' | 'grande';
+  etiqueta?: string; // Etiqueta personalizada (ej: nombre de persona, objeto)
 }
 
 export interface GraficoNumerosOrdinales extends ConfiguracionGrafico {

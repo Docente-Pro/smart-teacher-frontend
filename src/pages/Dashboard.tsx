@@ -5,60 +5,36 @@ import { BookOpen, FileText, BarChart3, LogOut, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { useAuth0 } from "@/hooks/useAuth0";
-import { useUserStore } from "@/store/user.store";
+import { useAuth0 } from "@auth0/auth0-react";
+import { useAuthStore } from "@/store/auth.store";
 import ProblematicaModal from "@/components/Shared/Modal/ProblematicaModal";
 
 function Dashboard() {
-  const { user: auth0User, logout } = useAuth0(); // Usuario de Auth0 (autenticación)
-  const { user, fetchUsuario } = useUserStore(); // Usuario de BD (aplicación)
+  const { logout } = useAuth0();
+  const { user } = useAuthStore(); // Usuario del store (ya validado por ProtectedRoute)
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useGlobalLoading();
   const [showProblematicaModal, setShowProblematicaModal] = useState(false);
 
-  // Cargar usuario desde backend cuando el componente se monta
+  // Cargar datos del dashboard (sin validaciones, ya las hizo ProtectedRoute)
   useEffect(() => {
     async function cargarDashboard() {
-      if (!auth0User?.id) {
-        handleToaster("Error: Usuario no encontrado", "error");
-        navigate("/login");
-        return;
-      }
-
+      if (!user) return;
+      
       showLoading("Cargando dashboard...");
 
       try {
-        // Cargar datos del usuario desde backend
-        await fetchUsuario(auth0User.id);
-
-        // Los datos ahora están en el store (user.store.ts)
-        // Verificar si completó el perfil
-        if (!auth0User.perfilCompleto) {
-          hideLoading();
-          handleToaster("Por favor, completa tu perfil primero", "info");
-          navigate("/onboarding");
-          return;
-        }
-
-        // Verificar estado de suscripción (premium vencido)
-        if (auth0User.plan !== "free" && !auth0User.suscripcionActiva) {
-          hideLoading();
-          handleToaster("Tu suscripción ha expirado", "warning");
-          navigate("/suscripcion-vencida");
-          return;
-        }
-
-        // TODO: Cargar datos del dashboard en paralelo
+        // TODO: Cargar datos del dashboard
         // await Promise.all([
         //   obtenerSesionesRecientes(user.id),
         //   obtenerEstadisticas(user.id),
         // ]);
 
-        console.log("✅ Dashboard cargado. Usuario BD:", {
-          nombre: user.nombre,
+        console.log("✅ Dashboard cargado. Usuario:", {
+          nombre: user.name,
           email: user.email,
-          institucion: user.nombreInstitucion,
-          problematica: user.problematica?.nombre,
+          plan: user.plan,
+          perfilCompleto: user.perfilCompleto,
         });
       } catch (error: any) {
         console.error("Error al cargar dashboard:", error);
@@ -69,7 +45,12 @@ function Dashboard() {
     }
 
     cargarDashboard();
-  }, [auth0User?.id, navigate]);
+  }, [user?.id]); // Solo recargar si cambia el ID del usuario
+
+  // Botón de logout simple
+  const handleLogout = () => {
+    logout({ logoutParams: { returnTo: window.location.origin } });
+  };
 
   const features = [
     {
@@ -77,11 +58,8 @@ function Dashboard() {
       title: "Crear Sesión",
       description: "Genera una nueva sesión de aprendizaje",
       action: () => {
-        // Validar si tiene problemática completa usando el usuario de BD
-        if (!user?.problematica && !user?.problematicaId) {
-          setShowProblematicaModal(true);
-          return;
-        }
+        // Validar problemática
+        if (!user) return;
         
         showLoading("Cargando cuestionario...");
         navigate("/crear-sesion");
@@ -107,8 +85,6 @@ function Dashboard() {
     },
   ];
 
-  console.log(user);
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -127,9 +103,9 @@ function Dashboard() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <User className="w-5 h-5 text-gray-500" />
-              <span className="text-gray-700 dark:text-gray-300">{user?.nombre || auth0User?.name}</span>
+              <span className="text-gray-700 dark:text-gray-300">{user?.name}</span>
             </div>
-            <Button onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })} variant="outline" className="gap-2">
+            <Button onClick={handleLogout} variant="outline" className="gap-2">
               <LogOut className="w-4 h-4" />
               Salir
             </Button>
@@ -142,7 +118,7 @@ function Dashboard() {
         {/* Welcome Section */}
         <div className="mb-12">
           <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            ¡Bienvenido de vuelta, {user?.nombre?.split(" ")[0] || auth0User?.name?.split(" ")[0]}! 👋
+            ¡Bienvenido de vuelta, {user?.name?.split(" ")[0]}! 👋
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400">¿Qué te gustaría hacer hoy?</p>
         </div>

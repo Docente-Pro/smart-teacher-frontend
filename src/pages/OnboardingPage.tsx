@@ -13,7 +13,7 @@ import { instance } from "@/services/instance";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { GlobalLoading } from "@/components/GlobalLoading";
-import { useAuth0 } from "@/hooks/useAuth0";
+import { useAuth0 } from "@auth0/auth0-react";
 import { useAuthStore } from "@/store/auth.store";
 
 interface OnboardingData {
@@ -23,8 +23,8 @@ interface OnboardingData {
 }
 
 function OnboardingPage() {
-  const { user, isLoading: authLoading } = useAuth0();
-  const { updateUser } = useAuthStore();
+  const { user: auth0User, isLoading: authLoading } = useAuth0();
+  const { user: backendUser, updateUser } = useAuthStore(); // Usar usuario del backend
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useGlobalLoading();
 
@@ -39,13 +39,13 @@ function OnboardingPage() {
 
   // Verificar si ya completó el onboarding
   useEffect(() => {
-    if (user?.perfilCompleto) {
+    if (backendUser?.perfilCompleto) {
       navigate("/dashboard");
     }
-  }, [user, navigate]);
+  }, [backendUser, navigate]);
 
-  console.log(user);
-  
+  console.log('Usuario Auth0:', auth0User);
+  console.log('Usuario Backend:', backendUser);
 
   // Cargar niveles y grados
   useEffect(() => {
@@ -66,7 +66,8 @@ function OnboardingPage() {
   // Filtrar grados cuando cambia el nivel
   useEffect(() => {
     if (formData.nivelId && todosLosGrados.length > 0) {
-      const gradosDelNivel = todosLosGrados.filter((grado) => grado.nivelId === formData.nivelId);
+      const gradosDelNivel = todosLosGrados.filter((grado) => grado.nivelId === formData.nivelId).sort((a, b) => a.id - b.id); // Ordenar por ID ascendente
+
       setGradosFiltrados(gradosDelNivel);
 
       // Limpiar grado si no pertenece al nivel seleccionado
@@ -105,15 +106,16 @@ function OnboardingPage() {
       return;
     }
 
-    if (!user?.id) {
+    if (!backendUser?.id) {
       handleToaster("Error: No se encontró el ID del usuario", "error");
+      console.error('No hay usuario en el store:', backendUser);
       return;
     }
 
     showLoading("Guardando tu perfil...");
 
     try {
-      const response = await instance.patch(`/usuario/${user.id}`, {
+      const response = await instance.patch(`/usuario/${backendUser.id}`, {
         nombreInstitucion: formData.nombreInstitucion,
         nivelId: formData.nivelId,
         gradoId: formData.gradoId,
@@ -123,6 +125,9 @@ function OnboardingPage() {
       const usuarioActualizado = response.data.data || response.data;
       updateUser({
         perfilCompleto: true,
+        nombreInstitucion: formData.nombreInstitucion,
+        nivelId: formData.nivelId,
+        gradoId: formData.gradoId,
         // Actualizar otros campos si el backend los devuelve
         ...(usuarioActualizado.nombreInstitucion && { name: usuarioActualizado.nombre }),
       });
@@ -154,7 +159,7 @@ function OnboardingPage() {
       <div className="w-full max-w-2xl bg-white dark:bg-gray-950 rounded-2xl shadow-2xl p-8 md:p-12 relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">¡Bienvenido, {user?.name}! 🎉</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">¡Bienvenido, {auth0User?.name}! 🎉</h1>
           <p className="text-gray-600 dark:text-gray-400">Completa tu perfil para personalizar tu experiencia en DocentePro</p>
         </div>
 

@@ -9,10 +9,12 @@ import { Toaster } from "sonner";
 import { useSessionRestore } from "./hooks/useSessionRestore";
 import { GlobalLoading } from "./components/GlobalLoading";
 import { useLoadingStore } from "./store/loading.store";
+import { useAuthFlow } from "./hooks/useAuthFlow";
 
-// Componente wrapper para usar el hook de restauración de sesión
+// Componente wrapper - Solo hooks esenciales
 function App() {
-  useSessionRestore();
+  useSessionRestore();  // Restaurar sesión desde localStorage
+  useAuthFlow();        // Manejar flujo de autenticación (social y tradicional)
   const { isLoading, loadingMessage } = useLoadingStore();
   
   return (

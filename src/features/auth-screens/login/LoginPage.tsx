@@ -13,11 +13,14 @@ function LoginPage() {
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      if (isPremium) {
-        navigate("/dashboard");
-      } else {
-        navigate("/");
-      }
+      // Esperar un tick para que se sincronice el store
+      setTimeout(() => {
+        if (isPremium) {
+          navigate("/dashboard");
+        } else {
+          navigate("/");
+        }
+      }, 100);
     }
   }, [isAuthenticated, isPremium, isLoading, navigate]);
 

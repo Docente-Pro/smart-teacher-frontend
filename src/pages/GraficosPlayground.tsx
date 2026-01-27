@@ -134,7 +134,7 @@ const ejemplosPredefinidos = {
       { numero: 10 }
     ],
     orientacion: "horizontal",
-    mostrarTexto: true
+    mostrarTexto: false
   }
 };
 
