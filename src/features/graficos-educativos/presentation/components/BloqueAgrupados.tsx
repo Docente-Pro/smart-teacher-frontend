@@ -142,8 +142,14 @@ export const BloqueAgrupados: React.FC<Props> = ({ data }) => {
         currentX += blocksPerRow * (tamanoBloque + blockSpacing) + groupSpacing;
       });
 
-      svgRef.current.setAttribute('width', (currentX + padding).toString());
-      svgRef.current.setAttribute('height', (maxHeight + padding * 2).toString());
+      const svgWidth = currentX + padding;
+      const svgHeight = maxHeight + padding * 2;
+      
+      svgRef.current.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+      svgRef.current.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svgRef.current.style.width = '100%';
+      svgRef.current.style.maxWidth = `${svgWidth}px`;
+      svgRef.current.style.height = 'auto';
 
     } else {
       // Disposición vertical
@@ -212,8 +218,14 @@ export const BloqueAgrupados: React.FC<Props> = ({ data }) => {
         currentY = blockY + countHeight + groupSpacing;
       });
 
-      svgRef.current.setAttribute('width', (maxWidth + padding * 2).toString());
-      svgRef.current.setAttribute('height', (currentY + padding).toString());
+      const svgWidth = maxWidth + padding * 2;
+      const svgHeight = currentY + padding;
+      
+      svgRef.current.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+      svgRef.current.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svgRef.current.style.width = '100%';
+      svgRef.current.style.maxWidth = `${svgWidth}px`;
+      svgRef.current.style.height = 'auto';
     }
 
   }, [elementos, disposicion, tamanoBloque]);

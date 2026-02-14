@@ -120,7 +120,7 @@ export const MedidasComparacion: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="medidas-comparacion-container">
-      <svg ref={svgRef} width="650" height={height} />
+      <svg ref={svgRef} viewBox={`0 0 650 ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: '650px' }} />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { ICompetencia } from "@/interfaces/ICompetencia";
 import { IUsuario } from "@/interfaces/IUsuario";
 import { getCompetencyById } from "@/services/competencias.service";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCapacidadByCompentenciaId } from "@/services/capacidades.service";
 import { ICapacidad } from "@/interfaces/ICapacidad";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -30,12 +30,93 @@ function Step2({ pagina, setPagina }: Props) {
   const [competenciaSeleccionada, setCompetenciaSeleccionada] = useState<string>("");
   const [areaId, setAreaId] = useState<number | null>(null);
 
+  // Ref para detectar realmente cambios de tema (y no limpiar en el primer render)
+  const temaEffectInitializedRef = useRef(false);
+  const temaPrevioRef = useRef<string | undefined | null>(sesion?.temaCurricular);
+
+  // 🎯 Callback cuando se selecciona/guarda un tema - fuerza nueva sugerencia
+  const handleTemaSeleccionado = (tema: string) => {
+    console.log("📚 Tema confirmado, activando sugerencia de competencia:", tema);
+    // Limpiar selecciones para permitir nueva sugerencia
+    setCompetenciaSeleccionada("");
+    setCapacidadesSeleccionadas([]);
+    clearSugerencia();
+    
+    if (sesion) {
+      updateSesion({
+        propositoAprendizaje: {
+          ...sesion.propositoAprendizaje,
+          competencia: "",
+          capacidades: [],
+        },
+      });
+    }
+  };
+
   // Hook para sugerencia de competencia por IA
+  // Solo se ejecuta si NO hay competencia seleccionada (usa estado local para mejor reactividad)
   const { sugerencia, loading: loadingSugerencia, clearSugerencia } = useCompetenciaSugerida({
     areaId,
-    temaId: sesion?.temaId || null,
-    enabled: !!areaId && !!sesion?.temaId,
+    temaId: sesion?.temaId ?? null,
+    temaTexto: sesion?.temaCurricular || null,
+    enabled: !!areaId && !!sesion?.temaCurricular && !competenciaSeleccionada,
   });
+
+  // Inicializar desde el store al montar el componente
+  useEffect(() => {
+    if (sesion?.propositoAprendizaje.competencia) {
+      setCompetenciaSeleccionada(sesion.propositoAprendizaje.competencia);
+      
+      // Si ya hay capacidades en el store, restaurarlas
+      if (sesion.propositoAprendizaje.capacidades && sesion.propositoAprendizaje.capacidades.length > 0) {
+        // Convertir las capacidades del store al formato ICapacidad
+        const capacidadesFromStore: ICapacidad[] = sesion.propositoAprendizaje.capacidades.map((cap, index) => ({
+          id: index + 1, // ID temporal
+          nombre: cap.nombre,
+          descripcion: cap.descripcion || "",
+          competencia: 0, // ID temporal
+          competenciaId: 0 // ID temporal
+        }));
+        setCapacidadesSeleccionadas(capacidadesFromStore);
+      }
+    }
+  }, []); // Solo al montar
+
+  // 🎯 Detectar cambio de tema curricular (incluye temas personalizados) y limpiar selecciones
+  useEffect(() => {
+    if (!sesion) return;
+
+    const temaActual = sesion.temaCurricular;
+
+    // En la primera ejecución solo guardamos el valor previo, no limpiamos
+    if (!temaEffectInitializedRef.current) {
+      temaEffectInitializedRef.current = true;
+      temaPrevioRef.current = temaActual;
+      return;
+    }
+
+    // Si el tema realmente cambió (incluye pasar de vacío a personalizado)
+    if (temaActual && temaActual !== temaPrevioRef.current) {
+      console.log("🔄 Tema curricular cambió, limpiando selecciones para nueva sugerencia", {
+        anterior: temaPrevioRef.current,
+        actual: temaActual,
+      });
+
+      setCompetenciaSeleccionada("");
+      setCapacidadesSeleccionadas([]);
+      clearSugerencia();
+
+      updateSesion({
+        propositoAprendizaje: {
+          ...sesion.propositoAprendizaje,
+          competencia: "",
+          capacidades: [],
+        },
+      });
+    }
+
+    temaPrevioRef.current = temaActual;
+  }, [sesion?.temaCurricular, clearSugerencia, updateSesion]);
 
   // Cargar competencias basándose en el área seleccionada
   useEffect(() => {
@@ -67,6 +148,12 @@ function Step2({ pagina, setPagina }: Props) {
   // Cargar capacidades cuando se selecciona una competencia
   useEffect(() => {
     async function cargarCapacidades() {
+      // Si ya hay capacidades cargadas y la competencia no ha cambiado, no recargar
+      if (capacidadesSeleccionadas.length > 0 && 
+          sesion?.propositoAprendizaje.competencia === competenciaSeleccionada) {
+        return;
+      }
+
       const competenciaEncontrada = competencias.find(c => c.nombre === competenciaSeleccionada);
       
       if (competenciaEncontrada) {
@@ -99,26 +186,19 @@ function Step2({ pagina, setPagina }: Props) {
       }
     }
 
-    if (competenciaSeleccionada) {
+    if (competenciaSeleccionada && competencias.length > 0) {
       cargarCapacidades();
     }
-  }, [competenciaSeleccionada]);
-
-  // Inicializar desde el store si ya hay datos
-  useEffect(() => {
-    if (sesion?.propositoAprendizaje.competencia) {
-      setCompetenciaSeleccionada(sesion.propositoAprendizaje.competencia);
-    }
-  }, [sesion]);
+  }, [competenciaSeleccionada, competencias]);
 
   // Aplicar automáticamente la sugerencia de la IA
   useEffect(() => {
     if (sugerencia) {
       // Aplicar siempre que llegue una nueva sugerencia
-      console.log('🤖 Aplicando sugerencia automática:', sugerencia.competencia.nombre);
-      setCompetenciaSeleccionada(sugerencia.competencia.nombre);
+      console.log('🤖 Aplicando sugerencia automática:', sugerencia.competenciaNombre);
+      setCompetenciaSeleccionada(sugerencia.competenciaNombre);
     }
-  }, [sugerencia]);
+  }, [sugerencia, sesion?.temaId]);
 
   function handleClick(competenciaNombre: string) {
     // Limpiar sugerencia cuando el usuario selecciona manualmente
@@ -168,7 +248,7 @@ function Step2({ pagina, setPagina }: Props) {
 
         {/* 🆕 Selector de Tema Curricular */}
         <div className="mb-8">
-          <SelectorTemas />
+          <SelectorTemas onTemaSeleccionado={handleTemaSeleccionado} />
         </div>
 
         {/* 🤖 Sugerencia de Competencia por IA */}

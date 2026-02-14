@@ -118,7 +118,12 @@ export const CirculosFraccion: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="circulos-fraccion-container">
-      <svg ref={svgRef} width={width} height={height} />
+      <svg 
+        ref={svgRef} 
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }}
+      />
     </div>
   );
 };

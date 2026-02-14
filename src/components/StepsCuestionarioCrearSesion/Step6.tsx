@@ -20,13 +20,12 @@ function Step6({ pagina, setPagina }: Props) {
   const [loadingIA, setLoadingIA] = useState(false);
 
   console.log(sesion);
-  
 
   // Inicializar desde el store si ya hay datos
   useEffect(() => {
     if (sesion?.propositoSesion) {
       // soportar string o el objeto antiguo
-      if (typeof sesion.propositoSesion === 'string') {
+      if (typeof sesion.propositoSesion === "string") {
         setPropositoSesionText(sesion.propositoSesion);
       } else {
         const legacy = sesion.propositoSesion as any;
@@ -45,16 +44,18 @@ function Step6({ pagina, setPagina }: Props) {
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,
         capacidades: sesion.propositoAprendizaje.capacidades,
-        duracion: sesion.datosGenerales.duracion
+        duracion: sesion.datosGenerales.duracion,
+        temaId: sesion.temaId,
       });
 
       const data = response.data;
 
       if (data.success && data.data) {
         console.log(data.data);
-        
+
         // El endpoint ahora puede devolver un único string `propositoSesion`.
-        const proposito = data.data.propositoSesion ||
+        const proposito =
+          data.data.propositoSesion ||
           // fallback: concatenar si vienen partes
           [data.data.queAprenderan, data.data.como, data.data.paraQue].filter(Boolean).join(" ");
 
@@ -78,7 +79,7 @@ function Step6({ pagina, setPagina }: Props) {
     // Actualizar el store con el string único
     if (sesion) {
       updateSesion({
-        propositoSesion: propositoSesionText.trim()
+        propositoSesion: propositoSesionText.trim(),
       });
     }
 
@@ -88,7 +89,6 @@ function Step6({ pagina, setPagina }: Props) {
   if (!sesion) return null;
 
   console.log(propositoSesionText);
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
@@ -97,18 +97,14 @@ function Step6({ pagina, setPagina }: Props) {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-amber-600 text-xs font-bold">
-              5
-            </div>
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-amber-600 text-xs font-bold">5</div>
             <span className="text-sm font-semibold tracking-wide">PASO 5 DE 8</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Propósito de la Sesión
           </h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">
-            Define el propósito pedagógico de esta sesión de aprendizaje
-          </p>
-          
+          <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">Define el propósito pedagógico de esta sesión de aprendizaje</p>
+
           {/* Botón Generar con IA */}
           <Button
             onClick={generarPropositoConIA}
@@ -146,11 +142,7 @@ function Step6({ pagina, setPagina }: Props) {
 
         {/* Botones de navegación */}
         <div className="flex justify-between items-center">
-          <Button
-            onClick={() => setPagina(pagina - 1)}
-            variant="outline"
-            className="h-14 px-8 text-lg font-semibold border-2"
-          >
+          <Button onClick={() => setPagina(pagina - 1)} variant="outline" className="h-14 px-8 text-lg font-semibold border-2">
             <ArrowLeft className="mr-2 h-5 w-5" />
             Anterior
           </Button>

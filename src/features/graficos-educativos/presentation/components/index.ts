@@ -13,6 +13,7 @@ export * from './BarrasFraccion';
 export * from './DiagramaDinero';
 export * from './FigurasGeometricas';
 export * from './PatronVisual';
+export * from './PatronGeometrico';
 export * from './DiagramaVenn';
 export * from './TablaDobleEntrada';
 export * from './OperacionVertical';

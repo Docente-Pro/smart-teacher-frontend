@@ -166,7 +166,12 @@ export const TablaDobleEntrada: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="tabla-doble-entrada-container">
-      <svg ref={svgRef} width={width} height={height} />
+      <svg 
+        ref={svgRef} 
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }}
+      />
     </div>
   );
 };

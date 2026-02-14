@@ -35,6 +35,7 @@ export interface IPropositoAprendizaje {
   evidenciaAprendizaje: string;
   instrumentoEvaluacion: string;
   competenciasTransversales: string[];  // Simplificado a string[]
+  cantidadCriterios?: number;  // Cantidad de criterios a generar por la IA
 }
 
 export type IPropositoSesion = string;

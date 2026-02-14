@@ -149,8 +149,14 @@ export const BarrasComparacion: React.FC<Props> = ({ data }) => {
       svgRef.current?.appendChild(labelText);
     });
 
-    svgRef.current.setAttribute('width', chartWidth.toString());
-    svgRef.current.setAttribute('height', (chartHeight + 20).toString());
+    const svgWidth = chartWidth;
+    const svgHeight = chartHeight + 20;
+    
+    svgRef.current.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+    svgRef.current.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svgRef.current.style.width = '100%';
+    svgRef.current.style.maxWidth = `${svgWidth}px`;
+    svgRef.current.style.height = 'auto';
   }, [elementos, ejeY, maximo, intervalo, marcasY]);
 
   return (

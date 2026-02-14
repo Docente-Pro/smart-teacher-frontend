@@ -142,16 +142,13 @@ export const ejemploTablaDobleEntrada: GraficoTablaDobleEntrada = {
 
 export const ejemploOperacionVertical: GraficoOperacionVertical = {
   tipoGrafico: TipoGraficoMatematica.OPERACION_VERTICAL,
-  titulo: "Suma con llevadas",
+  titulo: "¿Cuántos juguetes hay?",
   elementos: [],
-  operacion: '+',
-  numeros: [456, 278],
+  operacion: 'suma',
+  operandos: [8, 5],
+  resultado: 13,
   mostrarResultado: true,
-  resultado: 734,
-  llevadasPrestas: [
-    { posicion: 1, valor: 1 },
-    { posicion: 2, valor: 1 }
-  ]
+  destacarLlevadas: false
 };
 
 // ============= MEDIDAS COMPARACIÓN =============

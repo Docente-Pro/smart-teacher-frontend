@@ -5,6 +5,7 @@ import { handleToaster } from "@/utils/Toasters/handleToasters";
 interface UseCompetenciaSugeridaProps {
   areaId: number | null;
   temaId: number | null;
+  temaTexto?: string | null;
   enabled?: boolean;
 }
 
@@ -40,6 +41,7 @@ interface UseCompetenciaSugeridaReturn {
 export function useCompetenciaSugerida({
   areaId,
   temaId,
+  temaTexto,
   enabled = true,
 }: UseCompetenciaSugeridaProps): UseCompetenciaSugeridaReturn {
   const [sugerencia, setSugerencia] = useState<ICompetenciaSugerida | null>(null);
@@ -48,7 +50,7 @@ export function useCompetenciaSugerida({
 
   const fetchSugerencia = async () => {
     // Validaciones
-    if (!areaId || !temaId) {
+    if (!areaId || (!temaId && !temaTexto)) {
       setSugerencia(null);
       return;
     }
@@ -59,7 +61,7 @@ export function useCompetenciaSugerida({
     setError(null);
 
     try {
-      const response = await sugerirCompetencia(areaId, temaId);
+      const response = await sugerirCompetencia(areaId, temaId, temaTexto || undefined);
 
       if (response.data && response.data.data) {
         setSugerencia(response.data.data);
@@ -83,7 +85,7 @@ export function useCompetenciaSugerida({
   // Ejecutar automáticamente cuando cambien los parámetros
   useEffect(() => {
     fetchSugerencia();
-  }, [areaId, temaId, enabled]);
+  }, [areaId, temaId, temaTexto, enabled]);
 
   const clearSugerencia = () => {
     setSugerencia(null);

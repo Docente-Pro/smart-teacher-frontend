@@ -31,20 +31,22 @@ function Step5({ pagina, setPagina }: Props) {
     "Enfoque de Derechos",
     "Enfoque Inclusivo o de Atención a la Diversidad",
     "Enfoque Intercultural",
-    "Enfoque de Igualdad de Género",
+    "Enfoque Igualdad de Género",
     "Enfoque Ambiental",
     "Enfoque Orientación al Bien Común",
-    "Enfoque Búsqueda de la Excelencia"
+    "Enfoque Búsqueda de la Excelencia",
   ];
 
   // Inicializar desde el store si ya hay datos
   useEffect(() => {
     if (sesion?.enfoquesTransversales && sesion.enfoquesTransversales.length > 0) {
-      setEnfoques(sesion.enfoquesTransversales.map(e => ({
-        nombre: e.nombre,
-        actitudesObservables: e.actitudesObservables,
-        enEdicion: false
-      })));
+      setEnfoques(
+        sesion.enfoquesTransversales.map((e) => ({
+          nombre: e.nombre,
+          actitudesObservables: e.actitudesObservables,
+          enEdicion: false,
+        })),
+      );
     }
   }, [sesion]);
 
@@ -68,7 +70,7 @@ function Step5({ pagina, setPagina }: Props) {
     if (!sesion) return;
 
     // Validar que se haya completado el propósito de la sesión
-    const propositoTexto = sesion.propositoSesion || '';
+    const propositoTexto = sesion.propositoSesion || "";
     if (!propositoTexto) {
       handleToaster("Completa el propósito de la sesión primero (Step 6)", "warning");
       return;
@@ -80,7 +82,8 @@ function Step5({ pagina, setPagina }: Props) {
         area: sesion.datosGenerales.area,
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,
-        propositoSesion: sesion.propositoSesion
+        propositoSesion: sesion.propositoSesion,
+        temaId: sesion.temaId,
       });
 
       const data = response.data;
@@ -91,9 +94,9 @@ function Step5({ pagina, setPagina }: Props) {
           nombre: e.nombre,
           actitudesObservables: e.actitudesObservables,
           justificacion: e.justificacion,
-          enEdicion: false
+          enEdicion: false,
         }));
-        
+
         setEnfoques(enfoquesConIA);
         handleToaster(`${enfoquesConIA.length} enfoques sugeridos por IA`, "success");
       }
@@ -107,7 +110,7 @@ function Step5({ pagina, setPagina }: Props) {
 
   function agregarEnfoqueManual(nombreEnfoque: string) {
     // Validar que no exista ya
-    if (enfoques.find(e => e.nombre === nombreEnfoque)) {
+    if (enfoques.find((e) => e.nombre === nombreEnfoque)) {
       handleToaster("Este enfoque ya está agregado", "info");
       return;
     }
@@ -118,11 +121,14 @@ function Step5({ pagina, setPagina }: Props) {
       return;
     }
 
-    setEnfoques([...enfoques, {
-      nombre: nombreEnfoque,
-      actitudesObservables: "",
-      enEdicion: true
-    }]);
+    setEnfoques([
+      ...enfoques,
+      {
+        nombre: nombreEnfoque,
+        actitudesObservables: "",
+        enEdicion: true,
+      },
+    ]);
   }
 
   function handleNextStep() {
@@ -133,7 +139,7 @@ function Step5({ pagina, setPagina }: Props) {
     }
 
     // Validación 2: Todos deben tener actitudes observables
-    const hayVacios = enfoques.some(e => !e.actitudesObservables || e.actitudesObservables.trim() === '');
+    const hayVacios = enfoques.some((e) => !e.actitudesObservables || e.actitudesObservables.trim() === "");
     if (hayVacios) {
       handleToaster("Completa las actitudes observables de todos los enfoques", "warning");
       return;
@@ -142,10 +148,10 @@ function Step5({ pagina, setPagina }: Props) {
     // Actualizar el store
     if (sesion) {
       updateSesion({
-        enfoquesTransversales: enfoques.map(e => ({
+        enfoquesTransversales: enfoques.map((e) => ({
           nombre: e.nombre,
-          actitudesObservables: e.actitudesObservables
-        }))
+          actitudesObservables: e.actitudesObservables,
+        })),
       });
     }
 
@@ -161,9 +167,7 @@ function Step5({ pagina, setPagina }: Props) {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-pink-600 text-xs font-bold">
-              4
-            </div>
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-pink-600 text-xs font-bold">4</div>
             <span className="text-sm font-semibold tracking-wide">PASO 4 DE 8</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-4 tracking-tight">
@@ -172,7 +176,7 @@ function Step5({ pagina, setPagina }: Props) {
           <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">
             Los enfoques transversales son orientaciones ético-valorativas que atraviesan todas las áreas curriculares
           </p>
-          
+
           {/* Info Box */}
           <Card className="mb-6 border-2 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
             <CardContent className="pt-6">
@@ -180,14 +184,14 @@ function Step5({ pagina, setPagina }: Props) {
                 <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="text-left">
                   <p className="text-sm text-slate-700 dark:text-slate-300">
-                    <strong>¿No sabes cuáles elegir?</strong> Nuestra IA analizará tu sesión y sugerirá los 2-3 enfoques más pertinentes 
+                    <strong>¿No sabes cuáles elegir?</strong> Nuestra IA analizará tu sesión y sugerirá los 2-3 enfoques más pertinentes
                     según el área, competencia y propósito definido. Luego podrás editarlos.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Botón Sugerir con IA */}
           <Button
             onClick={sugerirEnfoquesConIA}
@@ -197,11 +201,9 @@ function Step5({ pagina, setPagina }: Props) {
             <Wand2 className="h-5 w-5 mr-2" />
             {loadingIA ? "Generando sugerencias..." : "Sugerir Enfoques con IA"}
           </Button>
-          
+
           {!sesion.propositoSesion && (
-            <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-              ⚠️ Completa el propósito de la sesión primero (Step 6)
-            </p>
+            <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">⚠️ Completa el propósito de la sesión primero (Step 6)</p>
           )}
         </div>
 
@@ -213,13 +215,11 @@ function Step5({ pagina, setPagina }: Props) {
                 <CheckCircle2 className="h-6 w-6 text-green-600" />
                 Enfoques Seleccionados ({enfoques.length}/3)
               </CardTitle>
-              <CardDescription>
-                Cada sesión debe trabajar al menos 1 enfoque transversal contextualizado
-              </CardDescription>
+              <CardDescription>Cada sesión debe trabajar al menos 1 enfoque transversal contextualizado</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {enfoques.map((enfoque, index) => (
-                <div 
+                <div
                   key={index}
                   className="p-5 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950 dark:to-rose-950 rounded-xl border-2 border-pink-200 dark:border-pink-800 shadow-md"
                 >
@@ -252,9 +252,7 @@ function Step5({ pagina, setPagina }: Props) {
 
                   {/* Actitudes Observables */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Actitudes Observables:
-                    </label>
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Actitudes Observables:</label>
                     {enfoque.enEdicion ? (
                       <Textarea
                         value={enfoque.actitudesObservables}
@@ -265,7 +263,9 @@ function Step5({ pagina, setPagina }: Props) {
                       />
                     ) : (
                       <p className="text-slate-700 dark:text-slate-300 p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                        {enfoque.actitudesObservables || <span className="italic text-slate-400">Haz clic en editar para agregar actitudes observables</span>}
+                        {enfoque.actitudesObservables || (
+                          <span className="italic text-slate-400">Haz clic en editar para agregar actitudes observables</span>
+                        )}
                       </p>
                     )}
                   </div>
@@ -284,7 +284,7 @@ function Step5({ pagina, setPagina }: Props) {
                   )}
                 </div>
               ))}
-              
+
               {enfoques.length === 0 && (
                 <div className="text-center py-8 text-slate-500 dark:text-slate-400">
                   <Heart className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -311,12 +311,12 @@ function Step5({ pagina, setPagina }: Props) {
                 </p>
               </div>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {enfoquesCNEB.map((enfoque, idx) => {
-                const yaAgregado = enfoques.find(e => e.nombre === enfoque);
+                const yaAgregado = enfoques.find((e) => e.nombre === enfoque);
                 const maxAlcanzado = enfoques.length >= 3;
-                
+
                 return (
                   <button
                     key={idx}
@@ -324,10 +324,10 @@ function Step5({ pagina, setPagina }: Props) {
                     disabled={!!yaAgregado || maxAlcanzado}
                     className={`p-4 rounded-lg border-2 text-left transition-all duration-300 ${
                       yaAgregado
-                        ? 'bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-700 opacity-70 cursor-not-allowed'
+                        ? "bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-700 opacity-70 cursor-not-allowed"
                         : maxAlcanzado
-                        ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 opacity-50 cursor-not-allowed'
-                        : 'bg-white dark:bg-slate-800 border-pink-200 dark:border-pink-800 hover:border-pink-500 hover:shadow-lg cursor-pointer'
+                          ? "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 opacity-50 cursor-not-allowed"
+                          : "bg-white dark:bg-slate-800 border-pink-200 dark:border-pink-800 hover:border-pink-500 hover:shadow-lg cursor-pointer"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -343,11 +343,7 @@ function Step5({ pagina, setPagina }: Props) {
 
         {/* Botones de navegación */}
         <div className="flex justify-between items-center">
-          <Button
-            onClick={() => setPagina(pagina - 1)}
-            variant="outline"
-            className="h-14 px-8 text-lg font-semibold border-2"
-          >
+          <Button onClick={() => setPagina(pagina - 1)} variant="outline" className="h-14 px-8 text-lg font-semibold border-2">
             <ArrowLeft className="mr-2 h-5 w-5" />
             Anterior
           </Button>

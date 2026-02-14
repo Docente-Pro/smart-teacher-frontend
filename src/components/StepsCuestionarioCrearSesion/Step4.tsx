@@ -38,13 +38,13 @@ function Step4({ pagina, setPagina }: Props) {
       // Si ya hay criterios guardados en el store (formato nuevo)
       if (sesion.propositoAprendizaje.criteriosEvaluacion && Array.isArray(sesion.propositoAprendizaje.criteriosEvaluacion)) {
         const criteriosGuardados = sesion.propositoAprendizaje.criteriosEvaluacion;
-        
+
         // Verificar si son objetos con la estructura de 4 pilares
-        if (criteriosGuardados.length > 0 && typeof criteriosGuardados[0] === 'object') {
+        if (criteriosGuardados.length > 0 && typeof criteriosGuardados[0] === "object") {
           setCriterios(criteriosGuardados as any);
         }
       }
-      
+
       setEvidencia(sesion.propositoAprendizaje.evidenciaAprendizaje || "");
       setInstrumento(sesion.propositoAprendizaje.instrumentoEvaluacion || "");
     }
@@ -68,7 +68,8 @@ function Step4({ pagina, setPagina }: Props) {
         capacidades: sesion.propositoAprendizaje.capacidades,
         cantidadCriterios: cantidadCapacidades, // Solicitar tantos criterios como capacidades
         grado: sesion.datosGenerales.grado || "5to",
-        area: sesion.datosGenerales.area
+        area: sesion.datosGenerales.area,
+        temaId: sesion.temaId,
       });
 
       const data = response.data;
@@ -77,8 +78,11 @@ function Step4({ pagina, setPagina }: Props) {
         setCriterios(data.data.criterios || []);
         setEvidencia(data.data.evidenciaSugerida || "");
         setInstrumento(data.data.instrumentoSugerido || "");
-        
-        handleToaster(`${cantidadCapacidades} criterio${cantidadCapacidades > 1 ? 's' : ''} generado${cantidadCapacidades > 1 ? 's' : ''} exitosamente`, "success");
+
+        handleToaster(
+          `${cantidadCapacidades} criterio${cantidadCapacidades > 1 ? "s" : ""} generado${cantidadCapacidades > 1 ? "s" : ""} exitosamente`,
+          "success",
+        );
       }
     } catch (error) {
       console.error("Error al generar criterios con IA:", error);
@@ -101,14 +105,11 @@ function Step4({ pagina, setPagina }: Props) {
   function guardarEdicion() {
     if (criterioEditado) {
       // Reconstruir criterio completo
-      const completo = `${criterioEditado.habilidad} ${criterioEditado.conocimiento} ${criterioEditado.condicion} ${criterioEditado.finalidad}`.trim();
-      
-      setCriterios(criterios.map(c => 
-        c.id === criterioEditado.id 
-          ? { ...criterioEditado, criterioCompleto: completo }
-          : c
-      ));
-      
+      const completo =
+        `${criterioEditado.habilidad} ${criterioEditado.conocimiento} ${criterioEditado.condicion} ${criterioEditado.finalidad}`.trim();
+
+      setCriterios(criterios.map((c) => (c.id === criterioEditado.id ? { ...criterioEditado, criterioCompleto: completo } : c)));
+
       setCriterioEnEdicion(null);
       setCriterioEditado(null);
     }
@@ -121,7 +122,7 @@ function Step4({ pagina, setPagina }: Props) {
   }
 
   function eliminarCriterio(id: string) {
-    setCriterios(criterios.filter(c => c.id !== id));
+    setCriterios(criterios.filter((c) => c.id !== id));
   }
 
   function handleNextStep() {
@@ -145,8 +146,8 @@ function Step4({ pagina, setPagina }: Props) {
           ...sesion.propositoAprendizaje,
           criteriosEvaluacion: criterios as any,
           evidenciaAprendizaje: evidencia,
-          instrumentoEvaluacion: instrumento
-        }
+          instrumentoEvaluacion: instrumento,
+        },
       });
     }
 
@@ -162,18 +163,14 @@ function Step4({ pagina, setPagina }: Props) {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-blue-600 text-xs font-bold">
-              3
-            </div>
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-blue-600 text-xs font-bold">3</div>
             <span className="text-sm font-semibold tracking-wide">PASO 3 DE 8</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Evaluación y Evidencias
           </h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">
-            Define cómo evaluarás el aprendizaje de tus estudiantes
-          </p>
-          
+          <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">Define cómo evaluarás el aprendizaje de tus estudiantes</p>
+
           {/* Botón Generar con IA */}
           <Button
             onClick={generarCriteriosConIA}
@@ -194,9 +191,7 @@ function Step4({ pagina, setPagina }: Props) {
               </div>
               Criterios de Evaluación (4 Pilares Pedagógicos)
             </CardTitle>
-            <CardDescription className="text-base">
-              Habilidad + Conocimiento + Condición + Finalidad
-            </CardDescription>
+            <CardDescription className="text-base">Habilidad + Conocimiento + Condición + Finalidad</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Lista de criterios */}
@@ -208,9 +203,7 @@ function Step4({ pagina, setPagina }: Props) {
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 block mb-1">
-                            Habilidad
-                          </label>
+                          <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 block mb-1">Habilidad</label>
                           <Input
                             value={criterioEditado.habilidad}
                             onChange={(e) => actualizarPilar("habilidad", e.target.value)}
@@ -219,9 +212,7 @@ function Step4({ pagina, setPagina }: Props) {
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 block mb-1">
-                            Conocimiento
-                          </label>
+                          <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 block mb-1">Conocimiento</label>
                           <Input
                             value={criterioEditado.conocimiento}
                             onChange={(e) => actualizarPilar("conocimiento", e.target.value)}
@@ -230,9 +221,7 @@ function Step4({ pagina, setPagina }: Props) {
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 block mb-1">
-                            Condición
-                          </label>
+                          <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 block mb-1">Condición</label>
                           <Input
                             value={criterioEditado.condicion}
                             onChange={(e) => actualizarPilar("condicion", e.target.value)}
@@ -241,9 +230,7 @@ function Step4({ pagina, setPagina }: Props) {
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 block mb-1">
-                            Finalidad
-                          </label>
+                          <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 block mb-1">Finalidad</label>
                           <Input
                             value={criterioEditado.finalidad}
                             onChange={(e) => actualizarPilar("finalidad", e.target.value)}
@@ -252,22 +239,13 @@ function Step4({ pagina, setPagina }: Props) {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={cancelarEdicion}
-                          className="text-slate-600 hover:text-slate-700"
-                        >
+                        <Button variant="ghost" size="sm" onClick={cancelarEdicion} className="text-slate-600 hover:text-slate-700">
                           <X className="h-4 w-4 mr-1" />
                           Cancelar
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={guardarEdicion}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                        >
+                        <Button size="sm" onClick={guardarEdicion} className="bg-green-600 hover:bg-green-700 text-white">
                           <Check className="h-4 w-4 mr-1" />
                           Guardar
                         </Button>
@@ -277,9 +255,7 @@ function Step4({ pagina, setPagina }: Props) {
                     // Modo Vista
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">
-                          {criterio.criterioCompleto}
-                        </p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">{criterio.criterioCompleto}</p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                           <div>
                             <span className="font-semibold text-blue-600 dark:text-blue-400">Habilidad:</span>
@@ -337,9 +313,7 @@ function Step4({ pagina, setPagina }: Props) {
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
           <CardHeader>
             <CardTitle className="text-xl">Evidencia o Producto</CardTitle>
-            <CardDescription>
-              ¿Qué producirán o demostrarán los estudiantes?
-            </CardDescription>
+            <CardDescription>¿Qué producirán o demostrarán los estudiantes?</CardDescription>
           </CardHeader>
           <CardContent>
             <Input
@@ -354,9 +328,7 @@ function Step4({ pagina, setPagina }: Props) {
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
           <CardHeader>
             <CardTitle className="text-xl">Instrumento de Evaluación</CardTitle>
-            <CardDescription>
-              ¿Qué instrumento usarás para evaluar?
-            </CardDescription>
+            <CardDescription>¿Qué instrumento usarás para evaluar?</CardDescription>
           </CardHeader>
           <CardContent>
             <Input
@@ -369,11 +341,7 @@ function Step4({ pagina, setPagina }: Props) {
 
         {/* Botones de navegación */}
         <div className="flex justify-between items-center">
-          <Button
-            onClick={() => setPagina(pagina - 1)}
-            variant="outline"
-            className="h-14 px-8 text-lg font-semibold border-2"
-          >
+          <Button onClick={() => setPagina(pagina - 1)} variant="outline" className="h-14 px-8 text-lg font-semibold border-2">
             <ArrowLeft className="mr-2 h-5 w-5" />
             Anterior
           </Button>

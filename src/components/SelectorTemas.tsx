@@ -148,8 +148,14 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
       return;
     }
 
+    // Si el texto fue modificado respecto al tema original, limpiar temaId
+    // para que la IA use el texto en lugar del ID
+    const temaOriginal = temas.find(t => t.id.toString() === temaSeleccionadoId);
+    const textoFueModificado = !temaOriginal || temaOriginal.tema !== temaEditado.trim();
+
     updateSesion({
       temaCurricular: temaEditado.trim(),
+      ...(textoFueModificado && { temaId: undefined }),
     });
 
     onTemaSeleccionado?.(temaEditado.trim());

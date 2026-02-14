@@ -29,20 +29,20 @@ interface Props {
 }
 
 const tiemposEstudio = [
-  {
-    id: 1,
-    nombre: "Corta",
-    descripcion: "30 minutos",
-    duracion: "30 minutos",
-    icon: Clock,
-    gradient: "from-emerald-500 to-teal-500",
-    ideal: "Ideal para repaso rápido",
-  },
+  // {
+  //   id: 1,
+  //   nombre: "Corta",
+  //   descripcion: "30 minutos",
+  //   duracion: "30 minutos",
+  //   icon: Clock,
+  //   gradient: "from-emerald-500 to-teal-500",
+  //   ideal: "Ideal para repaso rápido",
+  // },
   {
     id: 2,
     nombre: "Media",
     descripcion: "1 hora",
-    duracion: "60 minutos",
+    duracion: "45 minutos",
     icon: Clock,
     gradient: "from-blue-500 to-cyan-500",
     ideal: "Perfecta para aprender nuevos temas",
@@ -51,7 +51,7 @@ const tiemposEstudio = [
     id: 3,
     nombre: "Larga",
     descripcion: "2 horas",
-    duracion: "120 minutos",
+    duracion: "90 minutos",
     icon: Clock,
     gradient: "from-purple-500 to-pink-500",
     ideal: "Sesión profunda de estudio",

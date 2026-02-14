@@ -229,7 +229,7 @@ export const DiagramaDinero: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="diagrama-dinero-container">
-      <svg ref={svgRef} width="600" height="600" style={{ maxWidth: '100%', height: 'auto' }} />
+      <svg ref={svgRef} viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: '600px' }} />
     </div>
   );
 };

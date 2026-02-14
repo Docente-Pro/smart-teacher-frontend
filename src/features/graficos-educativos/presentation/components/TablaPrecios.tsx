@@ -220,8 +220,14 @@ export const TablaPrecios: React.FC<Props> = ({ data }) => {
       svgRef.current?.appendChild(totalValue);
     }
 
-    svgRef.current.setAttribute('width', (tableWidth + 30).toString());
-    svgRef.current.setAttribute('height', (tableHeight + 20).toString());
+    const svgWidth = tableWidth + 30;
+    const svgHeight = tableHeight + 20;
+    
+    svgRef.current.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+    svgRef.current.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svgRef.current.style.width = '100%';
+    svgRef.current.style.maxWidth = `${svgWidth}px`;
+    svgRef.current.style.height = 'auto';
   }, [elementos, moneda, mostrarTotal, total]);
 
   return (

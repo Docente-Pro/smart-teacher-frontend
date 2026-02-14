@@ -12,18 +12,17 @@ function getCompetencyById(id: number) {
 /**
  * Interfaz para la respuesta de sugerencia de competencia
  */
+export interface ICapacidadSugerida {
+  nombre: string;
+  justificacion: string;
+}
+
 export interface ICompetenciaSugerida {
   competenciaId: number;
-  competencia: {
-    id: number;
-    nombre: string;
-    descripcion: string;
-  };
-  razonamiento: string;
-  tema: {
-    id: number;
-    nombre: string;
-  };
+  competenciaNombre: string;
+  capacidadesSugeridas: ICapacidadSugerida[];
+  justificacionGeneral: string;
+  recomendacionesDidacticas: string[];
 }
 
 /**
@@ -38,16 +37,19 @@ export interface SugerenciaCompetenciaResponse {
 /**
  * Solicita a la IA que sugiera la competencia más apropiada para un tema
  * @param areaId - ID del área curricular
- * @param temaId - ID del tema curricular
+ * @param temaId - ID del tema curricular (0 o null si es tema personalizado)
+ * @param temaTexto - Texto del tema (para temas personalizados)
  * @returns Competencia sugerida con razonamiento
  */
 async function sugerirCompetencia(
   areaId: number,
-  temaId: number
+  temaId: number | null,
+  temaTexto?: string
 ): Promise<AxiosResponse<SugerenciaCompetenciaResponse>> {
   return await instance.post("/ia/sugerir-competencia", {
     areaId,
     temaId,
+    temaTexto,
   });
 }
 

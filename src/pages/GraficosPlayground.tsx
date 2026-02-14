@@ -40,16 +40,19 @@ const ejemplosPredefinidos = {
   },
   recta_numerica: {
     tipoGrafico: "recta_numerica",
-    titulo: "Recta numérica",
-    elementos: [
-      { valor: 0 },
-      { valor: 5, destacado: true, color: "azul", etiqueta: "Inicio" },
-      { valor: 10 },
-      { valor: 15, destacado: true, color: "rojo", etiqueta: "Final" }
+    titulo: "Los saltos del canguro",
+    inicio: 0,
+    fin: 12,
+    intervalo: 1,
+    marcas: [
+      { tipo: "marca", posicion: 2, etiqueta: "Inicio", destacado: true, color: "verde" },
+      { tipo: "marca", posicion: 8, etiqueta: "Final", destacado: true, color: "rojo" }
     ],
-    rangoInicio: 0,
-    rangoFin: 20,
-    intervalo: 5,
+    saltos: [
+      { desde: 2, hasta: 4, color: "azul", etiqueta: "+2" },
+      { desde: 4, hasta: 6, color: "azul", etiqueta: "+2" },
+      { desde: 6, hasta: 8, color: "azul", etiqueta: "+2" }
+    ],
     mostrarFlechas: true
   },
   bloques_agrupados: {
@@ -76,17 +79,12 @@ const ejemplosPredefinidos = {
   },
   operacion_vertical: {
     tipoGrafico: "operacion_vertical",
-    titulo: "Suma vertical",
-    elementos: [{
-      operacion: "+",
-      numeros: [234, 567],
-      mostrarResultado: true,
-      resultado: 801,
-      llevadasPrestas: [
-        { posicion: 0, valor: 1 },
-        { posicion: 1, valor: 1 }
-      ]
-    }]
+    titulo: "¿Cuántos juguetes hay?",
+    operacion: "suma",
+    operandos: [8, 5],
+    resultado: 13,
+    mostrarResultado: true,
+    destacarLlevadas: false
   },
   tabla_precios: {
     tipoGrafico: "tabla_precios",
@@ -135,6 +133,125 @@ const ejemplosPredefinidos = {
     ],
     orientacion: "horizontal",
     mostrarTexto: false
+  },
+  patron_geometrico: {
+    tipoGrafico: "patron_geometrico",
+    titulo: "¿Qué figura sigue en el patrón?",
+    secuencia: [
+      { forma: "circulo", color: "#FF6B6B", etiqueta: "", destacado: false },
+      { forma: "cuadrado", color: "#4ECDC4", etiqueta: "", destacado: false },
+      { forma: "circulo", color: "#FF6B6B", etiqueta: "", destacado: false },
+      { forma: "cuadrado", color: "#4ECDC4", etiqueta: "", destacado: false },
+      { forma: "circulo", color: "#FF6B6B", etiqueta: "", destacado: false },
+      { forma: "cuadrado", color: "#4ECDC4", etiqueta: "", destacado: false },
+      { forma: "circulo", color: "#FF6B6B", etiqueta: "", destacado: false },
+      { forma: "interrogacion", color: "#95A5A6", etiqueta: "?", destacado: true }
+    ],
+    orientacion: "horizontal",
+    mostrarIndices: false,
+    nucleoPatron: 2,
+    repeticiones: 4
+  },
+  coordenadas_ejercicios: {
+    tipoGrafico: "coordenadas_ejercicios",
+    titulo: "Traslación de figuras en el plano cartesiano",
+    planos: [
+      {
+        id: 1,
+        tamano: { ancho: 12, alto: 10 },
+        origen: { x: 0, y: 0 },
+        figuras: [
+          {
+            tipo: "poligono",
+            vertices: [
+              { x: 2, y: 1 },
+              { x: 4, y: 1 },
+              { x: 5, y: 3 },
+              { x: 3, y: 5 },
+              { x: 1, y: 3 }
+            ],
+            color: "#FF9500",
+            etiqueta: "Pentágono A"
+          },
+          {
+            tipo: "poligono",
+            vertices: [
+              { x: 7, y: 4 },
+              { x: 9, y: 4 },
+              { x: 10, y: 6 },
+              { x: 8, y: 8 },
+              { x: 6, y: 6 }
+            ],
+            color: "#00C853",
+            etiqueta: "Pentágono B"
+          }
+        ],
+        instruccion: "Observa la traslación del pentágono A al pentágono B"
+      },
+      {
+        id: 2,
+        tamano: { ancho: 10, alto: 8 },
+        origen: { x: 0, y: 0 },
+        figuras: [
+          {
+            tipo: "rectangulo",
+            vertices: [
+              { x: 1, y: 1 },
+              { x: 4, y: 1 },
+              { x: 4, y: 3 },
+              { x: 1, y: 3 }
+            ],
+            color: "#2979FF",
+            etiqueta: "Casa 1"
+          },
+          {
+            tipo: "rectangulo",
+            vertices: [
+              { x: 5, y: 4 },
+              { x: 8, y: 4 },
+              { x: 8, y: 6 },
+              { x: 5, y: 6 }
+            ],
+            color: "#E91E63",
+            etiqueta: "Casa 2"
+          }
+        ],
+        instruccion: "Trasladar Casa 1 → 4 unidades a la derecha y 3 arriba"
+      }
+    ],
+    ejercicios: [
+      {
+        numero: 1,
+        pregunta: "¿Cuántas unidades se trasladó el pentágono hacia la derecha?",
+        tipo: "traslacion",
+        planoId: 1
+      },
+      {
+        numero: 2,
+        pregunta: "¿Cuántas unidades se trasladó el pentágono hacia arriba?",
+        tipo: "traslacion",
+        planoId: 1
+      },
+      {
+        numero: 3,
+        pregunta: "¿Cuáles son las coordenadas del vértice superior de Casa 2?",
+        tipo: "identificacion",
+        planoId: 2
+      }
+    ],
+    tablas: [
+      {
+        titulo: "Coordenadas de las casas",
+        encabezados: ["Vértice", "Casa 1", "Casa 2"],
+        filas: [
+          { elemento: "A", valores: ["(1, 1)", "(5, 4)"] },
+          { elemento: "B", valores: ["(4, 1)", "(8, 4)"] },
+          { elemento: "C", valores: ["(4, 3)", ""] },
+          { elemento: "D", valores: ["(1, 3)", ""] }
+        ],
+        pregunta: "Completa las coordenadas faltantes de Casa 2"
+      }
+    ]
   }
 };
 
@@ -315,6 +432,7 @@ const GraficosPlayground = () => {
                 "diagrama_dinero",
                 "figuras_geometricas",
                 "patron_visual",
+                "patron_geometrico",
                 "diagrama_venn",
                 "tabla_doble_entrada",
                 "operacion_vertical",

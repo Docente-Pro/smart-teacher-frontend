@@ -27,15 +27,36 @@
 .diagrama-dinero-container,
 .figuras-geometricas-container,
 .patron-visual-container,
+.patron-geometrico-container,
 .diagrama-venn-container,
 .tabla-doble-entrada-container,
 .operacion-vertical-container,
-.medidas-comparacion-container {
+.medidas-comparacion-container,
+.balanza-equilibrio-container,
+.numeros-ordinales-container,
+.bloques-agrupados,
+.barras-comparacion,
+.tabla-valores,
+.tabla-precios,
+.ecuacion-cajas,
+.coordenadas-ejercicios-container {
   padding: 16px;
   background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin: 16px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Contenedores que necesitan layout vertical */
+.coordenadas-ejercicios-container,
+.balanza-equilibrio-container {
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .recta-numerica-container svg,
@@ -44,12 +65,23 @@
 .diagrama-dinero-container svg,
 .figuras-geometricas-container svg,
 .patron-visual-container svg,
+.patron-geometrico-container svg,
 .diagrama-venn-container svg,
 .tabla-doble-entrada-container svg,
 .operacion-vertical-container svg,
-.medidas-comparacion-container svg {
+.medidas-comparacion-container svg,
+.balanza-equilibrio-container svg,
+.numeros-ordinales-container svg,
+.bloques-agrupados svg,
+.barras-comparacion svg,
+.tabla-valores svg,
+.tabla-precios svg,
+.ecuacion-cajas svg,
+.coordenadas-ejercicios-container svg {
   display: block;
   margin: 0 auto;
+  max-width: 100%;
+  height: auto;
 }
 
 /* Estilos para errores y mensajes */
@@ -121,7 +153,13 @@
   .diagrama-venn-container svg,
   .tabla-doble-entrada-container svg,
   .operacion-vertical-container svg,
-  .medidas-comparacion-container svg {
+  .medidas-comparacion-container svg,
+  .bloques-agrupados svg,
+  .barras-comparacion svg,
+  .tabla-valores svg,
+  .tabla-precios svg,
+  .ecuacion-cajas svg,
+  .coordenadas-ejercicios-container svg {
     max-width: 100%;
     height: auto;
   }

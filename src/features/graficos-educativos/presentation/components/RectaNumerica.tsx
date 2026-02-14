@@ -12,8 +12,24 @@ interface Props {
  * Fundamental para enseñar secuencias, comparación y operaciones
  */
 export const RectaNumerica: React.FC<Props> = ({ data }) => {
-  const { elementos, rangoInicio, rangoFin, intervalo = 1, mostrarFlechas = true } = data;
+  const { 
+    marcas = [], 
+    inicio, 
+    fin, 
+    intervalo = 1, 
+    saltos = [], 
+    mostrarFlechas = true 
+  } = data;
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Función auxiliar para mapear colores
+  const obtenerColor = (color?: string | any): string => {
+    if (!color) return roughColors.rojo;
+    // Si es un color hex directo, usarlo
+    if (typeof color === 'string' && color.startsWith('#')) return color;
+    // Si es un nombre de color del enum, usar roughColors
+    return (roughColors as any)[color] || color || roughColors.rojo;
+  };
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -23,9 +39,9 @@ export const RectaNumerica: React.FC<Props> = ({ data }) => {
 
     const width = 600;
     const marginX = 40;
-    const lineY = 60;
+    const lineY = 80;
     
-    const rangoTotal = rangoFin - rangoInicio;
+    const rangoTotal = fin - inicio;
     const espacioDisponible = width - (marginX * 2);
     const unidad = espacioDisponible / rangoTotal;
 
@@ -56,8 +72,8 @@ export const RectaNumerica: React.FC<Props> = ({ data }) => {
     }
 
     // Dibujar marcas del intervalo
-    for (let valor = rangoInicio; valor <= rangoFin; valor += intervalo) {
-      const x = marginX + ((valor - rangoInicio) * unidad);
+    for (let valor = inicio; valor <= fin; valor += intervalo) {
+      const x = marginX + ((valor - inicio) * unidad);
       
       const marca = rc.line(x, lineY - 8, x, lineY + 8, {
         ...defaultRoughConfig,
@@ -77,12 +93,58 @@ export const RectaNumerica: React.FC<Props> = ({ data }) => {
       svgRef.current.appendChild(text);
     }
 
+    // Dibujar saltos (arcos) si existen
+    if (saltos && saltos.length > 0) {
+      saltos.forEach((salto) => {
+        if (!svgRef.current) return;
+
+        const xDesde = marginX + ((salto.desde - inicio) * unidad);
+        const xHasta = marginX + ((salto.hasta - inicio) * unidad);
+        const xMedio = (xDesde + xHasta) / 2;
+        const altura = 30; // Altura del arco
+
+        // Dibujar arco curvo
+        const path = `M ${xDesde} ${lineY} Q ${xMedio} ${lineY - altura} ${xHasta} ${lineY}`;
+        const arco = rc.path(path, {
+          ...defaultRoughConfig,
+          stroke: obtenerColor(salto.color),
+          strokeWidth: 2.5,
+          roughness: 0.5,
+        });
+        svgRef.current.appendChild(arco);
+
+        // Flecha en el extremo
+        const flechaPath = `M ${xHasta} ${lineY} L ${xHasta - 8} ${lineY - 6} M ${xHasta} ${lineY} L ${xHasta - 6} ${lineY + 6}`;
+        const flecha = rc.path(flechaPath, {
+          ...defaultRoughConfig,
+          stroke: obtenerColor(salto.color),
+          strokeWidth: 2.5,
+          roughness: 0.5,
+        });
+        svgRef.current.appendChild(flecha);
+
+        // Etiqueta del salto
+        if (salto.etiqueta) {
+          const labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          labelText.setAttribute('x', xMedio.toString());
+          labelText.setAttribute('y', (lineY - altura - 5).toString());
+          labelText.setAttribute('text-anchor', 'middle');
+          labelText.setAttribute('font-size', '12');
+          labelText.setAttribute('font-weight', 'bold');
+          labelText.setAttribute('font-family', 'Comic Sans MS, cursive');
+          labelText.setAttribute('fill', obtenerColor(salto.color));
+          labelText.textContent = salto.etiqueta;
+          svgRef.current.appendChild(labelText);
+        }
+      });
+    }
+
     // Dibujar elementos destacados
-    elementos.forEach((elem) => {
+    marcas.forEach((elem) => {
       if (!svgRef.current) return;
       
-      const x = marginX + ((elem.valor - rangoInicio) * unidad);
-      const color = elem.color ? roughColors[elem.color] : roughColors.rojo;
+      const x = marginX + ((elem.posicion - inicio) * unidad);
+      const color = obtenerColor(elem.color);
 
       // Círculo destacado
       const circulo = rc.circle(x, lineY, 16, {
@@ -114,7 +176,7 @@ export const RectaNumerica: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="recta-numerica-container">
-      <svg ref={svgRef} width="600" height="120" />
+      <svg ref={svgRef} viewBox="0 0 600 160" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: '600px' }} />
     </div>
   );
 };

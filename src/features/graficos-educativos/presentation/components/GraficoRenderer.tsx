@@ -12,12 +12,14 @@ import { BarrasFraccion } from './BarrasFraccion';
 import { DiagramaDinero } from './DiagramaDinero';
 import { FigurasGeometricas } from './FigurasGeometricas';
 import { PatronVisual } from './PatronVisual';
+import { PatronGeometrico } from './PatronGeometrico';
 import { DiagramaVenn } from './DiagramaVenn';
 import { TablaDobleEntrada } from './TablaDobleEntrada';
 import { OperacionVertical } from './OperacionVertical';
 import { MedidasComparacion } from './MedidasComparacion';
 import { BalanzaEquilibrio } from './BalanzaEquilibrio';
 import { NumerosOrdinales } from './NumerosOrdinales';
+import { CoordenadasEjercicios } from './CoordenadasEjercicios';
 
 interface Props {
   grafico: ConfiguracionGrafico | null | undefined;
@@ -68,12 +70,14 @@ export const GraficoRenderer: React.FC<Props> = ({
     'diagrama_dinero': DiagramaDinero,
     'figuras_geometricas': FigurasGeometricas,
     'patron_visual': PatronVisual,
+    'patron_geometrico': PatronGeometrico,
     'diagrama_venn': DiagramaVenn,
     'tabla_doble_entrada': TablaDobleEntrada,
     'operacion_vertical': OperacionVertical,
     'medidas_comparacion': MedidasComparacion,
     'balanza_equilibrio': BalanzaEquilibrio,
     'numeros_ordinales': NumerosOrdinales,
+    'coordenadas_ejercicios': CoordenadasEjercicios,
   };
 
   const Component = componentMap[grafico!.tipoGrafico];

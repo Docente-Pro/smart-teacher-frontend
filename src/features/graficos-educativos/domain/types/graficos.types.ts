@@ -17,11 +17,13 @@ export enum TipoGraficoMatematica {
   FIGURAS_GEOMETRICAS = "figuras_geometricas",
   MEDIDAS_COMPARACION = "medidas_comparacion",
   PATRON_VISUAL = "patron_visual",
+  PATRON_GEOMETRICO = "patron_geometrico",
   DIAGRAMA_VENN = "diagrama_venn",
   TABLA_DOBLE_ENTRADA = "tabla_doble_entrada",
   OPERACION_VERTICAL = "operacion_vertical",
   BALANZA_EQUILIBRIO = "balanza_equilibrio",
-  NUMEROS_ORDINALES = "numeros_ordinales"
+  NUMEROS_ORDINALES = "numeros_ordinales",
+  COORDENADAS_EJERCICIOS = "coordenadas_ejercicios"
 }
 
 export enum ColorGrafico {
@@ -40,7 +42,7 @@ export interface ConfiguracionGrafico {
   tipoGrafico: TipoGraficoMatematica | string;
   titulo?: string;
   descripcion?: string;
-  elementos: any[];
+  elementos?: any[];
   opciones?: Record<string, any>;
 }
 
@@ -147,18 +149,27 @@ export interface GraficoBloqueAgrupados extends ConfiguracionGrafico {
 // ============= RECTA NUMÉRICA =============
 
 export interface MarcaRecta {
-  valor: number;
-  destacado?: boolean;
+  tipo?: string;
+  posicion: number;
   etiqueta?: string;
-  color?: ColorGrafico;
+  destacado?: boolean;
+  color?: ColorGrafico | string;
+}
+
+export interface SaltoRecta {
+  desde: number;
+  hasta: number;
+  color?: ColorGrafico | string;
+  etiqueta?: string;
 }
 
 export interface GraficoRectaNumerica extends ConfiguracionGrafico {
   tipoGrafico: TipoGraficoMatematica.RECTA_NUMERICA;
-  elementos: MarcaRecta[];
-  rangoInicio: number;
-  rangoFin: number;
-  intervalo?: number;
+  inicio: number;
+  fin: number;
+  intervalo?: number; // Espaciado de las marcas numéricas
+  marcas?: MarcaRecta[];
+  saltos?: SaltoRecta[]; // Arcos/flechas entre puntos
   mostrarFlechas?: boolean;
 }
 
@@ -256,6 +267,22 @@ export interface GraficoPatronVisual extends ConfiguracionGrafico {
   repeticiones?: number;
 }
 
+export interface ElementoPatronGeometrico {
+  forma: 'circulo' | 'cuadrado' | 'triangulo' | 'rectangulo' | 'rombo' | 'hexagono' | 'estrella' | 'interrogacion';
+  color: string;
+  etiqueta?: string;
+  destacado?: boolean;
+}
+
+export interface GraficoPatronGeometrico extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.PATRON_GEOMETRICO;
+  secuencia: ElementoPatronGeometrico[];
+  orientacion?: 'horizontal' | 'vertical';
+  mostrarIndices?: boolean;
+  nucleoPatron?: number;
+  repeticiones?: number;
+}
+
 // ============= DIAGRAMAS DE VENN =============
 
 export interface ConjuntoVenn {
@@ -284,10 +311,11 @@ export interface GraficoTablaDobleEntrada extends ConfiguracionGrafico {
 
 export interface GraficoOperacionVertical extends ConfiguracionGrafico {
   tipoGrafico: TipoGraficoMatematica.OPERACION_VERTICAL;
-  operacion: '+' | '-' | '×' | '÷';
-  numeros: number[];
+  operacion: 'suma' | 'resta' | 'multiplicacion' | 'division';
+  operandos: number[];
   mostrarResultado?: boolean;
   resultado?: number;
+  destacarLlevadas?: boolean;
   llevadasPrestas?: { posicion: number; valor: number }[];
 }
 
@@ -329,6 +357,51 @@ export interface GraficoNumerosOrdinales extends ConfiguracionGrafico {
   mostrarTexto?: boolean; // Mostrar "primero", "segundo", etc.
 }
 
+// ============= COORDENADAS EJERCICIOS =============
+
+export interface PlanoCartesiano {
+  id: number;
+  tamano: { ancho: number; alto: number };
+  origen: { x: number; y: number };
+  figuras: FiguraCartesiana[];
+  instruccion: string;
+}
+
+export interface FiguraCartesiana {
+  tipo: 'poligono' | 'circulo' | 'cuadrado' | 'triangulo' | 'rectangulo';
+  vertices?: Array<{ x: number; y: number }>;
+  centro?: { x: number; y: number };
+  radio?: number;
+  color: string;
+  etiqueta?: string;
+}
+
+export interface EjercicioCoordenadas {
+  numero: number;
+  pregunta: string;
+  tipo: 'traslacion' | 'ubicacion' | 'identificacion';
+  planoId: number;
+}
+
+export interface TablaCoordenadasFila {
+  elemento: string;
+  valores: string[];
+}
+
+export interface TablaCoordenadas {
+  titulo: string;
+  encabezados: string[];
+  filas: TablaCoordenadasFila[];
+  pregunta: string;
+}
+
+export interface GraficoCoordenadasEjercicios extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.COORDENADAS_EJERCICIOS;
+  planos: PlanoCartesiano[];
+  ejercicios: EjercicioCoordenadas[];
+  tablas: TablaCoordenadas[];
+}
+
 // ============= TIPOS DE EXPORTACIÓN =============
 
 export type TipoGraficoConfiguracion = 
@@ -344,10 +417,12 @@ export type TipoGraficoConfiguracion =
   | GraficoFigurasGeometricas
   | GraficoMedidasComparacion
   | GraficoPatronVisual
+  | GraficoPatronGeometrico
   | GraficoDiagramaVenn
   | GraficoTablaDobleEntrada
   | GraficoOperacionVertical
   | GraficoBalanzaEquilibrio
   | GraficoNumerosOrdinales
+  | GraficoCoordenadasEjercicios
   | ConfiguracionGrafico;
 

@@ -201,15 +201,13 @@ function Step8({ pagina, setPagina }: Props) {
     setLoadingIA(true);
     try {
       const response = await instance.post("/ia/generar-secuencia-didactica", {
-        temaId: sesion.temaId, // 🆕 ID del tema del currículo
+        temaId: sesion.temaId,
         datosGenerales: sesion.datosGenerales,
         propositoAprendizaje: sesion.propositoAprendizaje,
         propositoSesion: sesion.propositoSesion,
-        criteriosEvaluacion: sesion.propositoAprendizaje.criteriosEvaluacion,
-        preparacion: sesion.preparacion,
-        tipoGrafico: sesion.preparacion?.tipoGraficoPreferido && sesion.preparacion.tipoGraficoPreferido !== "AUTO" 
-          ? sesion.preparacion.tipoGraficoPreferido 
-          : undefined, // Tipo de gráfico preferido (undefined = automático)
+        k: sesion.propositoAprendizaje.cantidadCriterios || 6,
+        tipoGrafico: sesion.preparacion?.tipoGraficoPreferido || "AUTO",
+        estructuraCompleta: true,
       });
 
       const data = response.data;

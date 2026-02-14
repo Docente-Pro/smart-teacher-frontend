@@ -158,10 +158,16 @@ export const PatronVisual: React.FC<Props> = ({ data }) => {
   }, [data]);
 
   const width = (elementos.length * 80 * repeticiones) + (repeticiones - 1) * 20 + 80;
+  const height = 180;
 
   return (
     <div className="patron-visual-container">
-      <svg ref={svgRef} width={width} height="180" />
+      <svg 
+        ref={svgRef} 
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }}
+      />
     </div>
   );
 };

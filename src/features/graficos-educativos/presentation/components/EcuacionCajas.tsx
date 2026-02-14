@@ -169,8 +169,12 @@ export const EcuacionCajas: React.FC<Props> = ({ data }) => {
 
     const totalWidth = maxWidth + 20;
     const totalHeight = currentY + 20;
-    svgRef.current.setAttribute('width', totalWidth.toString());
-    svgRef.current.setAttribute('height', totalHeight.toString());
+    
+    svgRef.current.setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight}`);
+    svgRef.current.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svgRef.current.style.width = '100%';
+    svgRef.current.style.maxWidth = `${totalWidth}px`;
+    svgRef.current.style.height = 'auto';
   }, [elementos, agrupaciones, filas]);
 
   return (

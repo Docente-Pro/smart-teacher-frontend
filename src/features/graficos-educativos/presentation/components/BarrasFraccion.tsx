@@ -101,7 +101,7 @@ export const BarrasFraccion: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="barras-fraccion-container">
-      <svg ref={svgRef} width="500" height={height} />
+      <svg ref={svgRef} viewBox={`0 0 500 ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: '500px' }} />
     </div>
   );
 };

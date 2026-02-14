@@ -160,18 +160,18 @@
 - **Uso pedagógico**: Algoritmos de suma, resta, multiplicación, división
 - **Características**:
   - Formato vertical tradicional
-  - Llevadas y préstamos visuales
+  - Llevadas y préstamos visuales (opcional)
   - Alineación automática
 
 ```typescript
 {
   tipoGrafico: "operacion_vertical",
-  operacion: "+",
-  numeros: [456, 278],
-  resultado: 734,
-  llevadasPrestas: [
-    { posicion: 1, valor: 1 }
-  ]
+  titulo: "¿Cuántos juguetes hay?",
+  operacion: "suma",
+  operandos: [8, 5],
+  resultado: 13,
+  mostrarResultado: true,
+  destacarLlevadas: false
 }
 ```
 
