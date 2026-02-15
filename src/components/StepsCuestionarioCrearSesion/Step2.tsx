@@ -8,7 +8,7 @@ import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Target, CheckCircle2, ArrowRight, ArrowLeft, Award, Sparkles } from "lucide-react";
+import { Target, CheckCircle2, ArrowRight, ArrowLeft, Award, Sparkles, Lock } from "lucide-react";
 import { useSesionStore } from "@/store/sesion.store";
 import { getAllAreas } from "@/services/areas.service";
 import { SelectorTemas } from "@/components/SelectorTemas";
@@ -29,6 +29,9 @@ function Step2({ pagina, setPagina }: Props) {
   const [loadingCapacidades, setLoadingCapacidades] = useState(false);
   const [competenciaSeleccionada, setCompetenciaSeleccionada] = useState<string>("");
   const [areaId, setAreaId] = useState<number | null>(null);
+
+  // 🔒 Determinar si el tema es personalizado (no tiene temaId del currículo)
+  const isCustom = !sesion?.temaId;
 
   // Ref para detectar realmente cambios de tema (y no limpiar en el primer render)
   const temaEffectInitializedRef = useRef(false);
@@ -54,7 +57,7 @@ function Step2({ pagina, setPagina }: Props) {
   };
 
   // Hook para sugerencia de competencia por IA
-  // Solo se ejecuta si NO hay competencia seleccionada (usa estado local para mejor reactividad)
+  // Solo se ejecuta si NO hay competencia seleccionada (tanto para currículo como para personalizado)
   const { sugerencia, loading: loadingSugerencia, clearSugerencia } = useCompetenciaSugerida({
     areaId,
     temaId: sesion?.temaId ?? null,
@@ -197,10 +200,18 @@ function Step2({ pagina, setPagina }: Props) {
       // Aplicar siempre que llegue una nueva sugerencia
       console.log('🤖 Aplicando sugerencia automática:', sugerencia.competenciaNombre);
       setCompetenciaSeleccionada(sugerencia.competenciaNombre);
+
+      // 🆕 Guardar situacionId en el store para endpoints posteriores
+      if (sugerencia.situacionId) {
+        updateSesion({ situacionId: sugerencia.situacionId });
+      }
     }
   }, [sugerencia, sesion?.temaId]);
 
   function handleClick(competenciaNombre: string) {
+    // 🔒 Si el tema es del currículo, no permitir selección manual
+    if (!isCustom) return;
+
     // Limpiar sugerencia cuando el usuario selecciona manualmente
     if (sugerencia) {
       clearSugerencia();
@@ -236,7 +247,7 @@ function Step2({ pagina, setPagina }: Props) {
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-purple-600 text-xs font-bold">
               2
             </div>
-            <span className="text-sm font-semibold tracking-wide">PASO 2 DE 9</span>
+            <span className="text-sm font-semibold tracking-wide">PASO 2 DE 7</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Tema, Competencias y Capacidades
@@ -251,7 +262,7 @@ function Step2({ pagina, setPagina }: Props) {
           <SelectorTemas onTemaSeleccionado={handleTemaSeleccionado} />
         </div>
 
-        {/* 🤖 Sugerencia de Competencia por IA */}
+        {/* 🤖 Justificación de Competencia por IA */}
         {(loadingSugerencia || sugerencia) && (
           <div className="mb-8">
             <CompetenciaSugerida
@@ -266,13 +277,23 @@ function Step2({ pagina, setPagina }: Props) {
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
-              <div className="h-10 w-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <Target className="h-6 w-6 text-white" />
+              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                isCustom
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-500'
+              }`}>
+                {isCustom
+                  ? <Target className="h-6 w-6 text-white" />
+                  : <Lock className="h-6 w-6 text-white" />
+                }
               </div>
-              Selecciona la competencia
+              {isCustom ? 'Selecciona la competencia' : 'Competencia asignada'}
             </CardTitle>
             <CardDescription className="text-base">
-              Elige la competencia principal que se desarrollará en la sesión
+              {isCustom
+                ? 'Elige la competencia principal que se desarrollará en la sesión'
+                : 'La competencia fue asignada automáticamente según el tema del currículo'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -296,38 +317,68 @@ function Step2({ pagina, setPagina }: Props) {
                 </p>
               </div>
             ) : (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {competencias.map((competencia) => {
                   const isSelected = competenciaSeleccionada === competencia.nombre;
+                  // Si no es personalizado, solo mostrar la competencia seleccionada
+                  const isLocked = !isCustom;
+                  const isClickable = isCustom;
 
                   return (
                     <div
                       key={competencia.id}
-                      onClick={() => handleClick(competencia.nombre)}
+                      onClick={() => isClickable && handleClick(competencia.nombre)}
                       className={`
-                        group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
+                        group relative overflow-hidden rounded-xl transition-all duration-300
+                        ${isClickable ? 'cursor-pointer' : 'cursor-default'}
                         ${isSelected 
-                          ? 'ring-4 ring-purple-500 ring-offset-2 dark:ring-offset-slate-900 scale-105 shadow-2xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950' 
-                          : 'hover:scale-105 hover:shadow-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+                          ? isLocked
+                            ? 'ring-4 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-900 scale-105 shadow-2xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950'
+                            : 'ring-4 ring-purple-500 ring-offset-2 dark:ring-offset-slate-900 scale-105 shadow-2xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950'
+                          : isLocked
+                            ? 'opacity-40 border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+                            : 'hover:scale-105 hover:shadow-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
                         }
                       `}
                     >
                       <div className="relative p-6">
                         <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className={`p-2 rounded-lg transition-all duration-300 ${isSelected ? 'bg-gradient-to-br from-purple-500 to-pink-500' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                          <div className={`p-2 rounded-lg transition-all duration-300 ${
+                            isSelected
+                              ? isLocked
+                                ? 'bg-gradient-to-br from-emerald-500 to-teal-500'
+                                : 'bg-gradient-to-br from-purple-500 to-pink-500'
+                              : 'bg-slate-100 dark:bg-slate-700'
+                          }`}>
                             <Target className={`h-5 w-5 transition-colors duration-300 ${isSelected ? 'text-white' : 'text-slate-600 dark:text-slate-400'}`} />
                           </div>
                           {isSelected && (
-                            <div className="bg-purple-600 rounded-full p-1 shadow-lg">
-                              <CheckCircle2 className="h-5 w-5 text-white" />
+                            <div className={`rounded-full p-1 shadow-lg ${isLocked ? 'bg-emerald-600' : 'bg-purple-600'}`}>
+                              {isLocked
+                                ? <Lock className="h-5 w-5 text-white" />
+                                : <CheckCircle2 className="h-5 w-5 text-white" />
+                              }
                             </div>
                           )}
                         </div>
-                        <h3 className={`text-base font-bold leading-tight transition-colors duration-300 ${isSelected ? 'text-purple-700 dark:text-purple-300' : 'text-slate-900 dark:text-white'}`}>
+                        <h3 className={`text-base font-bold leading-tight transition-colors duration-300 ${
+                          isSelected
+                            ? isLocked
+                              ? 'text-emerald-700 dark:text-emerald-300'
+                              : 'text-purple-700 dark:text-purple-300'
+                            : 'text-slate-900 dark:text-white'
+                        }`}>
                           {competencia.nombre}
                         </h3>
                         {competencia.descripcion && (
-                          <p className={`text-sm mt-2 line-clamp-3 transition-colors duration-300 ${isSelected ? 'text-purple-600 dark:text-purple-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                          <p className={`text-sm mt-2 line-clamp-3 transition-colors duration-300 ${
+                            isSelected
+                              ? isLocked
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-purple-600 dark:text-purple-400'
+                              : 'text-slate-600 dark:text-slate-400'
+                          }`}>
                             {competencia.descripcion}
                           </p>
                         )}
@@ -336,6 +387,17 @@ function Step2({ pagina, setPagina }: Props) {
                   );
                 })}
               </div>
+
+              {/* Mensaje informativo cuando está bloqueado */}
+              {!isCustom && competenciaSeleccionada && (
+                <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-lg flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                  <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                    La competencia se asigna automáticamente según el tema del currículo. Para elegir otra competencia, crea un tema personalizado.
+                  </p>
+                </div>
+              )}
+              </>
             )}
           </CardContent>
         </Card>

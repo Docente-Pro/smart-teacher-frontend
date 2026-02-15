@@ -13,11 +13,50 @@ interface Props {
  * Útil para mostrar datos tabulares diversos
  */
 export const TablaValores: React.FC<Props> = ({ data }) => {
-  const { encabezados, elementos, mostrarBordes = true } = data;
+  // Normalizar datos: el backend puede enviar formato nuevo (2D array de objetos)
+  // o el formato esperado (encabezados + elementos con celdas)
+  const normalizado = React.useMemo(() => {
+    let encabezados: string[] = data.encabezados || [];
+    let elementos: { celdas: (string | number)[] }[] = [];
+    const mostrarBordes = data.mostrarBordes ?? true;
+
+    if (encabezados.length > 0 && data.elementos?.length > 0 && 'celdas' in (data.elementos[0] || {})) {
+      // Formato original: encabezados[] + elementos[].celdas[]
+      elementos = data.elementos as any;
+    } else if (Array.isArray(data.elementos) && data.elementos.length > 0) {
+      // Formato backend nuevo: array 2D de objetos {tipo, contenido, esEncabezado}
+      const filas = data.elementos as any[];
+      filas.forEach((fila: any) => {
+        if (!Array.isArray(fila)) return;
+        const esFilaEncabezado = fila.some((celda: any) => celda?.esEncabezado);
+        if (esFilaEncabezado && encabezados.length === 0) {
+          encabezados = fila.map((celda: any) =>
+            String(celda?.contenido ?? celda ?? '')
+          );
+        } else {
+          elementos.push({
+            celdas: fila.map((celda: any) =>
+              celda?.contenido !== undefined ? celda.contenido : celda
+            ),
+          });
+        }
+      });
+    }
+
+    // Fallback si no se encontraron encabezados
+    if (encabezados.length === 0 && elementos.length > 0) {
+      encabezados = elementos[0].celdas.map((_, i) => `Col ${i + 1}`);
+    }
+
+    return { encabezados, elementos, mostrarBordes };
+  }, [data]);
+
+  const { encabezados, elementos, mostrarBordes } = normalizado;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     if (!svgRef.current) return;
+    if (encabezados.length === 0) return;
 
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';

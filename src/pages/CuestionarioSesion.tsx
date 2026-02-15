@@ -2,7 +2,6 @@ import Step1 from "@/components/StepsCuestionarioCrearSesion/Step1";
 import Step2 from "@/components/StepsCuestionarioCrearSesion/Step2";
 import Step6 from "@/components/StepsCuestionarioCrearSesion/Step6";
 import Step5 from "@/components/StepsCuestionarioCrearSesion/Step5";
-import Step7 from "@/components/StepsCuestionarioCrearSesion/Step7";
 import Step8 from "@/components/StepsCuestionarioCrearSesion/Step8";
 import Step9 from "@/components/StepsCuestionarioCrearSesion/Step9";
 import Step4 from "@/components/StepsCuestionarioCrearSesion/Step4";
@@ -19,13 +18,12 @@ import { initialStateSesion } from "@/constants/initialStateSesion";
 
 const STEPS = [
   { number: 1, title: "Datos Generales", description: "Información básica" },
-  { number: 2, title: "Propósito", description: "Aprendizaje esperado" },
-  { number: 3, title: "Sesión", description: "Qué, cómo, para qué" },
-  { number: 4, title: "Criterios", description: "Evaluación" },
-  { number: 5, title: "Problemas", description: "Análisis" },
-  { number: 6, title: "Preparación", description: "Recursos" },
-  { number: 7, title: "Generar IA", description: "Secuencia" },
-  { number: 8, title: "Finalizar", description: "Revisión" },
+  { number: 2, title: "Competencias", description: "Tema y capacidades" },
+  { number: 3, title: "Evaluación", description: "Evidencias" },
+  { number: 4, title: "Propósito", description: "De la sesión" },
+  { number: 5, title: "Enfoques", description: "Transversales" },
+  { number: 6, title: "Generar IA", description: "Secuencia" },
+  { number: 7, title: "Finalizar", description: "Revisión" },
 ];
 
 function CuestionarioSesion() {
@@ -35,6 +33,13 @@ function CuestionarioSesion() {
   const { sesion, setSesion, resetSesion } = useSesionStore();
   const [usuarioFromState, setUsuarioFromState] = useState<IUsuario | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [maxStepReached, setMaxStepReached] = useState<number>(1);
+
+  // Actualizar maxStepReached cuando se avanza
+  const handleSetStep = (step: number) => {
+    setCurrentStep(step);
+    setMaxStepReached((prev) => Math.max(prev, step));
+  };
 
   useEffect(() => {
     async function cargarUsuario() {
@@ -90,7 +95,8 @@ function CuestionarioSesion() {
       <StepIndicator 
         steps={STEPS} 
         currentStep={currentStep} 
-        onStepClick={setCurrentStep} 
+        maxStepReached={maxStepReached}
+        onStepClick={handleSetStep} 
       />
 
       {/* Session Summary Drawer */}
@@ -99,35 +105,31 @@ function CuestionarioSesion() {
       {/* Main Content */}
       <div className="mx-auto">
         {currentStep === 1 && usuarioFromState && sesion && (
-          <Step1 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+          <Step1 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
         )}
 
         {currentStep === 2 && usuarioFromState && sesion && (
-          <Step2 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+          <Step2 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
         )}
 
         {currentStep === 3 && usuarioFromState && sesion && (
-          <Step4 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+          <Step4 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
         )}
 
         {currentStep === 4 && usuarioFromState && sesion && (
-          <Step6 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+          <Step6 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
         )}
 
         {currentStep === 5 && usuarioFromState && sesion && (
-          <Step5 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+          <Step5 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
         )}
 
         {currentStep === 6 && usuarioFromState && sesion && (
-          <Step7 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+          <Step8 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
         )}
 
         {currentStep === 7 && usuarioFromState && sesion && (
-          <Step8 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
-        )}
-
-        {currentStep === 8 && usuarioFromState && sesion && (
-          <Step9 pagina={currentStep} setPagina={setCurrentStep} usuarioFromState={usuarioFromState} />
+          <Step9 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
         )}
       </div>
     </div>

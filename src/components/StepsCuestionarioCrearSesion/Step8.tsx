@@ -24,7 +24,7 @@ interface Proceso {
 }
 
 function Step8({ pagina, setPagina }: Props) {
-  const { sesion, updateSesion } = useSesionStore();
+  const { sesion, updateSesion, getExcluirSituacionesIds, registrarSituacionUsada } = useSesionStore();
 
   // Estados para INICIO
   const [inicioTiempo, setInicioTiempo] = useState("15 min");
@@ -200,14 +200,18 @@ function Step8({ pagina, setPagina }: Props) {
 
     setLoadingIA(true);
     try {
+      // Obtener IDs de situaciones ya usadas para este grado+área
+      const grado = sesion.datosGenerales.grado;
+      const area = sesion.datosGenerales.area;
+      const excluirIds = getExcluirSituacionesIds(grado, area);
+
       const response = await instance.post("/ia/generar-secuencia-didactica", {
         temaId: sesion.temaId,
         datosGenerales: sesion.datosGenerales,
         propositoAprendizaje: sesion.propositoAprendizaje,
         propositoSesion: sesion.propositoSesion,
-        k: sesion.propositoAprendizaje.cantidadCriterios || 6,
-        tipoGrafico: sesion.preparacion?.tipoGraficoPreferido || "AUTO",
-        estructuraCompleta: true,
+        excluir_situaciones_ids: excluirIds,
+        situacionId: sesion.situacionId,
       });
 
       const data = response.data;
@@ -231,7 +235,55 @@ function Step8({ pagina, setPagina }: Props) {
           setCierreProcesos(data.data.cierre.procesos || []);
         }
 
-        // ⭐ GUARDAR TODO EN EL STORE (título + secuenciaDidactica)
+        // ⭐ GUARDAR TODO EN EL STORE (título + secuenciaDidactica + situaciónSignificativa)
+        const situacion = data.situacion_significativa || null;
+
+        // Buscar preparacion en múltiples ubicaciones posibles de la respuesta
+        const preparacionRaw = data.data?.preparacion || data.preparacion || null;
+        console.log('📦 Preparación - data.data.preparacion:', data.data?.preparacion);
+        console.log('📦 Preparación - data.preparacion:', data.preparacion);
+
+        // Si el backend no envía preparacion (o viene vacía), extraerla de la secuencia didáctica
+        let preparacionFinal: { quehacerAntes: string[]; recursosMateriales: string[] } | null = null;
+
+        if (preparacionRaw &&
+          ((preparacionRaw.quehacerAntes?.length > 0) || (preparacionRaw.recursosMateriales?.length > 0))) {
+          // Usar la preparacion del backend
+          preparacionFinal = {
+            quehacerAntes: preparacionRaw.quehacerAntes || [],
+            recursosMateriales: preparacionRaw.recursosMateriales || [],
+          };
+        } else {
+          // Auto-extraer recursos únicos de todos los procesos de la secuencia
+          const recursosSet = new Set<string>();
+          const todasSecciones = [
+            ...(data.data.inicio?.procesos || []),
+            ...(data.data.desarrollo?.procesos || []),
+            ...(data.data.cierre?.procesos || []),
+          ];
+
+          todasSecciones.forEach((p: any) => {
+            if (p.recursosDidacticos) {
+              p.recursosDidacticos
+                .split(/,|;/)
+                .map((r: string) => r.trim())
+                .filter(Boolean)
+                .forEach((r: string) => recursosSet.add(r));
+            }
+          });
+
+          const recursosUnicos = Array.from(recursosSet);
+
+          // Generar tareas previas a partir de los recursos
+          const quehacerAntes = recursosUnicos.map((r) => `Preparar ${r.charAt(0).toLowerCase() + r.slice(1)}`);
+
+          preparacionFinal = {
+            quehacerAntes,
+            recursosMateriales: recursosUnicos,
+          };
+          console.log('📦 Preparación auto-generada desde recursosDidacticos:', preparacionFinal);
+        }
+
         updateSesion({
           titulo: data.data.titulo || sesion.titulo,
           secuenciaDidactica: {
@@ -239,7 +291,27 @@ function Step8({ pagina, setPagina }: Props) {
             desarrollo: data.data.desarrollo || { tiempo: "60 min", procesos: [] },
             cierre: data.data.cierre || { tiempo: "15 min", procesos: [] },
           },
+          // Guardar preparación (del backend o auto-generada)
+          preparacion: preparacionFinal,
+          ...(situacion && {
+            situacionSignificativa: {
+              contexto: situacion.contexto,
+              region: situacion.region,
+              id: situacion.id,
+              total_disponibles: situacion.total_disponibles,
+            },
+          }),
         });
+
+        // Registrar situación usada en el acumulador
+        if (situacion?.id) {
+          registrarSituacionUsada(
+            grado,
+            area,
+            situacion.id,
+            situacion.total_disponibles || 0
+          );
+        }
 
         handleToaster("Secuencia didáctica generada exitosamente con IA", "success");
       }
@@ -267,6 +339,24 @@ function Step8({ pagina, setPagina }: Props) {
 
     // Actualizar el store
     if (sesion) {
+      // Re-extraer preparación desde los procesos actuales (por si el usuario editó recursos)
+      const recursosSet = new Set<string>();
+      [...inicioProcesos, ...desarrolloProcesos, ...cierreProcesos].forEach((p) => {
+        if (p.recursosDidacticos) {
+          p.recursosDidacticos
+            .split(/,|;/)
+            .map((r) => r.trim())
+            .filter(Boolean)
+            .forEach((r) => recursosSet.add(r));
+        }
+      });
+      const recursosUnicos = Array.from(recursosSet);
+      const quehacerAntes = recursosUnicos.map((r) => `Preparar ${r.charAt(0).toLowerCase() + r.slice(1)}`);
+
+      // Si ya hay preparacion con datos en el store, mantenerla; si no, usar la auto-generada
+      const prepExistente = sesion.preparacion;
+      const tienePrep = prepExistente && (prepExistente.quehacerAntes?.length > 0 || prepExistente.recursosMateriales?.length > 0);
+
       updateSesion({
         secuenciaDidactica: {
           inicio: {
@@ -281,6 +371,11 @@ function Step8({ pagina, setPagina }: Props) {
             tiempo: cierreTiempo,
             procesos: cierreProcesos,
           },
+        },
+        // Siempre guardar preparacion: usar existente (si es del backend) o auto-generar
+        preparacion: tienePrep ? prepExistente : {
+          quehacerAntes,
+          recursosMateriales: recursosUnicos,
         },
       });
     }
@@ -505,8 +600,8 @@ function Step8({ pagina, setPagina }: Props) {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-emerald-600 text-xs font-bold">7</div>
-            <span className="text-sm font-semibold tracking-wide">PASO 7 DE 8</span>
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-emerald-600 text-xs font-bold">6</div>
+            <span className="text-sm font-semibold tracking-wide">PASO 6 DE 7</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Secuencia Didáctica

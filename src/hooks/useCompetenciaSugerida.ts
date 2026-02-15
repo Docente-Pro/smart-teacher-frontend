@@ -64,7 +64,11 @@ export function useCompetenciaSugerida({
       const response = await sugerirCompetencia(areaId, temaId, temaTexto || undefined);
 
       if (response.data && response.data.data) {
-        setSugerencia(response.data.data);
+        const rawData = response.data.data;
+        // situacionId viene en response.data.situacionId (nivel raíz, fuera de data)
+        const situacionId = rawData.situacionId || response.data.situacionId || rawData.situacion_id || response.data.situacion_id;
+        console.log('📌 situacionId recibido de sugerir-competencia:', situacionId);
+        setSugerencia({ ...rawData, situacionId });
       } else {
         throw new Error("No se pudo obtener sugerencia");
       }

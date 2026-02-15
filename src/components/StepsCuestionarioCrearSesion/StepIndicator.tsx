@@ -8,18 +8,19 @@ interface StepIndicatorProps {
     description: string;
   }[];
   currentStep: number;
+  maxStepReached: number;
   onStepClick: (step: number) => void;
 }
 
-export const StepIndicator = ({ steps, currentStep, onStepClick }: StepIndicatorProps) => {
+export const StepIndicator = ({ steps, currentStep, maxStepReached, onStepClick }: StepIndicatorProps) => {
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {steps.map((step, index) => {
-            const isCompleted = currentStep > step.number;
+            const isCompleted = maxStepReached > step.number;
             const isCurrent = currentStep === step.number;
-            const isClickable = currentStep >= step.number || isCompleted;
+            const isClickable = step.number <= maxStepReached;
 
             return (
               <div key={step.number} className="flex items-center flex-1">

@@ -23,6 +23,7 @@ export interface ICompetenciaSugerida {
   capacidadesSugeridas: ICapacidadSugerida[];
   justificacionGeneral: string;
   recomendacionesDidacticas: string[];
+  situacionId?: string; // 🆕 ID de la situación significativa
 }
 
 /**

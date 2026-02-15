@@ -46,6 +46,7 @@ function Step6({ pagina, setPagina }: Props) {
         capacidades: sesion.propositoAprendizaje.capacidades,
         duracion: sesion.datosGenerales.duracion,
         temaId: sesion.temaId,
+        situacionId: sesion.situacionId,
       });
 
       const data = response.data;
@@ -97,8 +98,8 @@ function Step6({ pagina, setPagina }: Props) {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-amber-600 text-xs font-bold">5</div>
-            <span className="text-sm font-semibold tracking-wide">PASO 5 DE 8</span>
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-amber-600 text-xs font-bold">4</div>
+            <span className="text-sm font-semibold tracking-wide">PASO 4 DE 7</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Propósito de la Sesión

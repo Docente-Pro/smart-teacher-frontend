@@ -1,6 +1,6 @@
 import { Document, Footer } from "@htmldocs/react";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer } from "lucide-react";
+import { FileDown, Printer, Cloud, CloudOff, Loader2 } from "lucide-react";
 import { useRef } from "react";
 import { usePDFGeneration } from "@/hooks/usePDFGeneration";
 import { DocumentStyles } from "@/components/DocTest";
@@ -17,7 +17,7 @@ import { SecuenciaDidacticaSection } from "@/components/DocTest/SecuenciaDidacti
 function DocTest() {
   const documentRef = useRef<HTMLDivElement>(null);
   const { sesion } = useSesionStore();
-  const { isGenerating, handleDownloadPDF, handlePrint } = usePDFGeneration(documentRef, sesion?.datosGenerales.area);
+  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } = usePDFGeneration(documentRef, sesion?.datosGenerales.area);
 
   console.log(sesion);
   
@@ -87,7 +87,26 @@ function DocTest() {
           <h1 style={{fontSize: "1.875rem", fontWeight: "700", background: "linear-gradient(to right, #2563eb, #0891b2)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"}}>
             Vista Previa - Sesión de Aprendizaje
           </h1>
-          <div style={{display: "flex", gap: "0.75rem"}}>
+          <div style={{display: "flex", gap: "0.75rem", alignItems: "center"}}>
+            {/* Indicador de guardado en la nube */}
+            <div style={{display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", color: isSaved ? "#16a34a" : isSaving ? "#2563eb" : "#94a3b8"}}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Guardando...</span>
+                </>
+              ) : isSaved ? (
+                <>
+                  <Cloud className="h-4 w-4" />
+                  <span>Guardado</span>
+                </>
+              ) : (
+                <>
+                  <CloudOff className="h-4 w-4" />
+                  <span>Sin guardar</span>
+                </>
+              )}
+            </div>
             <Button 
               onClick={handlePrint} 
               disabled={isGenerating}

@@ -47,6 +47,13 @@ function Dashboard() {
     cargarDashboard();
   }, [user?.id]); // Solo recargar si cambia el ID del usuario
 
+  // Mostrar modal de problemática si no está completa
+  useEffect(() => {
+    if (user && user.problematicaCompleta === false) {
+      setShowProblematicaModal(true);
+    }
+  }, [user?.problematicaCompleta]);
+
   // Botón de logout simple
   const handleLogout = () => {
     logout({ logoutParams: { returnTo: window.location.origin } });
@@ -58,8 +65,13 @@ function Dashboard() {
       title: "Crear Sesión",
       description: "Genera una nueva sesión de aprendizaje",
       action: () => {
-        // Validar problemática
         if (!user) return;
+
+        // Si problematicaCompleta es false, mostrar modal primero
+        if (user.problematicaCompleta === false) {
+          setShowProblematicaModal(true);
+          return;
+        }
         
         showLoading("Cargando cuestionario...");
         navigate("/crear-sesion");

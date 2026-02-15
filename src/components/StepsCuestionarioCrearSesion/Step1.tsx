@@ -163,7 +163,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-indigo-600 text-xs font-bold">1</div>
-            <span className="text-sm font-semibold tracking-wide">PASO 1 DE 9</span>
+            <span className="text-sm font-semibold tracking-wide">PASO 1 DE 7</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Crear Sesión de Aprendizaje

@@ -37,9 +37,9 @@ function Step9({ pagina, setPagina }: Props) {
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-green-600 text-xs font-bold">
-              8
+              7
             </div>
-            <span className="text-sm font-semibold tracking-wide">PASO 8 DE 8</span>
+            <span className="text-sm font-semibold tracking-wide">PASO 7 DE 7</span>
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4 tracking-tight">
             ¡Sesión Completada!
@@ -270,33 +270,35 @@ function Step9({ pagina, setPagina }: Props) {
             <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950 dark:to-purple-950">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl">Preparación</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setPagina(7)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-                  ¿Qué hacer antes? ({sesion.preparacion.quehacerAntes.length})
-                </p>
-                <ul className="list-disc list-inside text-slate-900 dark:text-white">
-                  {sesion.preparacion.quehacerAntes.map((item, idx) => (
-                    <li key={idx}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-                  Recursos y Materiales ({sesion.preparacion.recursosMateriales.length})
-                </p>
-                <ul className="list-disc list-inside text-slate-900 dark:text-white">
-                  {sesion.preparacion.recursosMateriales.map((item, idx) => (
-                    <li key={idx}>{item}</li>
-                  ))}
-                </ul>
-              </div>
+              {sesion.preparacion.quehacerAntes.length > 0 ? (
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                    ¿Qué hacer antes? ({sesion.preparacion.quehacerAntes.length})
+                  </p>
+                  <ul className="list-disc list-inside text-slate-900 dark:text-white">
+                    {sesion.preparacion.quehacerAntes.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 dark:text-slate-500 italic">Se generará automáticamente con la secuencia didáctica</p>
+              )}
+              {sesion.preparacion.recursosMateriales.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                    Recursos y Materiales ({sesion.preparacion.recursosMateriales.length})
+                  </p>
+                  <ul className="list-disc list-inside text-slate-900 dark:text-white">
+                    {sesion.preparacion.recursosMateriales.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
 

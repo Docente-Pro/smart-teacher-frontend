@@ -141,11 +141,22 @@ export interface IFirmas {
   director: IFirma;
 }
 
+/**
+ * Situación significativa contextualizada devuelta por el backend
+ */
+export interface ISituacionSignificativa {
+  contexto: string | null;
+  region: string | null;
+  id: string | null;
+  total_disponibles: number;
+}
+
 export interface ISesionAprendizaje {
   datosGenerales: IDatosGenerales;
   titulo: string;
   temaCurricular?: string; // 🆕 Tema seleccionado o personalizado del currículo
   temaId?: number; // 🆕 ID del tema del currículo (null si es personalizado)
+  situacionId?: string; // 🆕 ID de la situación significativa devuelto por sugerir-competencia
   propositoAprendizaje: IPropositoAprendizaje;
   propositoSesion: IPropositoSesion;
   enfoquesTransversales: IEnfoqueTransversal[];
@@ -153,4 +164,5 @@ export interface ISesionAprendizaje {
   secuenciaDidactica: ISecuenciaDidactica;
   reflexiones: IReflexionAprendizaje;
   firmas: IFirmas;
+  situacionSignificativa?: ISituacionSignificativa;
 }

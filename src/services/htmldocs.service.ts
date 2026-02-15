@@ -1,87 +1,45 @@
-import axios from "axios";
+import html2pdf from "html2pdf.js";
 
-const HTMLDOCS_API_URL = import.meta.env.VITE_HTMLDOCS_API_URL;
-const HTMLDOCS_API_KEY = import.meta.env.VITE_HTMLDOCS_API_KEY;
-
-interface GeneratePDFOptions {
-  html: string;
-  url?: string;
-  format?: "pdf" | "base64" | "json";
-  size?: string; // A3, A4, A5, letter, legal, or custom like '8.5in 11in'
+/**
+ * Opciones para la generación de PDF local con html2pdf.js
+ */
+interface LocalPDFOptions {
+  size?: string;
   orientation?: "portrait" | "landscape";
-}
-
-interface GeneratePDFResponse {
-  data: Blob | string; // Blob for PDF, string for base64 or JSON URL
-}
-
-/**
- * Genera un PDF desde contenido HTML usando la API de HTMLDocs
- * @param options Opciones de generación del PDF
- * @returns Promise con el PDF generado
- */
-export async function generatePDFFromHTML(
-  options: GeneratePDFOptions
-): Promise<GeneratePDFResponse> {
-  try {
-    const {
-      html,
-      url,
-      format = "pdf",
-      size = "A4",
-      orientation = "portrait",
-    } = options;
-
-    const response = await axios.post(
-      HTMLDOCS_API_URL,
-      {
-        html,
-        url,
-        format,
-        size,
-        orientation,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${HTMLDOCS_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        responseType: format === "pdf" ? "blob" : "json",
-      }
-    );
-
-    return {
-      data: response.data,
-    };
-  } catch (error) {
-    console.error("Error al generar PDF con HTMLDocs:", error);
-    throw new Error("No se pudo generar el PDF. Por favor, intenta nuevamente.");
-  }
+  margin?: number | number[];
+  filename?: string;
+  imageQuality?: number;
 }
 
 /**
- * Descarga un PDF generado
- * @param blob Blob del PDF
- * @param filename Nombre del archivo a descargar
+ * Configuración base para html2pdf.js
  */
-export function downloadPDF(blob: Blob, filename: string = "documento.pdf"): void {
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-}
+function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
+  const {
+    size = "a4",
+    orientation = "portrait",
+    margin = [10, 8, 10, 8], // top, left, bottom, right en mm
+    filename = "documento.pdf",
+    imageQuality = 0.98,
+  } = options;
 
-/**
- * Convierte un elemento HTML DOM a string para enviar a la API
- * @param element Elemento HTML a convertir
- * @returns String con el HTML
- */
-export function htmlElementToString(element: HTMLElement): string {
-  return element.outerHTML;
+  return {
+    margin,
+    filename,
+    image: { type: "jpeg", quality: imageQuality },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      letterRendering: true,
+      logging: false,
+    },
+    jsPDF: {
+      unit: "mm",
+      format: size,
+      orientation,
+    },
+    pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+  };
 }
 
 /**
@@ -93,24 +51,15 @@ export function htmlElementToString(element: HTMLElement): string {
 export async function generateAndDownloadPDF(
   element: HTMLElement,
   filename: string = "documento.pdf",
-  options: Partial<GeneratePDFOptions> = {}
+  options: Partial<LocalPDFOptions> = {}
 ): Promise<void> {
   try {
-    const html = htmlElementToString(element);
-    
-    const response = await generatePDFFromHTML({
-      html,
-      format: "pdf",
-      size: "A4",
-      orientation: "portrait",
+    const pdfOptions = getHtml2PdfOptions({
       ...options,
+      filename,
     });
 
-    if (response.data instanceof Blob) {
-      downloadPDF(response.data, filename);
-    } else {
-      throw new Error("Formato de respuesta inválido");
-    }
+    await html2pdf().set(pdfOptions).from(element).save();
   } catch (error) {
     console.error("Error al generar y descargar PDF:", error);
     throw error;
@@ -125,26 +74,35 @@ export async function generateAndDownloadPDF(
  */
 export async function generatePDFBlob(
   element: HTMLElement,
-  options: Partial<GeneratePDFOptions> = {}
+  options: Partial<LocalPDFOptions> = {}
 ): Promise<Blob> {
   try {
-    const html = htmlElementToString(element);
-    
-    const response = await generatePDFFromHTML({
-      html,
-      format: "pdf",
-      size: "A4",
-      orientation: "portrait",
-      ...options,
-    });
+    const pdfOptions = getHtml2PdfOptions(options);
 
-    if (response.data instanceof Blob) {
-      return response.data;
-    } else {
-      throw new Error("Formato de respuesta inválido");
-    }
+    const blob: Blob = await html2pdf()
+      .set(pdfOptions)
+      .from(element)
+      .outputPdf("blob");
+
+    return blob;
   } catch (error) {
     console.error("Error al generar PDF Blob:", error);
     throw error;
   }
+}
+
+/**
+ * Descarga un PDF generado desde un blob
+ * @param blob Blob del PDF
+ * @param filename Nombre del archivo a descargar
+ */
+export function downloadPDF(blob: Blob, filename: string = "documento.pdf"): void {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
