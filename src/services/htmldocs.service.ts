@@ -139,7 +139,7 @@ function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
   return {
     margin,
     filename,
-    image: { type: "jpeg", quality: imageQuality },
+    image: { type: "jpeg" as const, quality: imageQuality },
     html2canvas: {
       scale: 2,
       useCORS: true,
@@ -147,11 +147,11 @@ function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
       logging: false,
     },
     jsPDF: {
-      unit: "mm",
+      unit: "mm" as const,
       format: size,
       orientation,
     },
-    pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+    pagebreak: { mode: ["avoid-all", "css", "legacy"] as const },
   };
 }
 
