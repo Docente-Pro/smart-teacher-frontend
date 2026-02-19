@@ -8,7 +8,7 @@ const API_BASE_URL =
   "http://localhost:3000/api";
 
 export const instance = axios.create({
-  baseURL: "http://localhost:3000/api",    
+  baseURL: API_BASE_URL,    
   headers: {
     "Content-Type": "application/json",
   },

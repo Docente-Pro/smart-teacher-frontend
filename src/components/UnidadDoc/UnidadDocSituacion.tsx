@@ -26,11 +26,11 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias }: Props
       </div>
 
       {/* ─── Reto ─── */}
-      {evidencias?.proposito && (
+      {evidencias?.reto && (
         <div style={{ marginBottom: "0.3rem" }}>
           <p style={{ fontWeight: "bold", fontSize: "9pt", marginBottom: "0.15rem" }}>
             Ante esta situación nos planteamos el siguiente reto:{" "}
-            <span style={{ fontWeight: "normal" }}>{evidencias.proposito}</span>
+            <span style={{ fontWeight: "normal" }}>{evidencias.reto}</span>
           </p>
         </div>
       )}

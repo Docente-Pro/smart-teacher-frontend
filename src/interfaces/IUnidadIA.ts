@@ -45,6 +45,7 @@ export type ISituacionSignificativaRequest = IUnidadContextoBase;
 // ─── Paso 2: Evidencias de Aprendizaje ───
 
 export interface IEvidencias {
+  reto: string;
   proposito: string;
   productoIntegrador: string;
   instrumentoEvaluacion: string;
