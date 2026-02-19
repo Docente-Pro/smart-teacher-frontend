@@ -21,6 +21,11 @@ interface CustomAuth0ProviderProps {
 export function CustomAuth0Provider({ children }: CustomAuth0ProviderProps) {
   const [clientReady, setClientReady] = useState(false);
 
+  // 🔍 DEBUG: Verificar que el audience llega correctamente
+  console.log('🔍 [Auth0Provider] VITE_AUTH0_AUDIENCE:', import.meta.env.VITE_AUTH0_AUDIENCE);
+  console.log('🔍 [Auth0Provider] VITE_AUTH0_DOMAIN:', import.meta.env.VITE_AUTH0_DOMAIN);
+  console.log('🔍 [Auth0Provider] VITE_AUTH0_CLIENT_ID:', import.meta.env.VITE_AUTH0_CLIENT_ID);
+
   useEffect(() => {
     // Inicializar el cliente de Auth0
     getAuth0Client().then(() => {
@@ -38,11 +43,11 @@ export function CustomAuth0Provider({ children }: CustomAuth0ProviderProps) {
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email',
+        scope: 'openid profile email offline_access',
         redirect_uri: window.location.origin,
       }}
       cacheLocation="localstorage" // Usar localStorage para que persistan los tokens inyectados
-      useRefreshTokens={false} // El backend maneja los refresh tokens
+      useRefreshTokens={true} // Necesario para obtener refresh_token del SDK
       skipRedirectCallback={false} // Permitir que Auth0 maneje callbacks si es necesario
     >
       {children}

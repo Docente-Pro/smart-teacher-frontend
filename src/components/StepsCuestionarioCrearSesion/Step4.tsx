@@ -70,7 +70,7 @@ function Step4({ pagina, setPagina }: Props) {
         grado: sesion.datosGenerales.grado || "5to",
         area: sesion.datosGenerales.area,
         temaId: sesion.temaId,
-        situacionId: sesion.situacionId,
+        situacionTexto: sesion.situacionTexto,
       });
 
       const data = response.data;

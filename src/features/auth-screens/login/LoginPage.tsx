@@ -13,16 +13,10 @@ function LoginPage() {
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      // Esperar un tick para que se sincronice el store
-      setTimeout(() => {
-        if (isPremium) {
-          navigate("/dashboard");
-        } else {
-          navigate("/");
-        }
-      }, 100);
+      // Siempre ir a dashboard — ProtectedRoute decidirá si redirigir a onboarding/planes
+      navigate("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, isPremium, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   return (
     <div className="min-h-screen flex">

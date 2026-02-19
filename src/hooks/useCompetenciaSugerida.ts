@@ -65,10 +65,10 @@ export function useCompetenciaSugerida({
 
       if (response.data && response.data.data) {
         const rawData = response.data.data;
-        // situacionId viene en response.data.situacionId (nivel raíz, fuera de data)
-        const situacionId = rawData.situacionId || response.data.situacionId || rawData.situacion_id || response.data.situacion_id;
-        console.log('📌 situacionId recibido de sugerir-competencia:', situacionId);
-        setSugerencia({ ...rawData, situacionId });
+        // situacionTexto viene en response.data.situacionTexto (nivel raíz o dentro de data)
+        const situacionTexto = rawData.situacionTexto || response.data.situacionTexto || rawData.situacion_texto || response.data.situacion_texto;
+        console.log('📌 situacionTexto recibido de sugerir-competencia:', situacionTexto);
+        setSugerencia({ ...rawData, situacionTexto });
       } else {
         throw new Error("No se pudo obtener sugerencia");
       }

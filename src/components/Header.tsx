@@ -14,6 +14,7 @@ import { logo_image } from "@/utils/images/index.images";
 import ToggleDarkMode from "./ToggleDarkMode";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Link, useLocation } from "react-router";
+import { useAuthStore } from "@/store/auth.store";
 
 export default function Header() {
   const { logout } = useAuth0();
@@ -29,7 +30,9 @@ export default function Header() {
   const isInitialQuestionnaire = pathname.includes("cuestionario-inicial");
 
   const handleLogout = () => {
-    logout();
+    localStorage.clear();
+    useAuthStore.getState().clearAuth();
+    logout({ logoutParams: { returnTo: window.location.origin } });
   };
 
   return (

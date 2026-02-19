@@ -46,7 +46,7 @@ function Step6({ pagina, setPagina }: Props) {
         capacidades: sesion.propositoAprendizaje.capacidades,
         duracion: sesion.datosGenerales.duracion,
         temaId: sesion.temaId,
-        situacionId: sesion.situacionId,
+        situacionTexto: sesion.situacionTexto,
       });
 
       const data = response.data;

@@ -5,6 +5,39 @@ import {
   LoginResponse,
 } from "@/interfaces/IAuth";
 
+// ============================================
+// PROTECCIÓN DE INTEGRIDAD — Anti-tampering
+// ============================================
+
+/** Clave secreta para el hash de integridad (ofuscada, no es seguridad real server-side) */
+const INTEGRITY_SALT = "dp_s4lt_k3y_2024!";
+
+/**
+ * Genera un hash simple de integridad para campos críticos.
+ * NO es criptográficamente seguro (eso lo hace el backend con JWT),
+ * pero impide la edición casual del localStorage.
+ */
+function computeIntegrityHash(user: EnrichedUser | null): string {
+  if (!user) return "";
+  const payload = `${INTEGRITY_SALT}|${user.plan ?? "free"}|${user.suscripcionActiva ?? false}|${user.sesionesRestantes ?? 0}|${user.id ?? ""}`;
+  // Simple hash (djb2)
+  let hash = 5381;
+  for (let i = 0; i < payload.length; i++) {
+    hash = ((hash << 5) + hash + payload.charCodeAt(i)) & 0xffffffff;
+  }
+  return hash.toString(36);
+}
+
+/**
+ * Verifica que el hash de integridad coincida con los datos del usuario.
+ * Si no coincide, alguien editó el localStorage manualmente.
+ */
+function verifyIntegrity(user: EnrichedUser | null, hash: string | undefined): boolean {
+  if (!user) return true; // No hay datos que verificar
+  if (!hash) return false; // Datos sin hash → posible tampering
+  return computeIntegrityHash(user) === hash;
+}
+
 /**
  * Estado del store de autenticación
  */
@@ -17,6 +50,8 @@ interface AuthState {
   user: EnrichedUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** Hash de integridad para detectar manipulación del localStorage */
+  _integrity: string | undefined;
 
   // Actions
   setTokens: (tokens: LoginResponse) => void;
@@ -68,13 +103,13 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      _integrity: undefined,
 
       setTokens: (tokens) => {
         const expiresAt = Date.now() + tokens.expires_in * 1000;
 
         // Si ya viene el usuario del backend, convertirlo a EnrichedUser
         if (tokens.user && tokens.user.id) {
-          console.log('💾 Seteando usuario del backend:', tokens.user);
           
           // Crear EnrichedUser desde UserData
           const enrichedUser: EnrichedUser = {
@@ -102,6 +137,7 @@ export const useAuthStore = create<AuthState>()(
             user: enrichedUser,
             isAuthenticated: true,
             isLoading: false,
+            _integrity: computeIntegrityHash(enrichedUser),
           });
           return;
         }
@@ -139,13 +175,18 @@ export const useAuthStore = create<AuthState>()(
           expiresAt,
           user: enrichedUser,
           isAuthenticated: true,
+          _integrity: computeIntegrityHash(enrichedUser),
         });
       },
 
       updateUser: (userData) => {
-        set((state) => ({
-          user: state.user ? { ...state.user, ...userData } : null,
-        }));
+        set((state) => {
+          const updatedUser = state.user ? { ...state.user, ...userData } : null;
+          return {
+            user: updatedUser,
+            _integrity: computeIntegrityHash(updatedUser),
+          };
+        });
         console.log("🔄 Usuario actualizado:", userData);
       },
 
@@ -153,6 +194,7 @@ export const useAuthStore = create<AuthState>()(
         set({
           accessToken: null,
           idToken: null,
+          _integrity: undefined,
           refreshToken: null,
           expiresAt: null,
           user: null,
@@ -176,7 +218,20 @@ export const useAuthStore = create<AuthState>()(
         expiresAt: state.expiresAt,
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        _integrity: state._integrity,
       }),
+      /**
+       * Al rehidratar desde localStorage, verificar integridad.
+       * Si alguien editó manualmente plan/suscripción/sesiones,
+       * el hash no coincidirá y se limpia la sesión.
+       */
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        if (state.user && !verifyIntegrity(state.user, state._integrity)) {
+          console.warn("⚠️ [Auth] Integridad comprometida — se detectó manipulación del localStorage. Cerrando sesión.");
+          state.clearAuth();
+        }
+      },
     }
   )
 );

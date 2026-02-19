@@ -112,8 +112,28 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
   useEffect(() => {
     if (!documentRef.current || !sesion || !user?.id || isSaved || guardadoIniciado.current) return;
 
+    // Esperar a que todas las imágenes del documento estén cargadas antes de generar el PDF
+    const waitForImages = (): Promise<void> => {
+      const images = documentRef.current?.querySelectorAll("img") || [];
+      const pending = Array.from(images).filter((img) => !img.complete);
+      if (pending.length === 0) return Promise.resolve();
+      
+      return Promise.all(
+        pending.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              img.onload = () => resolve();
+              img.onerror = () => resolve(); // No bloquear por imágenes rotas
+            })
+        )
+      ).then(() => {});
+    };
+
     const timer = setTimeout(async () => {
       try {
+        await waitForImages();
+        // Dar un pequeño margen extra para renderizado
+        await new Promise((r) => setTimeout(r, 500));
         await guardarEnNube();
       } catch (error) {
         console.error("Error al guardar automáticamente:", error);

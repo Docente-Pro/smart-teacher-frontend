@@ -75,7 +75,7 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
         const cicloId = getCicloIdPorGrado(sesion.datosGenerales.grado);
 
         if (!gradoId || !cicloId) {
-          handleToaster("Grado no válido", "error");
+          console.warn("[SelectorTemas] Grado no reconocido:", sesion.datosGenerales.grado);
           return;
         }
 

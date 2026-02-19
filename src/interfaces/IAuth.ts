@@ -59,6 +59,16 @@ export interface LoginRequest {
 }
 
 /**
+ * Request body para social login (Google, etc.)
+ * Se envían los tokens obtenidos de Auth0 tras el redirect
+ */
+export interface SocialLoginRequest {
+  access_token: string;
+  id_token: string;
+  refresh_token?: string;
+}
+
+/**
  * Response del backend cuando el login es exitoso
  */
 export interface LoginResponse {

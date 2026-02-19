@@ -49,7 +49,7 @@ export const useSessionRestore = () => {
           }
         }
       } else if (isAuthenticated) {
-        console.log('✅ Sesión activa restaurada desde localStorage');
+        // Sesión restaurada desde localStorage
       }
     };
 

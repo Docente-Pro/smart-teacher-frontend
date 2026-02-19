@@ -39,5 +39,37 @@ export type { IProblematica } from './IProblematica';
 export type { IUnidad } from './IUnidad';
 export type { IUsuario } from './IUsuario';
 
+// Unidad de Aprendizaje — IA (wizard 8 pasos)
+export type {
+  IUnidadContextoBase,
+  IUnidadProblematica,
+  IUnidadArea,
+  ISituacionSignificativaResponse,
+  IEvidencias,
+  IEvidenciasResponse,
+  IPropositos,
+  IAreaProposito,
+  ICompetenciaProposito,
+  ICompetenciaTransversal,
+  IPropositosResponse,
+  IAreaComplementaria,
+  IAreasComplementariasResponse,
+  IEnfoqueUnidad,
+  IEnfoquesResponse,
+  ISecuencia,
+  ISemanaSecuencia,
+  IDiaSecuencia,
+  ITurnoActividad,
+  ISecuenciaResponse,
+  IMaterialesResponse,
+  IReflexionPregunta,
+  IReflexionesResponse,
+  PasoUnidad,
+  IUnidadContenido,
+  IProgresoUnidadResponse,
+  IPasoUnidadResponse,
+  IUnidadCompleta,
+} from './IUnidadIA';
+
 // Interfaces por área (Matemática, Comunicación, etc.)
 export * from './areas';

@@ -14,12 +14,16 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentFailure from "@/pages/PaymentFailure";
 import LoginPage from "@/features/auth-screens/login/LoginPage";
 import SignupPage from "@/features/auth-screens/signup/SignupPage";
+import ForgotPasswordPage from "@/features/auth-screens/forgot-password/ForgotPasswordPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import DemoLoading from "@/pages/DemoLoading";
 import MisSesiones from "@/pages/MisSesiones";
 import Evaluaciones from "@/pages/Evaluaciones";
 import DocTest from "@/pages/DocTest";
+import SesionViewer from "@/pages/SesionViewer";
 import GraficosPlayground from "@/pages/GraficosPlayground";
+import CrearUnidad from "@/pages/CrearUnidad";
+import UnidadResult from "@/pages/UnidadResult";
 
 interface IRouteToCreate {
   path: string;
@@ -38,6 +42,10 @@ export const routes: IRouteToCreate[] = [
   {
     path: "/signup",
     element: <SignupPage />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
   },
   {
     path: "/demo-loading",
@@ -64,6 +72,22 @@ export const routes: IRouteToCreate[] = [
     element: (
       <ProtectedRoute>
         <Areas />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/crear-unidad",
+    element: (
+      <ProtectedRoute>
+        <CrearUnidad />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/unidad-result",
+    element: (
+      <ProtectedRoute>
+        <UnidadResult />
       </ProtectedRoute>
     ),
   },
@@ -168,6 +192,14 @@ export const routes: IRouteToCreate[] = [
     element: (
       <ProtectedRoute>
         <DocTest />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/sesion/:id",
+    element: (
+      <ProtectedRoute>
+        <SesionViewer />
       </ProtectedRoute>
     ),
   },

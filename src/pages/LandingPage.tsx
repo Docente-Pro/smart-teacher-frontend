@@ -1,12 +1,13 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Hero from "@/components/landing/Hero";
 import Features from "@/components/landing/Features";
 import Pricing from "@/components/landing/Pricing";
 import Footer from "@/components/landing/Footer";
 import { useUserStatus } from "@/hooks/useUserStatus";
-import { getUserByEmail, createUser, createPaymentPreference } from "@/services/api";
+import { getUsuarioByEmail, createNewUsuario } from "@/services/usuarios.service";
+import { crearPreferenciaPago } from "@/services/pago.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import LoadingComponent from "@/components/LoadingComponent";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,12 @@ function LandingPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
 
-  // Si el usuario es premium, redirigir al dashboard
-  if (isAuthenticated && isPremium && !statusLoading) {
-    navigate("/dashboard");
-    return null;
-  }
+  // Si el usuario es premium, redirigir al dashboard (en useEffect para evitar warning)
+  useEffect(() => {
+    if (isAuthenticated && isPremium && !statusLoading) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, isPremium, statusLoading, navigate]);
 
   const handleUpgradeClick = async () => {
     if (!isAuthenticated || !user) {
@@ -37,9 +39,9 @@ function LandingPage() {
       let usuarioId: string;
 
       try {
-        const existingUser = await getUserByEmail(user.email!);
-        usuarioId = existingUser.data.id;
-        console.log("Usuario encontrado:", existingUser.data);
+        const res = await getUsuarioByEmail({ email: user.email! });
+        usuarioId = res.data.data?.id ?? res.data.id;
+        console.log("Usuario encontrado:", res.data);
       } catch (error: any) {
         // Si no existe (404), crear el usuario
         if (error.response?.status === 404) {
@@ -50,7 +52,6 @@ function LandingPage() {
           const newUserData = {
             nombre: user.name || "Usuario",
             email: user.email!,
-            auth0UserId: user.sub,
             nombreInstitucion: "Por definir",
             nivelId: 1,
             gradoId: 1,
@@ -61,9 +62,9 @@ function LandingPage() {
             },
           };
 
-          const createdUser = await createUser(newUserData);
-          usuarioId = createdUser.data.id;
-          console.log("Usuario creado:", createdUser.data);
+          const createdRes = await createNewUsuario(newUserData);
+          usuarioId = createdRes.data.data?.id ?? createdRes.data.id;
+          console.log("Usuario creado:", createdRes.data);
         } else {
           throw error;
         }
@@ -71,7 +72,7 @@ function LandingPage() {
 
       // 2. Crear preferencia de pago
       console.log("Creando preferencia de pago...");
-      const preference = await createPaymentPreference({
+      const preference = await crearPreferenciaPago({
         usuarioId,
         planId: "premium_mensual",
       });

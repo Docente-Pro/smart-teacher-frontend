@@ -10,12 +10,17 @@ import { useSessionRestore } from "./hooks/useSessionRestore";
 import { GlobalLoading } from "./components/GlobalLoading";
 import { useLoadingStore } from "./store/loading.store";
 import { useAuthFlow } from "./hooks/useAuthFlow";
+import { useSubscriptionSocket } from "./hooks/useSubscriptionSocket";
+import RenewalModal from "./components/Shared/Modal/RenewalModal";
 
 // Componente wrapper - Solo hooks esenciales
 function App() {
   useSessionRestore();  // Restaurar sesión desde localStorage
   useAuthFlow();        // Manejar flujo de autenticación (social y tradicional)
   const { isLoading, loadingMessage } = useLoadingStore();
+
+  // Escuchar eventos de suscripción en tiempo real
+  const { showRenewalModal, dismissRenewalModal } = useSubscriptionSocket();
   
   return (
     <>
@@ -25,6 +30,8 @@ function App() {
           <Route key={index} path={routes.path} element={routes.element} />
         ))}
       </Routes>
+      {/* Modal de renovación — se muestra cuando suscripcion:expirada llega */}
+      <RenewalModal isOpen={showRenewalModal} onClose={dismissRenewalModal} />
     </>
   );
 }

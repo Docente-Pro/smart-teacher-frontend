@@ -1,6 +1,7 @@
 import { instance } from "./instance";
 import { ISesionAprendizaje } from "@/interfaces/ISesionAprendizaje";
 import { ISesionToCreate } from "@/interfaces/IUsuario";
+import { ISesion } from "@/interfaces/ISesion";
 
 // ============================================
 // INTERFACES
@@ -187,11 +188,31 @@ export async function eliminarSesionPDF(sesionId: string): Promise<{ success: bo
 }
 
 // ============================================
-// Listado (mantener para /mis-sesiones)
+// Listado y consulta de sesiones
 // ============================================
 
 /**
- * Lista las sesiones PDF del usuario autenticado
+ * Obtiene todas las sesiones del usuario autenticado.
+ * GET /api/sesion/usuario/:usuarioId
+ */
+export async function obtenerSesionesPorUsuario(usuarioId: string): Promise<ISesion[]> {
+  const response = await instance.get(`/sesion/usuario/${usuarioId}`);
+  // El backend puede devolver { data: [...] } o [...] directamente
+  return response.data?.data ?? response.data;
+}
+
+/**
+ * Obtiene una sesión por su ID.
+ * GET /api/sesion/:id
+ */
+export async function obtenerSesionPorId(sesionId: string): Promise<ISesion> {
+  const response = await instance.get(`/sesion/${sesionId}`);
+  return response.data?.data ?? response.data;
+}
+
+/**
+ * Lista las sesiones PDF del usuario autenticado (paginado, con filtro por área)
+ * GET /api/sesiones/mis-pdfs
  */
 export async function listarMisSesiones(
   page: number = 1,

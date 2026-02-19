@@ -61,11 +61,20 @@ export interface IPreguntaMetacognicion {
   respuestaEsperada: string;
 }
 
+export interface IImagenProcesoGeneral {
+  id: string;
+  url: string;
+  descripcion: string;
+  posicion: 'antes' | 'despues' | 'junto';
+}
+
 export interface IProcesoSecuencia {
   proceso: string;
   estrategias: string;
   recursosDidacticos: string;
   tiempo: string;
+  /** Imágenes SVG opcionales asociadas a este proceso */
+  imagenes?: IImagenProcesoGeneral[];
 }
 
 export interface IFaseInicio {
@@ -141,14 +150,11 @@ export interface IFirmas {
   director: IFirma;
 }
 
-/**
- * Situación significativa contextualizada devuelta por el backend
- */
-export interface ISituacionSignificativa {
-  contexto: string | null;
-  region: string | null;
-  id: string | null;
-  total_disponibles: number;
+export interface IImagenDisponible {
+  id: string;
+  url: string;
+  descripcion: string;
+  categoria?: string;
 }
 
 export interface ISesionAprendizaje {
@@ -156,7 +162,7 @@ export interface ISesionAprendizaje {
   titulo: string;
   temaCurricular?: string; // 🆕 Tema seleccionado o personalizado del currículo
   temaId?: number; // 🆕 ID del tema del currículo (null si es personalizado)
-  situacionId?: string; // 🆕 ID de la situación significativa devuelto por sugerir-competencia
+  situacionTexto?: string; // 🆕 Texto de la situación significativa devuelto por sugerir-competencia
   propositoAprendizaje: IPropositoAprendizaje;
   propositoSesion: IPropositoSesion;
   enfoquesTransversales: IEnfoqueTransversal[];
@@ -164,5 +170,6 @@ export interface ISesionAprendizaje {
   secuenciaDidactica: ISecuenciaDidactica;
   reflexiones: IReflexionAprendizaje;
   firmas: IFirmas;
-  situacionSignificativa?: ISituacionSignificativa;
+  /** Lista completa de imágenes disponibles que se ofreció a GPT (referencia/debug) */
+  imagenes_disponibles?: IImagenDisponible[];
 }

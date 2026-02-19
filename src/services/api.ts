@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useAuthStore } from "@/store/auth.store";
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
@@ -8,6 +9,28 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+// ============================================
+// INTERCEPTOR — Inyecta Bearer token
+// ============================================
+api.interceptors.request.use((config) => {
+  const { accessToken } = useAuthStore.getState();
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.warn("⚠️ [api] Token expirado o inválido");
+      useAuthStore.getState().clearAuth();
+    }
+    return Promise.reject(error);
+  }
+);
 
 export interface CreateUsuarioDto {
   nombre: string;

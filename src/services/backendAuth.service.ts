@@ -2,6 +2,7 @@ import { instance } from './instance';
 import type {
   LoginRequest,
   LoginResponse,
+  SocialLoginRequest,
   RefreshTokenResponse,
   LogoutResponse,
   ErrorResponse,
@@ -29,11 +30,9 @@ export const loginWithBackend = async (credentials: LoginRequest): Promise<Login
       password: credentials.password,
     });
 
-    console.log('🔐 Respuesta del backend:', response.data);
-
     // Validar que la respuesta tenga los campos necesarios
     if (!response.data.access_token || !response.data.id_token) {
-      console.error('❌ Respuesta del backend incompleta:', response.data);
+      console.error('❌ Respuesta del backend incompleta');
       throw new Error('El backend no devolvió los tokens necesarios (access_token, id_token)');
     }
 
@@ -46,6 +45,45 @@ export const loginWithBackend = async (credentials: LoginRequest): Promise<Login
       errorData?.message || 
       errorData?.error || 
       'Error al iniciar sesión'
+    );
+  }
+};
+
+/**
+ * POST /api/auth/social-login
+ * Autentica al usuario que inicia sesión con un proveedor social (Google)
+ * Envía los tokens de Auth0 al backend para validación y enriquecimiento
+ *
+ * Status codes posibles:
+ * - 200: Login social exitoso (usuario existente o creado automáticamente)
+ * - 400: Tokens faltantes
+ * - 401: Tokens inválidos
+ * - 500: Error del servidor
+ */
+export const socialLoginWithBackend = async (
+  tokens: SocialLoginRequest
+): Promise<LoginResponse> => {
+  try {
+    const response = await instance.post<LoginResponse>('/auth/social-login', {
+      access_token: tokens.access_token,
+      id_token: tokens.id_token,
+      ...(tokens.refresh_token && { refresh_token: tokens.refresh_token }),
+    });
+
+    if (!response.data.access_token || !response.data.id_token) {
+      console.error('❌ Respuesta del backend incompleta (social-login)');
+      throw new Error(
+        'El backend no devolvió los tokens necesarios (access_token, id_token)'
+      );
+    }
+
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error en social login:', error);
+
+    const errorData: ErrorResponse = error.response?.data;
+    throw new Error(
+      errorData?.message || errorData?.error || 'Error al iniciar sesión con proveedor social'
     );
   }
 };
@@ -103,5 +141,22 @@ export const refreshAccessToken = async (refreshToken: string): Promise<RefreshT
       errorData?.message || 
       'Error al refrescar la sesión'
     );
+  }
+};
+
+/**
+ * POST /api/auth/forgot-password
+ * Solicita un enlace para restablecer la contraseña.
+ * Siempre devuelve 200 por seguridad.
+ */
+export const forgotPassword = async (email: string): Promise<{ message: string }> => {
+  try {
+    const response = await instance.post<{ message: string }>('/auth/forgot-password', { email });
+    return response.data;
+  } catch (error: any) {
+    // Aun si el backend falla, mostramos mensaje genérico por seguridad
+    return {
+      message: 'Si el email está registrado, recibirás un enlace para restablecer tu contraseña.',
+    };
   }
 };

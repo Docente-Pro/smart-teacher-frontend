@@ -14,13 +14,14 @@ import { CheckCircle2, AlertCircle, Edit2, Plus } from "lucide-react";
 interface ProblematicaModalProps {
   isOpen: boolean;
   onComplete: () => void;
+  onClose?: () => void;
 }
 
 /**
  * Modal para seleccionar la problemática del usuario
  * Se muestra cuando problematicaCompleta === false
  */
-function ProblematicaModal({ isOpen, onComplete }: ProblematicaModalProps) {
+function ProblematicaModal({ isOpen, onComplete, onClose }: ProblematicaModalProps) {
   const { user, updateUser } = useAuthStore();
   const { showLoading, hideLoading } = useGlobalLoading();
   const { problematicas, loading, loadRecomendadas } = useProblematicas();
@@ -79,12 +80,12 @@ function ProblematicaModal({ isOpen, onComplete }: ProblematicaModalProps) {
     <>
       <ReusableModal
         isOpen={isOpen}
-        onClose={() => {}} // No permitir cerrar sin seleccionar
+        onClose={() => onClose?.()}
         title="Completa tu perfil"
         size="xl"
         gradient="blue-orange"
-        showCloseButton={false}
-        closeOnOverlayClick={false}
+        showCloseButton={!!onClose}
+        closeOnOverlayClick={!!onClose}
         footer={
           <>
             <Button

@@ -84,7 +84,7 @@ function Step5({ pagina, setPagina }: Props) {
         competencia: sesion.propositoAprendizaje.competencia,
         propositoSesion: sesion.propositoSesion,
         temaId: sesion.temaId,
-        situacionId: sesion.situacionId,
+        situacionTexto: sesion.situacionTexto,
       });
 
       const data = response.data;

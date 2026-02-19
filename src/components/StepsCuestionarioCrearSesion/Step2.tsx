@@ -201,9 +201,9 @@ function Step2({ pagina, setPagina }: Props) {
       console.log('🤖 Aplicando sugerencia automática:', sugerencia.competenciaNombre);
       setCompetenciaSeleccionada(sugerencia.competenciaNombre);
 
-      // 🆕 Guardar situacionId en el store para endpoints posteriores
-      if (sugerencia.situacionId) {
-        updateSesion({ situacionId: sugerencia.situacionId });
+      // 🆕 Guardar situacionTexto en el store para endpoints posteriores
+      if (sugerencia.situacionTexto) {
+        updateSesion({ situacionTexto: sugerencia.situacionTexto });
       }
     }
   }, [sugerencia, sesion?.temaId]);

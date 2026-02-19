@@ -16,15 +16,30 @@ interface Props {
   usuarioFromState: IUsuario;
 }
 
+interface IImagenProceso {
+  id: string;
+  url: string;
+  descripcion: string;
+  posicion: 'antes' | 'despues' | 'junto';
+}
+
+interface IImagenDisponibleLocal {
+  id: string;
+  url: string;
+  descripcion: string;
+  categoria?: string;
+}
+
 interface Proceso {
   proceso: string;
   estrategias: string;
   recursosDidacticos: string;
   tiempo: string;
+  imagenes?: IImagenProceso[];
 }
 
 function Step8({ pagina, setPagina }: Props) {
-  const { sesion, updateSesion, getExcluirSituacionesIds, registrarSituacionUsada } = useSesionStore();
+  const { sesion, updateSesion } = useSesionStore();
 
   // Estados para INICIO
   const [inicioTiempo, setInicioTiempo] = useState("15 min");
@@ -49,6 +64,9 @@ function Step8({ pagina, setPagina }: Props) {
   const [loadingIA, setLoadingIA] = useState(false);
   const [procesoEnEdicion, setProcesoEnEdicion] = useState<{ seccion: "inicio" | "desarrollo" | "cierre"; index: number } | null>(null);
   const [procesoEditado, setProcesoEditado] = useState<Proceso | null>(null);
+
+  // Estado para imágenes disponibles devueltas por la IA
+  const [imagenesDisponibles, setImagenesDisponibles] = useState<IImagenDisponibleLocal[]>([]);
 
   // Función para calcular el tiempo total de la sesión
   function calcularTiempoTotal(): number {
@@ -125,6 +143,11 @@ function Step8({ pagina, setPagina }: Props) {
         setCierreProcesos(cierre.procesos || []);
       }
     }
+
+    // Cargar imágenes disponibles del store
+    if (sesion?.imagenes_disponibles && sesion.imagenes_disponibles.length > 0) {
+      setImagenesDisponibles(sesion.imagenes_disponibles);
+    }
   }, [sesion]);
 
   function agregarProceso() {
@@ -200,18 +223,12 @@ function Step8({ pagina, setPagina }: Props) {
 
     setLoadingIA(true);
     try {
-      // Obtener IDs de situaciones ya usadas para este grado+área
-      const grado = sesion.datosGenerales.grado;
-      const area = sesion.datosGenerales.area;
-      const excluirIds = getExcluirSituacionesIds(grado, area);
-
       const response = await instance.post("/ia/generar-secuencia-didactica", {
         temaId: sesion.temaId,
         datosGenerales: sesion.datosGenerales,
         propositoAprendizaje: sesion.propositoAprendizaje,
         propositoSesion: sesion.propositoSesion,
-        excluir_situaciones_ids: excluirIds,
-        situacionId: sesion.situacionId,
+        situacionTexto: sesion.situacionTexto,
       });
 
       const data = response.data;
@@ -235,8 +252,12 @@ function Step8({ pagina, setPagina }: Props) {
           setCierreProcesos(data.data.cierre.procesos || []);
         }
 
-        // ⭐ GUARDAR TODO EN EL STORE (título + secuenciaDidactica + situaciónSignificativa)
-        const situacion = data.situacion_significativa || null;
+        // 🖼️ Capturar imágenes disponibles del response
+        if (data.imagenes_disponibles && Array.isArray(data.imagenes_disponibles)) {
+          setImagenesDisponibles(data.imagenes_disponibles);
+        }
+
+        // ⭐ GUARDAR TODO EN EL STORE (título + secuenciaDidactica)
 
         // Buscar preparacion en múltiples ubicaciones posibles de la respuesta
         const preparacionRaw = data.data?.preparacion || data.preparacion || null;
@@ -293,25 +314,9 @@ function Step8({ pagina, setPagina }: Props) {
           },
           // Guardar preparación (del backend o auto-generada)
           preparacion: preparacionFinal,
-          ...(situacion && {
-            situacionSignificativa: {
-              contexto: situacion.contexto,
-              region: situacion.region,
-              id: situacion.id,
-              total_disponibles: situacion.total_disponibles,
-            },
-          }),
+          // 🖼️ Guardar imágenes disponibles en el store
+          ...(data.imagenes_disponibles && { imagenes_disponibles: data.imagenes_disponibles }),
         });
-
-        // Registrar situación usada en el acumulador
-        if (situacion?.id) {
-          registrarSituacionUsada(
-            grado,
-            area,
-            situacion.id,
-            situacion.total_disponibles || 0
-          );
-        }
 
         handleToaster("Secuencia didáctica generada exitosamente con IA", "success");
       }
@@ -576,8 +581,52 @@ function Step8({ pagina, setPagina }: Props) {
                 )}
 
                 <div>
-                  <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Estrategias:</p>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.estrategias}</p>
+                  {/* 🖼️ Imágenes con posición "antes" */}
+                  {proc.imagenes?.filter((img) => img.posicion === 'antes').length ? (
+                    <div className="flex flex-wrap gap-3 mb-3">
+                      {proc.imagenes.filter((img) => img.posicion === 'antes').map((img) => (
+                        <div key={img.id} className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-lg p-2 text-center">
+                          <img src={img.url} alt={img.descripcion} className="max-h-32 mx-auto rounded" />
+                          <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">{img.descripcion}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {/* Estrategias — si hay imágenes "junto", usar layout flex */}
+                  {proc.imagenes?.some((img) => img.posicion === 'junto') ? (
+                    <div className="flex gap-4 items-start">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Estrategias:</p>
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.estrategias}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 flex-shrink-0 max-w-[40%]">
+                        {proc.imagenes.filter((img) => img.posicion === 'junto').map((img) => (
+                          <div key={img.id} className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-lg p-2 text-center">
+                            <img src={img.url} alt={img.descripcion} className="max-h-28 mx-auto rounded" />
+                            <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">{img.descripcion}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Estrategias:</p>
+                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.estrategias}</p>
+                    </div>
+                  )}
+
+                  {/* 🖼️ Imágenes con posición "despues" */}
+                  {proc.imagenes?.filter((img) => img.posicion === 'despues').length ? (
+                    <div className="flex flex-wrap gap-3 mt-3">
+                      {proc.imagenes.filter((img) => img.posicion === 'despues').map((img) => (
+                        <div key={img.id} className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-lg p-2 text-center">
+                          <img src={img.url} alt={img.descripcion} className="max-h-32 mx-auto rounded" />
+                          <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">{img.descripcion}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 {proc.recursosDidacticos && (
                   <div className="pt-2">

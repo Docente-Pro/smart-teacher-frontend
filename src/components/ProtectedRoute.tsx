@@ -1,18 +1,22 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useAuthStore } from '@/store/auth.store';
 import LoadingComponent from '@/components/LoadingComponent';
 
 /**
- * Componente de protección de rutas - Versión simplificada
+ * Componente de protección de rutas
  * 
  * Reglas:
  * 1. No autenticado → /login
  * 2. Perfil incompleto → /onboarding  
- * 3. Free sin sesiones → /planes
+ * 3. Free sin sesiones en rutas de CREACIÓN → /planes
+ *    (dashboard, mis-sesiones, sesion/:id, evaluaciones → siempre accesibles)
  * 4. Premium vencido (pero NO free) → /suscripcion-vencida
  * 5. Todo bien → muestra children
+ * 
+ * IMPORTANTE: No renderiza children hasta que la validación sea exitosa.
+ * Esto evita renders innecesarios de Dashboard/Onboarding durante redirects.
  */
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -21,60 +25,86 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, isLoading: auth0Loading } = useAuth0();
-  const { user, isLoading: storeLoading } = useAuthStore();
+  const { isAuthenticated: auth0Authenticated, isLoading: auth0Loading } = useAuth0();
+  const { user, isLoading: storeLoading, isAuthenticated: storeAuthenticated } = useAuthStore();
+  const lastRedirectRef = useRef<string | null>(null);
 
-  const isLoading = auth0Loading || storeLoading;
+  // Autenticado si Auth0 SDK O el Zustand store dicen que sí
+  const isAuthenticated = auth0Authenticated || storeAuthenticated;
 
-  useEffect(() => {
-    // Esperar a que termine de cargar
-    if (isLoading) return;
+  // Auth0 autenticado pero store aún sin usuario → useAuthFlow está sincronizando
+  const isSyncing = !auth0Loading && auth0Authenticated && !user && !storeLoading;
+  const isLoading = auth0Loading || storeLoading || isSyncing;
 
-    // Rutas que no requieren validación adicional
-    const noValidationRoutes = ['/login', '/signup', '/onboarding', '/planes', '/suscripcion-vencida'];
-    if (noValidationRoutes.includes(location.pathname)) {
-      return;
-    }
+  // Calcular estado de validación de forma síncrona (sin useEffect)
+  const validationResult = useMemo(() => {
+    if (isLoading) return { status: 'loading' as const };
 
-    // 1. No autenticado → login
+    // 1. No autenticado → login (SIEMPRE se valida, sin excepciones)
     if (!isAuthenticated || !user) {
-      console.log('🔒 ProtectedRoute: No autenticado, redirigiendo a /login');
-      navigate('/login', { replace: true });
+      return { status: 'redirect' as const, to: '/login', reason: 'no-auth' };
+    }
+
+    // A partir de aquí el usuario SÍ está autenticado.
+    // Evitar redirect loops: no redirigir a la ruta en la que ya estamos.
+    const currentPath = location.pathname;
+
+    // 2. Perfil incompleto → onboarding (salvo que ya estemos en /onboarding)
+    if (!user.perfilCompleto && currentPath !== '/onboarding') {
+      return { status: 'redirect' as const, to: '/onboarding', reason: 'perfil-incompleto' };
+    }
+
+    // 3. Usuario FREE sin sesiones en rutas de CREACIÓN → planes
+    //    Rutas de lectura (dashboard, mis-sesiones, sesion/:id, evaluaciones, planes) siguen accesibles.
+    const FREE_ALLOWED_PATHS = ['/dashboard', '/mis-sesiones', '/sesion', '/evaluaciones', '/planes', '/result', '/graficos'];
+    const isReadOnlyPath = FREE_ALLOWED_PATHS.some((p) => currentPath.startsWith(p));
+
+    if (user.plan === 'free' && user.sesionesRestantes === 0 && !isReadOnlyPath) {
+      return { 
+        status: 'redirect' as const, 
+        to: '/planes', 
+        reason: 'free-sin-sesiones',
+        state: { message: 'Has usado tus 2 sesiones gratuitas. Actualiza a Premium para continuar creando.' }
+      };
+    }
+
+    // 4. Usuario PREMIUM vencido → renovar (salvo que ya estemos en /suscripcion-vencida)
+    if (user.plan !== 'free' && !user.suscripcionActiva && currentPath !== '/suscripcion-vencida') {
+      return { status: 'redirect' as const, to: '/suscripcion-vencida', reason: 'premium-vencido' };
+    }
+
+    return { status: 'valid' as const };
+  }, [isLoading, isAuthenticated, user, location.pathname]);
+
+  // Ejecutar redirect una sola vez por destino
+  useEffect(() => {
+    if (validationResult.status !== 'redirect') {
+      lastRedirectRef.current = null;
       return;
     }
 
-    // 2. Perfil incompleto → onboarding
-    if (!user.perfilCompleto) {
-      console.log('⚠️ ProtectedRoute: Perfil incompleto, redirigiendo a /onboarding');
-      navigate('/onboarding', { replace: true });
-      return;
-    }
+    const target = validationResult.to;
+    // Evitar redirect repetido al mismo destino
+    if (lastRedirectRef.current === target) return;
+    lastRedirectRef.current = target;
 
-    // 3. Usuario FREE sin sesiones → planes
-    if (user.plan === 'free' && user.sesionesRestantes === 0) {
-      console.log('📦 ProtectedRoute: Free sin sesiones, redirigiendo a /planes');
-      navigate('/planes', { 
-        replace: true,
-        state: { message: 'Has usado tus 2 sesiones gratuitas. Actualiza a Premium para continuar.' }
-      });
-      return;
-    }
+    console.log(`🔒 ProtectedRoute: ${validationResult.reason} → ${target}`);
+    navigate(target, { 
+      replace: true, 
+      ...(validationResult.state ? { state: validationResult.state } : {})
+    });
+  }, [validationResult, navigate]);
 
-    // 4. Usuario PREMIUM vencido → renovar (solo si NO es free)
-    if (user.plan !== 'free' && !user.suscripcionActiva) {
-      console.log('⏰ ProtectedRoute: Premium vencido, redirigiendo a /suscripcion-vencida');
-      navigate('/suscripcion-vencida', { replace: true });
-      return;
-    }
-
-    console.log('✅ ProtectedRoute: Validación OK, mostrando contenido');
-  }, [isLoading, isAuthenticated, user?.id, user?.perfilCompleto, user?.plan, user?.sesionesRestantes, user?.suscripcionActiva, location.pathname, navigate]);
-
-  // Mostrar loading mientras valida
+  // Loading: Auth0 cargando, store cargando, o useAuthFlow sincronizando
   if (isLoading) {
     return <LoadingComponent />;
   }
 
-  // Mostrar children si pasó todas las validaciones
+  // Redirect pendiente: NO renderizar children (evita renders innecesarios)
+  if (validationResult.status === 'redirect') {
+    return <LoadingComponent />;
+  }
+
+  // Validación exitosa → renderizar children
   return <>{children}</>;
 };
