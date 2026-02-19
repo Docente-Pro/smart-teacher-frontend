@@ -26,12 +26,12 @@ import {
 export const ejemploRectaNumerica: GraficoRectaNumerica = {
   tipoGrafico: TipoGraficoMatematica.RECTA_NUMERICA,
   titulo: "Ubicación de números en la recta",
-  elementos: [
-    { valor: 3, destacado: true, etiqueta: "María", color: ColorGrafico.AZUL },
-    { valor: 7, destacado: true, etiqueta: "Juan", color: ColorGrafico.ROJO }
+  marcas: [
+    { posicion: 3, destacado: true, etiqueta: "María", color: ColorGrafico.AZUL },
+    { posicion: 7, destacado: true, etiqueta: "Juan", color: ColorGrafico.ROJO }
   ],
-  rangoInicio: 0,
-  rangoFin: 10,
+  inicio: 0,
+  fin: 10,
   intervalo: 1,
   mostrarFlechas: true
 };

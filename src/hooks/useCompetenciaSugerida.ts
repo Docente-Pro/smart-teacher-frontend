@@ -65,8 +65,8 @@ export function useCompetenciaSugerida({
 
       if (response.data && response.data.data) {
         const rawData = response.data.data;
-        // situacionTexto viene en response.data.situacionTexto (nivel raíz o dentro de data)
-        const situacionTexto = rawData.situacionTexto || response.data.situacionTexto || rawData.situacion_texto || response.data.situacion_texto;
+        // situacionTexto viene en data o a nivel raíz de la respuesta
+        const situacionTexto = rawData.situacionTexto || (response.data as any).situacionTexto || '';
         console.log('📌 situacionTexto recibido de sugerir-competencia:', situacionTexto);
         setSugerencia({ ...rawData, situacionTexto });
       } else {

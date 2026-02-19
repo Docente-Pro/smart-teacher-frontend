@@ -6,7 +6,7 @@ import html2pdf from "html2pdf.js";
 interface LocalPDFOptions {
   size?: string;
   orientation?: "portrait" | "landscape";
-  margin?: number | number[];
+  margin?: number | [number, number] | [number, number, number, number];
   filename?: string;
   imageQuality?: number;
 }
