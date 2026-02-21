@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { obtenerSesionesPorUsuario, obtenerUrlDescarga, eliminarSesionPDF } from "@/services/sesiones.service";
+import { buildCdnPdfUrl } from "@/utils/cdn";
 import { ISesion } from "@/interfaces/ISesion";
 import {
   FileText,
@@ -138,6 +139,16 @@ function MisSesiones() {
   const handleDescargar = async (sesionId: string) => {
     setDownloadingId(sesionId);
     try {
+      // 1) Intentar CloudFront directo con pdfUrl del entity
+      const sesion = sesiones.find((s) => s.id === sesionId);
+      const cdnUrl = buildCdnPdfUrl(sesion?.pdfUrl);
+      if (cdnUrl) {
+        window.open(cdnUrl, "_blank");
+        handleToaster("PDF descargado", "success");
+        return;
+      }
+
+      // 2) Fallback: URL pre-firmada del backend
       const resp = await obtenerUrlDescarga(sesionId);
       const url = resp?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
       if (!url) {

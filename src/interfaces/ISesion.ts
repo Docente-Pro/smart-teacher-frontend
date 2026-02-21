@@ -9,6 +9,8 @@ export interface ISesion {
   fechaInicio?: string;
   fechaFin?: string;
   respondioCuestionario: boolean;
+  pdfUrl?: string;
+  pdfGeneradoAt?: string;
   createdAt: string;
   updatedAt: string;
   usuario?: {

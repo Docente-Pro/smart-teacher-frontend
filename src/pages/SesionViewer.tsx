@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { obtenerSesionPorId, obtenerUrlDescarga } from "@/services/sesiones.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
+import { buildCdnPdfUrl } from "@/utils/cdn";
 import type { ISesion } from "@/interfaces/ISesion";
 
 // ─── Helpers ───
@@ -74,12 +75,19 @@ function SesionViewer() {
 
         setLoadingPdf(true);
         try {
-          const resp = await obtenerUrlDescarga(sesionId);
-          const url = (resp as any)?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
-          if (!cancelled && url) {
-            setPdfUrl(url);
-          } else if (!cancelled) {
-            setPdfError("Esta sesión aún no tiene un PDF generado.");
+          // 1) Intentar CloudFront directo si pdfUrl existe
+          const cdnUrl = buildCdnPdfUrl(data.pdfUrl);
+          if (cdnUrl) {
+            setPdfUrl(cdnUrl);
+          } else {
+            // 2) Fallback: pedir URL pre-firmada al backend
+            const resp = await obtenerUrlDescarga(sesionId);
+            const url = (resp as any)?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
+            if (!cancelled && url) {
+              setPdfUrl(url);
+            } else if (!cancelled) {
+              setPdfError("Esta sesión aún no tiene un PDF generado.");
+            }
           }
         } catch (pdfErr: any) {
           if (!cancelled) {

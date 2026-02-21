@@ -54,15 +54,11 @@ function Dashboard() {
 
   /**
    * Intenta crear unidad.
-   * Si el usuario NO es premium → mostrar modal de upgrade.
-   * Si SÍ es premium → ir a la pantalla de crear unidad.
+   * Siempre navega a /crear-unidad. El chequeo de plan (free/premium)
+   * se hace dentro del wizard tras seleccionar tipo PERSONAL/COMPARTIDA.
    */
   const handleCrearUnidad = () => {
     if (!user) return;
-    if (!permissions.canCreateUnidad) {
-      setShowUpgradeModal(true);
-      return;
-    }
     showLoading("Preparando creación de unidad...");
     navigate("/crear-unidad");
   };

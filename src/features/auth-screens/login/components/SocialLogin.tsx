@@ -11,7 +11,7 @@ function SocialLogin() {
         connection: provider,
         redirect_uri: window.location.origin,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email offline_access',
+        scope: 'openid profile email',
       },
     });
   };

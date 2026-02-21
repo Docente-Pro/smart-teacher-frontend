@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useAuth0 } from "@/hooks/useAuth0";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { useUnidadStore } from "@/store/unidad.store";
+import { usePermissions } from "@/hooks/usePermissions";
 import { instance } from "@/services/instance";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { StepIndicator } from "@/components/StepsCuestionarioCrearSesion/StepIndicator";
@@ -34,6 +35,7 @@ function CrearUnidad() {
   const { user } = useAuth0();
   const { showLoading, hideLoading } = useGlobalLoading();
   const { resetUnidad } = useUnidadStore();
+  const { isPremium, isSuscripcionActiva } = usePermissions();
 
   const [usuarioData, setUsuarioData] = useState<IUsuario | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -85,7 +87,12 @@ function CrearUnidad() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* ── Pre-paso: elegir tipo de unidad ── */}
       {fase === "select-type" && (
-        <Step0TipoUnidad onContinue={handleTipoContinue} />
+        <Step0TipoUnidad
+          onContinue={handleTipoContinue}
+          isPremium={isPremium && isSuscripcionActiva}
+          userEmail={user?.email}
+          userName={user?.nombre || user?.name}
+        />
       )}
 
       {/* ── Wizard de 4 pasos ── */}
