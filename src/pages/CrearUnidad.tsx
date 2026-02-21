@@ -7,11 +7,13 @@ import { instance } from "@/services/instance";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { StepIndicator } from "@/components/StepsCuestionarioCrearSesion/StepIndicator";
 import { UnidadDrawer } from "@/components/StepsCrearUnidad/UnidadDrawer";
+import Step0TipoUnidad from "@/components/StepsCrearUnidad/Step0TipoUnidad";
 import Step1DatosUnidad from "@/components/StepsCrearUnidad/Step1DatosUnidad";
 import Step2SituacionPropositos from "@/components/StepsCrearUnidad/Step2SituacionPropositos";
 import Step3EnfoquesComplementos from "@/components/StepsCrearUnidad/Step3EnfoquesComplementos";
 import Step4SecuenciaFinal from "@/components/StepsCrearUnidad/Step4SecuenciaFinal";
 import type { IUsuario } from "@/interfaces/IUsuario";
+import type { TipoUnidad } from "@/interfaces/IUnidad";
 
 const STEPS = [
   { number: 1, title: "Datos Generales", description: "Configuración" },
@@ -37,9 +39,20 @@ function CrearUnidad() {
   const [currentStep, setCurrentStep] = useState(1);
   const [maxStepReached, setMaxStepReached] = useState(1);
 
+  // ── Pre-paso: tipo de unidad ──
+  const [fase, setFase] = useState<"select-type" | "wizard">("select-type");
+  const [tipoUnidad, setTipoUnidad] = useState<TipoUnidad>("PERSONAL");
+  const [maxMiembros, setMaxMiembros] = useState(2);
+
   const handleSetStep = (step: number) => {
     setCurrentStep(step);
     setMaxStepReached((prev) => Math.max(prev, step));
+  };
+
+  const handleTipoContinue = (tipo: TipoUnidad, miembros: number) => {
+    setTipoUnidad(tipo);
+    setMaxMiembros(miembros);
+    setFase("wizard");
   };
 
   useEffect(() => {
@@ -70,51 +83,63 @@ function CrearUnidad() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Step Indicator */}
-      <StepIndicator
-        steps={STEPS}
-        currentStep={currentStep}
-        maxStepReached={maxStepReached}
-        onStepClick={handleSetStep}
-      />
+      {/* ── Pre-paso: elegir tipo de unidad ── */}
+      {fase === "select-type" && (
+        <Step0TipoUnidad onContinue={handleTipoContinue} />
+      )}
 
-      {/* Resumen lateral */}
-      <UnidadDrawer />
-
-      {/* Contenido principal */}
-      <div className="mx-auto">
-        {currentStep === 1 && usuarioData && (
-          <Step1DatosUnidad
-            pagina={currentStep}
-            setPagina={handleSetStep}
-            usuario={usuarioData}
+      {/* ── Wizard de 4 pasos ── */}
+      {fase === "wizard" && (
+        <>
+          {/* Step Indicator */}
+          <StepIndicator
+            steps={STEPS}
+            currentStep={currentStep}
+            maxStepReached={maxStepReached}
+            onStepClick={handleSetStep}
           />
-        )}
 
-        {currentStep === 2 && usuarioData && (
-          <Step2SituacionPropositos
-            pagina={currentStep}
-            setPagina={handleSetStep}
-            usuario={usuarioData}
-          />
-        )}
+          {/* Resumen lateral */}
+          <UnidadDrawer />
 
-        {currentStep === 3 && usuarioData && (
-          <Step3EnfoquesComplementos
-            pagina={currentStep}
-            setPagina={handleSetStep}
-            usuario={usuarioData}
-          />
-        )}
+          {/* Contenido principal */}
+          <div className="mx-auto">
+            {currentStep === 1 && usuarioData && (
+              <Step1DatosUnidad
+                pagina={currentStep}
+                setPagina={handleSetStep}
+                usuario={usuarioData}
+                tipoUnidad={tipoUnidad}
+                maxMiembros={maxMiembros}
+              />
+            )}
 
-        {currentStep === 4 && usuarioData && (
-          <Step4SecuenciaFinal
-            pagina={currentStep}
-            setPagina={handleSetStep}
-            usuario={usuarioData}
-          />
-        )}
-      </div>
+            {currentStep === 2 && usuarioData && (
+              <Step2SituacionPropositos
+                pagina={currentStep}
+                setPagina={handleSetStep}
+                usuario={usuarioData}
+              />
+            )}
+
+            {currentStep === 3 && usuarioData && (
+              <Step3EnfoquesComplementos
+                pagina={currentStep}
+                setPagina={handleSetStep}
+                usuario={usuarioData}
+              />
+            )}
+
+            {currentStep === 4 && usuarioData && (
+              <Step4SecuenciaFinal
+                pagina={currentStep}
+                setPagina={handleSetStep}
+                usuario={usuarioData}
+              />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

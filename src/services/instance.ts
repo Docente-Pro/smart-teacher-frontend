@@ -71,6 +71,10 @@ instance.interceptors.request.use(
 // INTERCEPTOR — Manejo global de 401
 // ============================================
 
+/** Debounce para evitar múltiples clearAuth() en ráfaga (ej: varias peticiones fallan a la vez) */
+let lastClearAuthTime = 0;
+const CLEAR_AUTH_DEBOUNCE_MS = 3000;
+
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -78,7 +82,11 @@ instance.interceptors.response.use(
       console.warn("⚠️ Token expirado o inválido — cerrando sesión");
       // Evitar bucle infinito si ya estamos en /auth/refresh
       if (!error.config?.url?.includes("/auth/refresh")) {
-        useAuthStore.getState().clearAuth();
+        const now = Date.now();
+        if (now - lastClearAuthTime > CLEAR_AUTH_DEBOUNCE_MS) {
+          lastClearAuthTime = now;
+          useAuthStore.getState().clearAuth();
+        }
       }
     }
     return Promise.reject(error);

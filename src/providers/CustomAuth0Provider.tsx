@@ -48,6 +48,7 @@ export function CustomAuth0Provider({ children }: CustomAuth0ProviderProps) {
       }}
       cacheLocation="localstorage" // Usar localStorage para que persistan los tokens inyectados
       useRefreshTokens={true} // Necesario para obtener refresh_token del SDK
+      useRefreshTokensFallback={true} // Fallback con iframe si el social login no devuelve refresh_token
       skipRedirectCallback={false} // Permitir que Auth0 maneje callbacks si es necesario
     >
       {children}

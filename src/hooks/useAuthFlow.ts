@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useAuthStore } from '@/store/auth.store';
 import { socialLoginWithBackend } from '@/services/backendAuth.service';
@@ -11,6 +11,9 @@ import { socialLoginWithBackend } from '@/services/backendAuth.service';
  * Tras el redirect de Auth0, obtiene los tokens del SDK y los envía al backend
  * vía POST /api/auth/social-login para validación y enriquecimiento del usuario.
  * El backend devuelve la misma LoginResponse que /api/auth/login.
+ *
+ * PROTECCIÓN ANTI-LOOP: Usa un ref para evitar reintentos infinitos si
+ * getAccessTokenSilently() falla repetidamente (ej: social login sin refresh token).
  */
 export function useAuthFlow() {
   const {
@@ -19,8 +22,19 @@ export function useAuthFlow() {
     isLoading,
     getAccessTokenSilently,
     getIdTokenClaims,
+    logout: auth0Logout,
   } = useAuth0();
-  const { user: storeUser, setTokens, setLoading } = useAuthStore();
+  const { user: storeUser, setTokens, setLoading, clearAuth } = useAuthStore();
+
+  // Guard: previene loops infinitos de sync
+  const syncAttemptedRef = useRef(false);
+
+  // Resetear el flag cuando Auth0 reporta no-autenticado (ej: logout real)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      syncAttemptedRef.current = false;
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     // No hacer nada si:
@@ -30,6 +44,12 @@ export function useAuthFlow() {
     if (isLoading || !isAuthenticated || !auth0User || storeUser) {
       return;
     }
+
+    // PROTECCIÓN ANTI-LOOP: solo intentar sync una vez por sesión de Auth0
+    if (syncAttemptedRef.current) {
+      return;
+    }
+    syncAttemptedRef.current = true;
 
     // Marcar loading mientras sincronizamos con backend
     setLoading(true);
@@ -65,7 +85,14 @@ export function useAuthFlow() {
         });
       } catch (error) {
         console.error('❌ Error en social login flow:', error);
-        setLoading(false);
+        // Limpiar auth store para evitar estado inconsistente
+        clearAuth();
+        // Limpiar sesión de Auth0 SDK sin redirigir (evita isSyncing=true permanente)
+        try {
+          await auth0Logout({ openUrl: false });
+        } catch {
+          // Ignorar errores de logout silencioso
+        }
       }
     };
 
@@ -79,5 +106,7 @@ export function useAuthFlow() {
     getIdTokenClaims,
     setTokens,
     setLoading,
+    clearAuth,
+    auth0Logout,
   ]);
 }

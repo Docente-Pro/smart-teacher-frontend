@@ -15,6 +15,10 @@ export interface UnidadDatosBase {
   problematicaNombre: string;
   problematicaDescripcion: string;
   areas: { nombre: string }[];
+  tipo: "PERSONAL" | "COMPARTIDA";
+  maxMiembros?: number;
+  sesionesSemanales?: number;
+  codigoCompartido?: string;
 }
 
 // ─── State ───

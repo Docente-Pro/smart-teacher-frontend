@@ -32,6 +32,7 @@ import {
   X,
   Loader2,
   Wand2,
+  AlertCircle,
 } from "lucide-react";
 import SelectProblematicaModal from "./SelectProblematicaModal";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
@@ -42,11 +43,14 @@ import { getAllAreas } from "@/services/areas.service";
 import { generarTituloUnidad } from "@/services/ia-unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { IArea } from "@/interfaces/IArea";
+import type { TipoUnidad } from "@/interfaces/IUnidad";
 
 interface Props {
   pagina: number;
   setPagina: (pagina: number) => void;
   usuario: IUsuario;
+  tipoUnidad: TipoUnidad;
+  maxMiembros: number;
 }
 
 /* ─── Mapas de iconos y gradientes por área ─── */
@@ -74,13 +78,11 @@ const areaGradients: Record<string, string> = {
 };
 
 const duracionesUnidad = [
-  { semanas: 2, label: "2 semanas", desc: "Unidad corta", gradient: "from-emerald-500 to-teal-500" },
-  { semanas: 3, label: "3 semanas", desc: "Unidad estándar", gradient: "from-blue-500 to-cyan-500" },
-  { semanas: 4, label: "4 semanas", desc: "Unidad completa", gradient: "from-purple-500 to-pink-500" },
-  { semanas: 6, label: "6 semanas", desc: "Unidad extendida", gradient: "from-orange-500 to-red-500" },
+  { semanas: 4, label: "4 semanas", desc: "Unidad estándar", gradient: "from-blue-500 to-cyan-500" },
+  { semanas: 5, label: "5 semanas", desc: "Unidad extendida", gradient: "from-purple-500 to-pink-500" },
 ];
 
-function Step1DatosUnidad({ pagina, setPagina, usuario }: Props) {
+function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros }: Props) {
   const { setUnidadId, setDatosBase } = useUnidadStore();
   const { showLoading, hideLoading } = useGlobalLoading();
 
@@ -102,6 +104,17 @@ function Step1DatosUnidad({ pagina, setPagina, usuario }: Props) {
       : null
   );
   const [showProblematicaModal, setShowProblematicaModal] = useState(false);
+
+  // Sesiones semanales
+  const [sesionesSemanales, setSesionesSemanales] = useState(10);
+
+  // Unidad activa (error 400)
+  const [unidadActiva, setUnidadActiva] = useState<{
+    id: string;
+    titulo: string;
+    fechaFin: string;
+    tipo: string;
+  } | null>(null);
 
   // IA — generar título
   const [generandoTitulo, setGenerandoTitulo] = useState(false);
@@ -199,7 +212,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario }: Props) {
       const payload = {
         usuarioId: usuario.id,
         titulo,
-        tipo: "INDIVIDUAL" as const,
+        tipo: tipoUnidad,
         nivelId: usuario.nivelId!,
         gradoId: usuario.gradoId!,
         numeroUnidad,
@@ -207,6 +220,8 @@ function Step1DatosUnidad({ pagina, setPagina, usuario }: Props) {
         fechaInicio,
         fechaFin,
         problematicaId: problematica.id,
+        sesionesSemanales,
+        ...(tipoUnidad === "COMPARTIDA" ? { maxMiembros } : {}),
       };
 
       const response = await createUnidad(payload);
@@ -231,6 +246,11 @@ function Step1DatosUnidad({ pagina, setPagina, usuario }: Props) {
         problematicaNombre: problematica.nombre,
         problematicaDescripcion: problematica.descripcion,
         areas: areasSeleccionadas.map((n) => ({ nombre: n })),
+        tipo: tipoUnidad,
+        sesionesSemanales,
+        ...(tipoUnidad === "COMPARTIDA"
+          ? { maxMiembros, codigoCompartido: unidad.codigoCompartido }
+          : {}),
       });
 
       handleToaster("Unidad creada exitosamente", "success");
@@ -272,6 +292,177 @@ function Step1DatosUnidad({ pagina, setPagina, usuario }: Props) {
             <div className="flex flex-wrap gap-4 justify-center">
               <InfoBadge icon={<GraduationCap className="h-4 w-4" />} label="Nivel" value={nivel || "—"} />
               <InfoBadge icon={<BookOpen className="h-4 w-4" />} label="Grado" value={grado || "—"} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Tipo de Unidad ── */}
+        <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <div className="h-10 w-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              Tipo de Unidad
+            </CardTitle>
+            <CardDescription className="text-base">
+              ¿Trabajarás solo o con otros docentes?
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Selector PERSONAL / COMPARTIDA */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* PERSONAL */}
+              <div
+                onClick={() => setTipo("PERSONAL")}
+                className={`
+                  group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
+                  ${
+                    tipo === "PERSONAL"
+                      ? "ring-4 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-900 scale-[1.02] shadow-2xl"
+                      : "hover:scale-[1.02] hover:shadow-xl border-2 border-slate-200 dark:border-slate-700"
+                  }
+                `}
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 transition-opacity duration-300 ${
+                    tipo === "PERSONAL" ? "opacity-100" : "opacity-10 group-hover:opacity-20"
+                  }`}
+                />
+                <div className="relative p-6 flex flex-col items-center gap-3">
+                  <div
+                    className={`p-3 rounded-lg transition-transform duration-300 ${
+                      tipo === "PERSONAL"
+                        ? "bg-white/20 backdrop-blur-sm scale-110"
+                        : "bg-slate-100 dark:bg-slate-800 group-hover:scale-110"
+                    }`}
+                  >
+                    <User
+                      className={`h-8 w-8 ${
+                        tipo === "PERSONAL" ? "text-white" : "text-slate-600 dark:text-slate-400"
+                      }`}
+                    />
+                  </div>
+                  <p
+                    className={`text-lg font-bold ${
+                      tipo === "PERSONAL" ? "text-white" : "text-slate-900 dark:text-white"
+                    }`}
+                  >
+                    Personal
+                  </p>
+                  <p
+                    className={`text-sm text-center ${
+                      tipo === "PERSONAL" ? "text-white/80" : "text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    Creas y gestionas la unidad individualmente
+                  </p>
+                  {tipo === "PERSONAL" && (
+                    <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-lg">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* COMPARTIDA */}
+              <div
+                onClick={() => setTipo("COMPARTIDA")}
+                className={`
+                  group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
+                  ${
+                    tipo === "COMPARTIDA"
+                      ? "ring-4 ring-sky-500 ring-offset-2 dark:ring-offset-slate-900 scale-[1.02] shadow-2xl"
+                      : "hover:scale-[1.02] hover:shadow-xl border-2 border-slate-200 dark:border-slate-700"
+                  }
+                `}
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br from-sky-500 to-blue-500 transition-opacity duration-300 ${
+                    tipo === "COMPARTIDA" ? "opacity-100" : "opacity-10 group-hover:opacity-20"
+                  }`}
+                />
+                <div className="relative p-6 flex flex-col items-center gap-3">
+                  <div
+                    className={`p-3 rounded-lg transition-transform duration-300 ${
+                      tipo === "COMPARTIDA"
+                        ? "bg-white/20 backdrop-blur-sm scale-110"
+                        : "bg-slate-100 dark:bg-slate-800 group-hover:scale-110"
+                    }`}
+                  >
+                    <Share2
+                      className={`h-8 w-8 ${
+                        tipo === "COMPARTIDA" ? "text-white" : "text-slate-600 dark:text-slate-400"
+                      }`}
+                    />
+                  </div>
+                  <p
+                    className={`text-lg font-bold ${
+                      tipo === "COMPARTIDA" ? "text-white" : "text-slate-900 dark:text-white"
+                    }`}
+                  >
+                    Compartida
+                  </p>
+                  <p
+                    className={`text-sm text-center ${
+                      tipo === "COMPARTIDA" ? "text-white/80" : "text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    Colabora con otros docentes en la misma unidad
+                  </p>
+                  {tipo === "COMPARTIDA" && (
+                    <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-lg">
+                      <CheckCircle2 className="h-5 w-5 text-sky-600" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Campos condicionales para COMPARTIDA */}
+            {tipo === "COMPARTIDA" && (
+              <div className="p-4 rounded-xl border-2 border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <p className="text-sm font-medium text-sky-700 dark:text-sky-300 flex items-center gap-2">
+                  <Share2 className="h-4 w-4" />
+                  Configuración de unidad compartida
+                </p>
+                <div>
+                  <Label htmlFor="maxMiembros" className="text-sm font-medium mb-1.5 block">
+                    Máximo de Docentes
+                  </Label>
+                  <Input
+                    id="maxMiembros"
+                    type="number"
+                    min={2}
+                    max={10}
+                    value={maxMiembros}
+                    onChange={(e) => setMaxMiembros(Number(e.target.value))}
+                    className="h-12 text-base max-w-[200px]"
+                  />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Número máximo de docentes que pueden unirse (2-10)
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Sesiones semanales — siempre visible */}
+            <div>
+              <Label htmlFor="sesionesSemanales" className="text-sm font-medium mb-1.5 block">
+                Sesiones por semana
+              </Label>
+              <Input
+                id="sesionesSemanales"
+                type="number"
+                min={1}
+                max={25}
+                value={sesionesSemanales}
+                onChange={(e) => setSesionesSemanales(Number(e.target.value))}
+                className="h-12 text-base max-w-[200px]"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Cantidad de sesiones de aprendizaje por semana
+              </p>
             </div>
           </CardContent>
         </Card>

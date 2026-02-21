@@ -21,12 +21,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/** Debounce para evitar múltiples clearAuth() en ráfaga */
+let lastClearAuthTime = 0;
+const CLEAR_AUTH_DEBOUNCE_MS = 3000;
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       console.warn("⚠️ [api] Token expirado o inválido");
-      useAuthStore.getState().clearAuth();
+      const now = Date.now();
+      if (now - lastClearAuthTime > CLEAR_AUTH_DEBOUNCE_MS) {
+        lastClearAuthTime = now;
+        useAuthStore.getState().clearAuth();
+      }
     }
     return Promise.reject(error);
   }

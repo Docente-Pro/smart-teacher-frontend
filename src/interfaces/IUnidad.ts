@@ -3,7 +3,7 @@ import type { IUnidadContenido } from "./IUnidadIA";
 
 // ─── Tipos ───
 
-export type TipoUnidad = "INDIVIDUAL" | "COMPARTIDA";
+export type TipoUnidad = "PERSONAL" | "COMPARTIDA";
 
 export type EstadoPagoUnidad = "PENDIENTE" | "CONFIRMADO" | "RECHAZADO";
 
@@ -37,6 +37,8 @@ export interface IUnidadCreateRequest {
   fechaInicio: string;
   fechaFin: string;
   problematicaId: number;
+  maxMiembros?: number;          // solo si tipo=COMPARTIDA
+  sesionesSemanales?: number;
 }
 
 export interface IUnidadUpdateRequest extends Partial<IUnidadCreateRequest> {}
