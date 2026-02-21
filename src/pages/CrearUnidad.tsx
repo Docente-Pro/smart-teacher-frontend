@@ -91,7 +91,7 @@ function CrearUnidad() {
           onContinue={handleTipoContinue}
           isPremium={isPremium && isSuscripcionActiva}
           userEmail={user?.email}
-          userName={user?.nombre || user?.name}
+          userName={user?.name}
         />
       )}
 
