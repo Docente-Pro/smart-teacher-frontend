@@ -1,55 +1,35 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
-import { getAuth0Client } from '@/services/auth0Client.service';
 
 interface CustomAuth0ProviderProps {
   children: React.ReactNode;
 }
 
 /**
- * Auth0Provider personalizado que permite inyección manual de tokens
- * 
- * Este provider mantiene todos los beneficios de Auth0 SDK (hooks, isAuthenticated, user, etc.)
- * pero NO usa loginWithRedirect ni Universal Login.
- * 
- * El flujo es:
- * 1. UI personalizada llama al backend
- * 2. Backend devuelve tokens de Auth0
- * 3. Tokens se inyectan manualmente en el SDK usando auth0Client.service.ts
- * 4. Los hooks de Auth0 funcionan normalmente
+ * Auth0Provider personalizado.
+ *
+ * Flujo tradicional (email/password):
+ *   UI personalizada llama al backend → backend devuelve tokens →
+ *   se guardan en Zustand auth store → useAuth0 custom hook los usa.
+ *
+ * Flujo social (Google):
+ *   loginWithRedirect → Auth0 callback → Auth0Provider procesa callback →
+ *   useAuthFlow sincroniza con backend → tokens en Zustand store.
  */
 export function CustomAuth0Provider({ children }: CustomAuth0ProviderProps) {
-  const [clientReady, setClientReady] = useState(false);
-
-  // 🔍 DEBUG: Verificar que el audience llega correctamente
-  console.log('🔍 [Auth0Provider] VITE_AUTH0_AUDIENCE:', import.meta.env.VITE_AUTH0_AUDIENCE);
-  console.log('🔍 [Auth0Provider] VITE_AUTH0_DOMAIN:', import.meta.env.VITE_AUTH0_DOMAIN);
-  console.log('🔍 [Auth0Provider] VITE_AUTH0_CLIENT_ID:', import.meta.env.VITE_AUTH0_CLIENT_ID);
-
-  useEffect(() => {
-    // Inicializar el cliente de Auth0
-    getAuth0Client().then(() => {
-      setClientReady(true);
-    });
-  }, []);
-
-  if (!clientReady) {
-    return <div>Cargando...</div>;
-  }
-
   return (
     <Auth0Provider
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email offline_access',
+        scope: 'openid profile email',
         redirect_uri: window.location.origin,
       }}
-      cacheLocation="localstorage" // Usar localStorage para que persistan los tokens inyectados
-      useRefreshTokens={true} // Necesario para obtener refresh_token del SDK
-      useRefreshTokensFallback={true} // Fallback con iframe si el social login no devuelve refresh_token
-      skipRedirectCallback={false} // Permitir que Auth0 maneje callbacks si es necesario
+      cacheLocation="localstorage"
+      useRefreshTokens={true}
+      useRefreshTokensFallback={false} // No usar iframe fallback (falla con cookies de terceros)
+      skipRedirectCallback={false}
     >
       {children}
     </Auth0Provider>

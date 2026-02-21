@@ -257,7 +257,15 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
       setPagina(pagina + 1);
     } catch (error: any) {
       console.error("Error al crear unidad:", error);
-      const msg = error?.response?.data?.message || "Error al crear la unidad";
+
+      // HTTP 400 — ya tiene una unidad activa
+      const resData = error?.response?.data;
+      if (error?.response?.status === 400 && resData?.data?.unidadActiva) {
+        setUnidadActiva(resData.data.unidadActiva);
+        return; // no toast, se muestra la alerta en la UI
+      }
+
+      const msg = resData?.message || "Error al crear la unidad";
       handleToaster(msg, "error");
     } finally {
       hideLoading();
@@ -296,176 +304,37 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
           </CardContent>
         </Card>
 
-        {/* ── Tipo de Unidad ── */}
-        <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <div className="h-10 w-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
-                <Users className="h-6 w-6 text-white" />
-              </div>
-              Tipo de Unidad
-            </CardTitle>
-            <CardDescription className="text-base">
-              ¿Trabajarás solo o con otros docentes?
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Selector PERSONAL / COMPARTIDA */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* PERSONAL */}
-              <div
-                onClick={() => setTipo("PERSONAL")}
-                className={`
-                  group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
-                  ${
-                    tipo === "PERSONAL"
-                      ? "ring-4 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-900 scale-[1.02] shadow-2xl"
-                      : "hover:scale-[1.02] hover:shadow-xl border-2 border-slate-200 dark:border-slate-700"
-                  }
-                `}
-              >
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 transition-opacity duration-300 ${
-                    tipo === "PERSONAL" ? "opacity-100" : "opacity-10 group-hover:opacity-20"
-                  }`}
-                />
-                <div className="relative p-6 flex flex-col items-center gap-3">
-                  <div
-                    className={`p-3 rounded-lg transition-transform duration-300 ${
-                      tipo === "PERSONAL"
-                        ? "bg-white/20 backdrop-blur-sm scale-110"
-                        : "bg-slate-100 dark:bg-slate-800 group-hover:scale-110"
-                    }`}
-                  >
-                    <User
-                      className={`h-8 w-8 ${
-                        tipo === "PERSONAL" ? "text-white" : "text-slate-600 dark:text-slate-400"
-                      }`}
-                    />
+        {/* ── Alerta: unidad activa ── */}
+        {unidadActiva && (
+          <Card className="mb-8 border-2 border-red-300 dark:border-red-800 shadow-xl bg-red-50 dark:bg-red-950/30">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-900/50 rounded-full">
+                  <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-1">
+                    Ya tienes una unidad activa
+                  </h3>
+                  <p className="text-sm text-red-600 dark:text-red-300 mb-3">
+                    Debes esperar a que finalice tu unidad actual antes de crear una nueva.
+                  </p>
+                  <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 space-y-1">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {unidadActiva.titulo}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Tipo: <span className="font-medium">{unidadActiva.tipo}</span>
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Finaliza: <span className="font-medium">{new Date(unidadActiva.fechaFin).toLocaleDateString("es-PE")}</span>
+                    </p>
                   </div>
-                  <p
-                    className={`text-lg font-bold ${
-                      tipo === "PERSONAL" ? "text-white" : "text-slate-900 dark:text-white"
-                    }`}
-                  >
-                    Personal
-                  </p>
-                  <p
-                    className={`text-sm text-center ${
-                      tipo === "PERSONAL" ? "text-white/80" : "text-slate-500 dark:text-slate-400"
-                    }`}
-                  >
-                    Creas y gestionas la unidad individualmente
-                  </p>
-                  {tipo === "PERSONAL" && (
-                    <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-lg">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                    </div>
-                  )}
                 </div>
               </div>
-
-              {/* COMPARTIDA */}
-              <div
-                onClick={() => setTipo("COMPARTIDA")}
-                className={`
-                  group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
-                  ${
-                    tipo === "COMPARTIDA"
-                      ? "ring-4 ring-sky-500 ring-offset-2 dark:ring-offset-slate-900 scale-[1.02] shadow-2xl"
-                      : "hover:scale-[1.02] hover:shadow-xl border-2 border-slate-200 dark:border-slate-700"
-                  }
-                `}
-              >
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br from-sky-500 to-blue-500 transition-opacity duration-300 ${
-                    tipo === "COMPARTIDA" ? "opacity-100" : "opacity-10 group-hover:opacity-20"
-                  }`}
-                />
-                <div className="relative p-6 flex flex-col items-center gap-3">
-                  <div
-                    className={`p-3 rounded-lg transition-transform duration-300 ${
-                      tipo === "COMPARTIDA"
-                        ? "bg-white/20 backdrop-blur-sm scale-110"
-                        : "bg-slate-100 dark:bg-slate-800 group-hover:scale-110"
-                    }`}
-                  >
-                    <Share2
-                      className={`h-8 w-8 ${
-                        tipo === "COMPARTIDA" ? "text-white" : "text-slate-600 dark:text-slate-400"
-                      }`}
-                    />
-                  </div>
-                  <p
-                    className={`text-lg font-bold ${
-                      tipo === "COMPARTIDA" ? "text-white" : "text-slate-900 dark:text-white"
-                    }`}
-                  >
-                    Compartida
-                  </p>
-                  <p
-                    className={`text-sm text-center ${
-                      tipo === "COMPARTIDA" ? "text-white/80" : "text-slate-500 dark:text-slate-400"
-                    }`}
-                  >
-                    Colabora con otros docentes en la misma unidad
-                  </p>
-                  {tipo === "COMPARTIDA" && (
-                    <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-lg">
-                      <CheckCircle2 className="h-5 w-5 text-sky-600" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Campos condicionales para COMPARTIDA */}
-            {tipo === "COMPARTIDA" && (
-              <div className="p-4 rounded-xl border-2 border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                <p className="text-sm font-medium text-sky-700 dark:text-sky-300 flex items-center gap-2">
-                  <Share2 className="h-4 w-4" />
-                  Configuración de unidad compartida
-                </p>
-                <div>
-                  <Label htmlFor="maxMiembros" className="text-sm font-medium mb-1.5 block">
-                    Máximo de Docentes
-                  </Label>
-                  <Input
-                    id="maxMiembros"
-                    type="number"
-                    min={2}
-                    max={10}
-                    value={maxMiembros}
-                    onChange={(e) => setMaxMiembros(Number(e.target.value))}
-                    className="h-12 text-base max-w-[200px]"
-                  />
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Número máximo de docentes que pueden unirse (2-10)
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Sesiones semanales — siempre visible */}
-            <div>
-              <Label htmlFor="sesionesSemanales" className="text-sm font-medium mb-1.5 block">
-                Sesiones por semana
-              </Label>
-              <Input
-                id="sesionesSemanales"
-                type="number"
-                min={1}
-                max={25}
-                value={sesionesSemanales}
-                onChange={(e) => setSesionesSemanales(Number(e.target.value))}
-                className="h-12 text-base max-w-[200px]"
-              />
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Cantidad de sesiones de aprendizaje por semana
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* ── Problemática ── */}
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
@@ -854,11 +723,40 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
           </CardContent>
         </Card>
 
+        {/* ── Sesiones por semana ── */}
+        <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <div className="h-10 w-10 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
+              Sesiones por Semana
+            </CardTitle>
+            <CardDescription className="text-base">
+              ¿Cuántas sesiones de aprendizaje tendrás por semana?
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Input
+              id="sesionesSemanales"
+              type="number"
+              min={1}
+              max={25}
+              value={sesionesSemanales}
+              onChange={(e) => setSesionesSemanales(Number(e.target.value))}
+              className="h-12 text-base max-w-[200px]"
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              Cantidad de sesiones de aprendizaje por semana (1-25)
+            </p>
+          </CardContent>
+        </Card>
+
         {/* ── Botón continuar ── */}
         <div className="flex justify-end pb-10">
           <Button
             onClick={handleContinuar}
-            disabled={!titulo || duracion <= 0 || !fechaInicio || areasSeleccionadas.length === 0 || !problematica}
+            disabled={!titulo || duracion <= 0 || !fechaInicio || areasSeleccionadas.length === 0 || !problematica || !!unidadActiva}
             className="h-14 px-10 text-lg font-semibold bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continuar

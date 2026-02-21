@@ -56,25 +56,46 @@ export function useAuthFlow() {
 
     const syncSocialLogin = async () => {
       try {
-        // Obtener tokens del SDK de Auth0
-        const [accessToken, idTokenClaims] = await Promise.all([
-          getAccessTokenSilently(),
-          getIdTokenClaims(),
-        ]);
-
+        // 1. Obtener id_token (siempre disponible tras el callback, sin network)
+        const idTokenClaims = await getIdTokenClaims();
         const idToken = idTokenClaims?.__raw;
 
-        if (!accessToken || !idToken) {
-          throw new Error('No se pudieron obtener los tokens de Auth0');
+        if (!idToken) {
+          throw new Error('No se pudo obtener el id_token de Auth0');
         }
 
-        // Enviar tokens al backend para validación y obtener LoginResponse
+        // 2. Obtener access_token con strategy de fallback
+        //    El scope real devuelto por Auth0 puede no incluir offline_access,
+        //    provocando un cache miss si se busca con el scope completo del Provider.
+        let accessToken: string | undefined;
+
+        // Intento 1: scope reducido (sin offline_access) — más probable de coincidir con cache
+        try {
+          accessToken = await getAccessTokenSilently({
+            authorizationParams: {
+              scope: 'openid profile email',
+            },
+          });
+        } catch {
+          // Intento 2: sin parámetros (usa defaults del Provider)
+          try {
+            accessToken = await getAccessTokenSilently();
+          } catch {
+            console.warn('⚠️ getAccessTokenSilently falló en ambos intentos');
+          }
+        }
+
+        if (!accessToken) {
+          throw new Error('No se pudo obtener el access_token de Auth0');
+        }
+
+        // 3. Enviar tokens al backend para validación y obtener LoginResponse
         const loginResponse = await socialLoginWithBackend({
           access_token: accessToken,
           id_token: idToken,
         });
 
-        // Guardar en store (misma estructura que login tradicional)
+        // 4. Guardar en store (misma estructura que login tradicional)
         setTokens(loginResponse);
 
         console.log('✅ useAuthFlow: Social login completado:', {
@@ -93,6 +114,8 @@ export function useAuthFlow() {
         } catch {
           // Ignorar errores de logout silencioso
         }
+      } finally {
+        setLoading(false);
       }
     };
 
