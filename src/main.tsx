@@ -4,6 +4,7 @@ import "./index.css";
 import "./features/graficos-educativos/presentation/styles/GraficosComunes.css";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { routes } from "./routes/index.routes";
+import { adminRoutes } from "./routes/admin.routes";
 import { CustomAuth0Provider } from "./providers/CustomAuth0Provider";
 import { Toaster } from "sonner";
 import { useSessionRestore } from "./hooks/useSessionRestore";
@@ -28,6 +29,19 @@ function App() {
       <Routes>
         {routes.map((routes, index) => (
           <Route key={index} path={routes.path} element={routes.element} />
+        ))}
+        {/* Admin Routes */}
+        {adminRoutes.map((route, index) => (
+          <Route key={`admin-${index}`} path={route.path} element={route.element}>
+            {route.children?.map((child, ci) => (
+              <Route
+                key={`admin-child-${ci}`}
+                index={child.index}
+                path={child.path}
+                element={child.element}
+              />
+            ))}
+          </Route>
         ))}
       </Routes>
       {/* Modal de renovación — se muestra cuando suscripcion:expirada llega */}

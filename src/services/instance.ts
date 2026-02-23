@@ -28,6 +28,7 @@ const PUBLIC_PREFIXES = [
   "/enfoque-transversal",
   "/problemas-por-ciclo",
   "/criterio",
+  "/auth/admin",
 ];
 
 function isPublicRoute(url: string | undefined): boolean {
