@@ -20,20 +20,13 @@ import {
   Type,
   Clock,
   AlertTriangle,
-  Users,
-  Activity,
-  Palette,
-  MessageCircle,
-  Globe,
-  Calculator,
-  Microscope,
-  Church,
   Search,
   X,
   Loader2,
   Wand2,
   AlertCircle,
 } from "lucide-react";
+import { getAreaColor, getAreaIcon } from "@/constants/areaColors";
 import SelectProblematicaModal from "./SelectProblematicaModal";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -53,29 +46,7 @@ interface Props {
   maxMiembros: number;
 }
 
-/* ─── Mapas de iconos y gradientes por área ─── */
 
-const areaIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  "Personal Social": Users,
-  "Educación Física": Activity,
-  "Arte y Cultura": Palette,
-  Comunicación: MessageCircle,
-  Inglés: Globe,
-  Matemática: Calculator,
-  "Ciencia y Tecnología": Microscope,
-  "Educación Religiosa": Church,
-};
-
-const areaGradients: Record<string, string> = {
-  "Personal Social": "from-blue-500 to-cyan-500",
-  "Educación Física": "from-green-500 to-emerald-500",
-  "Arte y Cultura": "from-purple-500 to-pink-500",
-  Comunicación: "from-orange-500 to-red-500",
-  Inglés: "from-indigo-500 to-blue-500",
-  Matemática: "from-yellow-500 to-orange-500",
-  "Ciencia y Tecnología": "from-teal-500 to-green-500",
-  "Educación Religiosa": "from-amber-500 to-yellow-500",
-};
 
 const duracionesUnidad = [
   { semanas: 4, label: "4 semanas", desc: "Unidad estándar", gradient: "from-blue-500 to-cyan-500" },
@@ -104,9 +75,6 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
       : null
   );
   const [showProblematicaModal, setShowProblematicaModal] = useState(false);
-
-  // Sesiones semanales
-  const [sesionesSemanales, setSesionesSemanales] = useState(10);
 
   // Unidad activa (error 400)
   const [unidadActiva, setUnidadActiva] = useState<{
@@ -187,13 +155,11 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
   }
 
   function getIcon(nombre: string) {
-    const key = Object.keys(areaIcons).find((k) => nombre.includes(k));
-    return key ? areaIcons[key] : BookOpen;
+    return getAreaIcon(nombre);
   }
 
   function getGradient(nombre: string) {
-    const key = Object.keys(areaGradients).find((k) => nombre.includes(k));
-    return key ? areaGradients[key] : "from-violet-500 to-purple-500";
+    return getAreaColor(nombre).gradient;
   }
 
   /* ─── Validar y crear unidad en backend ─── */
@@ -220,7 +186,6 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         fechaInicio,
         fechaFin,
         problematicaId: problematica.id,
-        sesionesSemanales,
         ...(tipoUnidad === "COMPARTIDA" ? { maxMiembros } : {}),
       };
 
@@ -247,7 +212,6 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         problematicaDescripcion: problematica.descripcion,
         areas: areasSeleccionadas.map((n) => ({ nombre: n })),
         tipo: tipoUnidad,
-        sesionesSemanales,
         ...(tipoUnidad === "COMPARTIDA"
           ? { maxMiembros, codigoCompartido: unidad.codigoCompartido }
           : {}),
@@ -720,35 +684,6 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* ── Sesiones por semana ── */}
-        <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <div className="h-10 w-10 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg flex items-center justify-center">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              Sesiones por Semana
-            </CardTitle>
-            <CardDescription className="text-base">
-              ¿Cuántas sesiones de aprendizaje tendrás por semana?
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Input
-              id="sesionesSemanales"
-              type="number"
-              min={1}
-              max={25}
-              value={sesionesSemanales}
-              onChange={(e) => setSesionesSemanales(Number(e.target.value))}
-              className="h-12 text-base max-w-[200px]"
-            />
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Cantidad de sesiones de aprendizaje por semana (1-25)
-            </p>
           </CardContent>
         </Card>
 

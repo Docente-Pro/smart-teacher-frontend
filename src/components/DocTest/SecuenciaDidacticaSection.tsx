@@ -3,6 +3,8 @@ import { GraficoRenderer } from "@/features/graficos-educativos/presentation/com
 
 interface SecuenciaDidacticaSectionProps {
   secuencia: ISecuenciaDidactica;
+  /** Color de fondo para cabeceras de sección. Default: #E8F5E9 */
+  sectionColor?: string;
 }
 
 /**
@@ -257,21 +259,21 @@ function renderProcesoRow(proceso: any, idx: number) {
  *
  * @param secuencia - Objeto completo con todas las fases de la secuencia didáctica
  */
-export function SecuenciaDidacticaSection({ secuencia }: SecuenciaDidacticaSectionProps) {
+export function SecuenciaDidacticaSection({ secuencia, sectionColor = "#E8F5E9" }: SecuenciaDidacticaSectionProps) {
   return (
     <>
       {/* Momentos y Tiempos de la Sesión */}
       <table style={{ marginBottom: "0.5rem" }}>
         <tbody>
           <tr>
-            <td colSpan={2} style={{ backgroundColor: "#E8F5E9", fontWeight: "bold", textAlign: "center" }}>
+            <td colSpan={2} style={{ backgroundColor: sectionColor, fontWeight: "bold", textAlign: "center" }}>
               MOMENTOS Y TIEMPOS DE LA SESIÓN
             </td>
           </tr>
 
           {/* INICIO */}
           <tr>
-            <td colSpan={2} style={{ backgroundColor: "#E8F5E9", fontWeight: "bold" }}>
+            <td colSpan={2} style={{ backgroundColor: sectionColor, fontWeight: "bold" }}>
               INICIO - Tiempo aproximado: {secuencia.inicio.tiempo || "15 minutos"}
             </td>
           </tr>
@@ -279,7 +281,7 @@ export function SecuenciaDidacticaSection({ secuencia }: SecuenciaDidacticaSecti
 
           {/* DESARROLLO */}
           <tr>
-            <td colSpan={2} style={{ backgroundColor: "#E8F5E9", fontWeight: "bold" }}>
+            <td colSpan={2} style={{ backgroundColor: sectionColor, fontWeight: "bold" }}>
               DESARROLLO - Tiempo aproximado: {secuencia.desarrollo.tiempo || "60 minutos"}
             </td>
           </tr>
@@ -287,7 +289,7 @@ export function SecuenciaDidacticaSection({ secuencia }: SecuenciaDidacticaSecti
 
           {/* CIERRE */}
           <tr>
-            <td colSpan={2} style={{ backgroundColor: "#E8F5E9", fontWeight: "bold" }}>
+            <td colSpan={2} style={{ backgroundColor: sectionColor, fontWeight: "bold" }}>
               CIERRE - Tiempo aproximado: {secuencia.cierre.tiempo || "15 minutos"}
             </td>
           </tr>

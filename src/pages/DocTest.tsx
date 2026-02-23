@@ -13,11 +13,15 @@ import { PreparacionSesionSection } from "@/components/DocTest/PreparacionSesion
 
 import { useSesionStore } from "@/store/sesion.store";
 import { SecuenciaDidacticaSection } from "@/components/DocTest/SecuenciaDidacticaSection";
+import { getAreaColor } from "@/constants/areaColors";
 
 function DocTest() {
   const documentRef = useRef<HTMLDivElement>(null);
   const { sesion } = useSesionStore();
   const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } = usePDFGeneration(documentRef, sesion?.datosGenerales.area);
+
+  // ── Derivar colores del área ────────────────────────────────────
+  const areaHex = sesion ? getAreaColor(sesion.datosGenerales.area).hex : null;
 
   console.log(sesion);
   
@@ -131,36 +135,38 @@ function DocTest() {
         {/* Documento */}
         <div id="print-content" ref={documentRef}>
           <Document size="A4" orientation="portrait" margin="0.5in">
-            <DocumentStyles />
+            <DocumentStyles thBgColor={areaHex!.light} />
 
-            {/* HEADER */}
+            {/* HEADER — con subtítulo de área coloreado */}
             <DocumentHeader 
               institucion={sesion.datosGenerales.institucion}
               titulo={sesion.titulo}
+              areaSubtitle={`Sesión de Aprendizaje - ${sesion.datosGenerales.area}`}
+              accentColor={areaHex!.accent}
             />
 
             {/* DATOS GENERALES */}
-            <DatosGeneralesSection datos={sesion.datosGenerales} />
+            <DatosGeneralesSection datos={sesion.datosGenerales} sectionColor={areaHex!.light} />
 
             {/* PROPÓSITOS DE APRENDIZAJE */}
-            <PropositoAprendizajeSection proposito={sesion.propositoAprendizaje} />
+            <PropositoAprendizajeSection proposito={sesion.propositoAprendizaje} sectionColor={areaHex!.light} />
 
             {/* PROPÓSITO DE LA SESIÓN */}
-            <PropositoSesionSection proposito={sesion.propositoSesion} />
+            <PropositoSesionSection proposito={sesion.propositoSesion} sectionColor={areaHex!.light} />
 
             {/* ENFOQUES TRANSVERSALES */}
-            <EnfoquesTransversalesSection enfoques={sesion.enfoquesTransversales} />
+            <EnfoquesTransversalesSection enfoques={sesion.enfoquesTransversales} sectionColor={areaHex!.light} />
 
             {/* ANTES DE LA SESIÓN */}
-            <PreparacionSesionSection preparacion={sesion.preparacion} />
+            <PreparacionSesionSection preparacion={sesion.preparacion} sectionColor={areaHex!.light} />
 
             {/* MOMENTOS Y TIEMPOS */}
-            <SecuenciaDidacticaSection secuencia={sesion.secuenciaDidactica} />
+            <SecuenciaDidacticaSection secuencia={sesion.secuenciaDidactica} sectionColor={areaHex!.light} />
 
-            {/* Footer */}
+            {/* Footer — con color del área */}
             <Footer position="bottom-center">
               {() => (
-                <div style={{display: 'flex', justifyContent: 'center', width: '100%', fontSize: '9pt', borderTop: '1px solid #000', paddingTop: '0.2rem'}}>
+                <div style={{display: 'flex', justifyContent: 'center', width: '100%', fontSize: '9pt', borderTop: `1px solid ${areaHex!.accent}`, paddingTop: '0.2rem', color: areaHex!.accent}}>
                   <span>Sesión de Aprendizaje - {sesion.datosGenerales.area}</span>
                 </div>
               )}

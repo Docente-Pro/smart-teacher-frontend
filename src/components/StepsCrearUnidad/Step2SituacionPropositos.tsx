@@ -260,8 +260,8 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
                 setSituacionTexto(e.target.value);
                 updateContenido({ situacionSignificativa: e.target.value });
               }}
-              rows={8}
-              className="w-full text-sm leading-relaxed resize-none border-emerald-200 dark:border-emerald-800 focus:ring-emerald-500"
+              rows={12}
+              className="w-full text-sm leading-relaxed resize-y border-emerald-200 dark:border-emerald-800 focus:ring-emerald-500 min-h-[200px]"
             />
           )}
         </IASection>
@@ -282,6 +282,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
               <EvidenciaField
                 label="Propósito"
                 value={evidencias.proposito}
+                rows={6}
                 onChange={(v) => {
                   const updated = { ...evidencias, proposito: v };
                   setEvidencias(updated);
@@ -291,6 +292,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
               <EvidenciaField
                 label="Producto Integrador"
                 value={evidencias.productoIntegrador}
+                rows={3}
                 onChange={(v) => {
                   const updated = { ...evidencias, productoIntegrador: v };
                   setEvidencias(updated);
@@ -300,6 +302,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
               <EvidenciaField
                 label="Instrumento de Evaluación"
                 value={evidencias.instrumentoEvaluacion}
+                rows={3}
                 onChange={(v) => {
                   const updated = { ...evidencias, instrumentoEvaluacion: v };
                   setEvidencias(updated);
@@ -526,10 +529,12 @@ function IASection({
 function EvidenciaField({
   label,
   value,
+  rows = 3,
   onChange,
 }: {
   label: string;
   value: string;
+  rows?: number;
   onChange: (v: string) => void;
 }) {
   return (
@@ -540,8 +545,8 @@ function EvidenciaField({
       <Textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        rows={2}
-        className="resize-none text-sm border-orange-200 dark:border-orange-800 focus:ring-orange-500"
+        rows={rows}
+        className="resize-y text-sm border-orange-200 dark:border-orange-800 focus:ring-orange-500"
       />
     </div>
   );

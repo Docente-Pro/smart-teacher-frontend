@@ -1,4 +1,5 @@
 import type { ISecuencia } from "@/interfaces/IUnidadIA";
+import { getAreaColor } from "@/constants/areaColors";
 
 interface Props {
   secuencia?: ISecuencia;
@@ -18,7 +19,7 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
   if (!secuencia) return null;
 
   return (
-    <div style={{ marginBottom: "0.4rem" }}>
+    <div style={{ marginBottom: "1rem" }}>
       <h3 style={{ fontSize: "10pt", fontWeight: "bold", marginBottom: "0.15rem" }}>
         IV. &nbsp;&nbsp;SECUENCIA DE ACTIVIDADES
       </h3>
@@ -63,11 +64,19 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                 <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
                   AREAS
                 </td>
-                {semana.dias.map((dia, i) => (
-                  <td key={i} style={{ textAlign: "center", fontWeight: "bold", fontSize: "8pt" }}>
-                    {dia.turnoManana?.area?.toUpperCase() || ""}
-                  </td>
-                ))}
+                {semana.dias.map((dia, i) => {
+                  const areaHex = dia.turnoManana?.area ? getAreaColor(dia.turnoManana.area).hex : null;
+                  return (
+                    <td key={i} style={{
+                      textAlign: "center",
+                      fontWeight: "bold",
+                      fontSize: "8pt",
+                      backgroundColor: areaHex?.light || "transparent",
+                    }}>
+                      {dia.turnoManana?.area?.toUpperCase() || ""}
+                    </td>
+                  );
+                })}
               </tr>
 
               {/* Fila: ACTIVIDAD (turno mañana) */}
@@ -87,11 +96,19 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                 <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
                   AREA
                 </td>
-                {semana.dias.map((dia, i) => (
-                  <td key={i} style={{ textAlign: "center", fontWeight: "bold", fontSize: "8pt" }}>
-                    {dia.turnoTarde?.area?.toUpperCase() || ""}
-                  </td>
-                ))}
+                {semana.dias.map((dia, i) => {
+                  const areaHex = dia.turnoTarde?.area ? getAreaColor(dia.turnoTarde.area).hex : null;
+                  return (
+                    <td key={i} style={{
+                      textAlign: "center",
+                      fontWeight: "bold",
+                      fontSize: "8pt",
+                      backgroundColor: areaHex?.light || "transparent",
+                    }}>
+                      {dia.turnoTarde?.area?.toUpperCase() || ""}
+                    </td>
+                  );
+                })}
               </tr>
 
               {/* Fila: ACTIVIDAD (turno tarde) */}

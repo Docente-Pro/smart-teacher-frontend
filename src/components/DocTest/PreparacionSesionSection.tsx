@@ -2,6 +2,8 @@ import { IPreparacionSesion } from "@/interfaces/ISesionAprendizaje";
 
 interface PreparacionSesionSectionProps {
   preparacion: IPreparacionSesion;
+  /** Color de fondo para cabeceras de sección. Default: #E8F5E9 */
+  sectionColor?: string;
 }
 
 /**
@@ -11,7 +13,7 @@ interface PreparacionSesionSectionProps {
  * 
  * @param preparacion - Objeto con las acciones previas y recursos necesarios
  */
-export function PreparacionSesionSection({ preparacion }: PreparacionSesionSectionProps) {
+export function PreparacionSesionSection({ preparacion, sectionColor = "#E8F5E9" }: PreparacionSesionSectionProps) {
   // Formatea cada item en una lista de líneas/bullets
   const formatearItem = (texto: string): string[] => {
     const t = (texto || "").trim();
@@ -53,7 +55,7 @@ export function PreparacionSesionSection({ preparacion }: PreparacionSesionSecti
     <table style={{marginBottom: "0.5rem"}}>
       <tbody>
         <tr>
-          <td colSpan={2} style={{backgroundColor: "#E8F5E9", fontWeight: "bold", textAlign: "center"}}>
+          <td colSpan={2} style={{backgroundColor: sectionColor, fontWeight: "bold", textAlign: "center"}}>
             ANTES DE LA SESIÓN
           </td>
         </tr>

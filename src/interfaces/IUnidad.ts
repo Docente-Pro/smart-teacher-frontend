@@ -14,6 +14,7 @@ export interface IUnidad {
   nombre: string;
   descripcion: string;
   tipo: TipoUnidad;
+  estadoPago?: EstadoPagoUnidad;
   codigoCompartido?: string;
   usuarioId: string;
   usuario?: IUsuario;
@@ -96,7 +97,7 @@ export interface IMiembroUnidad {
 }
 
 export interface IUnirseUnidadRequest {
-  codigoCompartido: string;
+  codigo: string;
 }
 
 // ─── Áreas por miembro ───
@@ -126,6 +127,35 @@ export interface IPagoUnidad {
   createdAt: string;
 }
 
+// ─── Precios dinámicos (/api/unidades/precios) ───
+
+export interface IUnidadPrecios {
+  propietario: number;   // S/.20
+  suscriptor: number;    // S/.10
+}
+
+export interface IUnidadPreciosResponse {
+  success: boolean;
+  data: IUnidadPrecios;
+}
+
+// ─── Pre-pago propietario (usuario free, sin unidad aún) ───
+
+export interface IPreSolicitarPagoRequest {
+  tipo: TipoUnidad;
+  usuarioId: string;
+}
+
+export interface IPreSolicitarPagoResponse {
+  success: boolean;
+  data: {
+    pagoId: string;
+    whatsappLink: string;
+  };
+}
+
+// ─── Pago propietario (con unidad existente) ───
+
 export interface ISolicitarPagoUnidadRequest {
   unidadId: string;
 }
@@ -137,6 +167,36 @@ export interface ISolicitarPagoUnidadResponse {
     whatsappUrl: string;
     monto: number;
     estado: EstadoPagoUnidad;
+  };
+}
+
+// ─── Pago suscriptor (nuevo) ───
+
+export interface ISolicitarPagoSuscriptorRequest {
+  unidadId: string;
+}
+
+export interface ISolicitarPagoSuscriptorResponse {
+  success: boolean;
+  data: {
+    pagoId: string;
+    whatsappLink: string;
+    monto: number;
+    estado: EstadoPagoUnidad;
+  };
+}
+
+// ─── Unirse a unidad (respuesta real del backend) ───
+
+export interface IUnirseUnidadResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    miembroId: string;
+    unidadId: string;
+    estadoPago: EstadoPagoUnidad;
+    montoPendiente: number;
+    unidadTitulo?: string;
   };
 }
 
@@ -157,4 +217,41 @@ export interface IPagosPendientesResponse {
 export interface IHistorialPagosUnidadResponse {
   success: boolean;
   data: IPagoUnidad[];
+}
+
+// ─── Distribución de áreas (COMPARTIDA) ───
+
+export interface ICalcularDistribucionRequest {
+  secuencia: unknown; // ISecuencia del contenido generado
+  cantidadSuscriptores: number;
+}
+
+/** Área asignada dentro de una distribución sugerida */
+export interface IDistribucionArea {
+  areaId: number;
+  nombre: string;
+  maxSesionesSemana: number;
+}
+
+/** Distribución sugerida para un miembro */
+export interface IDistribucionMiembro {
+  rol: "PROPIETARIO" | "SUSCRIPTOR";
+  orden: number; // 1 = propietario, 2+ = suscriptores
+  areas: IDistribucionArea[];
+  totalSesionesSemana: number;
+}
+
+export interface ICalcularDistribucionResponse {
+  success: boolean;
+  data: {
+    distribucion: IDistribucionMiembro[];
+  };
+}
+
+/** PUT /api/unidad/:id/distribucion-sesiones */
+export interface IDistribucionSesionesRequest {
+  distribucion: Array<{
+    areaId: number;
+    maxSesionesSemana: number;
+  }>;
 }

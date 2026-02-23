@@ -1,5 +1,6 @@
-import type { IPropositos, IAreaComplementaria, ICompetenciaTransversal } from "@/interfaces/IUnidadIA";
+import type { IPropositos, IAreaComplementaria } from "@/interfaces/IUnidadIA";
 import React, { Fragment } from "react";
+import { getAreaColor } from "@/constants/areaColors";
 
 interface Props {
   propositos?: IPropositos;
@@ -25,7 +26,7 @@ function VerticalText({ text }: { text: string }) {
  * II. PROPÓSITO DE APRENDIZAJE
  *
  * Gran tabla con columnas: AREA, COMPETENCIAS Y CAPACIDADES, ESTÁNDAR DE APRENDIZAJE,
- * DESEMPEÑOS, CRITERIOS, ACTIVIDADES, INSTRUMENTOS.
+ * CRITERIOS, ACTIVIDADES, INSTRUMENTOS.
  *
  * Incluye también Competencias Transversales y Áreas Complementarias.
  */
@@ -33,7 +34,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
   if (!propositos) return null;
 
   return (
-    <div style={{ marginBottom: "0.4rem" }}>
+    <div style={{ marginBottom: "1rem" }}>
       <h3 style={{ fontSize: "10pt", fontWeight: "bold", marginBottom: "0.15rem" }}>
         II. &nbsp;&nbsp;PROPÓSITO DE APRENDIZAJE.
       </h3>
@@ -43,17 +44,17 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
         <thead>
           <tr>
             <th style={{ width: "6%", textAlign: "center" }}>AREA</th>
-            <th style={{ width: "16%", textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
-            <th style={{ width: "18%", textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
-            <th style={{ width: "16%", textAlign: "center" }}>DESEMPEÑOS</th>
-            <th style={{ width: "16%", textAlign: "center" }}>CRITERIOS</th>
-            <th style={{ width: "14%", textAlign: "center" }}>ACTIVIDADES</th>
-            <th style={{ width: "14%", textAlign: "center" }}>INSTRUMENTOS</th>
+            <th style={{ width: "18%", textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
+            <th style={{ width: "20%", textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
+            <th style={{ width: "20%", textAlign: "center" }}>CRITERIOS</th>
+            <th style={{ width: "18%", textAlign: "center" }}>ACTIVIDADES</th>
+            <th style={{ width: "18%", textAlign: "center" }}>INSTRUMENTOS</th>
           </tr>
         </thead>
         <tbody>
           {propositos.areasPropositos.map((areaProp, aIdx) => {
             const totalCompetencias = areaProp.competencias.length;
+            const areaHex = getAreaColor(areaProp.area).hex;
 
             return areaProp.competencias.map((comp, cIdx) => {
               const isFirst = cIdx === 0;
@@ -79,7 +80,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                     fontWeight: "bold",
                     fontSize: "7pt",
                     padding: "0.15rem 0.05rem",
-                    backgroundColor: "#FEF3C7",
+                    backgroundColor: areaHex.light,
                     lineHeight: 1.1,
                     letterSpacing: "0px",
                     ...areaCellBorder,
@@ -103,20 +104,12 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                 {/* Estándar */}
                 <td style={{ fontSize: "8pt" }}>{comp.estandar}</td>
 
-                {/* Desempeños (usamos criterios como desempeños también — el backend los separa) */}
-                <td style={{ fontSize: "8pt" }}>
-                  {comp.criterios.map((crit, i) => (
-                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
-                      {crit}
-                    </p>
-                  ))}
-                </td>
-
                 {/* Criterios */}
                 <td style={{ fontSize: "8pt" }}>
                   {comp.criterios.map((crit, i) => (
-                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
-                      {crit}
+                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
+                      <span style={{ flexShrink: 0 }}>•</span>
+                      <span>{crit}</span>
                     </p>
                   ))}
                 </td>
@@ -124,8 +117,9 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                 {/* Actividades */}
                 <td style={{ fontSize: "8pt" }}>
                   {comp.actividades.map((act, i) => (
-                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
-                      {act}
+                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem", display: "flex", gap: "0.2rem" }}>
+                      <span style={{ flexShrink: 0 }}>•</span>
+                      <span>{act}</span>
                     </p>
                   ))}
                 </td>
@@ -139,11 +133,61 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
             });
           })}
 
-          {/* ─── Competencias Transversales ─── */}
-          {propositos.competenciasTransversales.length > 0 &&
-            renderCompetenciasTransversales(propositos.competenciasTransversales)}
+          {/* ─── Competencias Transversales ─── (se renderizan en tabla aparte) */}
         </tbody>
       </table>
+
+      {/* ─── Competencias Transversales (tabla separada) ─── */}
+      {propositos.competenciasTransversales.length > 0 && (
+        <table style={{ marginTop: "0.3rem" }}>
+          <thead>
+            <tr>
+              <th
+                colSpan={3}
+                style={{
+                  textAlign: "center",
+                  backgroundColor: "#FEF3C7",
+                  fontWeight: "bold",
+                  fontSize: "8pt",
+                  padding: "0.2rem",
+                }}
+              >
+                COMPETENCIAS TRANSVERSALES
+              </th>
+            </tr>
+            <tr>
+              <th style={{ width: "30%", textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
+              <th style={{ width: "30%", textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
+              <th style={{ width: "40%", textAlign: "center" }}>CRITERIOS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {propositos.competenciasTransversales.map((ct, i) => (
+              <tr key={`trans-${i}`}>
+                <td style={{ fontSize: "8pt" }}>
+                  <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
+                    {ct.nombre}
+                  </p>
+                  {ct.capacidades.map((cap, j) => (
+                    <p key={j} style={{ fontSize: "8pt", marginBottom: "0.05rem" }}>
+                      • {cap}
+                    </p>
+                  ))}
+                </td>
+                <td style={{ fontSize: "8pt" }}>{ct.estandar || ""}</td>
+                <td style={{ fontSize: "8pt" }}>
+                  {ct.criterios.map((crit, j) => (
+                    <p key={j} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
+                      <span style={{ flexShrink: 0 }}>•</span>
+                      <span>{crit}</span>
+                    </p>
+                  ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       {/* ─── Áreas Complementarias ─── */}
       {areasComplementarias && areasComplementarias.length > 0 && (
@@ -165,15 +209,16 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                 <tr key={i}>
                   <td style={{ fontWeight: "bold", fontSize: "9pt", textAlign: "center" }}>{ac.area}</td>
                   <td style={{ fontSize: "8pt" }}>
-                    <p style={{ fontSize: "8pt" }}>•{ac.competenciaRelacionada}</p>
+                    <p style={{ fontSize: "8pt" }}>• {ac.competenciaRelacionada}</p>
                   </td>
                   <td style={{ fontSize: "8pt" }}>
-                    <p style={{ fontSize: "8pt" }}>•{ac.dimension}</p>
+                    <p style={{ fontSize: "8pt" }}>• {ac.dimension}</p>
                   </td>
                   <td style={{ fontSize: "8pt" }}>
                     {ac.actividades.map((act, j) => (
-                      <p key={j} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
-                        "{act}"
+                      <p key={j} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
+                        <span style={{ flexShrink: 0 }}>•</span>
+                        <span>{act}</span>
                       </p>
                     ))}
                   </td>
@@ -187,59 +232,3 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
   );
 }
 
-/* ─── Helper: Competencias Transversales rows ─── */
-function renderCompetenciasTransversales(competencias: ICompetenciaTransversal[]) {
-  const totalRows = competencias.length;
-
-  return competencias.map((ct, i) => {
-    const isFirst = i === 0;
-    const isLast = i === totalRows - 1;
-
-    const areaCellBorder: React.CSSProperties = {
-      borderTop: isFirst ? "1px solid #000" : "none",
-      borderBottom: isLast ? "1px solid #000" : "none",
-      borderLeft: "1px solid #000",
-      borderRight: "1px solid #000",
-    };
-
-    return (
-    <tr key={`trans-${i}`}>
-      <td
-        style={{
-          textAlign: "center",
-          verticalAlign: "middle",
-          width: "24px",
-          maxWidth: "24px",
-          fontWeight: "bold",
-          fontSize: "7pt",
-          padding: "0.15rem 0.05rem",
-          backgroundColor: "#FEF3C7",
-          lineHeight: 1.1,
-          letterSpacing: "0px",
-          ...areaCellBorder,
-        }}
-      >
-        {isFirst && <VerticalText text="COMPETENCIAS TRANSVERSALES" />}
-      </td>
-      <td style={{ fontSize: "8pt" }}>
-        <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.1rem" }}>
-          {ct.nombre}
-        </p>
-        {ct.capacidades.map((cap, j) => (
-          <p key={j} style={{ fontSize: "8pt", marginBottom: "0.05rem" }}>
-            • {cap}
-          </p>
-        ))}
-      </td>
-      <td colSpan={2} style={{ fontSize: "8pt" }}>
-        {ct.criterios.map((crit, j) => (
-          <p key={j} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
-            {crit}
-          </p>
-        ))}
-      </td>
-      <td colSpan={3} style={{ fontSize: "8pt" }}></td>
-    </tr>
-    );
-  });
-}

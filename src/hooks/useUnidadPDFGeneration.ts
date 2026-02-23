@@ -56,7 +56,7 @@ export function useUnidadPDFGeneration(documentRef: RefObject<HTMLDivElement>) {
       const { generatePDFBlob } = await import("@/services/htmldocs.service");
       const pdfBlob = await generatePDFBlob(documentRef.current, {
         size: "A4",
-        orientation: "portrait",
+        orientation: "landscape",
       });
 
       const usuarioId = user.id;
@@ -147,7 +147,7 @@ export function useUnidadPDFGeneration(documentRef: RefObject<HTMLDivElement>) {
     try {
       await generateAndDownloadPDF(documentRef.current, nombreArchivo, {
         size: "A4",
-        orientation: "portrait",
+        orientation: "landscape",
       });
       handleToaster("PDF descargado exitosamente", "success");
 

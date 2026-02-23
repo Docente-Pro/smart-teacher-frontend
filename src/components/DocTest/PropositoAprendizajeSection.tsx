@@ -2,6 +2,8 @@ import { IPropositoAprendizaje } from "@/interfaces/ISesionAprendizaje";
 
 interface PropositoAprendizajeSectionProps {
   proposito: IPropositoAprendizaje;
+  /** Color de fondo para cabeceras de sección. Default: #E8F5E9 */
+  sectionColor?: string;
 }
 
 /**
@@ -11,14 +13,14 @@ interface PropositoAprendizajeSectionProps {
  * 
  * @param proposito - Objeto completo con todos los elementos del propósito de aprendizaje
  */
-export function PropositoAprendizajeSection({ proposito }: PropositoAprendizajeSectionProps) {
+export function PropositoAprendizajeSection({ proposito, sectionColor = "#E8F5E9" }: PropositoAprendizajeSectionProps) {
   return (
     <>
       {/* Propósitos de Aprendizaje */}
       <table style={{marginBottom: "0.5rem"}}>
         <tbody>
           <tr>
-            <td colSpan={4} style={{backgroundColor: "#E8F5E9", fontWeight: "bold", textAlign: "center"}}>
+            <td colSpan={4} style={{backgroundColor: sectionColor, fontWeight: "bold", textAlign: "center"}}>
               PROPÓSITOS DE APRENDIZAJE Y EVIDENCIAS DE APRENDIZAJE
             </td>
           </tr>

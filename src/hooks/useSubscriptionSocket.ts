@@ -6,7 +6,6 @@ import {
   desconectarSocket,
 } from "@/services/socket.service";
 import { useAuthStore } from "@/store/auth.store";
-import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
 // ============================================
@@ -14,8 +13,10 @@ import { toast } from "sonner";
 //
 // Eventos:
 //   • pago:confirmado       → Plan activado, redirigir al dashboard
+//   • pago:rechazado        → Admin rechazó pago, notificar
 //   • suscripcion:revocada  → Admin revocó, forzar logout
 //   • suscripcion:expirada  → Venció, mostrar modal de renovación
+//   • usuario:reseteado     → Admin reseteó cuenta, force-logout
 // ============================================
 
 interface UseSubscriptionSocketReturn {
@@ -37,7 +38,8 @@ export function useSubscriptionSocket(): UseSubscriptionSocketReturn {
   const [isListening, setIsListening] = useState(false);
   const [showRenewalModal, setShowRenewalModal] = useState(false);
   const cleanupsRef = useRef<(() => void)[]>([]);
-  const navigate = useNavigate();
+  /** Guard: evita procesar múltiples force-logout simultáneos */
+  const forceLogoutRef = useRef(false);
 
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -81,18 +83,21 @@ export function useSubscriptionSocket(): UseSubscriptionSocketReturn {
     // ─── 2. suscripcion:revocada → Forzar logout ───
     cleanups.push(
       onSocketEvent("suscripcion:revocada", (payload) => {
+        // Guard: ignorar si ya hay un force-logout en progreso
+        if (forceLogoutRef.current) return;
+        forceLogoutRef.current = true;
+
         console.warn("⚠️ [SubscriptionSocket] Suscripción revocada:", payload);
 
-        // Mostrar alerta con el motivo
         toast.error(payload.message || "Tu suscripción ha sido revocada.", {
           duration: 6000,
         });
 
-        // Limpiar auth store y redirigir al login
+        // Limpiar estado y hacer hard redirect para evitar conflictos DOM
         setTimeout(() => {
           clearAuth();
           desconectarSocket();
-          navigate("/login", { replace: true });
+          window.location.href = "/login";
         }, 1500);
       })
     );
@@ -111,6 +116,40 @@ export function useSubscriptionSocket(): UseSubscriptionSocketReturn {
       })
     );
 
+    // ─── 4. pago:rechazado → Notificar al usuario ───
+    cleanups.push(
+      onSocketEvent("pago:rechazado", (payload) => {
+        console.warn("❌ [SubscriptionSocket] Pago rechazado:", payload);
+
+        toast.error("Tu pago fue rechazado", {
+          description: payload.motivoRechazo || "Contacta al administrador para más detalles.",
+          duration: 8000,
+        });
+      })
+    );
+
+    // ─── 5. usuario:reseteado → Force-logout ───
+    cleanups.push(
+      onSocketEvent("usuario:reseteado", (payload) => {
+        // Guard: ignorar si ya hay un force-logout en progreso
+        if (forceLogoutRef.current) return;
+        forceLogoutRef.current = true;
+
+        console.warn("🔄 [SubscriptionSocket] Usuario reseteado:", payload);
+
+        toast.error(payload.message || "Tu cuenta ha sido reseteada por un administrador.", {
+          duration: 6000,
+        });
+
+        // Limpiar estado y hacer hard redirect para evitar conflictos DOM
+        setTimeout(() => {
+          clearAuth();
+          desconectarSocket();
+          window.location.href = "/login";
+        }, 1500);
+      })
+    );
+
     cleanupsRef.current = cleanups;
     setIsListening(true);
 
@@ -118,9 +157,10 @@ export function useSubscriptionSocket(): UseSubscriptionSocketReturn {
     return () => {
       cleanups.forEach((fn) => fn());
       cleanupsRef.current = [];
+      forceLogoutRef.current = false;
       setIsListening(false);
     };
-  }, [isAuthenticated, user?.id, updateUser, clearAuth, navigate]);
+  }, [isAuthenticated, user?.id, updateUser, clearAuth]);
 
   return {
     isListening,

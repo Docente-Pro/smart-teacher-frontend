@@ -2,6 +2,8 @@ import { IPropositoSesion } from "@/interfaces/ISesionAprendizaje";
 
 interface PropositoSesionSectionProps {
   proposito: IPropositoSesion | { queAprenderan?: string; como?: string; paraQue?: string };
+  /** Color de fondo para cabeceras de sección. Default: #E8F5E9 */
+  sectionColor?: string;
 }
 
 /**
@@ -11,7 +13,7 @@ interface PropositoSesionSectionProps {
  * 
  * @param proposito - Objeto con el propósito de la sesión
  */
-export function PropositoSesionSection({ proposito }: PropositoSesionSectionProps) {
+export function PropositoSesionSection({ proposito, sectionColor = "#E8F5E9" }: PropositoSesionSectionProps) {
   const normalizeText = (t: string) => t.trim().replace(/^"|"$/g, "");
 
   const splitIntoBullets = (t: string): string[] => {
@@ -43,7 +45,7 @@ export function PropositoSesionSection({ proposito }: PropositoSesionSectionProp
     <table style={{marginBottom: "0.5rem"}}>
       <tbody>
         <tr>
-          <td colSpan={2} style={{backgroundColor: "#E8F5E9", fontWeight: "bold", textAlign: "center"}}>
+          <td colSpan={2} style={{backgroundColor: sectionColor, fontWeight: "bold", textAlign: "center"}}>
             PROPÓSITO DE LA SESIÓN
           </td>
         </tr>

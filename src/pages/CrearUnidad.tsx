@@ -90,8 +90,6 @@ function CrearUnidad() {
         <Step0TipoUnidad
           onContinue={handleTipoContinue}
           isPremium={isPremium && isSuscripcionActiva}
-          userEmail={user?.email}
-          userName={user?.name}
         />
       )}
 

@@ -2,6 +2,8 @@ import { IDatosGenerales } from "@/interfaces/ISesionAprendizaje";
 
 interface DatosGeneralesSectionProps {
   datos: IDatosGenerales;
+  /** Color de fondo para cabeceras de sección. Default: #E8F5E9 */
+  sectionColor?: string;
 }
 
 /**
@@ -11,7 +13,7 @@ interface DatosGeneralesSectionProps {
  * 
  * @param datos - Objeto con todos los datos generales de la sesión
  */
-export function DatosGeneralesSection({ datos }: DatosGeneralesSectionProps) {
+export function DatosGeneralesSection({ datos, sectionColor = "#E8F5E9" }: DatosGeneralesSectionProps) {
   return (
     <>
       {/* Área */}
@@ -28,7 +30,7 @@ export function DatosGeneralesSection({ datos }: DatosGeneralesSectionProps) {
       <table style={{marginBottom: "0.5rem"}}>
         <tbody>
           <tr>
-            <td colSpan={4} style={{backgroundColor: "#E8F5E9", fontWeight: "bold"}}>
+            <td colSpan={4} style={{backgroundColor: sectionColor, fontWeight: "bold"}}>
               DATOS INFORMATIVOS:
             </td>
           </tr>

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   BookOpen,
   FileText,
-  BarChart3,
+  FolderOpen,
   LogOut,
   User,
   ChevronRight,
@@ -11,6 +11,7 @@ import {
   Crown,
   FolderPlus,
   Lock,
+  KeyRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
@@ -20,6 +21,7 @@ import { useAuthStore } from "@/store/auth.store";
 import ProblematicaModal from "@/components/Shared/Modal/ProblematicaModal";
 import UpgradePremiumModal from "@/components/Shared/Modal/UpgradePremiumModal";
 import { usePermissions } from "@/hooks/usePermissions";
+import { listarUnidadesByUsuario } from "@/services/unidad.service";
 
 function Dashboard() {
   const { logout } = useAuth0();
@@ -29,13 +31,22 @@ function Dashboard() {
   const { showLoading, hideLoading } = useGlobalLoading();
   const [showProblematicaModal, setShowProblematicaModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [hasSuscripcionUnidad, setHasSuscripcionUnidad] = useState(false);
 
   useEffect(() => {
     async function cargarDashboard() {
       if (!user) return;
       showLoading("Cargando dashboard...");
       try {
-        // TODO: Cargar datos del dashboard
+        // Verificar si el usuario es suscriptor de alguna unidad con pago confirmado
+        if (user.id) {
+          const items = await listarUnidadesByUsuario(user.id);
+          const tieneSuscripcion = items.some((u) => {
+            const miembro = u.miembros?.find((m) => m.usuarioId === user.id);
+            return miembro?.rol === "SUSCRIPTOR" && miembro?.estadoPago === "CONFIRMADO";
+          });
+          setHasSuscripcionUnidad(tieneSuscripcion);
+        }
       } catch (error: any) {
         console.error("Error al cargar dashboard:", error);
         handleToaster("Error al cargar el dashboard", "error");
@@ -65,15 +76,33 @@ function Dashboard() {
 
   /**
    * Intenta crear sesión.
-   * Si no tiene problemática completa → mostrar modal de problemática.
-   * Si no tiene sesiones restantes → mostrar modal de upgrade.
+   * - SUSCRIPTOR con pago confirmado → Calendario (como premium)
+   * - PREMIUM → Navega al calendario de sesiones por unidad.
+   * - FREE    → Valida sesiones restantes y navega al cuestionario clásico.
    */
   const handleCrearSesion = () => {
     if (!user) return;
+
+    // SUSCRIPTOR de unidad compartida → directo al calendario
+    if (hasSuscripcionUnidad) {
+      showLoading("Cargando calendario de sesiones...");
+      navigate("/generar-sesion");
+      return;
+    }
+
     if (user.problematicaCompleta === false) {
       setShowProblematicaModal(true);
       return;
     }
+
+    // PREMIUM: flujo de calendario por unidad
+    if (permissions.isPremium) {
+      showLoading("Cargando calendario de sesiones...");
+      navigate("/generar-sesion");
+      return;
+    }
+
+    // FREE: validar límite de sesiones gratuitas
     if (!permissions.canCreateSesion) {
       setShowUpgradeModal(true);
       return;
@@ -119,15 +148,28 @@ function Dashboard() {
       premium: false,
     },
     {
-      icon: BarChart3,
-      title: "Evaluaciones",
-      description: "Crear y gestionar evaluaciones",
+      icon: FolderOpen,
+      title: "Mis Unidades",
+      description: "Ver y gestionar tus unidades creadas",
       color: "from-amber-500 to-orange-600",
       bgLight: "bg-amber-50 dark:bg-amber-500/10",
       iconColor: "text-amber-600 dark:text-amber-400",
       action: () => {
-        showLoading("Cargando evaluaciones...");
-        navigate("/evaluaciones");
+        showLoading("Cargando unidades...");
+        navigate("/mis-unidades");
+      },
+      premium: false,
+    },
+    {
+      icon: KeyRound,
+      title: "Unirse a Unidad",
+      description: "Ingresa un código para unirte a una unidad compartida",
+      color: "from-sky-500 to-cyan-600",
+      bgLight: "bg-sky-50 dark:bg-sky-500/10",
+      iconColor: "text-sky-600 dark:text-sky-400",
+      action: () => {
+        showLoading("Preparando...");
+        navigate("/unirse-unidad");
       },
       premium: false,
     },

@@ -2,6 +2,7 @@ import { instance } from "./instance";
 import { ISesionAprendizaje } from "@/interfaces/ISesionAprendizaje";
 import { ISesionToCreate } from "@/interfaces/IUsuario";
 import { ISesion } from "@/interfaces/ISesion";
+import type { ICalendarioSesionesResponse } from "@/interfaces/ICalendarioSesiones";
 
 // ============================================
 // INTERFACES
@@ -224,4 +225,74 @@ export async function listarMisSesiones(
 
   const response = await instance.get<ListarSesionesResponse>("/sesiones/mis-pdfs", { params });
   return response.data;
+}
+
+// ============================================
+// Calendario de sesiones (PREMIUM / Unidad)
+// GET /api/unidades/:unidadId/sesiones/calendario?areaId=X
+// ============================================
+
+/**
+ * Obtiene el calendario de sesiones de un área dentro de una unidad.
+ * Cada semana contiene N slots con estado: realizada | atrasada | pendiente | bloqueada.
+ *
+ * @param unidadId - ID de la unidad
+ * @param areaId   - (opcional) ID del área; si se omite, el backend usa la primera área del miembro
+ */
+export async function obtenerCalendarioSesiones(
+  unidadId: string,
+  areaId?: number,
+): Promise<ICalendarioSesionesResponse> {
+  const params: Record<string, any> = {};
+  if (areaId != null) params.areaId = areaId;
+
+  const { data } = await instance.get<ICalendarioSesionesResponse>(
+    `/unidades/${unidadId}/sesiones/calendario`,
+    { params },
+  );
+  return data;
+}
+
+// ============================================
+// Generar sesión dentro de una unidad (PREMIUM)
+// POST /api/unidades/:unidadId/sesion/generar
+// ============================================
+
+export interface IGenerarSesionUnidadRequest {
+  areaId?: number;
+  semana?: number;
+  dia?: string;
+  turno?: string;
+  tituloActividad?: string;
+  [key: string]: unknown;
+}
+
+export interface IGenerarSesionUnidadResponse {
+  success: boolean;
+  message?: string;
+  sesion?: {
+    id: string;
+    titulo: string;
+    resumen?: string | null;
+    pdfUrl?: string | null;
+    [key: string]: unknown;
+  };
+  data?: Record<string, unknown>;
+}
+
+/**
+ * Genera una sesión de aprendizaje dentro de una unidad.
+ * El backend construye el contexto completo (5 bloques) y llama a la IA.
+ *
+ * POST /api/unidades/:unidadId/sesion/generar
+ */
+export async function generarSesionUnidad(
+  unidadId: string,
+  body: IGenerarSesionUnidadRequest,
+): Promise<IGenerarSesionUnidadResponse> {
+  const { data } = await instance.post<IGenerarSesionUnidadResponse>(
+    `/unidades/${unidadId}/sesion/generar`,
+    body,
+  );
+  return data;
 }

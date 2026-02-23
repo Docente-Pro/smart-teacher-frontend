@@ -10,15 +10,35 @@ import type {
   IUnidadDownloadUrlResponse,
   IMiembroUnidad,
   IUnirseUnidadRequest,
+  IUnirseUnidadResponse,
   IAreaDisponible,
   ISeleccionarAreasRequest,
   ISolicitarPagoUnidadRequest,
   ISolicitarPagoUnidadResponse,
+  ISolicitarPagoSuscriptorRequest,
+  ISolicitarPagoSuscriptorResponse,
   IEstadoPagoUnidadResponse,
   IPagosPendientesResponse,
   IHistorialPagosUnidadResponse,
   IPagoUnidad,
+  IUnidadPreciosResponse,
+  IPreSolicitarPagoRequest,
+  IPreSolicitarPagoResponse,
+  ICalcularDistribucionRequest,
+  ICalcularDistribucionResponse,
+  IDistribucionSesionesRequest,
 } from "@/interfaces/IUnidad";
+import type { IUnidadListResponse, IUnidadListItem } from "@/interfaces/IUnidadList";
+
+// ============================================
+// Precios dinámicos (público)
+// ============================================
+
+/** GET /api/unidades/precios — Precios de propietario y suscriptor */
+export async function getUnidadPrecios(): Promise<IUnidadPreciosResponse> {
+  const { data } = await instance.get<IUnidadPreciosResponse>("/unidades/precios");
+  return data;
+}
 
 // ============================================
 // CRUD — Unidad de Aprendizaje
@@ -33,6 +53,12 @@ export function getAllUnidades() {
 /** GET /api/unidad/usuario/:usuarioId */
 export function getUnidadesByUsuario(usuarioId: string) {
   return instance.get<IUnidad[]>(`/unidad/usuario/${usuarioId}`);
+}
+
+/** GET /api/unidad/usuario/:usuarioId — tipado completo para listado */
+export async function listarUnidadesByUsuario(usuarioId: string): Promise<IUnidadListItem[]> {
+  const { data } = await instance.get<IUnidadListResponse>(`/unidad/usuario/${usuarioId}`);
+  return Array.isArray(data?.data) ? data.data : [];
 }
 
 /** GET /api/unidad/:id */
@@ -99,8 +125,10 @@ export async function eliminarPdfUnidad(unidadId: string) {
 // ============================================
 
 /** POST /api/unidad/unirse — Unirse a unidad con código compartido */
-export async function unirseAUnidad(body: IUnirseUnidadRequest) {
-  const { data } = await instance.post("/unidad/unirse", body);
+export async function unirseAUnidad(
+  body: IUnirseUnidadRequest
+): Promise<IUnirseUnidadResponse> {
+  const { data } = await instance.post<IUnirseUnidadResponse>("/unidad/unirse", body);
   return data;
 }
 
@@ -142,7 +170,22 @@ export async function seleccionarAreas(unidadId: string, body: ISeleccionarAreas
 // Pagos de unidad (WhatsApp + WebSocket)
 // ============================================
 
-/** POST /api/unidad/pago/solicitar — Solicitar pago → retorna link WhatsApp (Docente) */
+/**
+ * POST /api/unidades/pago/propietario/pre-solicitar
+ * Usuario free elige tipo de unidad → crea PagoUnidad con unidadId = null.
+ * Retorna pagoId + whatsappLink para completar el pago.
+ */
+export async function preSolicitarPagoUnidad(
+  body: IPreSolicitarPagoRequest
+): Promise<IPreSolicitarPagoResponse> {
+  const { data } = await instance.post<IPreSolicitarPagoResponse>(
+    "/unidades/pago/propietario/pre-solicitar",
+    body
+  );
+  return data;
+}
+
+/** POST /api/unidad/pago/solicitar — Solicitar pago con unidad existente → retorna link WhatsApp (Docente) */
 export async function solicitarPagoUnidad(
   body: ISolicitarPagoUnidadRequest
 ): Promise<ISolicitarPagoUnidadResponse> {
@@ -189,5 +232,59 @@ export async function rechazarPagoUnidad(
   const { data } = await instance.patch<IPagoUnidad>(`/unidad/pago/${pagoId}/rechazar`, {
     motivoRechazo,
   });
+  return data;
+}
+
+// ============================================
+// Pago Suscriptor (WhatsApp + WebSocket)
+// ============================================
+
+/**
+ * POST /api/unidades/pago/suscriptor/solicitar
+ * Suscriptor solicita pago para activar su membresía.
+ * Devuelve whatsappUrl pre-armado y pagoId.
+ */
+export async function solicitarPagoSuscriptor(
+  body: ISolicitarPagoSuscriptorRequest
+): Promise<ISolicitarPagoSuscriptorResponse> {
+  const { data } = await instance.post<ISolicitarPagoSuscriptorResponse>(
+    "/unidades/pago/suscriptor/solicitar",
+    body
+  );
+  return data;
+}
+
+// ============================================
+// Distribución de áreas (COMPARTIDA)
+// ============================================
+
+/**
+ * POST /api/unidad/:unidadId/calcular-distribucion
+ * Envía la secuencia generada + cantidad de suscriptores al backend.
+ * El backend (vía Python) calcula la distribución óptima de áreas.
+ */
+export async function calcularDistribucion(
+  unidadId: string,
+  body: ICalcularDistribucionRequest
+): Promise<ICalcularDistribucionResponse> {
+  const { data } = await instance.post<ICalcularDistribucionResponse>(
+    `/unidad/${unidadId}/calcular-distribucion`,
+    body
+  );
+  return data;
+}
+
+/**
+ * PUT /api/unidad/:unidadId/distribucion-sesiones
+ * Ajusta la cantidad de sesiones por área para el miembro autenticado.
+ */
+export async function actualizarDistribucionSesiones(
+  unidadId: string,
+  body: IDistribucionSesionesRequest
+) {
+  const { data } = await instance.put(
+    `/unidad/${unidadId}/distribucion-sesiones`,
+    body
+  );
   return data;
 }

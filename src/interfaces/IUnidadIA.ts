@@ -76,6 +76,7 @@ export interface IAreaProposito {
 export interface ICompetenciaTransversal {
   nombre: string;
   capacidades: string[];
+  estandar?: string;
   criterios: string[];
 }
 

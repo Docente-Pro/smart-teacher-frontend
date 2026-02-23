@@ -11,7 +11,7 @@ export function UnidadDocEnfoques({ enfoques }: Props) {
   if (!enfoques || enfoques.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: "0.4rem" }}>
+    <div style={{ marginBottom: "1rem" }}>
       <h3 style={{ fontSize: "10pt", fontWeight: "bold", marginBottom: "0.15rem" }}>
         III. &nbsp;&nbsp;ENFOQUES TRANSVERSALES VALORES Y ACTITUDES
       </h3>

@@ -9,29 +9,8 @@ import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Search, X, BookOpen, Users, Activity, Palette, MessageCircle, Globe, Calculator, Microscope, Church, ChevronDown, ChevronUp } from "lucide-react";
-
-const areaIcons: { [key: string]: any } = {
-  "Personal Social": Users,
-  "Educación Física": Activity,
-  "Arte y Cultura": Palette,
-  "Comunicación": MessageCircle,
-  "Inglés": Globe,
-  "Matemática": Calculator,
-  "Ciencia y Tecnología": Microscope,
-  "Educación Religiosa": Church,
-};
-
-const areaGradients: { [key: string]: string } = {
-  "Personal Social": "from-blue-500 to-cyan-500",
-  "Educación Física": "from-green-500 to-emerald-500",
-  "Arte y Cultura": "from-purple-500 to-pink-500",
-  "Comunicación": "from-orange-500 to-red-500",
-  "Inglés": "from-indigo-500 to-blue-500",
-  "Matemática": "from-yellow-500 to-orange-500",
-  "Ciencia y Tecnología": "from-teal-500 to-green-500",
-  "Educación Religiosa": "from-amber-500 to-yellow-500",
-};
+import { Search, X, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { getAreaColor, getAreaIcon } from "@/constants/areaColors";
 
 function Areas() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,14 +52,12 @@ function Areas() {
     }
   }, [searchTerm, areas]);
 
-  function getAreaIcon(areaNombre: string) {
-    const key = Object.keys(areaIcons).find((k) => areaNombre.includes(k));
-    return key ? areaIcons[key] : BookOpen;
+  function getIcon(areaNombre: string) {
+    return getAreaIcon(areaNombre);
   }
 
-  function getAreaGradient(areaNombre: string) {
-    const key = Object.keys(areaGradients).find((k) => areaNombre.includes(k));
-    return key ? areaGradients[key] : "from-dp-blue-500 to-dp-orange-500";
+  function getGradient(areaNombre: string) {
+    return getAreaColor(areaNombre).gradient;
   }
 
   function toggleExpandArea(areaId: number) {
@@ -139,8 +116,8 @@ function Areas() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAreas.map((area) => {
-              const IconComponent = getAreaIcon(area.nombre);
-              const gradient = getAreaGradient(area.nombre);
+              const IconComponent = getIcon(area.nombre);
+              const gradient = getGradient(area.nombre);
               const isExpanded = expandedArea === area.id;
 
               return (

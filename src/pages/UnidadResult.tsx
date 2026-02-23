@@ -1,7 +1,21 @@
 import { Document, Footer } from "@htmldocs/react";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer, Cloud, CloudOff, Loader2, ArrowLeft } from "lucide-react";
-import { useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  FileDown,
+  Printer,
+  Cloud,
+  CloudOff,
+  Loader2,
+  ArrowLeft,
+  PartyPopper,
+  Check,
+  Copy,
+  Share2,
+  MessageCircle,
+  Home,
+} from "lucide-react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useUnidadPDFGeneration } from "@/hooks/useUnidadPDFGeneration";
 import { useUnidadStore } from "@/store/unidad.store";
@@ -33,12 +47,41 @@ function UnidadResult() {
   const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } =
     useUnidadPDFGeneration(documentRef);
 
+  // ── Código compartido (viene del store, establecido durante pre-solicitar en Step0) ──
+  const codigoCompartido = datosBase?.codigoCompartido || null;
+  const [copied, setCopied] = useState(false);
+
+  /** Copiar código al portapapeles */
+  const handleCopiarCodigo = () => {
+    if (codigoCompartido) {
+      navigator.clipboard.writeText(codigoCompartido);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  /** Compartir por WhatsApp */
+  const handleCompartirWhatsApp = () => {
+    if (!codigoCompartido) return;
+    const titulo = datosBase?.titulo || "Unidad de Aprendizaje";
+    const mensaje = [
+      `\u00a1Hola! \ud83d\udc4b Te invito a unirte a mi unidad de aprendizaje *"${titulo}"* en Docente Pro.`,
+      ``,
+      `\ud83d\udccb Usa este c\u00f3digo para unirte:`,
+      `\ud83d\udd11 *${codigoCompartido}*`,
+      ``,
+      `Ingresa a \ud83d\udc49 https://www.docente-pro.com y busca la opci\u00f3n "Unirse a unidad compartida".`,
+    ].join("\n");
+    const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   // Estilos para ocultar elementos al imprimir
   const printStyles = `
     @media print {
       @page {
         margin: 0;
-        size: A4;
+        size: A4 landscape;
       }
       body {
         margin: 0;
@@ -123,6 +166,15 @@ function UnidadResult() {
             </h1>
           </div>
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            {/* Botón Ir al inicio */}
+            <Button
+              onClick={() => navigate("/dashboard")}
+              variant="outline"
+              style={{ gap: "0.5rem" }}
+            >
+              <Home className="h-4 w-4" />
+              Inicio
+            </Button>
             {/* Indicador de guardado */}
             <div
               style={{
@@ -171,9 +223,66 @@ function UnidadResult() {
           </div>
         </div>
 
+        {/* ═══ CÓDIGO COMPARTIDO (unidad COMPARTIDA) ═══ */}
+        {codigoCompartido && datosBase?.tipo === "COMPARTIDA" && (
+          <div className="no-print mb-6">
+            <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 shadow-xl">
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 shadow-lg shadow-emerald-500/30">
+                    <PartyPopper className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
+                      ¡Unidad activada!
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                      Comparte este código con los docentes que quieran unirse:
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg px-4 py-2 border-2 border-emerald-300 dark:border-emerald-700">
+                        <Share2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-2xl font-mono font-bold tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
+                          {codigoCompartido}
+                        </span>
+                      </div>
+                      <Button
+                        onClick={handleCopiarCodigo}
+                        variant="outline"
+                        size="sm"
+                        className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="w-4 h-4 mr-1" />
+                            Copiado
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4 mr-1" />
+                            Copiar
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={handleCompartirWhatsApp}
+                        size="sm"
+                        className="bg-[#25D366] hover:bg-[#1DA851] text-white shadow-md shadow-green-500/20"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-1" />
+                        WhatsApp
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Documento */}
         <div id="print-content" ref={documentRef}>
-          <Document size="A4" orientation="portrait" margin="0.5in">
+          <Document size="A4" orientation="landscape" margin="0.5in">
             <UnidadDocStyles />
 
             {/* HEADER */}

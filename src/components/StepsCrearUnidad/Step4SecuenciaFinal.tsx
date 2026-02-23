@@ -19,9 +19,13 @@ import {
   Download,
   Sun,
   Moon,
+  Users,
+  BookOpen,
 } from "lucide-react";
 import { useUnidadStore } from "@/store/unidad.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
+import { calcularDistribucion } from "@/services/unidad.service";
+import { getAreaColor, getAreaIcon } from "@/constants/areaColors";
 import {
   generarSecuencia,
   generarMateriales,
@@ -29,6 +33,7 @@ import {
   regenerarPasoUnidad,
 } from "@/services/ia-unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
+import type { IDistribucionMiembro } from "@/interfaces/IUnidad";
 import type {
   ISecuencia,
   ISecuenciaResponse,
@@ -56,8 +61,11 @@ const SEMANA_COLORS = [
 
 function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const navigate = useNavigate();
-  const { unidadId, contenido, updateContenido, generandoPaso, setGenerandoPaso } =
+  const { unidadId, datosBase, contenido, updateContenido, generandoPaso, setGenerandoPaso } =
     useUnidadStore();
+
+  const isCompartida = datosBase?.tipo === "COMPARTIDA";
+  const cantidadSuscriptores = isCompartida ? Math.max((datosBase?.maxMiembros ?? 2) - 1, 1) : 0;
 
   const [statusSecuencia, setStatusSecuencia] = useState<GenerationStatus>(
     contenido.secuencia ? "done" : "idle"
@@ -77,6 +85,10 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
   // Semanas expandidas
   const [expandedWeeks, setExpandedWeeks] = useState<Record<number, boolean>>({});
+
+  // ─── Distribución de áreas (solo COMPARTIDA) ───
+  const [distribucion, setDistribucion] = useState<IDistribucionMiembro[] | null>(null);
+  const [statusDistribucion, setStatusDistribucion] = useState<GenerationStatus>("idle");
 
   const isGenerating = generandoPaso !== null;
 
@@ -118,6 +130,31 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
       setGenerandoPaso(null);
       handleToaster("¡Secuencia completa generada con éxito!", "success");
+
+      // Para unidades COMPARTIDA: calcular distribución automáticamente
+      if (isCompartida && unidadId) {
+        try {
+          setStatusDistribucion("generating");
+          setGenerandoPaso("Distribución de Áreas");
+          const distRes = await calcularDistribucion(unidadId, {
+            secuencia: secData,
+            cantidadSuscriptores,
+          });
+          const items = distRes?.data?.distribucion ?? [];
+          setDistribucion(items);
+          setStatusDistribucion("done");
+          handleToaster("Distribución de áreas calculada", "success");
+        } catch (distErr: any) {
+          console.error("Error al calcular distribución:", distErr);
+          setStatusDistribucion("error");
+          handleToaster(
+            distErr?.response?.data?.message || "Error al calcular distribución de áreas",
+            "error"
+          );
+        } finally {
+          setGenerandoPaso(null);
+        }
+      }
     } catch (error: any) {
       console.error("Error al generar:", error);
       setGenerandoPaso(null);
@@ -194,6 +231,28 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     setExpandedWeeks((prev) => ({ ...prev, [idx]: !prev[idx] }));
   }
 
+  /* ─── Recalcular distribución de áreas ─── */
+  async function recalcularDistribucion() {
+    if (!unidadId || !secuencia) return;
+    setStatusDistribucion("generating");
+    setGenerandoPaso("Distribución de Áreas");
+    try {
+      const distRes = await calcularDistribucion(unidadId, {
+        secuencia,
+        cantidadSuscriptores,
+      });
+      const items = distRes?.data?.distribucion ?? [];
+      setDistribucion(items);
+      setStatusDistribucion("done");
+      setGenerandoPaso(null);
+      handleToaster("Distribución recalculada", "success");
+    } catch (err: any) {
+      setStatusDistribucion("error");
+      setGenerandoPaso(null);
+      handleToaster(err?.response?.data?.message || "Error al recalcular", "error");
+    }
+  }
+
   /* ─── Finalizar → ir a la vista previa del PDF ─── */
   function handleFinalizar() {
     handleToaster("¡Unidad de aprendizaje completada! Generando documento...", "success");
@@ -203,7 +262,8 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const allDone =
     statusSecuencia === "done" &&
     statusMateriales === "done" &&
-    statusReflexiones === "done";
+    statusReflexiones === "done" &&
+    (!isCompartida || statusDistribucion === "done");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
@@ -253,6 +313,12 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                 <ProgressDot label="Materiales" status={statusMateriales} />
                 <span className="text-slate-300">→</span>
                 <ProgressDot label="Reflexiones" status={statusReflexiones} />
+                {isCompartida && (
+                  <>
+                    <span className="text-slate-300">→</span>
+                    <ProgressDot label="Distribución" status={statusDistribucion} />
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -283,8 +349,8 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                     setSecuencia(updated);
                     updateContenido({ secuencia: updated });
                   }}
-                  rows={2}
-                  className="resize-none text-sm border-indigo-200 dark:border-indigo-800"
+                  rows={5}
+                  className="resize-y text-sm border-indigo-200 dark:border-indigo-800 min-h-[120px]"
                 />
               </div>
 
@@ -434,6 +500,87 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
             </div>
           )}
         </SectionCard>
+
+        {/* ═══════════════════════════════
+            Distribución de Áreas (solo COMPARTIDA)
+            ═══════════════════════════════ */}
+        {isCompartida && (
+          <SectionCard
+            icon={<Users className="h-6 w-6 text-white" />}
+            title="Distribución de Áreas"
+            gradient="from-teal-500 to-cyan-500"
+            status={statusDistribucion}
+            onRegenerate={recalcularDistribucion}
+            isGenerating={isGenerating}
+          >
+            {statusDistribucion === "done" && distribucion && distribucion.length > 0 && (
+              <div className="space-y-4">
+                <div className="p-3 rounded-lg bg-teal-50 dark:bg-teal-500/10 border border-teal-200 dark:border-teal-700/50">
+                  <p className="text-sm text-teal-700 dark:text-teal-300">
+                    El sistema calculó la distribución óptima de áreas entre los miembros.
+                    Tus áreas ya están confirmadas. Los suscriptores elegirán las suyas al unirse.
+                  </p>
+                </div>
+
+                {distribucion.map((miembro, idx) => {
+                  const isPropietario = miembro.rol === "PROPIETARIO";
+                  const cardClasses = isPropietario
+                    ? "rounded-xl border-2 p-4 border-violet-200 dark:border-violet-700/50 bg-violet-50/50 dark:bg-violet-500/5"
+                    : "rounded-xl border-2 p-4 border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30";
+                  const iconWrapClasses = isPropietario
+                    ? "p-1.5 rounded-lg bg-violet-100 dark:bg-violet-500/20"
+                    : "p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50";
+                  return (
+                    <div key={idx} className={cardClasses}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={iconWrapClasses}>
+                          {isPropietario ? (
+                            <BookOpen className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                          ) : (
+                            <Users className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-slate-900 dark:text-white">
+                            {isPropietario ? "Tú (Propietario)" : `Suscriptor ${miembro.orden - 1}`}
+                          </p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {miembro.totalSesionesSemana} sesiones/semana
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {miembro.areas.map((area) => {
+                          const theme = getAreaColor(area.nombre);
+                          const Icon = getAreaIcon(area.nombre);
+                          return (
+                            <div
+                              key={area.areaId}
+                              className={`flex items-center gap-2.5 p-2.5 rounded-lg ${theme.bg} border ${theme.border}`}
+                            >
+                              <div className={`p-1.5 rounded-md ${theme.bg}`}>
+                                <Icon className={`h-4 w-4 ${theme.text}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium ${theme.text}`}>
+                                  {area.nombre}
+                                </p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                  {area.maxSesionesSemana} sesiones/semana
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </SectionCard>
+        )}
 
         {/* ── Navegación final ── */}
         <div className="flex justify-between pb-10">

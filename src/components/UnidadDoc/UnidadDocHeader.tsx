@@ -10,7 +10,7 @@ interface Props {
  */
 export function UnidadDocHeader({ titulo, numeroUnidad, grado }: Props) {
   return (
-    <div style={{ position: "relative", textAlign: "center", marginBottom: "0.5rem", paddingBottom: "0.4rem", borderBottom: "2px solid #000" }}>
+    <div style={{ position: "relative", textAlign: "center", marginBottom: "0.3rem", paddingBottom: "0.3rem", borderBottom: "2px solid #000" }}>
       {/* Badge de grado */}
       <div className="grado-badge">{grado}</div>
 

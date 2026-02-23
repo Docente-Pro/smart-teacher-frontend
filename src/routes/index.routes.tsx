@@ -1,4 +1,5 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { GuestRoute } from "@/components/GuestRoute";
 import Areas from "@/pages/Areas";
 import Competencias from "@/pages/Competencias";
 import CuestionarioInicial from "@/pages/CuestionarioInicial";
@@ -18,12 +19,16 @@ import ForgotPasswordPage from "@/features/auth-screens/forgot-password/ForgotPa
 import OnboardingPage from "@/pages/OnboardingPage";
 import DemoLoading from "@/pages/DemoLoading";
 import MisSesiones from "@/pages/MisSesiones";
-import Evaluaciones from "@/pages/Evaluaciones";
+import MisUnidades from "@/pages/MisUnidades";
 import DocTest from "@/pages/DocTest";
 import SesionViewer from "@/pages/SesionViewer";
 import GraficosPlayground from "@/pages/GraficosPlayground";
 import CrearUnidad from "@/pages/CrearUnidad";
 import UnidadResult from "@/pages/UnidadResult";
+import UnirseUnidad from "@/pages/UnirseUnidad";
+import GenerarSesionPremium from "@/pages/GenerarSesionPremium";
+import SesionPremiumResult from "@/pages/SesionPremiumResult";
+import UnidadDetail from "@/pages/UnidadDetail";
 
 interface IRouteToCreate {
   path: string;
@@ -33,19 +38,35 @@ interface IRouteToCreate {
 export const routes: IRouteToCreate[] = [
   {
     path: "/",
-    element: <LandingPage />,
+    element: (
+      <GuestRoute>
+        <LandingPage />
+      </GuestRoute>
+    ),
   },
   {
     path: "/login",
-    element: <LoginPage />,
+    element: (
+      <GuestRoute>
+        <LoginPage />
+      </GuestRoute>
+    ),
   },
   {
     path: "/signup",
-    element: <SignupPage />,
+    element: (
+      <GuestRoute>
+        <SignupPage />
+      </GuestRoute>
+    ),
   },
   {
     path: "/forgot-password",
-    element: <ForgotPasswordPage />,
+    element: (
+      <GuestRoute>
+        <ForgotPasswordPage />
+      </GuestRoute>
+    ),
   },
   {
     path: "/demo-loading",
@@ -92,10 +113,34 @@ export const routes: IRouteToCreate[] = [
     ),
   },
   {
+    path: "/unidad/:id",
+    element: (
+      <ProtectedRoute>
+        <UnidadDetail />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/unirse-unidad",
+    element: (
+      <ProtectedRoute>
+        <UnirseUnidad />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/crear-sesion",
     element: (
       <ProtectedRoute>
         <CuestionarioSesion />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/generar-sesion",
+    element: (
+      <ProtectedRoute>
+        <GenerarSesionPremium />
       </ProtectedRoute>
     ),
   },
@@ -180,10 +225,10 @@ export const routes: IRouteToCreate[] = [
     ),
   },
   {
-    path: "/evaluaciones",
+    path: "/mis-unidades",
     element: (
       <ProtectedRoute>
-        <Evaluaciones />
+        <MisUnidades />
       </ProtectedRoute>
     ),
   },
@@ -192,6 +237,14 @@ export const routes: IRouteToCreate[] = [
     element: (
       <ProtectedRoute>
         <DocTest />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/sesion-premium-result",
+    element: (
+      <ProtectedRoute>
+        <SesionPremiumResult />
       </ProtectedRoute>
     ),
   },

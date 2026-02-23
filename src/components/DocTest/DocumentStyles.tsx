@@ -1,6 +1,11 @@
 import { Head } from "@htmldocs/react";
 
-export function DocumentStyles() {
+interface DocumentStylesProps {
+  /** Background color for <th> and .section-title elements. Defaults to green (#E8F5E9) */
+  thBgColor?: string;
+}
+
+export function DocumentStyles({ thBgColor = "#E8F5E9" }: DocumentStylesProps = {}) {
   return (
     <Head>
       <link href="https://fonts.googleapis.com/css2?family=Arial&display=swap" rel="stylesheet" />
@@ -36,7 +41,7 @@ export function DocumentStyles() {
           }
           
           th {
-            background-color: #E8F5E9;
+            background-color: ${thBgColor};
             font-weight: bold;
             font-size: 10pt;
           }
@@ -47,7 +52,7 @@ export function DocumentStyles() {
           
           /* Títulos de secciones */
           .section-title {
-            background-color: #E8F5E9;
+            background-color: ${thBgColor};
             border: 2px solid #000;
             padding: 0.3rem 0.5rem;
             font-weight: bold;

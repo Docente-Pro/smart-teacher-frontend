@@ -6,11 +6,13 @@ import { useAuthStore } from "@/store/auth.store";
 // Namespace: /  (mismo host que la API)
 // ============================================
 
-const SOCKET_URL =
-  import.meta.env.VITE_LOCAL_API_URL?.replace("/api", "") ||
-  import.meta.env.VITE_PRODUCTION_API_URL?.replace("/api", "") ||
-  import.meta.env.VITE_BACKEND_URL ||
-  "http://localhost:3000";
+// Derivar la URL base del socket desde la misma variable que usa la API,
+// quitando el sufijo /api si lo tiene (el socket se conecta a la raíz).
+const SOCKET_URL = (
+  // import.meta.env.VITE_PRODUCTION_API_URL ||
+  // import.meta.env.VITE_LOCAL_API_URL ||
+  "http://localhost:3000/api"
+).replace(/\/api\/?$/, "");
 
 let socket: Socket | null = null;
 
@@ -21,6 +23,10 @@ export interface PagoConfirmadoPayload {
   monto: number;
   plan: string;
   fechaFin: string;
+  accion?: "CREAR_UNIDAD" | "UNIDAD_ACTIVADA";
+  tipoUnidad?: "PERSONAL" | "COMPARTIDA";
+  planActualizado?: string;
+  codigoCompartido?: string;
   [key: string]: unknown;
 }
 
@@ -60,6 +66,16 @@ export interface SuscripcionExpiradaPayload {
   [key: string]: unknown;
 }
 
+export interface UsuarioReseteadoPayload {
+  message: string;
+  action: "force-logout";
+  sesionesEliminadas: number;
+  unidadesEliminadas: number;
+  suscripcionRevocada: boolean;
+  planAnterior: string;
+  [key: string]: unknown;
+}
+
 export type SocketEventMap = {
   "pago:confirmado": PagoConfirmadoPayload;
   "pago:rechazado": PagoRechazadoPayload;
@@ -67,6 +83,7 @@ export type SocketEventMap = {
   "suscripcion:activada": SuscripcionActivadaPayload;
   "suscripcion:revocada": SuscripcionRevocadaPayload;
   "suscripcion:expirada": SuscripcionExpiradaPayload;
+  "usuario:reseteado": UsuarioReseteadoPayload;
 };
 
 // ─── Conexión ───
