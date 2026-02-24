@@ -12,15 +12,15 @@ export interface IAdminLoginRequest {
 
 export interface IAdminLoginResponse {
   success: boolean;
-  message: string;
-  data: {
-    token: string;
-    admin: {
-      id: string;
-      email: string;
-      nombre: string;
-      rol: string;
-    };
+  access_token: string;
+  id_token: string;
+  expires_in: number;
+  token_type: string;
+  admin: {
+    id: string;
+    email: string;
+    nombre: string;
+    roles: string[];
   };
 }
 

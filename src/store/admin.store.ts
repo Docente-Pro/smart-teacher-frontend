@@ -9,7 +9,7 @@ interface AdminUser {
   id: string;
   email: string;
   nombre: string;
-  rol: string;
+  roles: string[];
 }
 
 interface AdminState {

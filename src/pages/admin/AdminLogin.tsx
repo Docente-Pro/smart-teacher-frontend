@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
     try {
       const response = await adminLogin({ email, password });
       if (response.success) {
-        setAdmin(response.data.token, response.data.admin);
+        setAdmin(response.access_token, response.admin);
         navigate("/admin/dashboard", { replace: true });
       }
     } catch (err: any) {
