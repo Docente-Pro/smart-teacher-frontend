@@ -136,6 +136,9 @@ export async function subirPDFaS3(uploadUrl: string, pdfFile: Blob): Promise<voi
 
   const response = await fetch(uploadUrl, {
     method: "PUT",
+    headers: {
+      "Content-Type": "application/pdf",
+    },
     body: pdfFile,
     mode: "cors",
   });

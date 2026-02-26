@@ -399,12 +399,12 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {/* Turno Mañana */}
+                            {/* Primer Bloque */}
                             <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/20 rounded-lg p-3 border border-amber-100 dark:border-amber-900">
                               <Sun className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">
-                                  Mañana — {dia.turnoManana?.area}
+                                  Primer Bloque — {dia.turnoManana?.area}
                                 </p>
                                 <p className="text-sm text-slate-700 dark:text-slate-300">
                                   {dia.turnoManana?.actividad}
@@ -412,12 +412,12 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                               </div>
                             </div>
 
-                            {/* Turno Tarde */}
+                            {/* Segundo Bloque */}
                             <div className="flex items-start gap-2 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg p-3 border border-indigo-100 dark:border-indigo-900">
                               <Moon className="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-0.5">
-                                  Tarde — {dia.turnoTarde?.area}
+                                  Segundo Bloque — {dia.turnoTarde?.area}
                                 </p>
                                 <p className="text-sm text-slate-700 dark:text-slate-300">
                                   {dia.turnoTarde?.actividad}

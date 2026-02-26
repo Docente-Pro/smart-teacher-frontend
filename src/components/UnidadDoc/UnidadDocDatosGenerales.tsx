@@ -40,7 +40,7 @@ export function UnidadDocDatosGenerales({
             <td colSpan={3}>{institucion}</td>
           </tr>
           <tr>
-            <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Director de la I. E.</td>
+            <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Directivo(a) de la I. E.</td>
             <td colSpan={3}></td>
           </tr>
           <tr>

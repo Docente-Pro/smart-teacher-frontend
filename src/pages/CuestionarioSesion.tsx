@@ -15,6 +15,7 @@ import { instance } from "@/services/instance";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useSesionStore } from "@/store/sesion.store";
 import { initialStateSesion } from "@/constants/initialStateSesion";
+import { useNavigate } from "react-router";
 
 const STEPS = [
   { number: 1, title: "Datos Generales", description: "Información básica" },
@@ -28,6 +29,7 @@ const STEPS = [
 
 function CuestionarioSesion() {
   const { user } = useAuth0();
+  const navigate = useNavigate();
   const { showLoading, hideLoading } = useGlobalLoading();
 
   const { sesion, setSesion, resetSesion } = useSesionStore();
@@ -96,7 +98,8 @@ function CuestionarioSesion() {
         steps={STEPS} 
         currentStep={currentStep} 
         maxStepReached={maxStepReached}
-        onStepClick={handleSetStep} 
+        onStepClick={handleSetStep}
+        onBack={() => navigate("/dashboard")}
       />
 
       {/* Session Summary Drawer */}

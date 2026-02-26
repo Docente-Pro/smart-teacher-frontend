@@ -8,10 +8,21 @@ interface SecuenciaDidacticaSectionProps {
 }
 
 /**
- * Renderiza las imágenes SVG de un proceso según su posición
+ * Normaliza imágenes: soporta imagen singular (v2) e imagenes array (v1)
+ */
+function normalizarImagenes(proceso: any) {
+  return proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
+}
+
+/**
+ * Renderiza las imágenes de un proceso según su posición.
+ * Usa "despues" como fallback si la imagen no tiene posicion definida.
  */
 function renderImagenesProceso(proceso: any, posicion: 'antes' | 'despues' | 'junto') {
-  const imagenes = proceso.imagenes?.filter((img: any) => img.posicion === posicion);
+  const allImagenes = normalizarImagenes(proceso);
+  const imagenes = posicion === 'despues'
+    ? allImagenes.filter((img: any) => img.posicion === 'despues' || (!img.posicion && img.posicion !== 'antes' && img.posicion !== 'junto'))
+    : allImagenes.filter((img: any) => img.posicion === posicion);
   if (!imagenes || imagenes.length === 0) return null;
 
   return (
@@ -19,27 +30,17 @@ function renderImagenesProceso(proceso: any, posicion: 'antes' | 'despues' | 'ju
       display: "flex",
       flexWrap: "wrap",
       gap: "0.75rem",
+      justifyContent: "center",
       ...(posicion === 'antes' ? { marginBottom: "0.8rem" } : {}),
       ...(posicion === 'despues' ? { marginTop: "0.8rem" } : {}),
     }}>
-      {imagenes.map((img: any) => (
-        <div key={img.id} style={{
-          textAlign: "center",
-          padding: "0.4rem",
-          backgroundColor: "#f0f9ff",
-          border: "1px solid #bae6fd",
-          borderRadius: "8px",
-        }}>
-          <img
-            src={img.url}
-            alt={img.descripcion}
-            crossOrigin="anonymous"
-            style={{ maxHeight: "120px", borderRadius: "4px" }}
-          />
-          <p style={{ fontSize: "7pt", color: "#0284c7", margin: "0.25rem 0 0" }}>
-            {img.descripcion}
-          </p>
-        </div>
+      {imagenes.map((img: any, imgIdx: number) => (
+        <img
+          key={img.id ?? imgIdx}
+          src={img.url}
+          alt={img.descripcion || ""}
+          style={{ maxHeight: "300px", borderRadius: "8px" }}
+        />
       ))}
     </div>
   );
@@ -49,7 +50,9 @@ function renderImagenesProceso(proceso: any, posicion: 'antes' | 'despues' | 'ju
  * Renderiza una fila de proceso (reutilizado para Inicio, Desarrollo y Cierre)
  */
 function renderProcesoRow(proceso: any, idx: number) {
-  const tieneImagenesJunto = proceso.imagenes?.some((img: any) => img.posicion === 'junto');
+  const allImagenes = normalizarImagenes(proceso);
+  const imgJunto = allImagenes.filter((img: any) => img.posicion === 'junto');
+  const tieneImagenesJunto = imgJunto.length > 0;
 
   return (
     <tr key={idx}>
@@ -80,27 +83,14 @@ function renderProcesoRow(proceso: any, idx: number) {
               )}
             </div>
             <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              {proceso.imagenes
-                ?.filter((img: any) => img.posicion === 'junto')
-                .map((img: any) => (
-                  <div key={img.id} style={{
-                    textAlign: "center",
-                    padding: "0.4rem",
-                    backgroundColor: "#f0f9ff",
-                    border: "1px solid #bae6fd",
-                    borderRadius: "8px",
-                  }}>
-                    <img
-                      src={img.url}
-                      alt={img.descripcion}
-                      crossOrigin="anonymous"
-                      style={{ maxHeight: "100px", borderRadius: "4px" }}
-                    />
-                    <p style={{ fontSize: "7pt", color: "#0284c7", margin: "0.25rem 0 0" }}>
-                      {img.descripcion}
-                    </p>
-                  </div>
-                ))}
+              {imgJunto.map((img: any, imgIdx: number) => (
+                <img
+                  key={img.id ?? imgIdx}
+                  src={img.url}
+                  alt={img.descripcion || ""}
+                  style={{ maxHeight: "300px", borderRadius: "8px" }}
+                />
+              ))}
             </div>
           </div>
         ) : (
@@ -240,8 +230,8 @@ function renderProcesoRow(proceso: any, idx: number) {
 
         {/* Recursos didácticos y tiempo */}
         <div style={{ display: "flex", gap: "1rem", fontSize: "8pt", color: "#64748b" }}>
-          {proceso.recursosDidacticos && (
-            <div><strong>Recursos:</strong> {proceso.recursosDidacticos}</div>
+          {(proceso.recursos || proceso.recursosDidacticos) && (
+            <div><strong>Recursos:</strong> {proceso.recursos || proceso.recursosDidacticos}</div>
           )}
           {proceso.tiempo && (
             <div><strong>Tiempo:</strong> {proceso.tiempo}</div>

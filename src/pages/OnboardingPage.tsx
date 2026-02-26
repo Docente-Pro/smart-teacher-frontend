@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { Building2, GraduationCap, Layers } from "lucide-react";
+import { Building2, GraduationCap, Layers, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,10 +16,41 @@ import { GlobalLoading } from "@/components/GlobalLoading";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useAuthStore } from "@/store/auth.store";
 
+// ── Ubigeo data ──
+import departamentosData from "@/utils/peru_ubigeo/1_ubigeo_departamentos.json";
+import provinciasData from "@/utils/peru_ubigeo/2_ubigeo_provincias.json";
+import distritosData from "@/utils/peru_ubigeo/3_ubigeo_distritos.json";
+
+interface UbigeoDepartamento {
+  id: number;
+  departamento: string;
+  ubigeo: string;
+}
+interface UbigeoProvincia {
+  id: number;
+  provincia: string;
+  ubigeo: string;
+  departamento_id: number;
+}
+interface UbigeoDistrito {
+  id: number;
+  distrito: string;
+  ubigeo: string;
+  provincia_id: number;
+  departamento_id: number;
+}
+
+const departamentos: UbigeoDepartamento[] = departamentosData.ubigeo_departamentos;
+const provincias: UbigeoProvincia[] = provinciasData.ubigeo_provincias;
+const distritos: UbigeoDistrito[] = distritosData.ubigeo_distritos;
+
 interface OnboardingData {
   nombreInstitucion: string;
   nivelId: number;
   gradoId: number;
+  departamento: string;
+  provincia: string;
+  distrito: string;
 }
 
 function OnboardingPage() {
@@ -32,10 +63,30 @@ function OnboardingPage() {
     nombreInstitucion: "",
     nivelId: 0,
     gradoId: 0,
+    departamento: "",
+    provincia: "",
+    distrito: "",
   });
   const [niveles, setNiveles] = useState<INivel[]>([]);
   const [todosLosGrados, setTodosLosGrados] = useState<IGrado[]>([]);
   const [gradosFiltrados, setGradosFiltrados] = useState<IGrado[]>([]);
+
+  // ── Filtrar provincias y distritos en cascada ──
+  const provinciasFiltradas = useMemo(() => {
+    if (!formData.departamento) return [];
+    const dep = departamentos.find((d) => d.departamento === formData.departamento);
+    if (!dep) return [];
+    return provincias.filter((p) => p.departamento_id === dep.id);
+  }, [formData.departamento]);
+
+  const distritosFiltrados = useMemo(() => {
+    if (!formData.provincia) return [];
+    const prov = provincias.find(
+      (p) => p.provincia === formData.provincia && provinciasFiltradas.includes(p)
+    );
+    if (!prov) return [];
+    return distritos.filter((d) => d.provincia_id === prov.id);
+  }, [formData.provincia, provinciasFiltradas]);
 
   // Verificar si ya completó el onboarding
   useEffect(() => {
@@ -100,6 +151,18 @@ function OnboardingPage() {
       return false;
     }
 
+    if (!formData.departamento) {
+      return false;
+    }
+
+    if (!formData.provincia) {
+      return false;
+    }
+
+    if (!formData.distrito) {
+      return false;
+    }
+
     return true;
   }
 
@@ -124,6 +187,9 @@ function OnboardingPage() {
         nombreInstitucion: formData.nombreInstitucion,
         nivelId: formData.nivelId,
         gradoId: formData.gradoId,
+        departamento: formData.departamento,
+        provincia: formData.provincia,
+        distrito: formData.distrito,
       });
 
       // ✅ Actualizar el store con los datos nuevos del usuario
@@ -232,6 +298,94 @@ function OnboardingPage() {
                   {gradosFiltrados.map((grado) => (
                     <SelectItem key={grado.id} value={grado.id.toString()}>
                       {grado.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* ── Ubicación geográfica ── */}
+          <div className="space-y-2 pt-2">
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Ubicación</p>
+          </div>
+
+          {/* Departamento */}
+          <div className="space-y-2">
+            <Label htmlFor="departamento" className="text-gray-700 dark:text-gray-300 text-base">
+              Departamento
+            </Label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
+              <Select
+                value={formData.departamento}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, departamento: value, provincia: "", distrito: "" }))
+                }
+              >
+                <SelectTrigger className="pl-10 py-6">
+                  <SelectValue placeholder="Selecciona un departamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departamentos.map((dep) => (
+                    <SelectItem key={dep.id} value={dep.departamento}>
+                      {dep.departamento}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Provincia */}
+          <div className="space-y-2">
+            <Label htmlFor="provincia" className="text-gray-700 dark:text-gray-300 text-base">
+              Provincia
+            </Label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
+              <Select
+                value={formData.provincia}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, provincia: value, distrito: "" }))
+                }
+                disabled={!formData.departamento}
+              >
+                <SelectTrigger className="pl-10 py-6">
+                  <SelectValue placeholder={formData.departamento ? "Selecciona una provincia" : "Primero selecciona un departamento"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {provinciasFiltradas.map((prov) => (
+                    <SelectItem key={prov.id} value={prov.provincia}>
+                      {prov.provincia}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Distrito */}
+          <div className="space-y-2">
+            <Label htmlFor="distrito" className="text-gray-700 dark:text-gray-300 text-base">
+              Distrito
+            </Label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
+              <Select
+                value={formData.distrito}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, distrito: value }))
+                }
+                disabled={!formData.provincia}
+              >
+                <SelectTrigger className="pl-10 py-6">
+                  <SelectValue placeholder={formData.provincia ? "Selecciona un distrito" : "Primero selecciona una provincia"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {distritosFiltrados.map((dist) => (
+                    <SelectItem key={dist.id} value={dist.distrito}>
+                      {dist.distrito}
                     </SelectItem>
                   ))}
                 </SelectContent>

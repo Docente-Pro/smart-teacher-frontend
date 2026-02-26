@@ -11,7 +11,8 @@ import LoadingComponent from '@/components/LoadingComponent';
  * 1. No autenticado → /login
  * 2. Perfil incompleto → /onboarding  
  * 3. Free sin sesiones en rutas de CREACIÓN → /planes
- *    (dashboard, mis-sesiones, sesion/:id, evaluaciones → siempre accesibles)
+ *    (dashboard, mis-sesiones, sesion/:id, evaluaciones, crear-unidad → siempre accesibles)
+ *    crear-unidad se permite porque el wizard interno gestiona el pago
  * 4. Premium vencido (pero NO free) → /suscripcion-vencida
  * 5. Todo bien → muestra children
  * 
@@ -56,7 +57,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     // 3. Usuario FREE sin sesiones en rutas de CREACIÓN → planes
     //    Rutas de lectura (dashboard, mis-sesiones, sesion/:id, evaluaciones, planes) siguen accesibles.
-    const FREE_ALLOWED_PATHS = ['/dashboard', '/mis-sesiones', '/sesion', '/evaluaciones', '/planes', '/result', '/graficos'];
+    //    /crear-unidad también se permite: el wizard interno (Step0TipoUnidad) gestiona el pago.
+    const FREE_ALLOWED_PATHS = ['/dashboard', '/mis-sesiones', '/sesion', '/evaluaciones', '/planes', '/result', '/graficos', '/crear-unidad'];
     const isReadOnlyPath = FREE_ALLOWED_PATHS.some((p) => currentPath.startsWith(p));
 
     if (user.plan === 'free' && user.sesionesRestantes === 0 && !isReadOnlyPath) {

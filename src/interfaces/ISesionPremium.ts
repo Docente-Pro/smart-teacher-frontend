@@ -49,11 +49,11 @@ export interface IPreparacionPremium {
 // ─── Imágenes en procesos ────────────────────────────────────────────────────
 
 export interface IImagenProceso {
-  id: string;
+  id?: string;
   url: string;
   descripcion?: string;
-  /** "antes" = antes del texto de estrategias, "despues" = después */
-  posicion?: "antes" | "despues";
+  /** "antes" = antes del texto de estrategias, "junto" = junto al texto */
+  posicion?: "antes" | "junto" | "despues";
 }
 
 // ─── Secuencia Didáctica ─────────────────────────────────────────────────────
@@ -62,10 +62,13 @@ export interface IProcesoPremium {
   proceso: string;
   /** Backend puede enviar string o string[] */
   estrategias: string | string[];
-  /** Backend puede enviar string o string[] */
-  recursosDidacticos: string | string[];
+  /** Backend v2 usa "recursos", v1 usaba "recursosDidacticos" */
+  recursos?: string | string[];
+  recursosDidacticos?: string | string[];
   tiempo: string;
-  /** Imágenes SVG opcionales (null/undefined si GPT no incluyó imagen) */
+  /** Imagen singular (v2) — una imagen opcional por proceso */
+  imagen?: IImagenProceso | null;
+  /** @deprecated Imágenes en array (v1) — mantener por retrocompatibilidad */
   imagenes?: IImagenProceso[] | null;
 }
 

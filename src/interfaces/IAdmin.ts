@@ -31,6 +31,7 @@ export interface IResetUsuarioRequest {
   resetPdfs?: boolean;
   resetSuscripcion?: boolean;
   resetUnidades?: boolean;
+  resetPerfil?: boolean;
 }
 
 export interface IResetUsuarioResponse {
@@ -265,5 +266,160 @@ export interface IRechazarPagoUnidadResponse {
     motivoRechazo: string;
     confirmadoPor: string;
     confirmadoAt: string;
+  };
+}
+
+// ─── Gestión de Usuarios (4.x — 7.x) ───
+
+/** Query params para listar usuarios */
+export interface IListarUsuariosParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  plan?: "free" | "premium_mensual" | "premium_anual";
+  departamento?: string;
+  perfilCompleto?: boolean;
+  orderBy?: "createdAt" | "nombre" | "email";
+  order?: "asc" | "desc";
+}
+
+/** Usuario en el listado */
+export interface IUsuarioListItem {
+  id: string;
+  nombre: string;
+  email: string;
+  nombreInstitucion: string;
+  departamento: string | null;
+  provincia: string | null;
+  distrito: string | null;
+  perfilCompleto: boolean;
+  createdAt: string;
+  nivel: { id: number; nombre: string } | null;
+  grado: { id: number; nombre: string } | null;
+  suscripcion: {
+    plan: string;
+    activa: boolean;
+    fechaInicio: string | null;
+    fechaFin: string | null;
+  } | null;
+  _count: {
+    sesiones: number;
+    unidades: number;
+  };
+}
+
+export interface IListarUsuariosPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface IListarUsuariosResponse {
+  success: boolean;
+  data: {
+    usuarios: IUsuarioListItem[];
+    pagination: IListarUsuariosPagination;
+  };
+}
+
+/** Detalle completo de un usuario */
+export interface IUsuarioDetalle {
+  id: string;
+  nombre: string;
+  email: string;
+  auth0UserId: string;
+  nombreInstitucion: string;
+  departamento: string | null;
+  provincia: string | null;
+  distrito: string | null;
+  perfilCompleto: boolean;
+  problematicaCompleta: boolean;
+  createdAt: string;
+  nivel: { id: number; nombre: string } | null;
+  grado: { id: number; nombre: string } | null;
+  problematica: { id: number; nombre: string; descripcion: string } | null;
+  suscripcion: {
+    id: string;
+    plan: string;
+    activa: boolean;
+    fechaInicio: string | null;
+    fechaFin: string | null;
+    createdAt: string;
+    pagos: {
+      id: string;
+      estado: string;
+      monto: number;
+      moneda: string;
+      metodoPago: string;
+      createdAt: string;
+    }[];
+  } | null;
+  sesiones: {
+    id: string;
+    titulo: string;
+    createdAt: string;
+    pdfUrl: string | null;
+  }[];
+  unidades: {
+    id: string;
+    titulo: string;
+    numeroUnidad: number;
+    tipo: string;
+    createdAt: string;
+    pdfUrl: string | null;
+  }[];
+  stats: {
+    totalSesiones: number;
+    totalUnidades: number;
+    sesionesEstaSemana: number;
+    sesionesConPdf: number;
+    unidadesConPdf: number;
+  };
+}
+
+export interface IUsuarioDetalleResponse {
+  success: boolean;
+  data: IUsuarioDetalle;
+}
+
+/** Downgrade a free */
+export interface IDowngradeUsuarioResponse {
+  success: boolean;
+  message: string;
+  data: {
+    usuario: {
+      id: string;
+      nombre: string;
+      email: string;
+    };
+    suscripcion: {
+      planAnterior: string;
+      planActual: "free";
+      activa: false;
+      fechaFin: string;
+    };
+  };
+}
+
+/** Eliminar usuario */
+export interface IEliminarUsuarioResponse {
+  success: boolean;
+  message: string;
+  data: {
+    usuario: {
+      id: string;
+      nombre: string;
+      email: string;
+    };
+    eliminados: {
+      sesiones: number;
+      enfoquesSesion: number;
+      unidades: number;
+      miembrosUnidad: number;
+      pagosUnidad: number;
+      pagosSuscripcion: number;
+      suscripcion: boolean;
+    };
   };
 }

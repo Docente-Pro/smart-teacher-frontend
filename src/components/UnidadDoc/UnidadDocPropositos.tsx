@@ -43,10 +43,10 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
       <table>
         <thead>
           <tr>
-            <th style={{ width: "6%", textAlign: "center" }}>AREA</th>
+            <th style={{ width: "6%", textAlign: "center" }}>ÁREA</th>
             <th style={{ width: "18%", textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
             <th style={{ width: "20%", textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
-            <th style={{ width: "20%", textAlign: "center" }}>CRITERIOS</th>
+            <th style={{ width: "20%", textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
             <th style={{ width: "18%", textAlign: "center" }}>ACTIVIDADES</th>
             <th style={{ width: "18%", textAlign: "center" }}>INSTRUMENTOS</th>
           </tr>
@@ -158,7 +158,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
             <tr>
               <th style={{ width: "30%", textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
               <th style={{ width: "30%", textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
-              <th style={{ width: "40%", textAlign: "center" }}>CRITERIOS</th>
+              <th style={{ width: "40%", textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
             </tr>
           </thead>
           <tbody>

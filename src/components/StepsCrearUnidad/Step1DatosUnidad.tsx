@@ -138,15 +138,33 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     cargar();
   }, []);
 
-  // Calcular fecha fin automáticamente
+  // Calcular fecha fin automáticamente (con gracia de hasta 6 días extra)
+  const DIAS_GRACIA = 6;
+
+  const fechaFinCalculada = fechaInicio && duracion > 0
+    ? (() => {
+        const inicio = new Date(fechaInicio);
+        const fin = new Date(inicio);
+        fin.setDate(fin.getDate() + duracion * 7);
+        return fin.toISOString().split("T")[0];
+      })()
+    : "";
+
+  const fechaFinMax = fechaInicio && duracion > 0
+    ? (() => {
+        const inicio = new Date(fechaInicio);
+        const finMax = new Date(inicio);
+        finMax.setDate(finMax.getDate() + duracion * 7 + DIAS_GRACIA);
+        return finMax.toISOString().split("T")[0];
+      })()
+    : "";
+
+  // Auto-setear fecha fin cuando cambia inicio o duración
   useEffect(() => {
-    if (fechaInicio && duracion > 0) {
-      const inicio = new Date(fechaInicio);
-      const fin = new Date(inicio);
-      fin.setDate(fin.getDate() + duracion * 7); // semanas → días
-      setFechaFin(fin.toISOString().split("T")[0]);
+    if (fechaFinCalculada) {
+      setFechaFin(fechaFinCalculada);
     }
-  }, [fechaInicio, duracion]);
+  }, [fechaFinCalculada]);
 
   function toggleArea(nombre: string) {
     setAreasSeleccionadas((prev) =>
@@ -673,15 +691,23 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
               <div>
                 <Label htmlFor="fechaFin" className="text-sm font-medium mb-1.5 block">
                   Fecha de Fin{" "}
-                  <span className="text-xs text-slate-400">(auto-calculada)</span>
+                  <span className="text-xs text-slate-400">(ajustable hasta {DIAS_GRACIA} días extra)</span>
                 </Label>
                 <Input
                   id="fechaFin"
                   type="date"
                   value={fechaFin}
-                  readOnly
-                  className="h-12 text-base bg-slate-50 dark:bg-slate-800"
+                  min={fechaFinCalculada}
+                  max={fechaFinMax}
+                  onChange={(e) => setFechaFin(e.target.value)}
+                  disabled={!fechaInicio || duracion <= 0}
+                  className="h-12 text-base"
                 />
+                {fechaFin && fechaFinCalculada && fechaFin > fechaFinCalculada && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    +{Math.round((new Date(fechaFin).getTime() - new Date(fechaFinCalculada).getTime()) / 86400000)} día(s) adicionales
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>

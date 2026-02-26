@@ -2,8 +2,8 @@ import axios from "axios";
 import { useAuthStore } from "@/store/auth.store";
 
 const API_BASE_URL =
-  import.meta.env.VITE_PRODUCTION_API_URL ||
-  import.meta.env.VITE_LOCAL_API_URL ||
+  // import.meta.env.VITE_PRODUCTION_API_URL ||
+  // import.meta.env.VITE_LOCAL_API_URL ||
   "http://localhost:3000/api";
 
 export const instance = axios.create({
@@ -43,23 +43,15 @@ instance.interceptors.request.use(
       return config;
     }
 
+    // Si ya se proveyó un Authorization explícito (ej. admin headers), respetarlo
+    if (config.headers.Authorization) {
+      return config;
+    }
+
     const { accessToken } = useAuthStore.getState();
 
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
-      // 🔍 DEBUG: Ver los primeros caracteres del token y detectar si es JWE
-      const tokenPreview = accessToken.substring(0, 50);
-      try {
-        const header = JSON.parse(atob(accessToken.split('.')[0]));
-        console.log('🔍 [Interceptor] Token header:', header);
-        if (header.alg === 'dir') {
-          console.error('❌ [Interceptor] TOKEN ES JWE/OPACO — audience NO está funcionando');
-        } else {
-          console.log('✅ [Interceptor] Token es JWT válido, alg:', header.alg);
-        }
-      } catch {
-        console.log('🔍 [Interceptor] Token preview:', tokenPreview);
-      }
     }
 
     return config;
@@ -79,6 +71,14 @@ instance.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
+      const url = error.config?.url || "";
+
+      // Las rutas admin manejan sus propios errores de auth — no tocar sesión docente
+      if (url.startsWith("/admin/") || url.startsWith("admin/")) {
+        console.warn("⚠️ 401 en ruta admin — no se afecta la sesión docente");
+        return Promise.reject(error);
+      }
+
       console.warn("⚠️ Token expirado o inválido — cerrando sesión");
       // Evitar bucle infinito si ya estamos en /auth/refresh
       if (!error.config?.url?.includes("/auth/refresh")) {

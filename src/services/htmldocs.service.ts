@@ -43,24 +43,68 @@ function imgToDataUrlViaCanvas(img: HTMLImageElement): string | null {
 }
 
 /**
+ * Fuerza la carga inmediata de todas las imágenes lazy y espera a que terminen.
+ */
+async function forceLoadAllImages(container: HTMLElement): Promise<void> {
+  const images = Array.from(container.querySelectorAll("img"));
+
+  // Quitar loading="lazy" para forzar carga inmediata
+  images.forEach((img) => {
+    if (img.loading === "lazy") {
+      img.loading = "eager";
+    }
+  });
+
+  // Esperar a que todas terminen de cargar
+  const pending = images.filter((img) => img.src && !img.complete);
+  if (pending.length > 0) {
+    await Promise.all(
+      pending.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            // Timeout de seguridad por imagen
+            setTimeout(resolve, 10_000);
+          })
+      )
+    );
+  }
+}
+
+/**
  * Pre-convierte todas las imágenes externas (<img> con src http/https)
  * a data URLs inline (base64) para evitar problemas de CORS con html2canvas.
  *
  * Retorna una función para restaurar los src originales después de generar el PDF.
  */
 async function inlineExternalImages(container: HTMLElement): Promise<() => void> {
+  // Paso 0: forzar carga de imágenes lazy
+  await forceLoadAllImages(container);
+
   const images = container.querySelectorAll("img");
-  const originals = new Map<HTMLImageElement, string>();
+  const originals = new Map<HTMLImageElement, { src: string; crossOrigin: string | null }>();
 
   const promises = Array.from(images).map(async (img) => {
     const src = img.src;
     if (!src || src.startsWith("data:") || src.startsWith("blob:")) return;
 
-    originals.set(img, src);
+    originals.set(img, { src, crossOrigin: img.getAttribute("crossorigin") });
 
-    // Intento 1: fetch con CORS → blob → data URL
+    // Intento 1: Si la imagen ya tiene crossOrigin, intentar canvas directo
+    if (img.crossOrigin) {
+      try {
+        const dataUrl = imgToDataUrlViaCanvas(img);
+        if (dataUrl) {
+          img.src = dataUrl;
+          return;
+        }
+      } catch { /* tainted canvas, continue */ }
+    }
+
+    // Intento 2: fetch con CORS → blob → data URL
     try {
-      const response = await fetch(src, { mode: "cors" });
+      const response = await fetch(src, { mode: "cors", credentials: "omit" });
       if (response.ok) {
         const blob = await response.blob();
         const dataUrl = await blobToDataUrl(blob);
@@ -71,7 +115,40 @@ async function inlineExternalImages(container: HTMLElement): Promise<() => void>
       // CORS bloqueado, intentar fallback
     }
 
-    // Intento 2: dibujar la imagen ya cargada en un canvas
+    // Intento 3: re-cargar con crossOrigin y dibujar en canvas
+    try {
+      const dataUrl = await new Promise<string | null>((resolve) => {
+        const tempImg = new Image();
+        tempImg.crossOrigin = "anonymous";
+        tempImg.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = tempImg.naturalWidth;
+            canvas.height = tempImg.naturalHeight;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(tempImg, 0, 0);
+              resolve(canvas.toDataURL("image/png"));
+            } else {
+              resolve(null);
+            }
+          } catch {
+            resolve(null);
+          }
+        };
+        tempImg.onerror = () => resolve(null);
+        // Añadir cache-bust para evitar que el navegador reuse la versión sin CORS
+        tempImg.src = src + (src.includes("?") ? "&" : "?") + "_cb=" + Date.now();
+      });
+      if (dataUrl) {
+        img.src = dataUrl;
+        return;
+      }
+    } catch {
+      // Continuar al siguiente intento
+    }
+
+    // Intento 4: canvas desde la imagen DOM (sin crossOrigin, puede fallar por taint)
     try {
       const dataUrl = imgToDataUrlViaCanvas(img);
       if (dataUrl) {
@@ -82,44 +159,18 @@ async function inlineExternalImages(container: HTMLElement): Promise<() => void>
       console.warn("No se pudo convertir imagen a data URL:", src);
     }
 
-    // Intento 3: re-cargar con crossOrigin y dibujar en canvas
-    try {
-      const dataUrl = await new Promise<string | null>((resolve) => {
-        const tempImg = new Image();
-        tempImg.crossOrigin = "anonymous";
-        tempImg.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = tempImg.naturalWidth;
-          canvas.height = tempImg.naturalHeight;
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(tempImg, 0, 0);
-            try {
-              resolve(canvas.toDataURL("image/png"));
-            } catch {
-              resolve(null);
-            }
-          } else {
-            resolve(null);
-          }
-        };
-        tempImg.onerror = () => resolve(null);
-        tempImg.src = src;
-      });
-      if (dataUrl) {
-        img.src = dataUrl;
-      }
-    } catch {
-      console.warn("Todos los intentos fallaron para:", src);
-    }
+    console.warn("Todos los intentos de inline fallaron para:", src);
   });
 
   await Promise.allSettled(promises);
 
   // Retornar función para restaurar src originales
   return () => {
-    originals.forEach((originalSrc, img) => {
+    originals.forEach(({ src: originalSrc, crossOrigin }, img) => {
       img.src = originalSrc;
+      if (crossOrigin) {
+        img.setAttribute("crossorigin", crossOrigin);
+      }
     });
   };
 }

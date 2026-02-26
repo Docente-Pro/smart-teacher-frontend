@@ -31,6 +31,9 @@ export function useUnidadPDFGeneration(documentRef: RefObject<HTMLDivElement>) {
 
     const response = await fetch(uploadUrl, {
       method: "PUT",
+      headers: {
+        "Content-Type": "application/pdf",
+      },
       body: pdfBlob,
       mode: "cors",
     });

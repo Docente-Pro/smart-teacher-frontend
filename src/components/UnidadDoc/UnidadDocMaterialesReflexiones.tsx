@@ -97,7 +97,7 @@ export function UnidadDocMaterialesReflexiones({ materiales, reflexiones }: Prop
       <div style={{ marginTop: "2rem" }} className="grid-2 keep-together">
         <div style={{ textAlign: "center" }}>
           <div className="firma-line" />
-          <p className="firma-label">DIRECTOR</p>
+          <p className="firma-label">DIRECTIVO(A)</p>
         </div>
         <div style={{ textAlign: "center" }}>
           <div className="firma-line" />

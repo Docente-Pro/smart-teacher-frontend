@@ -180,6 +180,13 @@ export function DocumentStyles({ thBgColor = "#E8F5E9" }: DocumentStylesProps = 
             font-weight: bold;
           }
           
+          /* Ocultar footer running-element en vista navegador
+             (@htmldocs lo usa con position:running() que solo
+              funciona en Paged Media / impresión) */
+          .print-footer {
+            display: none;
+          }
+
           /* Evitar saltos de página */
           .no-break {
             page-break-inside: avoid;

@@ -98,11 +98,11 @@ export default function AdminPagosUnidad() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <FolderOpen className="w-6 h-6 text-blue-400" />
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <FolderOpen className="w-6 h-6 text-blue-600" />
             Pagos de Unidad
           </h1>
-          <p className="text-gray-400 mt-1 text-sm">
+          <p className="text-gray-500 mt-1 text-sm">
             Gestiona los pagos de unidades y suscriptores
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function AdminPagosUnidad() {
           size="sm"
           onClick={cargarPagos}
           disabled={isLoading}
-          className="border-gray-700 text-gray-300 hover:text-white"
+          className="border-gray-300 text-gray-600 hover:text-gray-900"
         >
           <RefreshCw
             className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
@@ -122,7 +122,7 @@ export default function AdminPagosUnidad() {
 
       {/* Tabs + Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex gap-1 bg-gray-900 p-1 rounded-lg w-fit">
+        <div className="flex gap-1 bg-white p-1 rounded-lg w-fit">
           <TabButton
             active={tab === "pendientes"}
             onClick={() => { setTab("pendientes"); setEstadoFilter(""); }}
@@ -138,11 +138,11 @@ export default function AdminPagosUnidad() {
         </div>
         {tab === "historial" && (
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
+            <Filter className="w-4 h-4 text-gray-500" />
             <select
               value={estadoFilter}
               onChange={(e) => setEstadoFilter(e.target.value as EstadoPago | "")}
-              className="bg-gray-800 border border-gray-700 text-white text-sm rounded-md px-3 py-1.5"
+              className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md px-3 py-1.5"
             >
               <option value="">Todos</option>
               <option value="CONFIRMADO">Confirmado</option>
@@ -156,23 +156,23 @@ export default function AdminPagosUnidad() {
       {/* Table */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
         </div>
       ) : pagos.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center">
-          <FolderOpen className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400">
+        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+          <FolderOpen className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500">
             {tab === "pendientes"
               ? "No hay pagos pendientes"
               : "No hay historial de pagos"}
           </p>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800 text-gray-400 text-left">
+                <tr className="border-b border-gray-200 text-gray-500 text-left">
                   <th className="px-4 py-3 font-medium">Usuario</th>
                   <th className="px-4 py-3 font-medium">Unidad</th>
                   <th className="px-4 py-3 font-medium">Tipo</th>
@@ -186,44 +186,44 @@ export default function AdminPagosUnidad() {
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-gray-200">
                 {pagos.map((pago) => (
                   <tr
                     key={pago.id}
-                    className="hover:bg-gray-800/50 transition-colors"
+                    className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-4 py-3">
-                      <p className="text-white font-medium truncate max-w-[200px]">
+                      <p className="text-gray-900 font-medium truncate max-w-[200px]">
                         {pago.usuario.nombre || "—"}
                       </p>
-                      <p className="text-gray-500 text-xs truncate">
+                      <p className="text-gray-400 text-xs truncate">
                         {pago.usuario.email || pago.usuario.id}
                       </p>
                     </td>
                     <td className="px-4 py-3">
                       {pago.unidad ? (
                         <div>
-                          <p className="text-white text-xs truncate max-w-[140px]">
+                          <p className="text-gray-900 text-xs truncate max-w-[140px]">
                             {pago.unidad.titulo}
                           </p>
-                          <p className="text-gray-500 text-xs">
+                          <p className="text-gray-400 text-xs">
                             {pago.unidad.tipo}
                           </p>
                         </div>
                       ) : (
-                        <span className="text-gray-500 text-xs">—</span>
+                        <span className="text-gray-400 text-xs">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <TipoBadge tipo={pago.tipoPago} />
                     </td>
-                    <td className="px-4 py-3 text-white font-medium">
+                    <td className="px-4 py-3 text-gray-900 font-medium">
                       S/ {pago.monto?.toFixed(2)}
                     </td>
                     <td className="px-4 py-3">
                       <EstadoBadge estado={pago.estado} />
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">
+                    <td className="px-4 py-3 text-gray-500 text-xs">
                       {new Date(pago.createdAt).toLocaleDateString("es-PE", {
                         day: "2-digit",
                         month: "short",
@@ -274,7 +274,7 @@ export default function AdminPagosUnidad() {
                             onChange={(e) =>
                               setMotivoRechazo((prev) => ({ ...prev, [pago.id]: e.target.value }))
                             }
-                            className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 h-7 text-xs w-48"
+                            className="bg-gray-100 border-gray-300 text-gray-900 placeholder:text-gray-500 h-7 text-xs w-48"
                           />
                         </div>
                       </td>
@@ -308,8 +308,8 @@ function TabButton({
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
         active
-          ? "bg-gray-800 text-white"
-          : "text-gray-400 hover:text-gray-300"
+          ? "bg-gray-100 text-gray-900"
+          : "text-gray-500 hover:text-gray-700"
       }`}
     >
       {icon}
@@ -320,9 +320,9 @@ function TabButton({
 
 function EstadoBadge({ estado }: { estado: string }) {
   const config: Record<string, { bg: string; text: string }> = {
-    PENDIENTE: { bg: "bg-yellow-500/10", text: "text-yellow-400" },
-    CONFIRMADO: { bg: "bg-green-500/10", text: "text-green-400" },
-    RECHAZADO: { bg: "bg-red-500/10", text: "text-red-400" },
+    PENDIENTE: { bg: "bg-yellow-100", text: "text-yellow-600" },
+    CONFIRMADO: { bg: "bg-green-100", text: "text-green-600" },
+    RECHAZADO: { bg: "bg-red-100", text: "text-red-600" },
   };
   const c = config[estado] || config.PENDIENTE;
   return (
@@ -336,9 +336,9 @@ function EstadoBadge({ estado }: { estado: string }) {
 
 function TipoBadge({ tipo }: { tipo: string }) {
   const config: Record<string, { bg: string; text: string; label: string }> = {
-    PRE_PAGO: { bg: "bg-green-500/10", text: "text-green-400", label: "Pre-Pago" },
-    PROPIETARIO: { bg: "bg-blue-500/10", text: "text-blue-400", label: "Propietario" },
-    SUSCRIPTOR: { bg: "bg-purple-500/10", text: "text-purple-400", label: "Suscriptor" },
+    PRE_PAGO: { bg: "bg-green-100", text: "text-green-600", label: "Pre-Pago" },
+    PROPIETARIO: { bg: "bg-blue-100", text: "text-blue-600", label: "Propietario" },
+    SUSCRIPTOR: { bg: "bg-purple-100", text: "text-purple-600", label: "Suscriptor" },
   };
   const c = config[tipo] || config.PROPIETARIO;
   return (

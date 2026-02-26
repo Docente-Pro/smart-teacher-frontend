@@ -1,5 +1,5 @@
 import { IUsuario } from "@/interfaces/IUsuario";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { ArrowRight, ArrowLeft, Sparkles, PlayCircle, Circle, CheckCircle, Plus,
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { instance } from "@/services/instance";
+import { generarImagenesSesion } from "@/services/ia-sesion.service";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 
 interface Props {
@@ -17,10 +18,10 @@ interface Props {
 }
 
 interface IImagenProceso {
-  id: string;
+  id?: string;
   url: string;
   descripcion: string;
-  posicion: 'antes' | 'despues' | 'junto';
+  posicion: 'antes' | 'junto' | 'despues';
 }
 
 interface IImagenDisponibleLocal {
@@ -33,8 +34,13 @@ interface IImagenDisponibleLocal {
 interface Proceso {
   proceso: string;
   estrategias: string;
-  recursosDidacticos: string;
+  /** Backend v2 usa "recursos", v1 usaba "recursosDidacticos" */
+  recursos?: string;
+  recursosDidacticos?: string;
   tiempo: string;
+  /** Imagen singular (v2) */
+  imagen?: IImagenProceso;
+  /** @deprecated Imágenes en array (v1) */
   imagenes?: IImagenProceso[];
 }
 
@@ -57,11 +63,14 @@ function Step8({ pagina, setPagina }: Props) {
   const [nuevoProceso, setNuevoProceso] = useState<Proceso>({
     proceso: "",
     estrategias: "",
-    recursosDidacticos: "",
+    recursos: "",
     tiempo: "",
   });
   const [seccionActual, setSeccionActual] = useState<"inicio" | "desarrollo" | "cierre">("inicio");
   const [loadingIA, setLoadingIA] = useState(false);
+  const [loadingImagenes, setLoadingImagenes] = useState(false);
+  const [imagenesError, setImagenesError] = useState(false);
+  const imageReqRef = useRef<any>(null);
   const [procesoEnEdicion, setProcesoEnEdicion] = useState<{ seccion: "inicio" | "desarrollo" | "cierre"; index: number } | null>(null);
   const [procesoEditado, setProcesoEditado] = useState<Proceso | null>(null);
 
@@ -110,17 +119,7 @@ function Step8({ pagina, setPagina }: Props) {
   // Función para formatear minutos a formato legible
   function formatearTiempo(minutos: number): string {
     if (minutos === 0) return "0 min";
-
-    const horas = Math.floor(minutos / 60);
-    const mins = minutos % 60;
-
-    if (horas > 0 && mins > 0) {
-      return `${horas}h ${mins}min`;
-    } else if (horas > 0) {
-      return `${horas}h`;
-    } else {
-      return `${mins}min`;
-    }
+    return `${minutos} min`;
   }
 
   // Inicializar desde el store si ya hay datos
@@ -166,7 +165,7 @@ function Step8({ pagina, setPagina }: Props) {
       setCierreProcesos([...cierreProcesos, proceso]);
     }
 
-    setNuevoProceso({ proceso: "", estrategias: "", recursosDidacticos: "", tiempo: "" });
+    setNuevoProceso({ proceso: "", estrategias: "", recursos: "", tiempo: "" });
   }
 
   function eliminarProceso(index: number, seccion: "inicio" | "desarrollo" | "cierre") {
@@ -218,11 +217,87 @@ function Step8({ pagina, setPagina }: Props) {
     handleToaster("Proceso actualizado exitosamente", "success");
   }
 
+  /**
+   * Inyecta las imágenes generadas (fase 2) en los arrays de procesos.
+   * El backend devuelve la sesión completa con imagen embebida en cada proceso.
+   * Usa functional updaters para evitar problemas de closure stale.
+   */
+  function inyectarImagenesEnProcesos(imagenesData: any) {
+    const applyImages = (
+      prev: Proceso[],
+      responseProcesos?: Array<any>,
+    ): Proceso[] => {
+      if (!responseProcesos || responseProcesos.length === 0) return prev;
+      const updated = [...prev];
+      responseProcesos.forEach((item, i) => {
+        const idx = item.index ?? i;
+        const img = item.imagen;
+        if (idx >= 0 && idx < updated.length && img) {
+          updated[idx] = { ...updated[idx], imagen: img };
+        }
+      });
+      return updated;
+    };
+
+    // Usar functional updaters → siempre opera sobre el estado más reciente
+    setInicioProcesos((prev) => applyImages(prev, imagenesData?.inicio?.procesos));
+    setDesarrolloProcesos((prev) => applyImages(prev, imagenesData?.desarrollo?.procesos));
+    setCierreProcesos((prev) => applyImages(prev, imagenesData?.cierre?.procesos));
+
+    // Actualizar store de forma segura leyendo el estado actual
+    const currentSesion = useSesionStore.getState().sesion;
+    if (currentSesion?.secuenciaDidactica) {
+      const sd = currentSesion.secuenciaDidactica;
+      updateSesion({
+        secuenciaDidactica: {
+          inicio: {
+            tiempo: sd.inicio?.tiempo || "15 min",
+            procesos: applyImages(sd.inicio?.procesos || [], imagenesData?.inicio?.procesos),
+          },
+          desarrollo: {
+            tiempo: sd.desarrollo?.tiempo || "60 min",
+            procesos: applyImages(sd.desarrollo?.procesos || [], imagenesData?.desarrollo?.procesos),
+          },
+          cierre: {
+            tiempo: sd.cierre?.tiempo || "15 min",
+            procesos: applyImages(sd.cierre?.procesos || [], imagenesData?.cierre?.procesos),
+          },
+        },
+      });
+    }
+  }
+
+  function reintentarImagenes() {
+    const req = imageReqRef.current;
+    if (!req) return;
+
+    setLoadingImagenes(true);
+    setImagenesError(false);
+
+    generarImagenesSesion(req)
+      .then((imgRes) => {
+        if (imgRes.success && imgRes.data) {
+          inyectarImagenesEnProcesos(imgRes.data);
+          handleToaster("Imágenes generadas y agregadas a la sesión", "success");
+          setImagenesError(false);
+        }
+      })
+      .catch((imgErr) => {
+        console.warn("⚠️ Reintento de imágenes falló:", imgErr);
+        handleToaster("No se pudieron generar las imágenes. Intente de nuevo.", "warning");
+        setImagenesError(true);
+      })
+      .finally(() => setLoadingImagenes(false));
+  }
+
   async function generarConIA() {
     if (!sesion) return;
 
     setLoadingIA(true);
     try {
+      // ═══════════════════════════════════════════════════════════════
+      // FASE 1: Generar texto de la sesión (rápido, ~20-30s)
+      // ═══════════════════════════════════════════════════════════════
       const response = await instance.post("/ia/generar-secuencia-didactica", {
         temaId: sesion.temaId,
         datosGenerales: sesion.datosGenerales,
@@ -235,24 +310,24 @@ function Step8({ pagina, setPagina }: Props) {
 
       if (data.success && data.data) {
         // Cargar datos de INICIO
+        const initProcs = data.data.inicio?.procesos || [];
+        const devProcs = data.data.desarrollo?.procesos || [];
+        const cierreProcs = data.data.cierre?.procesos || [];
+
         if (data.data.inicio) {
           setInicioTiempo(data.data.inicio.tiempo || "15 min");
-          setInicioProcesos(data.data.inicio.procesos || []);
+          setInicioProcesos(initProcs);
         }
-
-        // Cargar datos de DESARROLLO
         if (data.data.desarrollo) {
           setDesarrolloTiempo(data.data.desarrollo.tiempo || "60 min");
-          setDesarrolloProcesos(data.data.desarrollo.procesos || []);
+          setDesarrolloProcesos(devProcs);
         }
-
-        // Cargar datos de CIERRE
         if (data.data.cierre) {
           setCierreTiempo(data.data.cierre.tiempo || "15 min");
-          setCierreProcesos(data.data.cierre.procesos || []);
+          setCierreProcesos(cierreProcs);
         }
 
-        // 🖼️ Capturar imágenes disponibles del response
+        // 🖼️ Capturar imágenes disponibles del response (si aún las envía)
         if (data.imagenes_disponibles && Array.isArray(data.imagenes_disponibles)) {
           setImagenesDisponibles(data.imagenes_disponibles);
         }
@@ -269,40 +344,26 @@ function Step8({ pagina, setPagina }: Props) {
 
         if (preparacionRaw &&
           ((preparacionRaw.quehacerAntes?.length > 0) || (preparacionRaw.recursosMateriales?.length > 0))) {
-          // Usar la preparacion del backend
           preparacionFinal = {
             quehacerAntes: preparacionRaw.quehacerAntes || [],
             recursosMateriales: preparacionRaw.recursosMateriales || [],
           };
         } else {
-          // Auto-extraer recursos únicos de todos los procesos de la secuencia
           const recursosSet = new Set<string>();
-          const todasSecciones = [
-            ...(data.data.inicio?.procesos || []),
-            ...(data.data.desarrollo?.procesos || []),
-            ...(data.data.cierre?.procesos || []),
-          ];
-
-          todasSecciones.forEach((p: any) => {
-            if (p.recursosDidacticos) {
-              p.recursosDidacticos
+          [...initProcs, ...devProcs, ...cierreProcs].forEach((p: any) => {
+            const recursosTxt = p.recursos || p.recursosDidacticos;
+            if (recursosTxt) {
+              recursosTxt
                 .split(/,|;/)
                 .map((r: string) => r.trim())
                 .filter(Boolean)
                 .forEach((r: string) => recursosSet.add(r));
             }
           });
-
           const recursosUnicos = Array.from(recursosSet);
-
-          // Generar tareas previas a partir de los recursos
           const quehacerAntes = recursosUnicos.map((r) => `Preparar ${r.charAt(0).toLowerCase() + r.slice(1)}`);
-
-          preparacionFinal = {
-            quehacerAntes,
-            recursosMateriales: recursosUnicos,
-          };
-          console.log('📦 Preparación auto-generada desde recursosDidacticos:', preparacionFinal);
+          preparacionFinal = { quehacerAntes, recursosMateriales: recursosUnicos };
+          console.log('📦 Preparación auto-generada desde recursos:', preparacionFinal);
         }
 
         updateSesion({
@@ -312,13 +373,43 @@ function Step8({ pagina, setPagina }: Props) {
             desarrollo: data.data.desarrollo || { tiempo: "60 min", procesos: [] },
             cierre: data.data.cierre || { tiempo: "15 min", procesos: [] },
           },
-          // Guardar preparación (del backend o auto-generada)
           preparacion: preparacionFinal,
-          // 🖼️ Guardar imágenes disponibles en el store
           ...(data.imagenes_disponibles && { imagenes_disponibles: data.imagenes_disponibles }),
         });
 
         handleToaster("Secuencia didáctica generada exitosamente con IA", "success");
+
+        // ═══════════════════════════════════════════════════════════════
+        // FASE 2: Generar imágenes en background (sin bloquear UI)
+        // ═══════════════════════════════════════════════════════════════
+        setLoadingIA(false); // Liberar el loading principal
+        setLoadingImagenes(true);
+        setImagenesError(false);
+
+        const imgReq = {
+          sesion: data.data,
+          area: sesion.datosGenerales?.area || "",
+          grado: sesion.datosGenerales?.grado || "",
+          tema: sesion.temaCurricular || "",
+        };
+        imageReqRef.current = imgReq;
+
+        generarImagenesSesion(imgReq)
+          .then((imgRes) => {
+            if (imgRes.success && imgRes.data) {
+              inyectarImagenesEnProcesos(imgRes.data);
+              handleToaster("Imágenes generadas y agregadas a la sesión", "success");
+              setImagenesError(false);
+            }
+          })
+          .catch((imgErr) => {
+            console.warn("⚠️ No se pudieron generar imágenes (la sesión sigue funcional):", imgErr);
+            handleToaster("La sesión se generó correctamente, pero no se pudieron crear las imágenes", "warning");
+            setImagenesError(true);
+          })
+          .finally(() => setLoadingImagenes(false));
+
+        return; // No llegar al finally que haría setLoadingIA(false) otra vez
       }
     } catch (error) {
       console.error("Error al generar secuencia con IA:", error);
@@ -347,8 +438,9 @@ function Step8({ pagina, setPagina }: Props) {
       // Re-extraer preparación desde los procesos actuales (por si el usuario editó recursos)
       const recursosSet = new Set<string>();
       [...inicioProcesos, ...desarrolloProcesos, ...cierreProcesos].forEach((p) => {
-        if (p.recursosDidacticos) {
-          p.recursosDidacticos
+        const recursosTxt = p.recursos || p.recursosDidacticos;
+        if (recursosTxt) {
+          recursosTxt
             .split(/,|;/)
             .map((r) => r.trim())
             .filter(Boolean)
@@ -437,8 +529,8 @@ function Step8({ pagina, setPagina }: Props) {
                     <div>
                       <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1 block">Recursos</label>
                       <Input
-                        value={procesoEditado.recursosDidacticos}
-                        onChange={(e) => setProcesoEditado({ ...procesoEditado, recursosDidacticos: e.target.value })}
+                        value={procesoEditado.recursos || procesoEditado.recursosDidacticos || ""}
+                        onChange={(e) => setProcesoEditado({ ...procesoEditado, recursos: e.target.value })}
                       />
                     </div>
                     <div>
@@ -581,57 +673,58 @@ function Step8({ pagina, setPagina }: Props) {
                 )}
 
                 <div>
-                  {/* 🖼️ Imágenes con posición "antes" */}
-                  {proc.imagenes?.filter((img) => img.posicion === 'antes').length ? (
-                    <div className="flex flex-wrap gap-3 mb-3">
-                      {proc.imagenes.filter((img) => img.posicion === 'antes').map((img) => (
-                        <div key={img.id} className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-lg p-2 text-center">
-                          <img src={img.url} alt={img.descripcion} className="max-h-32 mx-auto rounded" />
-                          <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">{img.descripcion}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
+                  {/* 🖼️ Imágenes con posición "antes" — soporta imagen singular (v2) e imagenes array (v1) */}
+                  {(() => {
+                    const imgs = proc.imagenes ?? (proc.imagen ? [proc.imagen] : []);
+                    const imgAntes = imgs.filter((img) => img.posicion === 'antes');
+                    const imgJunto = imgs.filter((img) => img.posicion === 'junto');
+                    const imgDespues = imgs.filter((img) => img.posicion === 'despues');
 
-                  {/* Estrategias — si hay imágenes "junto", usar layout flex */}
-                  {proc.imagenes?.some((img) => img.posicion === 'junto') ? (
-                    <div className="flex gap-4 items-start">
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Estrategias:</p>
-                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.estrategias}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2 flex-shrink-0 max-w-[40%]">
-                        {proc.imagenes.filter((img) => img.posicion === 'junto').map((img) => (
-                          <div key={img.id} className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-lg p-2 text-center">
-                            <img src={img.url} alt={img.descripcion} className="max-h-28 mx-auto rounded" />
-                            <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">{img.descripcion}</p>
+                    return (
+                      <>
+                        {imgAntes.length > 0 && (
+                          <div className="flex flex-wrap gap-3 mb-3">
+                            {imgAntes.map((img, imgIdx) => (
+                              <img key={img.id ?? imgIdx} src={img.url} alt={img.descripcion} loading="lazy" className="max-h-[300px] rounded-lg" />
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Estrategias:</p>
-                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.estrategias}</p>
-                    </div>
-                  )}
+                        )}
 
-                  {/* 🖼️ Imágenes con posición "despues" */}
-                  {proc.imagenes?.filter((img) => img.posicion === 'despues').length ? (
-                    <div className="flex flex-wrap gap-3 mt-3">
-                      {proc.imagenes.filter((img) => img.posicion === 'despues').map((img) => (
-                        <div key={img.id} className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-lg p-2 text-center">
-                          <img src={img.url} alt={img.descripcion} className="max-h-32 mx-auto rounded" />
-                          <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">{img.descripcion}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
+                        {/* Estrategias — si hay imágenes "junto", usar layout flex */}
+                        {imgJunto.length > 0 ? (
+                          <div className="flex gap-4 items-start">
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Estrategias:</p>
+                              <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.estrategias}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2 flex-shrink-0 max-w-[40%]">
+                              {imgJunto.map((img, imgIdx) => (
+                                <img key={img.id ?? imgIdx} src={img.url} alt={img.descripcion} loading="lazy" className="max-h-[300px] rounded-lg" />
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Estrategias:</p>
+                            <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.estrategias}</p>
+                          </div>
+                        )}
+
+                        {imgDespues.length > 0 && (
+                          <div className="flex flex-wrap gap-3 mt-3">
+                            {imgDespues.map((img, imgIdx) => (
+                              <img key={img.id ?? imgIdx} src={img.url} alt={img.descripcion} loading="lazy" className="max-h-[300px] rounded-lg" />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
-                {proc.recursosDidacticos && (
+                {(proc.recursos || proc.recursosDidacticos) && (
                   <div className="pt-2">
                     <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Recursos:</p>
-                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.recursosDidacticos}</p>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.recursos || proc.recursosDidacticos}</p>
                   </div>
                 )}
               </div>
@@ -658,14 +751,31 @@ function Step8({ pagina, setPagina }: Props) {
           <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">Planifica las actividades de tu sesión</p>
 
           {/* Botón IA */}
-          <Button
-            onClick={generarConIA}
-            disabled={loadingIA}
-            className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg"
-          >
-            <Wand2 className="h-5 w-5 mr-2" />
-            {loadingIA ? "Generando..." : "Generar con IA"}
-          </Button>
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              onClick={generarConIA}
+              disabled={loadingIA}
+              className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg"
+            >
+              <Wand2 className="h-5 w-5 mr-2" />
+              {loadingIA ? "Generando texto..." : "Generar con IA"}
+            </Button>
+            {loadingImagenes && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-lg animate-pulse">
+                <Sparkles className="h-4 w-4 text-sky-500 animate-spin" />
+                <span className="text-sm text-sky-700 dark:text-sky-300">Generando imágenes en segundo plano...</span>
+              </div>
+            )}
+            {imagenesError && !loadingImagenes && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={reintentarImagenes}
+              >
+                Reintentar generar imágenes
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Selector de sección con tabs */}
@@ -867,8 +977,8 @@ function Step8({ pagina, setPagina }: Props) {
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">Recursos Didácticos</label>
                 <Input
                   placeholder="Ej: Fichas, material concreto, proyector..."
-                  value={nuevoProceso.recursosDidacticos}
-                  onChange={(e) => setNuevoProceso({ ...nuevoProceso, recursosDidacticos: e.target.value })}
+                  value={nuevoProceso.recursos || ""}
+                  onChange={(e) => setNuevoProceso({ ...nuevoProceso, recursos: e.target.value })}
                   className="text-base"
                 />
               </div>

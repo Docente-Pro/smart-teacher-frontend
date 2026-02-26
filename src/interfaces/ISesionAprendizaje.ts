@@ -62,18 +62,22 @@ export interface IPreguntaMetacognicion {
 }
 
 export interface IImagenProcesoGeneral {
-  id: string;
+  id?: string;
   url: string;
   descripcion: string;
-  posicion: 'antes' | 'despues' | 'junto';
+  posicion: 'antes' | 'junto' | 'despues';
 }
 
 export interface IProcesoSecuencia {
   proceso: string;
   estrategias: string;
-  recursosDidacticos: string;
+  /** Backend v2 usa "recursos", v1 usaba "recursosDidacticos" */
+  recursos?: string;
+  recursosDidacticos?: string;
   tiempo: string;
-  /** Imágenes SVG opcionales asociadas a este proceso */
+  /** Imagen singular (v2) — una imagen opcional por proceso */
+  imagen?: IImagenProcesoGeneral;
+  /** @deprecated Imágenes en array (v1) — mantener por retrocompatibilidad */
   imagenes?: IImagenProcesoGeneral[];
 }
 

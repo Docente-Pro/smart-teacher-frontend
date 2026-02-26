@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   CreditCard,
   FolderOpen,
+  Users,
   LogOut,
   Shield,
   Menu,
@@ -28,6 +29,11 @@ const sidebarLinks = [
     label: "Pagos Unidad",
     icon: FolderOpen,
   },
+  {
+    to: "/admin/usuarios",
+    label: "Usuarios",
+    icon: Users,
+  },
 ];
 
 export default function AdminLayout() {
@@ -41,17 +47,17 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar — Desktop */}
-      <aside className="hidden md:flex md:flex-col md:w-64 bg-gray-900 border-r border-gray-800">
+      <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r border-gray-200">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-800">
-          <Shield className="w-7 h-7 text-blue-400" />
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200">
+          <Shield className="w-7 h-7 text-blue-600" />
           <div>
-            <h2 className="text-white font-bold text-lg leading-tight">
+            <h2 className="text-gray-900 font-bold text-lg leading-tight">
               DocentePro
             </h2>
-            <p className="text-gray-500 text-xs">Panel Admin</p>
+            <p className="text-gray-400 text-xs">Panel Admin</p>
           </div>
         </div>
 
@@ -64,8 +70,8 @@ export default function AdminLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-blue-600/20 text-blue-400"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800"
+                    ? "bg-blue-100 text-blue-600"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
                 }`
               }
             >
@@ -76,19 +82,19 @@ export default function AdminLayout() {
         </nav>
 
         {/* User Info + Logout */}
-        <div className="px-3 py-4 border-t border-gray-800">
+        <div className="px-3 py-4 border-t border-gray-200">
           <div className="px-3 py-2 mb-2">
-            <p className="text-white text-sm font-medium truncate">
+            <p className="text-gray-900 text-sm font-medium truncate">
               {admin?.nombre || "Admin"}
             </p>
-            <p className="text-gray-500 text-xs truncate">
+            <p className="text-gray-400 text-xs truncate">
               {admin?.email || ""}
             </p>
           </div>
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-100"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Cerrar sesión
@@ -97,14 +103,14 @@ export default function AdminLayout() {
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-blue-400" />
-          <span className="text-white font-bold">Admin</span>
+          <Shield className="w-5 h-5 text-blue-600" />
+          <span className="text-gray-900 font-bold">Admin</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="text-gray-400 hover:text-white"
+          className="text-gray-500 hover:text-gray-900"
         >
           {mobileMenuOpen ? (
             <X className="w-6 h-6" />
@@ -116,8 +122,8 @@ export default function AdminLayout() {
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/50">
-          <div className="absolute top-14 left-0 right-0 bg-gray-900 border-b border-gray-800 p-4 space-y-1">
+        <div className="md:hidden fixed inset-0 z-40 bg-black/20">
+          <div className="absolute top-14 left-0 right-0 bg-white border-b border-gray-200 p-4 space-y-1">
             {sidebarLinks.map((link) => (
               <NavLink
                 key={link.to}
@@ -126,8 +132,8 @@ export default function AdminLayout() {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-blue-600/20 text-blue-400"
-                      : "text-gray-400 hover:text-white hover:bg-gray-800"
+                      ? "bg-blue-100 text-blue-600"
+                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
                   }`
                 }
               >
@@ -137,7 +143,7 @@ export default function AdminLayout() {
             ))}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-100 w-full"
             >
               <LogOut className="w-5 h-5" />
               Cerrar sesión

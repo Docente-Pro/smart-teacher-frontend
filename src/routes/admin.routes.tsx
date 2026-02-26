@@ -5,6 +5,8 @@ import AdminLayout from "@/pages/admin/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminPagosSuscripcion from "@/pages/admin/AdminPagosSuscripcion";
 import AdminPagosUnidad from "@/pages/admin/AdminPagosUnidad";
+import AdminUsuarios from "@/pages/admin/AdminUsuarios";
+import AdminUsuarioDetalle from "@/pages/admin/AdminUsuarioDetalle";
 
 interface IAdminRoute {
   path: string;
@@ -44,6 +46,14 @@ export const adminRoutes: IAdminRoute[] = [
       {
         path: "pagos-unidad",
         element: <AdminPagosUnidad />,
+      },
+      {
+        path: "usuarios",
+        element: <AdminUsuarios />,
+      },
+      {
+        path: "usuarios/:id",
+        element: <AdminUsuarioDetalle />,
       },
     ],
   },

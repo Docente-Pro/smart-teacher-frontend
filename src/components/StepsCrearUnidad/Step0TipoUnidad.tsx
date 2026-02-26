@@ -46,6 +46,7 @@ const PRECIOS_DEFAULT: IUnidadPrecios = {
 interface Props {
   onContinue: (tipo: TipoUnidad, maxMiembros: number) => void;
   isPremium: boolean;
+  onBack?: () => void;
 }
 
 /**
@@ -56,7 +57,7 @@ interface Props {
  *   → abre whatsappLink → espera WS pago:confirmado { accion: "CREAR_UNIDAD" }
  *   → desbloquea wizard.
  */
-function Step0TipoUnidad({ onContinue, isPremium }: Props) {
+function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
   const [tipo, setTipo] = useState<TipoUnidad>("PERSONAL");
   const [maxMiembros, setMaxMiembros] = useState(2);
   const [fase, setFase] = useState<"select" | "payment" | "waiting" | "activated" | "error">(
@@ -388,6 +389,16 @@ function Step0TipoUnidad({ onContinue, isPremium }: Props) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
       <div className="max-w-3xl mx-auto">
+        {/* ── Volver al Dashboard ── */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-6 -ml-1"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Dashboard
+          </button>
+        )}
         {/* ── Header ── */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg mb-6 shadow-lg">

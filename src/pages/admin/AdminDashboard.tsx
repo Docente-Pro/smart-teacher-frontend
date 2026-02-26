@@ -48,6 +48,7 @@ export default function AdminDashboard() {
     resetPdfs: true,
     resetSuscripcion: false,
     resetUnidades: false,
+    resetPerfil: false,
   });
 
   // Revocar
@@ -103,6 +104,7 @@ export default function AdminDashboard() {
     if (resetOpts.resetPdfs) partes.push("PDFs");
     if (resetOpts.resetSuscripcion) partes.push("suscripción");
     if (resetOpts.resetUnidades) partes.push("unidades");
+    if (resetOpts.resetPerfil) partes.push("perfil (onboarding)");
     if (partes.length === 0) {
       toast.error("Selecciona al menos una opción de reset");
       return;
@@ -166,8 +168,8 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-gray-400 mt-1">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-500 mt-1">
           Resumen general del sistema
         </p>
       </div>
@@ -210,27 +212,27 @@ export default function AdminDashboard() {
       {/* Pagos Pendientes Quickview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Suscripción Pendientes */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-yellow-400" />
+            <h3 className="text-gray-900 font-semibold flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-yellow-600" />
               Suscripciones Pendientes
             </h3>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/admin/pagos-suscripcion")}
-              className="text-blue-400 hover:text-blue-300 text-xs"
+              className="text-blue-600 hover:text-blue-700 text-xs"
             >
               Ver todos →
             </Button>
           </div>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
             </div>
           ) : suscPendientes.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4 text-center">
+            <p className="text-gray-400 text-sm py-4 text-center">
               No hay pagos pendientes
             </p>
           ) : (
@@ -239,7 +241,7 @@ export default function AdminDashboard() {
                 <PagoSuscQuickItem key={p.id} pago={p} />
               ))}
               {suscPendientes.length > 5 && (
-                <p className="text-gray-500 text-xs text-center pt-2">
+                <p className="text-gray-400 text-xs text-center pt-2">
                   +{suscPendientes.length - 5} más
                 </p>
               )}
@@ -248,27 +250,27 @@ export default function AdminDashboard() {
         </div>
 
         {/* Unidad Pendientes */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold flex items-center gap-2">
-              <FolderOpen className="w-4 h-4 text-blue-400" />
+            <h3 className="text-gray-900 font-semibold flex items-center gap-2">
+              <FolderOpen className="w-4 h-4 text-blue-600" />
               Unidades Pendientes
             </h3>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/admin/pagos-unidad")}
-              className="text-blue-400 hover:text-blue-300 text-xs"
+              className="text-blue-600 hover:text-blue-700 text-xs"
             >
               Ver todos →
             </Button>
           </div>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
             </div>
           ) : unidadPendientes.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4 text-center">
+            <p className="text-gray-400 text-sm py-4 text-center">
               No hay pagos pendientes
             </p>
           ) : (
@@ -277,7 +279,7 @@ export default function AdminDashboard() {
                 <PagoUnidadQuickItem key={p.id} pago={p} />
               ))}
               {unidadPendientes.length > 5 && (
-                <p className="text-gray-500 text-xs text-center pt-2">
+                <p className="text-gray-400 text-xs text-center pt-2">
                   +{unidadPendientes.length - 5} más
                 </p>
               )}
@@ -287,9 +289,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* Buscar Usuario */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-          <Search className="w-4 h-4 text-gray-400" />
+      <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <h3 className="text-gray-900 font-semibold mb-4 flex items-center gap-2">
+          <Search className="w-4 h-4 text-gray-500" />
           Gestión de Usuario
         </h3>
 
@@ -300,7 +302,7 @@ export default function AdminDashboard() {
             value={usuarioId}
             onChange={(e) => setUsuarioId(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && buscarUsuario()}
-            className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 max-w-md"
+            className="bg-gray-100 border-gray-300 text-gray-900 placeholder:text-gray-500 max-w-md"
           />
           <Button
             onClick={buscarUsuario}
@@ -317,7 +319,7 @@ export default function AdminDashboard() {
 
         {/* Resultado */}
         {estadisticas?.data && (
-          <div className="mt-5 border border-gray-700 rounded-lg p-4 space-y-4">
+          <div className="mt-5 border border-gray-300 rounded-lg p-4 space-y-4">
             {/* Info del usuario */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <InfoItem
@@ -376,16 +378,16 @@ export default function AdminDashboard() {
             </div>
 
             {/* Upgrade Premium */}
-            <div className="pt-3 border-t border-gray-700 space-y-3">
-              <p className="text-sm text-gray-400 font-medium flex items-center gap-1">
-                <Crown className="w-4 h-4 text-yellow-400" />
+            <div className="pt-3 border-t border-gray-300 space-y-3">
+              <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
+                <Crown className="w-4 h-4 text-yellow-600" />
                 Subir a Premium
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={upgradePlan}
                   onChange={(e) => setUpgradePlan(e.target.value as "premium_mensual" | "premium_anual")}
-                  className="bg-gray-800 border border-gray-700 text-white text-sm rounded-md px-3 py-1.5"
+                  className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md px-3 py-1.5"
                 >
                   <option value="premium_mensual">Premium Mensual</option>
                   <option value="premium_anual">Premium Anual</option>
@@ -407,8 +409,8 @@ export default function AdminDashboard() {
             </div>
 
             {/* Reset usuario con opciones */}
-            <div className="pt-3 border-t border-gray-700 space-y-3">
-              <p className="text-sm text-gray-400 font-medium flex items-center gap-1">
+            <div className="pt-3 border-t border-gray-300 space-y-3">
+              <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
                 <RotateCcw className="w-4 h-4" />
                 Resetear usuario
               </p>
@@ -418,13 +420,14 @@ export default function AdminDashboard() {
                   { key: "resetPdfs", label: "PDFs" },
                   { key: "resetSuscripcion", label: "Suscripción" },
                   { key: "resetUnidades", label: "Unidades" },
+                  { key: "resetPerfil", label: "Perfil (Onboarding)" },
                 ] as const).map(({ key, label }) => (
-                  <label key={key} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                  <label key={key} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={!!resetOpts[key]}
                       onChange={(e) => setResetOpts((prev) => ({ ...prev, [key]: e.target.checked }))}
-                      className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500"
+                      className="rounded border-gray-300 bg-gray-100 text-blue-500 focus:ring-blue-500"
                     />
                     {label}
                   </label>
@@ -447,8 +450,8 @@ export default function AdminDashboard() {
             </div>
 
             {/* Revocar suscripción */}
-            <div className="pt-3 border-t border-gray-700 space-y-3">
-              <p className="text-sm text-gray-400 font-medium flex items-center gap-1">
+            <div className="pt-3 border-t border-gray-300 space-y-3">
+              <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
                 <XCircle className="w-4 h-4" />
                 Revocar suscripción
               </p>
@@ -457,14 +460,14 @@ export default function AdminDashboard() {
                   placeholder="Motivo (opcional)..."
                   value={revocarMotivo}
                   onChange={(e) => setRevocarMotivo(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 max-w-xs h-8 text-sm"
+                  className="bg-gray-100 border-gray-300 text-gray-900 placeholder:text-gray-500 max-w-xs h-8 text-sm"
                 />
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleRevocarSuscripcion}
                   disabled={revocarLoading}
-                  className="border-yellow-600 text-yellow-400 hover:bg-yellow-600/10"
+                  className="border-yellow-600 text-yellow-600 hover:bg-yellow-100"
                 >
                   {revocarLoading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -498,10 +501,10 @@ function StatCard({
   onClick?: () => void;
 }) {
   const colors = {
-    yellow: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    green: "bg-green-500/10 text-green-400 border-green-500/20",
-    purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    yellow: "bg-yellow-100 text-yellow-600 border-yellow-200",
+    blue: "bg-blue-100 text-blue-600 border-blue-200",
+    green: "bg-green-100 text-green-600 border-green-200",
+    purple: "bg-purple-100 text-purple-600 border-purple-200",
   };
 
   return (
@@ -518,16 +521,16 @@ function StatCard({
 
 function PagoSuscQuickItem({ pago }: { pago: IPagoSuscripcionAdmin }) {
   return (
-    <div className="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-lg">
+    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
       <div className="min-w-0">
-        <p className="text-white text-sm truncate">
+        <p className="text-gray-900 text-sm truncate">
           {pago.usuario.nombre || pago.usuario.email}
         </p>
-        <p className="text-gray-500 text-xs">
+        <p className="text-gray-400 text-xs">
           S/ {pago.monto?.toFixed(2)} · {pago.descripcion || pago.plan || "—"}
         </p>
       </div>
-      <span className="text-yellow-400 text-xs font-medium shrink-0 ml-2">
+      <span className="text-yellow-600 text-xs font-medium shrink-0 ml-2">
         PENDIENTE
       </span>
     </div>
@@ -536,16 +539,16 @@ function PagoSuscQuickItem({ pago }: { pago: IPagoSuscripcionAdmin }) {
 
 function PagoUnidadQuickItem({ pago }: { pago: IPagoUnidadAdmin }) {
   return (
-    <div className="flex items-center justify-between py-2 px-3 bg-gray-800/50 rounded-lg">
+    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
       <div className="min-w-0">
-        <p className="text-white text-sm truncate">
+        <p className="text-gray-900 text-sm truncate">
           {pago.usuario.nombre || pago.usuario.email}
         </p>
-        <p className="text-gray-500 text-xs">
+        <p className="text-gray-400 text-xs">
           S/ {pago.monto?.toFixed(2)} · {pago.unidad?.titulo || pago.tipoPago}
         </p>
       </div>
-      <span className="text-yellow-400 text-xs font-medium shrink-0 ml-2">
+      <span className="text-yellow-600 text-xs font-medium shrink-0 ml-2">
         {pago.tipoPago}
       </span>
     </div>
@@ -563,10 +566,10 @@ function InfoItem({
 }) {
   return (
     <div>
-      <p className="text-gray-500 text-xs">{label}</p>
+      <p className="text-gray-400 text-xs">{label}</p>
       <p
         className={`text-sm font-medium ${
-          highlight ? "text-blue-400" : "text-white"
+          highlight ? "text-blue-600" : "text-gray-900"
         }`}
       >
         {value}

@@ -98,3 +98,52 @@ export async function sugerirCompetencia(data: {
   const response = await instance.post("/ia/sugerir-competencia", data);
   return response.data;
 }
+
+// ============================================
+// SERVICIO IA — Generación de imágenes para sesión (fase 2)
+// POST /api/ia/generar-imagenes-sesion
+// ============================================
+
+export interface IGenerarImagenesSesionRequest {
+  sesion: Record<string, any>;
+  area?: string;
+  grado?: string;
+  tema?: string;
+  [key: string]: unknown;
+}
+
+export interface IImagenGenerada {
+  url: string;
+  descripcion: string;
+  posicion: "antes" | "junto" | "despues";
+}
+
+export interface IImagenesSesionResponse {
+  success: boolean;
+  data: {
+    /** El backend puede devolver la sesión completa con imágenes embebidas en los procesos,
+     *  o bien un formato indexado { index, imagen }. Se acepta any para soportar ambos. */
+    inicio?: { procesos: Array<any> };
+    desarrollo?: { procesos: Array<any> };
+    cierre?: { procesos: Array<any> };
+    [key: string]: unknown;
+  };
+  metadata?: Record<string, unknown>;
+  message?: string;
+}
+
+/**
+ * Genera imágenes AI para una sesión ya creada (fase 2).
+ * Se llama DESPUÉS de generar el texto de la sesión.
+ * Timeout extendido a 5 minutos para generación de imágenes.
+ *
+ * POST /api/ia/generar-imagenes-sesion
+ */
+export async function generarImagenesSesion(
+  data: IGenerarImagenesSesionRequest,
+): Promise<IImagenesSesionResponse> {
+  const response = await instance.post("/ia/generar-imagenes-sesion", data, {
+    timeout: 300_000, // 5 min
+  });
+  return response.data;
+}

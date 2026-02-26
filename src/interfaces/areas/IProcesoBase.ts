@@ -1,15 +1,15 @@
 /**
- * Imagen SVG asociada a un proceso de la secuencia didáctica
+ * Imagen asociada a un proceso de la secuencia didáctica
  */
 export interface IImagenProceso {
-  /** Identificador único de la imagen (ej: "mat__frutas__manzana__01") */
-  id: string;
-  /** URL completa del SVG en S3 */
+  /** Identificador único de la imagen (opcional en v2) */
+  id?: string;
+  /** URL completa de la imagen (S3) */
   url: string;
   /** Descripción breve de la imagen */
   descripcion: string;
   /** Dónde renderizar respecto al texto de estrategias */
-  posicion: 'antes' | 'despues' | 'junto';
+  posicion: 'antes' | 'junto' | 'despues';
 }
 
 /**
@@ -19,8 +19,12 @@ export interface IImagenProceso {
 export interface IProcesoBase {
   proceso: string;
   estrategias: string;
-  recursosDidacticos: string;
+  /** Backend v2 usa "recursos", v1 usaba "recursosDidacticos" */
+  recursos?: string;
+  recursosDidacticos?: string;
   tiempo: string;
-  /** Imágenes SVG opcionales asociadas a este proceso */
+  /** Imagen singular (v2) — una imagen opcional por proceso */
+  imagen?: IImagenProceso;
+  /** @deprecated Imágenes en array (v1) — mantener por retrocompatibilidad */
   imagenes?: IImagenProceso[];
 }

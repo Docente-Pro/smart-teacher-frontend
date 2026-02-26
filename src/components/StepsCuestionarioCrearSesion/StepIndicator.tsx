@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 
 interface StepIndicatorProps {
   steps: {
@@ -10,12 +10,23 @@ interface StepIndicatorProps {
   currentStep: number;
   maxStepReached: number;
   onStepClick: (step: number) => void;
+  onBack?: () => void;
 }
 
-export const StepIndicator = ({ steps, currentStep, maxStepReached, onStepClick }: StepIndicatorProps) => {
+export const StepIndicator = ({ steps, currentStep, maxStepReached, onStepClick, onBack }: StepIndicatorProps) => {
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 py-4">
+        {/* Botón volver al dashboard */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-3 -ml-1"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Dashboard
+          </button>
+        )}
         <div className="flex items-center justify-between">
           {steps.map((step, index) => {
             const isCompleted = maxStepReached > step.number;

@@ -7,6 +7,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { generarSesionUnidad } from "@/services/sesiones.service";
+import { generarImagenesSesion } from "@/services/ia-sesion.service";
 import AreaSelectionModal from "@/components/Shared/Modal/AreaSelectionModal";
 import type { IUnidadListItem, IUnidadListMiembroArea } from "@/interfaces/IUnidadList";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
@@ -164,6 +165,8 @@ function GenerarSesionPremium() {
     Map<SlotKey, ISesionPremiumResponse>
   >(new Map());
   const [generatingSlot, setGeneratingSlot] = useState<SlotKey | null>(null);
+  /** Slots donde las imágenes se están generando en segundo plano */
+  const [generatingImages, setGeneratingImages] = useState<Set<SlotKey>>(new Set());
 
   // ─── Area selection modal (COMPARTIDA sin áreas asignadas) ───
   const [showAreaModal, setShowAreaModal] = useState(false);
@@ -279,8 +282,7 @@ function GenerarSesionPremium() {
       return map;
     }
 
-    // Current week → sequential order, only next ungenerated ASSIGNED slot is "disponible"
-    let foundNext = false;
+    // Current week → all ungenerated ASSIGNED slots are available (any order)
     for (const slot of allSlots) {
       const assigned = isAreaAssigned(slot.area, miembroAreas, tipo);
       if (!assigned) {
@@ -289,11 +291,8 @@ function GenerarSesionPremium() {
       }
       if (generatedSlots.has(slot.key)) {
         map.set(slot.key, "generada");
-      } else if (!foundNext) {
-        map.set(slot.key, "disponible");
-        foundNext = true;
       } else {
-        map.set(slot.key, "en_espera");
+        map.set(slot.key, "disponible");
       }
     }
     return map;
@@ -399,6 +398,9 @@ function GenerarSesionPremium() {
     const key = makeSlotKey(currentSemana.semana, dia, turno);
     setGeneratingSlot(key);
     try {
+      // ═══════════════════════════════════════════════════════════════
+      // FASE 1: Generar texto de la sesión (rápido, ~20-30s)
+      // ═══════════════════════════════════════════════════════════════
       const resp = await generarSesionUnidad(selectedUnidadId, {
         ...(areaId != null && { areaId }),
         semana: currentSemana.semana,
@@ -422,6 +424,77 @@ function GenerarSesionPremium() {
         const fullResp = resp as unknown as ISesionPremiumResponse;
         if (fullResp.sesion && fullResp.docente !== undefined) {
           setPremiumResponses((prev) => new Map(prev).set(key, fullResp));
+
+          // ═══════════════════════════════════════════════════════════
+          // FASE 2: Generar imágenes en background (sin bloquear UI)
+          // ═══════════════════════════════════════════════════════════
+          setGeneratingSlot(null); // Liberar slot principal
+
+          setGeneratingImages((prev) => new Set(prev).add(key));
+          generarImagenesSesion({
+            sesion: fullResp.sesion as unknown as Record<string, any>,
+            area: areaName,
+            grado: typeof fullResp.sesion.grado === "string"
+              ? fullResp.sesion.grado
+              : (fullResp.sesion.grado as any)?.nombre || "",
+            tema: actividad,
+          })
+            .then((imgRes) => {
+              if (imgRes.success && imgRes.data) {
+                // Inyectar imágenes en los procesos de la sesión
+                setPremiumResponses((prev) => {
+                  const current = prev.get(key);
+                  if (!current) return prev;
+
+                  const sesionActualizada = { ...current.sesion };
+
+                  const mergeImgs = (
+                    fase: "inicio" | "desarrollo" | "cierre",
+                    items?: Array<any>,
+                  ) => {
+                    if (!items?.length || !sesionActualizada[fase]) return;
+                    const procesos = [...sesionActualizada[fase].procesos];
+                    items.forEach((item, i) => {
+                      const idx = item.index ?? i;
+                      const img = item.imagen;
+                      if (idx >= 0 && idx < procesos.length && img) {
+                        procesos[idx] = { ...procesos[idx], imagen: img };
+                      }
+                    });
+                    sesionActualizada[fase] = {
+                      ...sesionActualizada[fase],
+                      procesos,
+                    };
+                  };
+
+                  mergeImgs("inicio", imgRes.data.inicio?.procesos);
+                  mergeImgs("desarrollo", imgRes.data.desarrollo?.procesos);
+                  mergeImgs("cierre", imgRes.data.cierre?.procesos);
+
+                  return new Map(prev).set(key, {
+                    ...current,
+                    sesion: sesionActualizada as ISesionPremiumResponse["sesion"],
+                  });
+                });
+                handleToaster("Imágenes generadas para la sesión", "success");
+              }
+            })
+            .catch((imgErr) => {
+              console.warn("⚠️ No se pudieron generar imágenes premium:", imgErr);
+              handleToaster(
+                "La sesión se generó correctamente, pero no se pudieron crear las imágenes",
+                "warning",
+              );
+            })
+            .finally(() => {
+              setGeneratingImages((prev) => {
+                const next = new Set(prev);
+                next.delete(key);
+                return next;
+              });
+            });
+
+          return; // No llegar al finally que haría setGeneratingSlot(null) otra vez
         }
       }
     } catch (err: any) {
@@ -771,6 +844,7 @@ function GenerarSesionPremium() {
                       slotStates={slotStates}
                       generatedSesiones={generatedSesiones}
                       generatingSlot={generatingSlot}
+                      generatingImages={generatingImages}
                       onGenerar={handleGenerar}
                       onVerSesion={(id, slotKey) => {
                         const premData = slotKey ? premiumResponses.get(slotKey) : null;
@@ -836,6 +910,7 @@ function DayColumn({
   slotStates,
   generatedSesiones,
   generatingSlot,
+  generatingImages,
   onGenerar,
   onVerSesion,
 }: {
@@ -844,6 +919,7 @@ function DayColumn({
   slotStates: Map<SlotKey, SlotState>;
   generatedSesiones: Map<SlotKey, { id: string; titulo: string }>;
   generatingSlot: SlotKey | null;
+  generatingImages: Set<SlotKey>;
   onGenerar: (
     dia: string,
     turno: "mañana" | "tarde",
@@ -903,6 +979,9 @@ function DayColumn({
           isGenerating={
             generatingSlot === makeSlotKey(semana, dia.dia, "mañana")
           }
+          isGeneratingImages={generatingImages.has(
+            makeSlotKey(semana, dia.dia, "mañana"),
+          )}
           anyGenerating={generatingSlot !== null}
           onGenerar={() =>
             onGenerar(
@@ -928,6 +1007,9 @@ function DayColumn({
           isGenerating={
             generatingSlot === makeSlotKey(semana, dia.dia, "tarde")
           }
+          isGeneratingImages={generatingImages.has(
+            makeSlotKey(semana, dia.dia, "tarde"),
+          )}
           anyGenerating={generatingSlot !== null}
           onGenerar={() =>
             onGenerar(
@@ -955,6 +1037,7 @@ function TurnoCard({
   state,
   generatedSesion,
   isGenerating,
+  isGeneratingImages,
   anyGenerating,
   onGenerar,
   onVerSesion,
@@ -965,6 +1048,7 @@ function TurnoCard({
   state: SlotState;
   generatedSesion?: { id: string; titulo: string };
   isGenerating: boolean;
+  isGeneratingImages: boolean;
   anyGenerating: boolean;
   onGenerar: () => void;
   onVerSesion: (id: string, slotKey?: SlotKey) => void;
@@ -1014,7 +1098,7 @@ function TurnoCard({
           <Moon className="h-3 w-3 text-indigo-400" />
         )}
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-          {isMañana ? "Mañana" : "Tarde"}
+          {isMañana ? "Primer Bloque" : "Segundo Bloque"}
         </span>
       </div>
 
@@ -1063,13 +1147,21 @@ function TurnoCard({
 
       {/* Generada con datos */}
       {isGenerated && generatedSesion && (
-        <button
-          onClick={() => onVerSesion(generatedSesion.id, slotKey)}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 transition-colors"
-        >
-          <Eye className="h-3 w-3" />
-          Ver sesión
-        </button>
+        <div className="space-y-1">
+          <button
+            onClick={() => onVerSesion(generatedSesion.id, slotKey)}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 transition-colors"
+          >
+            <Eye className="h-3 w-3" />
+            Ver sesión
+          </button>
+          {isGeneratingImages && (
+            <div className="flex items-center justify-center gap-1 py-0.5 text-[9px] text-sky-600 dark:text-sky-400 animate-pulse">
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              Generando imágenes…
+            </div>
+          )}
+        </div>
       )}
 
       {/* Generada sin datos */}

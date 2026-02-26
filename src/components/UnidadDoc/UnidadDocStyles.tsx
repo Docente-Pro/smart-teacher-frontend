@@ -194,6 +194,11 @@ export function UnidadDocStyles() {
             background-color: #FDE68A;
           }
 
+          /* Ocultar footer running-element en vista navegador */
+          .print-footer {
+            display: none;
+          }
+
           /* ─── Impresión ─── */
           @media print {
             body {

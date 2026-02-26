@@ -18,9 +18,6 @@ import type {
   ISolicitarPagoSuscriptorRequest,
   ISolicitarPagoSuscriptorResponse,
   IEstadoPagoUnidadResponse,
-  IPagosPendientesResponse,
-  IHistorialPagosUnidadResponse,
-  IPagoUnidad,
   IUnidadPreciosResponse,
   IPreSolicitarPagoRequest,
   IPreSolicitarPagoResponse,
@@ -203,35 +200,6 @@ export async function getEstadoPagoUnidad(
   const { data } = await instance.get<IEstadoPagoUnidadResponse>(
     `/unidad/${unidadId}/estado-pago`
   );
-  return data;
-}
-
-/** GET /api/unidad/pago/pendientes — Listar pagos pendientes (Admin) */
-export async function getPagosPendientes(): Promise<IPagosPendientesResponse> {
-  const { data } = await instance.get<IPagosPendientesResponse>("/unidad/pago/pendientes");
-  return data;
-}
-
-/** GET /api/unidad/pago/historial — Historial de todos los pagos (Admin) */
-export async function getHistorialPagosUnidad(): Promise<IHistorialPagosUnidadResponse> {
-  const { data } = await instance.get<IHistorialPagosUnidadResponse>("/unidad/pago/historial");
-  return data;
-}
-
-/** PATCH /api/unidad/pago/:pagoId/confirmar — Confirmar pago (Admin → WebSocket) */
-export async function confirmarPagoUnidad(pagoId: string): Promise<IPagoUnidad> {
-  const { data } = await instance.patch<IPagoUnidad>(`/unidad/pago/${pagoId}/confirmar`);
-  return data;
-}
-
-/** PATCH /api/unidad/pago/:pagoId/rechazar — Rechazar pago (Admin → WebSocket) */
-export async function rechazarPagoUnidad(
-  pagoId: string,
-  motivoRechazo?: string
-): Promise<IPagoUnidad> {
-  const { data } = await instance.patch<IPagoUnidad>(`/unidad/pago/${pagoId}/rechazar`, {
-    motivoRechazo,
-  });
   return data;
 }
 

@@ -387,15 +387,19 @@ function ProcesoPremiumRow({
     Array.isArray(proceso.estrategias)
       ? proceso.estrategias.join("\n")
       : proceso.estrategias || "";
-  const recursosTexto =
-    Array.isArray(proceso.recursosDidacticos)
-      ? proceso.recursosDidacticos.join(", ")
-      : proceso.recursosDidacticos || "";
 
-  // Separar imágenes por posición
-  const imagenes = proceso.imagenes ?? [];
+  // Soporta "recursos" (v2) y "recursosDidacticos" (v1)
+  const recursosRaw = proceso.recursos ?? proceso.recursosDidacticos;
+  const recursosTexto =
+    Array.isArray(recursosRaw)
+      ? recursosRaw.join(", ")
+      : recursosRaw || "";
+
+  // Normalizar imágenes: soporta imagen singular (v2) e imagenes array (v1)
+  const imagenes = proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
   const imgAntes = imagenes.filter((img) => img.posicion === "antes");
-  const imgDespues = imagenes.filter((img) => img.posicion !== "antes");
+  const imgJunto = imagenes.filter((img) => img.posicion === "junto");
+  const imgDespues = imagenes.filter((img) => img.posicion === "despues" || (!img.posicion && img.posicion !== "antes" && img.posicion !== "junto"));
 
   return (
     <tr key={idx}>
@@ -417,12 +421,12 @@ function ProcesoPremiumRow({
         {/* Imágenes con posicion "antes" */}
         {imgAntes.length > 0 && (
           <div style={{ marginBottom: "0.6rem", textAlign: "center" }}>
-            {imgAntes.map((img) => (
-              <div key={img.id} style={{ display: "inline-block", margin: "0 0.5rem" }}>
+            {imgAntes.map((img, imgIdx) => (
+              <div key={img.id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
                 <img
                   src={img.url}
                   alt={img.descripcion || ""}
-                  style={{ maxWidth: "200px", maxHeight: "150px" }}
+                  style={{ maxWidth: "350px", maxHeight: "300px" }}
                 />
                 {img.descripcion && (
                   <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
@@ -434,8 +438,39 @@ function ProcesoPremiumRow({
           </div>
         )}
 
-        {/* Estrategias */}
-        {estrategiasTexto && (
+        {/* Estrategias — con o sin imágenes "junto" */}
+        {estrategiasTexto && imgJunto.length > 0 ? (
+          <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
+            <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
+              <strong>Estrategias:</strong>{" "}
+              {Array.isArray(proceso.estrategias) && proceso.estrategias.length > 1 ? (
+                <ul style={{ marginLeft: "1rem", marginTop: "0.3rem", lineHeight: 1.6 }}>
+                  {proceso.estrategias.map((e, i) => (
+                    <li key={i} style={{ marginBottom: "0.2rem" }}>{e}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span>{estrategiasTexto}</span>
+              )}
+            </div>
+            <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              {imgJunto.map((img, imgIdx) => (
+                <div key={img.id ?? imgIdx} style={{ textAlign: "center" }}>
+                  <img
+                    src={img.url}
+                    alt={img.descripcion || ""}
+                    style={{ maxWidth: "350px", maxHeight: "300px" }}
+                  />
+                  {img.descripcion && (
+                    <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
+                      {img.descripcion}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : estrategiasTexto ? (
           <div style={{ marginBottom: "0.8rem", whiteSpace: "pre-wrap" }}>
             <strong>Estrategias:</strong>{" "}
             {Array.isArray(proceso.estrategias) &&
@@ -457,17 +492,17 @@ function ProcesoPremiumRow({
               <span>{estrategiasTexto}</span>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* Imágenes con posicion "despues" o sin posicion */}
         {imgDespues.length > 0 && (
           <div style={{ marginBottom: "0.6rem", textAlign: "center" }}>
-            {imgDespues.map((img) => (
-              <div key={img.id} style={{ display: "inline-block", margin: "0 0.5rem" }}>
+            {imgDespues.map((img, imgIdx) => (
+              <div key={img.id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
                 <img
                   src={img.url}
                   alt={img.descripcion || ""}
-                  style={{ maxWidth: "200px", maxHeight: "150px" }}
+                  style={{ maxWidth: "350px", maxHeight: "300px" }}
                 />
                 {img.descripcion && (
                   <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>

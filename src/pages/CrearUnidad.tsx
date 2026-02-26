@@ -90,6 +90,7 @@ function CrearUnidad() {
         <Step0TipoUnidad
           onContinue={handleTipoContinue}
           isPremium={isPremium && isSuscripcionActiva}
+          onBack={() => navigate("/dashboard")}
         />
       )}
 
@@ -102,6 +103,7 @@ function CrearUnidad() {
             currentStep={currentStep}
             maxStepReached={maxStepReached}
             onStepClick={handleSetStep}
+            onBack={() => navigate("/dashboard")}
           />
 
           {/* Resumen lateral */}

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Sparkles,
@@ -61,6 +62,38 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
 
   // Secciones colapsadas
   const [expandedPropositos, setExpandedPropositos] = useState(true);
+
+  // Handler para editar una actividad in-place
+  const handleActividadChange = (
+    areaIdx: number,
+    compIdx: number,
+    actIdx: number,
+    newValue: string
+  ) => {
+    if (!propositos) return;
+    const updated: IPropositos = {
+      ...propositos,
+      areasPropositos: propositos.areasPropositos.map((area, aI) =>
+        aI !== areaIdx
+          ? area
+          : {
+              ...area,
+              competencias: area.competencias.map((comp, cI) =>
+                cI !== compIdx
+                  ? comp
+                  : {
+                      ...comp,
+                      actividades: comp.actividades.map((act, actI) =>
+                        actI !== actIdx ? act : newValue
+                      ),
+                    }
+              ),
+            }
+      ),
+    };
+    setPropositos(updated);
+    updateContenido({ propositos: updated });
+  };
 
   const isGenerating = generandoPaso !== null;
 
@@ -374,11 +407,20 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
                           {comp.actividades?.length > 0 && (
                             <div className="mt-1">
                               <p className="text-xs text-slate-500 font-medium">Actividades:</p>
-                              <ul className="list-disc list-inside text-xs space-y-0.5 ml-2">
+                              <div className="space-y-1 ml-2 mt-1">
                                 {comp.actividades.map((act, i) => (
-                                  <li key={i}>{act}</li>
+                                  <div key={i} className="flex items-center gap-1.5">
+                                    <span className="text-xs text-slate-400 shrink-0">{i + 1}.</span>
+                                    <Input
+                                      value={act}
+                                      onChange={(e) =>
+                                        handleActividadChange(aIdx, cIdx, i, e.target.value)
+                                      }
+                                      className="h-7 text-xs border-slate-200 dark:border-slate-700 focus:border-purple-400 dark:focus:border-purple-500"
+                                    />
+                                  </div>
                                 ))}
-                              </ul>
+                              </div>
                             </div>
                           )}
                           {comp.instrumento && (

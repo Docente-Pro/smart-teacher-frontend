@@ -23,17 +23,15 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias }: Props
             {paragraph}
           </p>
         ))}
-      </div>
 
-      {/* ─── Reto ─── */}
-      {evidencias?.reto && (
-        <div style={{ marginBottom: "0.3rem" }}>
-          <p style={{ fontWeight: "bold", fontSize: "9pt", marginBottom: "0.15rem" }}>
+        {/* ─── Reto (dentro del mismo cuadro) ─── */}
+        {evidencias?.reto && (
+          <p style={{ fontWeight: "bold", fontSize: "9pt", marginTop: "0.3rem", marginBottom: "0" }}>
             Ante esta situación nos planteamos el siguiente reto:{" "}
             <span style={{ fontWeight: "normal" }}>{evidencias.reto}</span>
           </p>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ─── Evidencias de aprendizaje ─── */}
       {evidencias && (
@@ -44,14 +42,24 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias }: Props
           <table>
             <thead>
               <tr>
-                <th style={{ width: "34%", textAlign: "center" }}>PROPÓSITO</th>
-                <th style={{ width: "33%", textAlign: "center" }}>PRODUCTO INTEGRADOR</th>
-                <th style={{ width: "33%", textAlign: "center" }}>INSTRUMENTO DE EVALUACIÓN</th>
+                <th style={{ width: "100%", textAlign: "center" }}>PROPÓSITO</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td style={{ fontSize: "9pt" }}>{evidencias.proposito}</td>
+              </tr>
+            </tbody>
+          </table>
+          <table style={{ marginTop: "0.3rem" }}>
+            <thead>
+              <tr>
+                <th style={{ width: "50%", textAlign: "center" }}>PRODUCTO INTEGRADOR</th>
+                <th style={{ width: "50%", textAlign: "center" }}>INSTRUMENTO DE EVALUACIÓN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
                 <td style={{ fontSize: "9pt" }}>{evidencias.productoIntegrador}</td>
                 <td style={{ fontSize: "9pt" }}>{evidencias.instrumentoEvaluacion}</td>
               </tr>

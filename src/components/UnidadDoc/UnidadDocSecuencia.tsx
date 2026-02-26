@@ -10,10 +10,10 @@ interface Props {
  *
  * Calendario semanal — cada semana es una tabla con:
  * - Fila DIAS: lunes a viernes con número
- * - Fila AREAS (turno mañana): las áreas del turno de mañana
- * - Fila ACTIVIDAD (turno mañana)
- * - Fila AREA (turno tarde)
- * - Fila ACTIVIDAD (turno tarde)
+ * - Fila AREAS (primer bloque): las áreas del primer bloque
+ * - Fila ACTIVIDAD (primer bloque)
+ * - Fila AREA (segundo bloque)
+ * - Fila ACTIVIDAD (segundo bloque)
  */
 export function UnidadDocSecuencia({ secuencia }: Props) {
   if (!secuencia) return null;
@@ -59,7 +59,7 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                 ))}
               </tr>
 
-              {/* Fila: AREAS (turno mañana) */}
+              {/* Fila: AREAS (primer bloque) */}
               <tr>
                 <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
                   AREAS
@@ -79,7 +79,7 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                 })}
               </tr>
 
-              {/* Fila: ACTIVIDAD (turno mañana) */}
+              {/* Fila: ACTIVIDAD (primer bloque) */}
               <tr>
                 <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
                   ACTIVIDAD
@@ -91,7 +91,7 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                 ))}
               </tr>
 
-              {/* Fila: AREA (turno tarde) */}
+              {/* Fila: AREA (segundo bloque) */}
               <tr>
                 <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
                   AREA
@@ -111,7 +111,7 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                 })}
               </tr>
 
-              {/* Fila: ACTIVIDAD (turno tarde) */}
+              {/* Fila: ACTIVIDAD (segundo bloque) */}
               <tr>
                 <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
                   ACTIVIDAD

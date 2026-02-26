@@ -114,8 +114,16 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
 
     // Esperar a que todas las imágenes del documento estén cargadas antes de generar el PDF
     const waitForImages = (): Promise<void> => {
-      const images = documentRef.current?.querySelectorAll("img") || [];
-      const pending = Array.from(images).filter((img) => !img.complete);
+      const images = Array.from(documentRef.current?.querySelectorAll("img") || []);
+      
+      // Forzar carga inmediata de imágenes lazy
+      images.forEach((img) => {
+        if (img.loading === "lazy") {
+          img.loading = "eager";
+        }
+      });
+
+      const pending = images.filter((img) => img.src && !img.complete);
       if (pending.length === 0) return Promise.resolve();
       
       return Promise.all(
@@ -124,6 +132,8 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
             new Promise<void>((resolve) => {
               img.onload = () => resolve();
               img.onerror = () => resolve(); // No bloquear por imágenes rotas
+              // Timeout de 10s por imagen
+              setTimeout(resolve, 10_000);
             })
         )
       ).then(() => {});

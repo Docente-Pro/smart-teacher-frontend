@@ -17,6 +17,11 @@ import type {
   IConfirmarPagoUnidadResponse,
   IConfirmarPagoSuscriptorResponse,
   IRechazarPagoUnidadResponse,
+  IListarUsuariosParams,
+  IListarUsuariosResponse,
+  IUsuarioDetalleResponse,
+  IDowngradeUsuarioResponse,
+  IEliminarUsuarioResponse,
 } from "@/interfaces/IAdmin";
 
 // ============================================
@@ -246,6 +251,67 @@ export async function rechazarPagoUnidad(
   const { data } = await instance.patch<IRechazarPagoUnidadResponse>(
     `/unidad/pago/${pagoId}/rechazar`,
     motivo ? { motivo } : {},
+    { headers: getAdminHeaders() }
+  );
+  return data;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 4. Gestión de Usuarios
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * 4.1 GET /api/admin/usuarios
+ * Listar usuarios con paginación, búsqueda y filtros.
+ */
+export async function getUsuarios(
+  params: IListarUsuariosParams = {}
+): Promise<IListarUsuariosResponse> {
+  const { data } = await instance.get<IListarUsuariosResponse>(
+    "/admin/usuarios",
+    { headers: getAdminHeaders(), params }
+  );
+  return data;
+}
+
+/**
+ * 4.2 GET /api/admin/usuarios/:usuarioId
+ * Detalle completo de un usuario.
+ */
+export async function getUsuarioDetalle(
+  usuarioId: string
+): Promise<IUsuarioDetalleResponse> {
+  const { data } = await instance.get<IUsuarioDetalleResponse>(
+    `/admin/usuarios/${usuarioId}`,
+    { headers: getAdminHeaders() }
+  );
+  return data;
+}
+
+/**
+ * 4.3 PATCH /api/admin/usuarios/:usuarioId/downgrade
+ * Bajar a un usuario a plan free.
+ */
+export async function downgradeUsuario(
+  usuarioId: string
+): Promise<IDowngradeUsuarioResponse> {
+  const { data } = await instance.patch<IDowngradeUsuarioResponse>(
+    `/admin/usuarios/${usuarioId}/downgrade`,
+    {},
+    { headers: getAdminHeaders() }
+  );
+  return data;
+}
+
+/**
+ * 4.4 DELETE /api/admin/usuarios/:usuarioId
+ * Eliminar usuario y todos sus datos. Acción irreversible.
+ */
+export async function eliminarUsuario(
+  usuarioId: string
+): Promise<IEliminarUsuarioResponse> {
+  const { data } = await instance.delete<IEliminarUsuarioResponse>(
+    `/admin/usuarios/${usuarioId}`,
     { headers: getAdminHeaders() }
   );
   return data;
