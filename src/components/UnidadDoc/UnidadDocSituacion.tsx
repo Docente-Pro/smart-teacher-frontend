@@ -4,12 +4,13 @@ interface Props {
   situacionSignificativa: string;
   evidencias?: IEvidencias;
   grado?: string;
+  imagenSituacionUrl?: string;
 }
 
 /**
  * PLANTEAMIENTO DE LA SITUACIÓN + EVIDENCIA DE APRENDIZAJE
  */
-export function UnidadDocSituacion({ situacionSignificativa, evidencias }: Props) {
+export function UnidadDocSituacion({ situacionSignificativa, evidencias, imagenSituacionUrl }: Props) {
   return (
     <div style={{ marginBottom: "0.4rem" }}>
       {/* ─── Situación significativa ─── */}
@@ -18,6 +19,22 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias }: Props
       </h3>
 
       <div className="situacion-box">
+        {/* ─── Imagen ilustrativa (si existe) ─── */}
+        {imagenSituacionUrl && (
+          <div style={{ textAlign: "center", marginBottom: "0.4rem" }}>
+            <img
+              src={imagenSituacionUrl}
+              alt="Ilustración de la situación significativa"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "350px",
+                objectFit: "contain",
+                borderRadius: "4px",
+              }}
+            />
+          </div>
+        )}
+
         {situacionSignificativa.split("\n").map((paragraph, i) => (
           <p key={i} style={{ fontSize: "9pt", marginBottom: "0.25rem", textAlign: "justify" }}>
             {paragraph}

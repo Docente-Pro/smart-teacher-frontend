@@ -207,11 +207,6 @@ function SelectProblematicaModal({ isOpen, onClose, onSelect, selectedId }: Prop
                               <Sparkles className="h-3 w-3" /> Personalizada
                             </span>
                           )}
-                          {problematica._count?.usuarios && problematica._count.usuarios > 0 && (
-                            <span className="text-[10px] text-slate-400">
-                              {problematica._count.usuarios} docentes
-                            </span>
-                          )}
                         </div>
                       </div>
                     </button>

@@ -92,6 +92,9 @@ export default function AdminUsuarioDetalle() {
       const res = await resetUsuario(id!, {
         resetSesiones: true,
         resetPdfs: true,
+        resetSuscripcion: false,
+        resetUnidades: false,
+        resetPerfil: false,
       });
       toast.success(
         res.message || `${res.data.sesionesEliminadas} sesiones eliminadas`
@@ -114,6 +117,10 @@ export default function AdminUsuarioDetalle() {
     setActionLoading("reset-perfil");
     try {
       const res = await resetUsuario(id!, {
+        resetSesiones: false,
+        resetPdfs: false,
+        resetSuscripcion: false,
+        resetUnidades: false,
         resetPerfil: true,
       });
       toast.success(res.message || "Perfil reseteado correctamente");
@@ -135,7 +142,11 @@ export default function AdminUsuarioDetalle() {
     setActionLoading("reset-unidades");
     try {
       const res = await resetUsuario(id!, {
+        resetSesiones: false,
+        resetPdfs: false,
+        resetSuscripcion: false,
         resetUnidades: true,
+        resetPerfil: false,
       });
       toast.success(
         res.message || `${res.data.unidadesEliminadas} unidades eliminadas`

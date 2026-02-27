@@ -54,8 +54,7 @@ export const MedidasComparacion: React.FC<Props> = ({ data }) => {
         ...defaultRoughConfig,
         stroke: color,
         fill: color,
-        fillStyle: 'cross-hatch',
-        fillWeight: 1,
+        fillStyle: 'solid',
         strokeWidth: 3,
         roughness: 0.8
       });

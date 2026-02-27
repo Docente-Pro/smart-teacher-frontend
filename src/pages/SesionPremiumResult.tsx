@@ -12,6 +12,7 @@ import {
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc";
 import { useSesionPremiumPDF } from "@/hooks/useSesionPremiumPDF";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
+import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 
 /**
  * SesionPremiumResult
@@ -28,9 +29,12 @@ function SesionPremiumResult() {
   const documentRef = useRef<HTMLDivElement>(null);
 
   // Obtener data del state de navegación
-  const premiumData =
-    (location.state as { premiumData?: ISesionPremiumResponse })
-      ?.premiumData ?? null;
+  const stateData = location.state as {
+    premiumData?: ISesionPremiumResponse;
+    instrumento?: IInstrumentoEvaluacion | null;
+  } | null;
+  const premiumData = stateData?.premiumData ?? null;
+  const instrumento = stateData?.instrumento ?? null;
 
   const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } =
     useSesionPremiumPDF(documentRef, premiumData);
@@ -166,7 +170,7 @@ function SesionPremiumResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={premiumData} />
+          <SesionPremiumDoc data={premiumData} instrumento={instrumento} />
         </div>
       </div>
     </div>

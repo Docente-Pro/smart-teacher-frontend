@@ -6,10 +6,14 @@ export interface IImagenProceso {
   id?: string;
   /** URL completa de la imagen (S3) */
   url: string;
+  /** "ilustrativa" = imagen decorativa, "contenido" = imagen con texto overlay */
+  tipo?: "ilustrativa" | "contenido";
   /** Descripción breve de la imagen */
   descripcion: string;
   /** Dónde renderizar respecto al texto de estrategias */
   posicion: 'antes' | 'junto' | 'despues';
+  /** Texto superpuesto en la imagen (solo presente cuando tipo === "contenido") */
+  texto_overlay?: string;
 }
 
 /**
@@ -27,4 +31,6 @@ export interface IProcesoBase {
   imagen?: IImagenProceso;
   /** @deprecated Imágenes en array (v1) — mantener por retrocompatibilidad */
   imagenes?: IImagenProceso[];
+  /** Gráfico educativo generado por IA (Matemática o área curricular) */
+  grafico?: Record<string, unknown> | null;
 }

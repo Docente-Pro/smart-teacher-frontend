@@ -15,6 +15,7 @@ import ToggleDarkMode from "./ToggleDarkMode";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Link, useLocation } from "react-router";
 import { useAuthStore } from "@/store/auth.store";
+import { clearUserStorage } from "@/utils/clearUserStorage";
 
 export default function Header() {
   const { logout } = useAuth0();
@@ -30,9 +31,9 @@ export default function Header() {
   const isInitialQuestionnaire = pathname.includes("cuestionario-inicial");
 
   const handleLogout = () => {
-    localStorage.clear();
+    clearUserStorage();
     useAuthStore.getState().clearAuth();
-    logout({ logoutParams: { returnTo: window.location.origin } });
+    logout({ logoutParams: { returnTo: `${window.location.origin}/login` } });
   };
 
   return (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { Building2, GraduationCap, Layers, MapPin } from "lucide-react";
+import { Building2, GraduationCap, MapPin, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +45,9 @@ const provincias: UbigeoProvincia[] = provinciasData.ubigeo_provincias;
 const distritos: UbigeoDistrito[] = distritosData.ubigeo_distritos;
 
 interface OnboardingData {
+  nombre: string;
   nombreInstitucion: string;
+  genero: string;
   nivelId: number;
   gradoId: number;
   departamento: string;
@@ -60,7 +62,9 @@ function OnboardingPage() {
   const { showLoading, hideLoading } = useGlobalLoading();
 
   const [formData, setFormData] = useState<OnboardingData>({
+    nombre: "",
     nombreInstitucion: "",
+    genero: "",
     nivelId: 0,
     gradoId: 0,
     departamento: "",
@@ -139,7 +143,15 @@ function OnboardingPage() {
   }, [formData.nivelId, formData.gradoId, todosLosGrados]);
 
   function validateForm(): boolean {
+    if (!formData.nombre || formData.nombre.trim().length < 2) {
+      return false;
+    }
+
     if (!formData.nombreInstitucion || formData.nombreInstitucion.trim().length < 3) {
+      return false;
+    }
+
+    if (!formData.genero) {
       return false;
     }
 
@@ -184,7 +196,9 @@ function OnboardingPage() {
 
     try {
       const response = await instance.patch(`/usuario/${backendUser.id}`, {
+        nombre: formData.nombre,
         nombreInstitucion: formData.nombreInstitucion,
+        genero: formData.genero,
         nivelId: formData.nivelId,
         gradoId: formData.gradoId,
         departamento: formData.departamento,
@@ -227,176 +241,224 @@ function OnboardingPage() {
         <div className="absolute bottom-10 -right-20 w-[500px] h-[500px] bg-sky-400 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="w-full max-w-2xl bg-white dark:bg-gray-950 rounded-2xl shadow-2xl p-8 md:p-12 relative z-10">
+      <div className="w-full max-w-3xl bg-white dark:bg-gray-950 rounded-2xl shadow-2xl p-8 md:p-12 relative z-10">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">¡Bienvenido, {auth0User?.name}! 🎉</h1>
-          <p className="text-gray-600 dark:text-gray-400">Completa tu perfil para personalizar tu experiencia en DocentePro</p>
+          <p className="text-gray-500 dark:text-gray-400">Completa tu perfil para personalizar tu experiencia en DocentePro</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Institución Educativa */}
-          <div className="space-y-2">
-            <Label htmlFor="institucion" className="text-gray-700 dark:text-gray-300 text-base">
-              Institución Educativa
-            </Label>
-            <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                id="institucion"
-                type="text"
-                placeholder="I.E. María Parado de Bellido"
-                className="pl-10 py-6 text-base"
-                value={formData.nombreInstitucion}
-                onChange={(e) => setFormData((prev) => ({ ...prev, nombreInstitucion: e.target.value }))}
-              />
+        <form onSubmit={handleSubmit} className="space-y-8">
+
+          {/* ── Sección: Datos personales ── */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Datos personales</span>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Este nombre aparecerá en tus documentos generados</p>
-          </div>
 
-          {/* Nivel Educativo */}
-          <div className="space-y-2">
-            <Label htmlFor="nivel" className="text-gray-700 dark:text-gray-300 text-base">
-              Nivel Educativo
-            </Label>
-            <div className="relative">
-              <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
-              <Select
-                value={formData.nivelId ? formData.nivelId.toString() : ""}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, nivelId: parseInt(value) }))}
-              >
-                <SelectTrigger className="pl-10 py-6">
-                  <SelectValue placeholder="Selecciona un nivel" />
-                </SelectTrigger>
-                <SelectContent>
-                  {niveles.map((nivel) => (
-                    <SelectItem key={nivel.id} value={nivel.id.toString()}>
-                      {nivel.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="nombre" className="text-gray-700 dark:text-gray-300 text-sm">
+                  Nombre completo
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="nombre"
+                    type="text"
+                    placeholder="Juan Pérez"
+                    className="pl-10 py-5 text-sm"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, nombre: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="institucion" className="text-gray-700 dark:text-gray-300 text-sm">
+                  Institución Educativa
+                </Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="institucion"
+                    type="text"
+                    placeholder="I.E. María Parado de Bellido"
+                    className="pl-10 py-5 text-sm"
+                    value={formData.nombreInstitucion}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, nombreInstitucion: e.target.value }))}
+                  />
+                </div>
+              </div>
             </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500">El nombre de la institución aparecerá en tus documentos generados.</p>
           </div>
 
-          {/* Grado */}
-          <div className="space-y-2">
-            <Label htmlFor="grado" className="text-gray-700 dark:text-gray-300 text-base">
-              Grado
-            </Label>
-            <div className="relative">
-              <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
-              <Select
-                value={formData.gradoId ? formData.gradoId.toString() : ""}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, gradoId: parseInt(value) }))}
-                disabled={!formData.nivelId}
-              >
-                <SelectTrigger className="pl-10 py-6">
-                  <SelectValue placeholder={formData.nivelId ? "Selecciona un grado" : "Primero selecciona un nivel"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {gradosFiltrados.map((grado) => (
-                    <SelectItem key={grado.id} value={grado.id.toString()}>
-                      {grado.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="border-t border-gray-100 dark:border-gray-800" />
+
+          {/* ── Sección: Información académica ── */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Información académica</span>
             </div>
-          </div>
 
-          {/* ── Ubicación geográfica ── */}
-          <div className="space-y-2 pt-2">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Ubicación</p>
-          </div>
+            <div className="grid grid-cols-3 gap-4">
+              {/* Género */}
+              <div className="space-y-1.5">
+                <Label htmlFor="genero" className="text-gray-700 dark:text-gray-300 text-sm">
+                  Género
+                </Label>
+                <Select
+                  value={formData.genero}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, genero: value }))}
+                >
+                  <SelectTrigger className="py-5">
+                    <SelectValue placeholder="Selecciona" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Femenino">Femenino</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Para personalizar: "el/la docente"</p>
+              </div>
 
-          {/* Departamento */}
-          <div className="space-y-2">
-            <Label htmlFor="departamento" className="text-gray-700 dark:text-gray-300 text-base">
-              Departamento
-            </Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
-              <Select
-                value={formData.departamento}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, departamento: value, provincia: "", distrito: "" }))
-                }
-              >
-                <SelectTrigger className="pl-10 py-6">
-                  <SelectValue placeholder="Selecciona un departamento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departamentos.map((dep) => (
-                    <SelectItem key={dep.id} value={dep.departamento}>
-                      {dep.departamento}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              {/* Nivel Educativo */}
+              <div className="space-y-1.5">
+                <Label htmlFor="nivel" className="text-gray-700 dark:text-gray-300 text-sm">
+                  Nivel Educativo
+                </Label>
+                <Select
+                  value={formData.nivelId ? formData.nivelId.toString() : ""}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, nivelId: parseInt(value) }))}
+                >
+                  <SelectTrigger className="py-5">
+                    <SelectValue placeholder="Selecciona" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {niveles.map((nivel) => (
+                      <SelectItem key={nivel.id} value={nivel.id.toString()}>
+                        {nivel.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Provincia */}
-          <div className="space-y-2">
-            <Label htmlFor="provincia" className="text-gray-700 dark:text-gray-300 text-base">
-              Provincia
-            </Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
-              <Select
-                value={formData.provincia}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, provincia: value, distrito: "" }))
-                }
-                disabled={!formData.departamento}
-              >
-                <SelectTrigger className="pl-10 py-6">
-                  <SelectValue placeholder={formData.departamento ? "Selecciona una provincia" : "Primero selecciona un departamento"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {provinciasFiltradas.map((prov) => (
-                    <SelectItem key={prov.id} value={prov.provincia}>
-                      {prov.provincia}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Grado */}
+              <div className="space-y-1.5">
+                <Label htmlFor="grado" className="text-gray-700 dark:text-gray-300 text-sm">
+                  Grado
+                </Label>
+                <Select
+                  value={formData.gradoId ? formData.gradoId.toString() : ""}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, gradoId: parseInt(value) }))}
+                  disabled={!formData.nivelId}
+                >
+                  <SelectTrigger className="py-5">
+                    <SelectValue placeholder={formData.nivelId ? "Selecciona" : "Elige nivel primero"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {gradosFiltrados.map((grado) => (
+                      <SelectItem key={grado.id} value={grado.id.toString()}>
+                        {grado.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          {/* Distrito */}
-          <div className="space-y-2">
-            <Label htmlFor="distrito" className="text-gray-700 dark:text-gray-300 text-base">
-              Distrito
-            </Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
-              <Select
-                value={formData.distrito}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, distrito: value }))
-                }
-                disabled={!formData.provincia}
-              >
-                <SelectTrigger className="pl-10 py-6">
-                  <SelectValue placeholder={formData.provincia ? "Selecciona un distrito" : "Primero selecciona una provincia"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {distritosFiltrados.map((dist) => (
-                    <SelectItem key={dist.id} value={dist.distrito}>
-                      {dist.distrito}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="border-t border-gray-100 dark:border-gray-800" />
+
+          {/* ── Sección: Ubicación ── */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Ubicación geográfica</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="departamento" className="text-gray-700 dark:text-gray-300 text-sm">
+                  Departamento
+                </Label>
+                <Select
+                  value={formData.departamento}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, departamento: value, provincia: "", distrito: "" }))
+                  }
+                >
+                  <SelectTrigger className="py-5">
+                    <SelectValue placeholder="Selecciona" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departamentos.map((dep) => (
+                      <SelectItem key={dep.id} value={dep.departamento}>
+                        {dep.departamento}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="provincia" className="text-gray-700 dark:text-gray-300 text-sm">
+                  Provincia
+                </Label>
+                <Select
+                  value={formData.provincia}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, provincia: value, distrito: "" }))
+                  }
+                  disabled={!formData.departamento}
+                >
+                  <SelectTrigger className="py-5">
+                    <SelectValue placeholder={formData.departamento ? "Selecciona" : "Elige depto."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinciasFiltradas.map((prov) => (
+                      <SelectItem key={prov.id} value={prov.provincia}>
+                        {prov.provincia}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="distrito" className="text-gray-700 dark:text-gray-300 text-sm">
+                  Distrito
+                </Label>
+                <Select
+                  value={formData.distrito}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, distrito: value }))
+                  }
+                  disabled={!formData.provincia}
+                >
+                  <SelectTrigger className="py-5">
+                    <SelectValue placeholder={formData.provincia ? "Selecciona" : "Elige prov."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {distritosFiltrados.map((dist) => (
+                      <SelectItem key={dist.id} value={dist.distrito}>
+                        {dist.distrito}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 text-base font-semibold mt-8"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 text-base font-semibold mt-4 rounded-xl transition-all duration-200 hover:shadow-lg"
           >
             Completar Perfil
           </Button>

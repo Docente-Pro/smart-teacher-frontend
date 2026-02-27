@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 import { ConfiguracionGrafico } from "@/features/graficos-educativos/domain/types";
 import { Button } from "@/components/ui/button";
@@ -252,6 +252,389 @@ const ejemplosPredefinidos = {
         pregunta: "Completa las coordenadas faltantes de Casa 2"
       }
     ]
+  },
+  tabla_valores: {
+    tipoGrafico: "tabla_valores",
+    titulo: "Tabla de multiplicar del 3",
+    encabezados: ["x", "×3", "Resultado"],
+    elementos: [
+      { celdas: [1, "1 × 3", 3] },
+      { celdas: [2, "2 × 3", 6] },
+      { celdas: [3, "3 × 3", 9] },
+      { celdas: [4, "4 × 3", 12] },
+      { celdas: [5, "5 × 3", 15] }
+    ],
+    mostrarBordes: true
+  },
+  barras_fraccion: {
+    tipoGrafico: "barras_fraccion",
+    titulo: "Comparación de fracciones con barras",
+    elementos: [
+      { numerador: 2, denominador: 3, color: "azul", etiqueta: "Chocolate de María" },
+      { numerador: 1, denominador: 3, color: "verde", etiqueta: "Chocolate de Pedro" },
+      { numerador: 3, denominador: 4, color: "rojo", etiqueta: "Chocolate de Ana" }
+    ],
+    orientacion: "horizontal"
+  },
+  patron_visual: {
+    tipoGrafico: "patron_visual",
+    titulo: "Descubre el patrón",
+    elementos: [
+      { tipo: "forma", valor: "circulo", color: "#3b82f6" },
+      { tipo: "forma", valor: "cuadrado", color: "#ef4444" },
+      { tipo: "forma", valor: "triangulo", color: "#10b981" }
+    ],
+    repeticiones: 3
+  },
+  diagrama_venn: {
+    tipoGrafico: "diagrama_venn",
+    titulo: "Deportes que practican los estudiantes",
+    elementos: [
+      {
+        nombre: "Fútbol",
+        elementos: ["Ana", "Luis", "María", "Carlos"],
+        color: "#3b82f6"
+      },
+      {
+        nombre: "Básquet",
+        elementos: ["Pedro", "María", "Carlos", "Rosa"],
+        color: "#ef4444"
+      }
+    ],
+    interseccion: ["María", "Carlos"]
+  },
+  tabla_doble_entrada: {
+    tipoGrafico: "tabla_doble_entrada",
+    titulo: "Ventas de frutas por día",
+    elementos: [],
+    encabezadosColumnas: ["Lunes", "Martes", "Miércoles", "Jueves"],
+    encabezadosFilas: ["Manzanas", "Naranjas", "Plátanos"],
+    datos: [
+      [12, 15, 10, 8],
+      [8, 12, 14, 9],
+      [20, 18, 22, 16]
+    ],
+    colorEncabezado: "#10b981"
+  },
+  medidas_comparacion: {
+    tipoGrafico: "medidas_comparacion",
+    titulo: "Altura de los estudiantes",
+    elementos: [
+      { tipo: "longitud", valor: 1.35, unidad: "m", etiqueta: "Ana", color: "azul" },
+      { tipo: "longitud", valor: 1.42, unidad: "m", etiqueta: "Luis", color: "verde" },
+      { tipo: "longitud", valor: 1.28, unidad: "m", etiqueta: "María", color: "rojo" }
+    ]
+  },
+  valor_posicional: {
+    tipoGrafico: "valor_posicional",
+    titulo: "Valor posicional de 3 527",
+    numero: 3527,
+    posiciones: [
+      { posicion: "unidades de millar", digito: 3, valor: 3000, color: "#e74c3c" },
+      { posicion: "centenas", digito: 5, valor: 500, color: "#3498db" },
+      { posicion: "decenas", digito: 2, valor: 20, color: "#2ecc71" },
+      { posicion: "unidades", digito: 7, valor: 7, color: "#f39c12" }
+    ],
+    mostrarDescomposicion: true,
+    elementos: []
+  },
+  descomposicion_numero: {
+    tipoGrafico: "descomposicion_numero",
+    titulo: "Descomposición de 456",
+    numero: 456,
+    tipo: "aditiva",
+    partes: [
+      { valor: 400, etiqueta: "4 centenas", color: "#e74c3c" },
+      { valor: 50, etiqueta: "5 decenas", color: "#3498db" },
+      { valor: 6, etiqueta: "6 unidades", color: "#2ecc71" }
+    ],
+    mostrarOperacion: true,
+    elementos: []
+  },
+  abaco: {
+    tipoGrafico: "abaco",
+    titulo: "Representación en ábaco: 243",
+    numero: 243,
+    columnas: [
+      { posicion: "Centenas", cuentas: 2, color: "#e74c3c" },
+      { posicion: "Decenas", cuentas: 4, color: "#3498db" },
+      { posicion: "Unidades", cuentas: 3, color: "#2ecc71" }
+    ],
+    mostrarValor: true,
+    elementos: []
+  },
+  base_diez_bloques: {
+    tipoGrafico: "base_diez_bloques",
+    titulo: "Representación de 135 con bloques base 10",
+    numero: 135,
+    bloques: [
+      { tipo: "placa", cantidad: 1, color: "#e74c3c", valor: 100 },
+      { tipo: "barra", cantidad: 3, color: "#3498db", valor: 10 },
+      { tipo: "unidad", cantidad: 5, color: "#2ecc71", valor: 1 }
+    ],
+    mostrarTotal: true,
+    elementos: []
+  },
+  pictograma: {
+    tipoGrafico: "pictograma",
+    titulo: "Mascotas de los estudiantes",
+    categorias: ["Perro", "Gato", "Pez", "Hamster"],
+    elementos: [
+      { categoria: "Perro", cantidad: 8, icono: "🐕" },
+      { categoria: "Gato", cantidad: 5, icono: "🐈" },
+      { categoria: "Pez", cantidad: 3, icono: "🐟" },
+      { categoria: "Hamster", cantidad: 4, icono: "🐹" }
+    ],
+    valorIcono: 1,
+    leyenda: "Cada ícono = 1 mascota"
+  },
+  grafico_circular: {
+    tipoGrafico: "grafico_circular",
+    titulo: "Frutas favoritas del salón",
+    sectores: [
+      { etiqueta: "Manzana", valor: 8, color: "#e74c3c", porcentaje: 32 },
+      { etiqueta: "Plátano", valor: 6, color: "#f1c40f", porcentaje: 24 },
+      { etiqueta: "Naranja", valor: 5, color: "#e67e22", porcentaje: 20 },
+      { etiqueta: "Uva", valor: 6, color: "#9b59b6", porcentaje: 24 }
+    ],
+    mostrarPorcentaje: true,
+    mostrarLeyenda: true,
+    elementos: []
+  },
+  grafico_lineal: {
+    tipoGrafico: "grafico_lineal",
+    titulo: "Temperatura semanal",
+    ejeX: { titulo: "Día", etiquetas: ["Lun", "Mar", "Mié", "Jue", "Vie"] },
+    ejeY: { titulo: "°C", maximo: 35, intervalo: 5 },
+    series: [
+      { nombre: "Mañana", puntos: [{ x: "Lun", y: 18 }, { x: "Mar", y: 20 }, { x: "Mié", y: 22 }, { x: "Jue", y: 19 }, { x: "Vie", y: 21 }], color: "#3498db" },
+      { nombre: "Tarde", puntos: [{ x: "Lun", y: 25 }, { x: "Mar", y: 28 }, { x: "Mié", y: 30 }, { x: "Jue", y: 26 }, { x: "Vie", y: 27 }], color: "#e74c3c" }
+    ],
+    mostrarPuntos: true,
+    mostrarValores: true,
+    elementos: []
+  },
+  tabla_frecuencias: {
+    tipoGrafico: "tabla_frecuencias",
+    titulo: "Notas del examen de matemáticas",
+    datos: [
+      { dato: "AD", frecuencia: 5, color: "#2ecc71" },
+      { dato: "A", frecuencia: 12, color: "#3498db" },
+      { dato: "B", frecuencia: 8, color: "#f39c12" },
+      { dato: "C", frecuencia: 3, color: "#e74c3c" }
+    ],
+    totalDatos: 28,
+    mostrarRelativa: true,
+    mostrarAcumulada: true,
+    mostrarConteo: true,
+    elementos: []
+  },
+  reloj_tiempo: {
+    tipoGrafico: "reloj_tiempo",
+    titulo: "¿Qué hora marca el reloj?",
+    relojes: [
+      { hora: 3, minuto: 15, etiqueta: "Hora de recreo" },
+      { hora: 8, minuto: 0, etiqueta: "Entrada al colegio" }
+    ],
+    formato: "12h",
+    elementos: []
+  },
+  calendario: {
+    tipoGrafico: "calendario",
+    titulo: "Calendario de Junio 2025",
+    mes: 6,
+    anio: 2025,
+    diasDestacados: [
+      { dia: 7, color: "#e74c3c", etiqueta: "Día de la Bandera" },
+      { dia: 24, color: "#f39c12", etiqueta: "Día del campesino" }
+    ],
+    eventos: [
+      { dia: 15, descripcion: "Examen de matemáticas", color: "#3498db" }
+    ],
+    elementos: []
+  },
+  termometro: {
+    tipoGrafico: "termometro",
+    titulo: "Temperatura del día",
+    temperatura: 28,
+    unidad: "C",
+    escala: { min: 0, max: 50, intervalo: 5 },
+    zonas: [
+      { desde: 0, hasta: 15, color: "#3498db", etiqueta: "Frío" },
+      { desde: 15, hasta: 25, color: "#2ecc71", etiqueta: "Agradable" },
+      { desde: 25, hasta: 35, color: "#f39c12", etiqueta: "Cálido" },
+      { desde: 35, hasta: 50, color: "#e74c3c", etiqueta: "Caliente" }
+    ],
+    elementos: []
+  },
+  conversion_medidas: {
+    tipoGrafico: "conversion_medidas",
+    titulo: "Conversión de longitudes",
+    conversiones: [
+      { desde: { valor: 2, unidad: "m" }, hasta: { valor: 200, unidad: "cm" }, factor: "× 100" },
+      { desde: { valor: 1500, unidad: "g" }, hasta: { valor: 1.5, unidad: "kg" }, factor: "÷ 1000" }
+    ],
+    elementos: []
+  },
+  regla_medicion: {
+    tipoGrafico: "regla_medicion",
+    titulo: "Mide el lápiz",
+    unidad: "cm",
+    inicio: 0,
+    fin: 15,
+    intervalo: 1,
+    marcasEspeciales: [
+      { posicion: 3, etiqueta: "Inicio", color: "#2ecc71" },
+      { posicion: 12, etiqueta: "Fin", color: "#e74c3c" }
+    ],
+    elementos: []
+  },
+  caja_funcion: {
+    tipoGrafico: "caja_funcion",
+    titulo: "Máquina de funciones: × 3 + 1",
+    regla: "× 3 + 1",
+    pares: [
+      { entrada: 2, salida: 7 },
+      { entrada: 4, salida: 13 },
+      { entrada: 5, salida: 16 },
+      { entrada: 3, salida: 10 }
+    ],
+    elementos: []
+  },
+  arbol_factores: {
+    tipoGrafico: "arbol_factores",
+    titulo: "Árbol de factores de 60",
+    numero: 60,
+    arbol: {
+      valor: 60,
+      esPrimo: false,
+      hijos: [
+        { valor: 6, esPrimo: false, hijos: [
+          { valor: 2, esPrimo: true },
+          { valor: 3, esPrimo: true }
+        ]},
+        { valor: 10, esPrimo: false, hijos: [
+          { valor: 2, esPrimo: true },
+          { valor: 5, esPrimo: true }
+        ]}
+      ]
+    },
+    mostrarPrimos: true,
+    elementos: []
+  },
+  multiplos_tabla: {
+    tipoGrafico: "multiplos_tabla",
+    titulo: "Múltiplos de 3",
+    numero: 3,
+    rango: { inicio: 1, fin: 30 },
+    multiplosDestacados: [6, 12, 18],
+    mostrarTabla100: false,
+    colorMultiplo: "#3498db",
+    elementos: []
+  },
+  potencias_raices: {
+    tipoGrafico: "potencias_raices",
+    titulo: "Potencias y raíces",
+    expresiones: [
+      { base: 3, exponente: 2, resultado: 9, tipo: "potencia" },
+      { base: 5, exponente: 2, resultado: 25, tipo: "potencia" },
+      { base: 16, exponente: 2, resultado: 4, tipo: "raiz" }
+    ],
+    mostrarVisualizacion: true,
+    elementos: []
+  },
+  cuerpos_geometricos: {
+    tipoGrafico: "cuerpos_geometricos",
+    titulo: "Cuerpos geométricos 3D",
+    cuerpos: [
+      { tipo: "cubo", etiqueta: "Cubo", color: "#3498db" },
+      { tipo: "esfera", etiqueta: "Esfera", color: "#e74c3c" },
+      { tipo: "cilindro", etiqueta: "Cilindro", color: "#2ecc71" },
+      { tipo: "cono", etiqueta: "Cono", color: "#f39c12" }
+    ],
+    mostrarNombres: true,
+    mostrarMedidas: false,
+    elementos: []
+  },
+  angulos: {
+    tipoGrafico: "angulos",
+    titulo: "Clasificación de ángulos",
+    angulos: [
+      { grados: 45, tipo: "agudo", color: "#3498db", etiqueta: "Ángulo A" },
+      { grados: 90, tipo: "recto", color: "#2ecc71", etiqueta: "Ángulo B" },
+      { grados: 135, tipo: "obtuso", color: "#e74c3c", etiqueta: "Ángulo C" }
+    ],
+    mostrarTransportador: false,
+    mostrarClasificacion: true,
+    elementos: []
+  },
+  simetria: {
+    tipoGrafico: "simetria",
+    titulo: "Simetría axial",
+    figuraOriginal: {
+      puntos: [
+        { x: -4, y: -3 },
+        { x: -2, y: -3 },
+        { x: -2, y: 0 },
+        { x: -3, y: 2 },
+        { x: -4, y: 0 }
+      ],
+      color: "#3498db"
+    },
+    ejeSimetria: "vertical",
+    mostrarEje: true,
+    mostrarReflejo: true,
+    cuadricula: true,
+    elementos: []
+  },
+  redes_cuerpos: {
+    tipoGrafico: "redes_cuerpos",
+    titulo: "Redes de cuerpos geométricos",
+    redes: [
+      {
+        cuerpo: "cubo",
+        caras: [
+          { forma: "cuadrado", color: "#3498db" },
+          { forma: "cuadrado", color: "#e74c3c" },
+          { forma: "cuadrado", color: "#2ecc71" },
+          { forma: "cuadrado", color: "#f39c12" },
+          { forma: "cuadrado", color: "#9b59b6" },
+          { forma: "cuadrado", color: "#1abc9c" }
+        ]
+      }
+    ],
+    elementos: []
+  },
+  cambio_monedas: {
+    tipoGrafico: "cambio_monedas",
+    titulo: "Cambio de monedas",
+    monedasInicio: [
+      { tipo: "billete", valor: 10, cantidad: 1 }
+    ],
+    monedasResultado: [
+      { tipo: "moneda", valor: 5, cantidad: 1 },
+      { tipo: "moneda", valor: 2, cantidad: 2 },
+      { tipo: "moneda", valor: 1, cantidad: 1 }
+    ],
+    moneda: "S/",
+    mostrarEquivalencia: true,
+    totalOriginal: 10,
+    elementos: []
+  },
+  recta_fraccion: {
+    tipoGrafico: "recta_fraccion",
+    titulo: "Fracciones en la recta numérica",
+    inicio: 0,
+    fin: 2,
+    denominadorBase: 4,
+    marcas: [
+      { posicion: 0.25, numerador: 1, denominador: 4, color: "#3498db" },
+      { posicion: 0.5, numerador: 1, denominador: 2, color: "#e74c3c", etiqueta: "1/2" },
+      { posicion: 1, numerador: 4, denominador: 4, color: "#2ecc71", etiqueta: "1" },
+      { posicion: 1.5, numerador: 3, denominador: 2, color: "#f39c12", etiqueta: "3/2" }
+    ],
+    mostrarDivisiones: true,
+    elementos: []
   }
 };
 
@@ -311,16 +694,22 @@ const GraficosPlayground = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header con botón de regreso */}
         <div className="mb-8">
-          <Button
-            onClick={() => navigate(-1)}
-            variant="ghost"
-            size="sm"
-            className="mb-4"
-          >
-            ← Volver
-          </Button>
+          <div className="flex items-center gap-3 mb-4">
+            <Button
+              onClick={() => navigate(-1)}
+              variant="ghost"
+              size="sm"
+            >
+              ← Volver
+            </Button>
+            <Link to="/graficos-areas">
+              <Button variant="outline" size="sm">
+                🎨 Ver Áreas Curriculares
+              </Button>
+            </Link>
+          </div>
           <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
-            🎨 Playground de Gráficos Educativos
+            📐 Playground de Gráficos — Matemática
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
             Experimenta con diferentes configuraciones JSON para visualizar gráficos educativos interactivos
@@ -438,7 +827,31 @@ const GraficosPlayground = () => {
                 "operacion_vertical",
                 "medidas_comparacion",
                 "balanza_equilibrio",
-                "numeros_ordinales"
+                "numeros_ordinales",
+                "coordenadas_ejercicios",
+                "valor_posicional",
+                "descomposicion_numero",
+                "abaco",
+                "base_diez_bloques",
+                "pictograma",
+                "grafico_circular",
+                "grafico_lineal",
+                "tabla_frecuencias",
+                "reloj_tiempo",
+                "calendario",
+                "termometro",
+                "conversion_medidas",
+                "regla_medicion",
+                "caja_funcion",
+                "arbol_factores",
+                "multiplos_tabla",
+                "potencias_raices",
+                "cuerpos_geometricos",
+                "angulos",
+                "simetria",
+                "redes_cuerpos",
+                "cambio_monedas",
+                "recta_fraccion"
               ].map((tipo) => (
                 <div
                   key={tipo}

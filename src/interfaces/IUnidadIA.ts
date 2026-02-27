@@ -197,6 +197,7 @@ export type PasoUnidad =
 export interface IUnidadContenido {
   situacionSignificativa?: string;
   situacionBase?: ISituacionBase;
+  imagenSituacionUrl?: string;
   evidencias?: IEvidencias;
   propositos?: IPropositos;
   areasComplementarias?: IAreaComplementaria[];

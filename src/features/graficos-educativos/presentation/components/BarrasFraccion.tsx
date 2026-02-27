@@ -60,8 +60,7 @@ export const BarrasFraccion: React.FC<Props> = ({ data }) => {
           const seccionRellena = rc.rectangle(x + 2, y + 2, anchoSeccion - 4, altoBarra - 4, {
             ...defaultRoughConfig,
             fill: color,
-            fillStyle: 'cross-hatch',
-            fillWeight: 1.5,
+            fillStyle: 'solid',
             strokeWidth: 0,
             roughness: 1
           });

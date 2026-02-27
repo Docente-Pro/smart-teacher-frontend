@@ -48,8 +48,7 @@ export const DiagramaVenn: React.FC<Props> = ({ data }) => {
         ...defaultRoughConfig,
         stroke: color1,
         fill: color1,
-        fillStyle: 'cross-hatch',
-        fillWeight: 0.5,
+        fillStyle: 'solid',
         strokeWidth: 3,
         roughness: 0.6
       });
@@ -60,8 +59,7 @@ export const DiagramaVenn: React.FC<Props> = ({ data }) => {
         ...defaultRoughConfig,
         stroke: color2,
         fill: color2,
-        fillStyle: 'cross-hatch',
-        fillWeight: 0.5,
+        fillStyle: 'solid',
         strokeWidth: 3,
         roughness: 0.6
       });
@@ -147,8 +145,7 @@ export const DiagramaVenn: React.FC<Props> = ({ data }) => {
         ...defaultRoughConfig,
         stroke: color1,
         fill: color1,
-        fillStyle: 'cross-hatch',
-        fillWeight: 0.4,
+        fillStyle: 'solid',
         strokeWidth: 3,
         roughness: 0.6
       });
@@ -159,8 +156,7 @@ export const DiagramaVenn: React.FC<Props> = ({ data }) => {
         ...defaultRoughConfig,
         stroke: color2,
         fill: color2,
-        fillStyle: 'cross-hatch',
-        fillWeight: 0.4,
+        fillStyle: 'solid',
         strokeWidth: 3,
         roughness: 0.6
       });
@@ -171,8 +167,7 @@ export const DiagramaVenn: React.FC<Props> = ({ data }) => {
         ...defaultRoughConfig,
         stroke: color3,
         fill: color3,
-        fillStyle: 'cross-hatch',
-        fillWeight: 0.4,
+        fillStyle: 'solid',
         strokeWidth: 3,
         roughness: 0.6
       });

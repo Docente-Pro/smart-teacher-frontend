@@ -43,20 +43,24 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                 <td style={{ fontWeight: "bold", width: "10%", backgroundColor: "#FDE68A", textAlign: "center" }}>
                   DIAS
                 </td>
-                {semana.dias.map((dia, i) => (
-                  <td
-                    key={i}
-                    style={{
-                      fontWeight: "bold",
-                      backgroundColor: "#FEF3C7",
-                      textAlign: "center",
-                      fontSize: "8pt",
-                      width: `${90 / Math.max(semana.dias.length, 1)}%`,
-                    }}
-                  >
-                    {dia.dia.toUpperCase()} {extractDayNumber(dia.fecha)}
-                  </td>
-                ))}
+                {semana.dias.map((dia, i) => {
+                  const dayLabel = dia.dia?.toUpperCase() || "";
+                  const dayNum = extractDayNumber(dia.fecha);
+                  return (
+                    <td
+                      key={i}
+                      style={{
+                        fontWeight: "bold",
+                        backgroundColor: "#FEF3C7",
+                        textAlign: "center",
+                        fontSize: "8pt",
+                        width: `${90 / Math.max(semana.dias.length, 1)}%`,
+                      }}
+                    >
+                      {dayLabel}{dayNum ? ` ${dayNum}` : ""}
+                    </td>
+                  );
+                })}
               </tr>
 
               {/* Fila: AREAS (primer bloque) */}
@@ -133,12 +137,15 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
 /* ─── Helper: extraer número de día de una fecha ─── */
 function extractDayNumber(fecha: string): string {
   if (!fecha) return "";
-  try {
-    const d = new Date(fecha);
+
+  // Intentar parsear como Date válido
+  const d = new Date(fecha);
+  if (!isNaN(d.getTime())) {
     return String(d.getDate()).padStart(2, "0");
-  } catch {
-    // Intentar extraer del string directamente
-    const match = fecha.match(/(\d{1,2})/);
-    return match ? match[1] : "";
   }
+
+  // Fallback: extraer el último grupo de 1-2 dígitos (día) del string
+  // Soporta formatos como "03/15", "15-03-2024", "15 de marzo", etc.
+  const match = fecha.match(/(\d{1,2})/);
+  return match ? match[1].padStart(2, "0") : "";
 }

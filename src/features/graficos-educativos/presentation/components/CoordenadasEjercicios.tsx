@@ -51,8 +51,7 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
         const polygon = rc.polygon(points, {
           ...defaultRoughConfig,
           fill: fig.color,
-          fillStyle: 'cross-hatch',
-          fillWeight: 1.2,
+          fillStyle: 'solid',
           stroke: fig.color,
           strokeWidth: 2.5,
           roughness: 0.8,
@@ -77,8 +76,7 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
         const circle = rc.circle(toSvgX(fig.centro.x), toSvgY(fig.centro.y), fig.radio * CELDA * 2, {
           ...defaultRoughConfig,
           fill: fig.color,
-          fillStyle: 'cross-hatch',
-          fillWeight: 1,
+          fillStyle: 'solid',
           stroke: fig.color,
           strokeWidth: 2.5,
           roughness: 0.8,
@@ -97,8 +95,7 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
           {
             ...defaultRoughConfig,
             fill: fig.color,
-            fillStyle: 'cross-hatch',
-            fillWeight: 1,
+            fillStyle: 'solid',
             stroke: fig.color,
             strokeWidth: 2.5,
             roughness: 0.8,
@@ -112,8 +109,7 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
         const triangle = rc.polygon(points, {
           ...defaultRoughConfig,
           fill: fig.color,
-          fillStyle: 'cross-hatch',
-          fillWeight: 1,
+          fillStyle: 'solid',
           stroke: fig.color,
           strokeWidth: 2.5,
           roughness: 0.8,

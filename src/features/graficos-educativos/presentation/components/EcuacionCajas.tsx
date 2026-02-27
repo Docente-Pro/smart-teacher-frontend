@@ -81,7 +81,7 @@ export const EcuacionCajas: React.FC<Props> = ({ data }) => {
             fillWeight: elem.destacado ? 2 : 0.5,
             strokeWidth: elem.destacado ? 3 : 2,
             roughness: elem.destacado ? 0.8 : 1.2,
-            fillStyle: 'cross-hatch'
+            fillStyle: 'solid'
           });
           svgRef.current?.appendChild(box);
 

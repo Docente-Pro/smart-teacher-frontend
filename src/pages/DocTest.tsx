@@ -1,7 +1,7 @@
 import { Document, Footer } from "@htmldocs/react";
 import { Button } from "@/components/ui/button";
 import { FileDown, Printer, Cloud, CloudOff, Loader2 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { usePDFGeneration } from "@/hooks/usePDFGeneration";
 import { DocumentStyles } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
@@ -10,6 +10,10 @@ import { PropositoAprendizajeSection } from "@/components/DocTest/PropositoApren
 import { PropositoSesionSection } from "@/components/DocTest/AdditionalSections";
 import { EnfoquesTransversalesSection } from "@/components/DocTest/EnfoquesTransversalesSection";
 import { PreparacionSesionSection } from "@/components/DocTest/PreparacionSesionSection";
+import { InstrumentoEvaluacionSection } from "@/components/SesionPremiumDoc/InstrumentoEvaluacionSection";
+import { buildInstrumentoLocal } from "@/utils/buildInstrumentoFromSesion";
+import { getSavedAlumnos } from "@/utils/alumnosStorage";
+import type { ICriterioIA } from "@/interfaces/ISesionAprendizaje";
 
 import { useSesionStore } from "@/store/sesion.store";
 import { SecuenciaDidacticaSection } from "@/components/DocTest/SecuenciaDidacticaSection";
@@ -22,7 +26,25 @@ function DocTest() {
 
   // ── Derivar colores del área ────────────────────────────────────
   const areaHex = sesion ? getAreaColor(sesion.datosGenerales.area).hex : null;
+  // ── Alumnos guardados en localStorage ──────────────────────────────
+  const alumnos = useMemo(() => getSavedAlumnos(), []);
 
+  // ── Construir instrumento de evaluación desde datos de la sesión ────
+  const instrumento = useMemo(() => {
+    if (!sesion) return null;
+    const p = sesion.propositoAprendizaje;
+    const criterios = (p.criteriosEvaluacion ?? []).map((c) =>
+      typeof c === "string" ? c : (c as ICriterioIA).criterioCompleto ?? "",
+    ).filter(Boolean);
+    return buildInstrumentoLocal({
+      area: sesion.datosGenerales.area,
+      grado: sesion.datosGenerales.grado,
+      competencia: p.competencia,
+      evidencia: p.evidenciaAprendizaje,
+      criterios,
+      instrumento: p.instrumentoEvaluacion,
+    });
+  }, [sesion]);
   console.log(sesion);
   
   // Estilos para ocultar elementos del navegador al imprimir
@@ -162,6 +184,11 @@ function DocTest() {
 
             {/* MOMENTOS Y TIEMPOS */}
             <SecuenciaDidacticaSection secuencia={sesion.secuenciaDidactica} sectionColor={areaHex!.light} />
+
+            {/* INSTRUMENTO DE EVALUACIÓN */}
+            {instrumento && (
+              <InstrumentoEvaluacionSection instrumento={instrumento} hex={areaHex!} alumnos={alumnos} />
+            )}
 
             {/* Footer — con color del área */}
             <Footer position="bottom-center">

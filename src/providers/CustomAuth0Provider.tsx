@@ -63,7 +63,7 @@ export function useCustomAuth() {
       // 4. Logout del SDK (limpia memoria)
       auth0Logout({
         logoutParams: {
-          returnTo: window.location.origin,
+          returnTo: `${window.location.origin}/login`,
         },
       });
     } catch (error) {
@@ -72,7 +72,7 @@ export function useCustomAuth() {
       localStorage.removeItem('refresh_token');
       auth0Logout({
         logoutParams: {
-          returnTo: window.location.origin,
+          returnTo: `${window.location.origin}/login`,
         },
       });
     }

@@ -73,12 +73,12 @@ export function UnidadDocDatosGenerales({
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return "";
-  try {
-    const d = new Date(dateStr);
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
     return d.toLocaleDateString("es-PE", { day: "numeric", month: "long" });
-  } catch {
-    return dateStr;
   }
+  // Si no es una fecha válida, devolver el string original
+  return dateStr;
 }
 
 function getCiclo(nivel: string, grado: string): string {

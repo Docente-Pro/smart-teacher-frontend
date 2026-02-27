@@ -86,7 +86,7 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
     const headerBg = rc.rectangle(10, 10, tableWidth, headerHeight, {
       ...defaultRoughConfig,
       fill: roughColors.azul,
-      fillStyle: 'cross-hatch',
+      fillStyle: 'solid',
       stroke: mostrarBordes ? roughColors.azul : 'transparent',
       strokeWidth: 2,
       roughness: 0.8

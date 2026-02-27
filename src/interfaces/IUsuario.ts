@@ -22,10 +22,14 @@ export interface IUsuarioToUpdate {
   nombre?: string;
   email?: string;
   nombreInstitucion?: string;
+  genero?: string;
   nivelId?: number;
   gradoId?: number;
   problematicaId?: number;
   problematicaCompleta?: boolean;
+  departamento?: string;
+  provincia?: string;
+  distrito?: string;
 }
 
 // Interface completa del usuario (respuesta del backend)
@@ -34,6 +38,10 @@ export interface IUsuario {
   nombre: string;
   email: string;
   nombreInstitucion: string;
+  genero?: string;
+  departamento?: string;
+  provincia?: string;
+  distrito?: string;
   nivelId?: number;
   gradoId?: number;
   problematicaId?: number;

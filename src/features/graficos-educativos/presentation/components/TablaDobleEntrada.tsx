@@ -90,8 +90,7 @@ export const TablaDobleEntrada: React.FC<Props> = ({ data }) => {
         ...defaultRoughConfig,
         stroke: color,
         fill: color,
-        fillStyle: 'cross-hatch',
-        fillWeight: 0.5,
+        fillStyle: 'solid',
         strokeWidth: 2,
         roughness: 0.8
       });
@@ -118,8 +117,7 @@ export const TablaDobleEntrada: React.FC<Props> = ({ data }) => {
         ...defaultRoughConfig,
         stroke: color,
         fill: color,
-        fillStyle: 'cross-hatch',
-        fillWeight: 0.5,
+        fillStyle: 'solid',
         strokeWidth: 2,
         roughness: 0.8
       });

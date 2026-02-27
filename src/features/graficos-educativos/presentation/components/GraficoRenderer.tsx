@@ -20,6 +20,48 @@ import { MedidasComparacion } from './MedidasComparacion';
 import { BalanzaEquilibrio } from './BalanzaEquilibrio';
 import { NumerosOrdinales } from './NumerosOrdinales';
 import { CoordenadasEjercicios } from './CoordenadasEjercicios';
+import { ValorPosicional } from './ValorPosicional';
+import { DescomposicionNumero } from './DescomposicionNumero';
+import { Abaco } from './Abaco';
+import { BaseDiezBloques } from './BaseDiezBloques';
+import { Pictograma } from './Pictograma';
+import { GraficoCircularComp } from './GraficoCircular';
+import { GraficoLinealComp } from './GraficoLineal';
+import { TablaFrecuencias } from './TablaFrecuencias';
+import { RelojTiempo } from './RelojTiempo';
+import { Calendario } from './Calendario';
+import { Termometro } from './Termometro';
+import { ConversionMedidas } from './ConversionMedidas';
+import { ReglaMedicion } from './ReglaMedicion';
+import { CajaFuncion } from './CajaFuncion';
+import { ArbolFactores } from './ArbolFactores';
+import { MultiplosTabla } from './MultiplosTabla';
+import { PotenciasRaices } from './PotenciasRaices';
+import { CuerposGeometricos } from './CuerposGeometricos';
+import { Angulos } from './Angulos';
+import { Simetria } from './Simetria';
+import { RedesCuerpos } from './RedesCuerpos';
+import { CambioMonedas } from './CambioMonedas';
+import { RectaFraccion } from './RectaFraccion';
+// Áreas curriculares (no-Matemática)
+import {
+  EstructuraNarrativa,
+  OrganizadorKVL,
+  PlanificadorEscritura,
+  TablaObservacion,
+  CicloProceso,
+  ClasificacionDicotomica,
+  LineaTiempo,
+  CuadroComparativo,
+  RuedaEmociones,
+  FichaAutoconocimiento,
+  TarjetaReflexion,
+  TarjetaCompromiso,
+  FichaAnalisisObra,
+  FichaProcesoCreativo,
+  SecuenciaMovimiento,
+  TablaHabitos,
+} from './areas';
 
 interface Props {
   grafico: ConfiguracionGrafico | null | undefined;
@@ -78,6 +120,46 @@ export const GraficoRenderer: React.FC<Props> = ({
     'balanza_equilibrio': BalanzaEquilibrio,
     'numeros_ordinales': NumerosOrdinales,
     'coordenadas_ejercicios': CoordenadasEjercicios,
+    'valor_posicional': ValorPosicional,
+    'descomposicion_numero': DescomposicionNumero,
+    'abaco': Abaco,
+    'base_diez_bloques': BaseDiezBloques,
+    'pictograma': Pictograma,
+    'grafico_circular': GraficoCircularComp,
+    'grafico_lineal': GraficoLinealComp,
+    'tabla_frecuencias': TablaFrecuencias,
+    'reloj_tiempo': RelojTiempo,
+    'calendario': Calendario,
+    'termometro': Termometro,
+    'conversion_medidas': ConversionMedidas,
+    'regla_medicion': ReglaMedicion,
+    'caja_funcion': CajaFuncion,
+    'arbol_factores': ArbolFactores,
+    'multiplos_tabla': MultiplosTabla,
+    'potencias_raices': PotenciasRaices,
+    'cuerpos_geometricos': CuerposGeometricos,
+    'angulos': Angulos,
+    'simetria': Simetria,
+    'redes_cuerpos': RedesCuerpos,
+    'cambio_monedas': CambioMonedas,
+    'recta_fraccion': RectaFraccion,
+    // ===== Áreas curriculares (no-Matemática) =====
+    'estructura_narrativa': EstructuraNarrativa,
+    'organizador_kvl': OrganizadorKVL,
+    'planificador_escritura': PlanificadorEscritura,
+    'tabla_observacion': TablaObservacion,
+    'ciclo_proceso': CicloProceso,
+    'clasificacion_dicotomica': ClasificacionDicotomica,
+    'linea_tiempo': LineaTiempo,
+    'cuadro_comparativo': CuadroComparativo,
+    'rueda_emociones': RuedaEmociones,
+    'ficha_autoconocimiento': FichaAutoconocimiento,
+    'tarjeta_reflexion': TarjetaReflexion,
+    'tarjeta_compromiso': TarjetaCompromiso,
+    'ficha_analisis_obra': FichaAnalisisObra,
+    'ficha_proceso_creativo': FichaProcesoCreativo,
+    'secuencia_movimiento': SecuenciaMovimiento,
+    'tabla_habitos': TablaHabitos,
   };
 
   const Component = componentMap[grafico!.tipoGrafico];

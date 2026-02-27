@@ -159,24 +159,7 @@ function ProblematicasList({
                 </CardDescription>
               </CardHeader>
 
-              {problematica._count && (
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                    {problematica._count.usuarios !== undefined && (
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        <span>{problematica._count.usuarios} usuarios</span>
-                      </div>
-                    )}
-                    {problematica._count.sesiones !== undefined && (
-                      <div className="flex items-center gap-1">
-                        <BookOpen className="h-4 w-4" />
-                        <span>{problematica._count.sesiones} sesiones</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              )}
+
             </Card>
           ))
         )}

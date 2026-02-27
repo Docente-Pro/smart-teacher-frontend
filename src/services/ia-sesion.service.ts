@@ -128,7 +128,16 @@ export interface IImagenesSesionResponse {
     cierre?: { procesos: Array<any> };
     [key: string]: unknown;
   };
-  metadata?: Record<string, unknown>;
+  metadata?: {
+    total_generadas?: number;
+    ilustrativas_generadas?: number;
+    contenido_generadas?: number;
+    total_solicitadas?: number;
+    modelo?: string;
+    tiempo_generacion_s?: number;
+    costo_estimado_usd?: number;
+    [key: string]: unknown;
+  };
   message?: string;
 }
 

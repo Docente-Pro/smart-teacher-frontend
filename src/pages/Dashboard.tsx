@@ -6,6 +6,7 @@ import {
   FolderOpen,
   LogOut,
   User,
+  Users,
   ChevronRight,
   Sparkles,
   Crown,
@@ -20,7 +21,10 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useAuthStore } from "@/store/auth.store";
 import ProblematicaModal from "@/components/Shared/Modal/ProblematicaModal";
 import UpgradePremiumModal from "@/components/Shared/Modal/UpgradePremiumModal";
+import SubirAlumnosModal from "@/components/Shared/Modal/SubirAlumnosModal";
 import { usePermissions } from "@/hooks/usePermissions";
+import { clearUserStorage } from "@/utils/clearUserStorage";
+import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
 
 function Dashboard() {
@@ -31,6 +35,8 @@ function Dashboard() {
   const { showLoading, hideLoading } = useGlobalLoading();
   const [showProblematicaModal, setShowProblematicaModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showAlumnosModal, setShowAlumnosModal] = useState(false);
+  const [alumnosSubidos, setAlumnosSubidos] = useState(() => hasUploadedAlumnos());
   const [hasSuscripcionUnidad, setHasSuscripcionUnidad] = useState(false);
 
   useEffect(() => {
@@ -58,9 +64,9 @@ function Dashboard() {
   }, [user?.id]);
 
   const handleLogout = () => {
-    localStorage.clear();
+    clearUserStorage();
     useAuthStore.getState().clearAuth();
-    logout({ logoutParams: { returnTo: window.location.origin } });
+    logout({ logoutParams: { returnTo: `${window.location.origin}/login` } });
   };
 
   /**
@@ -90,15 +96,16 @@ function Dashboard() {
       return;
     }
 
-    if (user.problematicaCompleta === false) {
-      setShowProblematicaModal(true);
-      return;
-    }
-
-    // PREMIUM: flujo de calendario por unidad
+    // PREMIUM: flujo de calendario por unidad (no requiere problemática)
     if (permissions.isPremium) {
       showLoading("Cargando calendario de sesiones...");
       navigate("/generar-sesion");
+      return;
+    }
+
+    // FREE: primero debe completar problemática
+    if (user.problematicaCompleta === false) {
+      setShowProblematicaModal(true);
       return;
     }
 
@@ -262,6 +269,29 @@ function Dashboard() {
           </div>
         </div>
 
+        {/* Banner: Subir / modificar lista de alumnos (premium) */}
+        {isPremium && (
+          <button
+            onClick={() => setShowAlumnosModal(true)}
+            className="w-full mb-6 sm:mb-8 flex items-center gap-4 p-4 sm:p-5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 border border-blue-200 dark:border-blue-700/50 hover:border-blue-300 dark:hover:border-blue-600 shadow-sm hover:shadow-md transition-all text-left group"
+          >
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20 flex-shrink-0 group-hover:scale-105 transition-transform">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
+                {alumnosSubidos ? "Modificar lista de alumnos" : "Sube tu lista de alumnos"}
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                {alumnosSubidos
+                  ? "Actualiza o reemplaza tu nómina para los instrumentos de evaluación"
+                  : "Sube una foto de tu nómina y la extraeremos con IA para tus instrumentos de evaluación"}
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
+          </button>
+        )}
+
         {/* Features Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-8 sm:mb-12">
           {features.map((feature, index) => {
@@ -343,6 +373,15 @@ function Dashboard() {
       <UpgradePremiumModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
+      />
+
+      {/* Modal de Subir Lista de Alumnos */}
+      <SubirAlumnosModal
+        isOpen={showAlumnosModal}
+        onClose={() => {
+          setShowAlumnosModal(false);
+          setAlumnosSubidos(hasUploadedAlumnos());
+        }}
       />
     </div>
   );

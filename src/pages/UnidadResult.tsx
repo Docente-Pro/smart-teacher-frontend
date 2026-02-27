@@ -308,6 +308,7 @@ function UnidadResult() {
               situacionSignificativa={contenido.situacionSignificativa || ""}
               evidencias={contenido.evidencias}
               grado={gradoLabel}
+              imagenSituacionUrl={contenido.imagenSituacionUrl}
             />
 
             {/* II. PROPÓSITO DE APRENDIZAJE */}

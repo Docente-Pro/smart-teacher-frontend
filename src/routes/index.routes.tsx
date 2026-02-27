@@ -23,6 +23,7 @@ import MisUnidades from "@/pages/MisUnidades";
 import DocTest from "@/pages/DocTest";
 import SesionViewer from "@/pages/SesionViewer";
 import GraficosPlayground from "@/pages/GraficosPlayground";
+import GraficosAreasPlayground from "@/pages/GraficosAreasPlayground";
 import CrearUnidad from "@/pages/CrearUnidad";
 import UnidadResult from "@/pages/UnidadResult";
 import UnirseUnidad from "@/pages/UnirseUnidad";
@@ -259,6 +260,10 @@ export const routes: IRouteToCreate[] = [
   {
     path: "/graficos",
     element: <GraficosPlayground />,
+  },
+  {
+    path: "/graficos-areas",
+    element: <GraficosAreasPlayground />,
   },
 
 ];

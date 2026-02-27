@@ -18,6 +18,9 @@ import { Document, Footer } from "@htmldocs/react";
 import { DocumentStyles } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
 import { getAreaColor, type AreaColorConfig } from "@/constants/areaColors";
+import { InstrumentoEvaluacionSection } from "./InstrumentoEvaluacionSection";
+import { getSavedAlumnos } from "@/utils/alumnosStorage";
+import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 import type {
   ISesionPremiumResponse,
   IPropositoAprendizajePremium,
@@ -28,6 +31,7 @@ import type {
   IReflexionesPremium,
   IFuenteMinedu,
 } from "@/interfaces/ISesionPremium";
+import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Helpers
@@ -395,11 +399,15 @@ function ProcesoPremiumRow({
       ? recursosRaw.join(", ")
       : recursosRaw || "";
 
-  // Normalizar imágenes: soporta imagen singular (v2) e imagenes array (v1)
-  const imagenes = proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
+  // Normalizar imágenes: soporta imagen singular (v2), imagenes array (v1)
+  // e imagenContenido (contenido didáctico: tabla, gráfico, mapa, etc.)
+  const baseImagenes = proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
+  const imagenes = proceso.imagenContenido?.url
+    ? [...baseImagenes, { ...proceso.imagenContenido, posicion: proceso.imagenContenido.posicion || "debajo" }]
+    : baseImagenes;
   const imgAntes = imagenes.filter((img) => img.posicion === "antes");
   const imgJunto = imagenes.filter((img) => img.posicion === "junto");
-  const imgDespues = imagenes.filter((img) => img.posicion === "despues" || (!img.posicion && img.posicion !== "antes" && img.posicion !== "junto"));
+  const imgDespues = imagenes.filter((img) => img.posicion === "despues" || img.posicion === "debajo" || (!img.posicion && img.posicion !== "antes" && img.posicion !== "junto"));
 
   return (
     <tr key={idx}>
@@ -422,12 +430,17 @@ function ProcesoPremiumRow({
         {imgAntes.length > 0 && (
           <div style={{ marginBottom: "0.6rem", textAlign: "center" }}>
             {imgAntes.map((img, imgIdx) => (
-              <div key={img.id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
+              <div key={(img as any).id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
                 <img
                   src={img.url}
                   alt={img.descripcion || ""}
                   style={{ maxWidth: "350px", maxHeight: "300px" }}
                 />
+                {(img as any).texto_overlay && (
+                  <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+                    {(img as any).texto_overlay}
+                  </div>
+                )}
                 {img.descripcion && (
                   <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
                     {img.descripcion}
@@ -455,12 +468,17 @@ function ProcesoPremiumRow({
             </div>
             <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
               {imgJunto.map((img, imgIdx) => (
-                <div key={img.id ?? imgIdx} style={{ textAlign: "center" }}>
+                <div key={(img as any).id ?? imgIdx} style={{ textAlign: "center" }}>
                   <img
                     src={img.url}
                     alt={img.descripcion || ""}
                     style={{ maxWidth: "350px", maxHeight: "300px" }}
                   />
+                  {(img as any).texto_overlay && (
+                    <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+                      {(img as any).texto_overlay}
+                    </div>
+                  )}
                   {img.descripcion && (
                     <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
                       {img.descripcion}
@@ -498,12 +516,17 @@ function ProcesoPremiumRow({
         {imgDespues.length > 0 && (
           <div style={{ marginBottom: "0.6rem", textAlign: "center" }}>
             {imgDespues.map((img, imgIdx) => (
-              <div key={img.id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
+              <div key={(img as any).id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
                 <img
                   src={img.url}
                   alt={img.descripcion || ""}
                   style={{ maxWidth: "350px", maxHeight: "300px" }}
                 />
+                {(img as any).texto_overlay && (
+                  <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+                    {(img as any).texto_overlay}
+                  </div>
+                )}
                 {img.descripcion && (
                   <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
                     {img.descripcion}
@@ -511,6 +534,41 @@ function ProcesoPremiumRow({
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Gráfico educativo (Math o Área) */}
+        {proceso.grafico && (
+          <div style={{
+            marginTop: "0.8rem",
+            marginBottom: "0.8rem",
+            padding: "0.8rem",
+            backgroundColor: "#fafafa",
+            borderRadius: "8px",
+            border: "1px solid #e2e8f0",
+            textAlign: "center",
+          }}>
+            <GraficoRenderer grafico={proceso.grafico as any} />
+          </div>
+        )}
+
+        {/* Gráfico de operación */}
+        {(proceso as any).graficoOperacion && (
+          <div style={{
+            marginTop: "0.8rem",
+            marginBottom: "0.8rem",
+            backgroundColor: "#faf5ff",
+            padding: "1rem",
+            borderRadius: "8px",
+            border: "2px solid #d8b4fe",
+            overflowX: "auto",
+          }}>
+            <p style={{ fontSize: "9pt", fontWeight: "bold", color: "#7c3aed", marginBottom: "0.5rem", margin: 0 }}>
+              🔢 Operación / Recurso:
+            </p>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
+              <GraficoRenderer grafico={(proceso as any).graficoOperacion} />
+            </div>
           </div>
         )}
 
@@ -749,6 +807,8 @@ function FuentesMineduPremium({
 
 interface SesionPremiumDocProps {
   data: ISesionPremiumResponse;
+  /** Instrumento de evaluación generado (opcional) */
+  instrumento?: IInstrumentoEvaluacion | null;
 }
 
 /**
@@ -758,7 +818,7 @@ interface SesionPremiumDocProps {
  * El color de las cabeceras se obtiene automáticamente del área
  * de la sesión mediante getAreaColor().
  */
-export function SesionPremiumDoc({ data }: SesionPremiumDocProps) {
+export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
   const { sesion, docente, institucion } = data;
 
   // ── Derivar colores del área ────────────────────────────────────
@@ -827,6 +887,11 @@ export function SesionPremiumDoc({ data }: SesionPremiumDocProps) {
       {/* REFLEXIONES */}
       {sesion.reflexiones && (
         <ReflexionesPremium reflexiones={sesion.reflexiones} hex={hex} />
+      )}
+
+      {/* INSTRUMENTO DE EVALUACIÓN */}
+      {instrumento && (
+        <InstrumentoEvaluacionSection instrumento={instrumento} hex={hex} alumnos={getSavedAlumnos()} />
       )}
 
       {/* RESUMEN DE LA SESIÓN */}

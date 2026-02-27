@@ -114,6 +114,95 @@ export class ValidarGraficoUseCase {
       }
     }
 
+    // Validación especial para tabla_doble_entrada
+    const esTablaDobleEntrada = grafico.tipoGrafico === 'tabla_doble_entrada';
+    if (esTablaDobleEntrada) {
+      const graficoTabla = grafico as any;
+      if (graficoTabla.datos && Array.isArray(graficoTabla.datos) &&
+          graficoTabla.encabezadosColumnas && graficoTabla.encabezadosFilas) {
+        if (!grafico.elementos) {
+          graficoTabla.elementos = [];
+        }
+        return { esValido: true, errores: [] };
+      }
+    }
+
+    // Validación especial para tabla_valores con encabezados
+    const esTablaValores = grafico.tipoGrafico === 'tabla_valores';
+    if (esTablaValores) {
+      const graficoTabla = grafico as any;
+      if (graficoTabla.encabezados && Array.isArray(graficoTabla.encabezados)) {
+        if (!grafico.elementos) {
+          graficoTabla.elementos = [];
+        }
+        return { esValido: true, errores: [] };
+      }
+    }
+
+    // Validación especial para diagrama_venn
+    const esDiagramaVenn = grafico.tipoGrafico === 'diagrama_venn';
+    if (esDiagramaVenn) {
+      const graficoVenn = grafico as any;
+      if (graficoVenn.elementos && Array.isArray(graficoVenn.elementos) && graficoVenn.elementos.length > 0) {
+        return { esValido: true, errores: [] };
+      }
+    }
+
+    // Validación para los 23 nuevos tipos de gráficos que NO usan elementos[]
+    const tiposConEstructuraPropia: Record<string, (g: any) => boolean> = {
+      'valor_posicional': (g) => Array.isArray(g.posiciones) && g.posiciones.length > 0,
+      'descomposicion_numero': (g) => Array.isArray(g.partes) && g.partes.length > 0,
+      'abaco': (g) => Array.isArray(g.columnas) && g.columnas.length > 0,
+      'base_diez_bloques': (g) => Array.isArray(g.bloques) && g.bloques.length > 0,
+      'pictograma': (g) => Array.isArray(g.elementos) && g.elementos.length > 0,
+      'grafico_circular': (g) => Array.isArray(g.sectores) && g.sectores.length > 0,
+      'grafico_lineal': (g) => Array.isArray(g.series) && g.series.length > 0,
+      'tabla_frecuencias': (g) => Array.isArray(g.datos) && g.datos.length > 0,
+      'reloj_tiempo': (g) => Array.isArray(g.relojes) && g.relojes.length > 0,
+      'calendario': (g) => g.mes !== undefined && g.anio !== undefined,
+      'termometro': (g) => g.temperatura !== undefined,
+      'conversion_medidas': (g) => Array.isArray(g.conversiones) && g.conversiones.length > 0,
+      'regla_medicion': (g) => g.inicio !== undefined && g.fin !== undefined,
+      'caja_funcion': (g) => Array.isArray(g.pares) && g.pares.length > 0,
+      'arbol_factores': (g) => g.arbol !== undefined && g.arbol !== null,
+      'multiplos_tabla': (g) => g.numero !== undefined && g.rango !== undefined,
+      'potencias_raices': (g) => Array.isArray(g.expresiones) && g.expresiones.length > 0,
+      'cuerpos_geometricos': (g) => Array.isArray(g.cuerpos) && g.cuerpos.length > 0,
+      'angulos': (g) => Array.isArray(g.angulos) && g.angulos.length > 0,
+      'simetria': (g) => g.figuraOriginal !== undefined && g.ejeSimetria !== undefined,
+      'redes_cuerpos': (g) => Array.isArray(g.redes) && g.redes.length > 0,
+      'cambio_monedas': (g) => Array.isArray(g.monedasInicio) && Array.isArray(g.monedasResultado),
+      'recta_fraccion': (g) => Array.isArray(g.marcas) && g.marcas.length > 0,
+      // ===== Áreas curriculares (no-Matemática) =====
+      'estructura_narrativa': (g) => Array.isArray(g.secciones) && g.secciones.length > 0,
+      'organizador_kvl': (g) => Array.isArray(g.columnas) && g.columnas.length > 0,
+      'planificador_escritura': (g) => Array.isArray(g.campos) && g.campos.length > 0,
+      'tabla_observacion': (g) => Array.isArray(g.columnas) && g.columnas.length > 0 && Array.isArray(g.filas),
+      'ciclo_proceso': (g) => Array.isArray(g.fases) && g.fases.length > 0,
+      'clasificacion_dicotomica': (g) => Array.isArray(g.nodos) && g.nodos.length > 0,
+      'linea_tiempo': (g) => Array.isArray(g.eventos) && g.eventos.length > 0,
+      'cuadro_comparativo': (g) => Array.isArray(g.criterios) && Array.isArray(g.columnas) && g.columnas.length > 0,
+      'rueda_emociones': (g) => Array.isArray(g.emociones) && g.emociones.length > 0,
+      'ficha_autoconocimiento': (g) => Array.isArray(g.secciones) && g.secciones.length > 0,
+      'tarjeta_reflexion': (g) => typeof g.texto === 'string' && g.texto.length > 0,
+      'tarjeta_compromiso': (g) => Array.isArray(g.campos) && g.campos.length > 0,
+      'ficha_analisis_obra': (g) => g.obra !== undefined && Array.isArray(g.dimensiones),
+      'ficha_proceso_creativo': (g) => Array.isArray(g.etapas) && g.etapas.length > 0,
+      'secuencia_movimiento': (g) => Array.isArray(g.pasos) && g.pasos.length > 0,
+      'tabla_habitos': (g) => Array.isArray(g.habitos) && g.habitos.length > 0 && Array.isArray(g.dias),
+    };
+
+    const validadorEspecial = tiposConEstructuraPropia[grafico.tipoGrafico];
+    if (validadorEspecial) {
+      const graficoAny = grafico as any;
+      if (validadorEspecial(graficoAny)) {
+        if (!grafico.elementos) {
+          graficoAny.elementos = [];
+        }
+        return { esValido: true, errores: [] };
+      }
+    }
+
     // Validación normal para otros casos
     if (!grafico.elementos || !Array.isArray(grafico.elementos)) {
       errores.push('Los elementos del gráfico no son válidos');

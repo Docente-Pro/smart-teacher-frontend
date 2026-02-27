@@ -1,10 +1,11 @@
 import { handleToaster } from "./Toasters/handleToasters";
+import { clearUserStorage } from "./clearUserStorage";
 
 /**
  * Maneja la expiración de sesión cuando el backend retorna requiresReauth: true
  * 
  * Esta función:
- * 1. Limpia completamente el localStorage (tokens, usuario, etc.)
+ * 1. Limpia selectivamente el localStorage del usuario (preserva claves de admin)
  * 2. Muestra un mensaje al usuario indicando que su sesión expiró
  * 3. Redirige automáticamente al login
  * 
@@ -16,8 +17,8 @@ import { handleToaster } from "./Toasters/handleToasters";
 export function handleSessionExpiration() {
   console.log('🔐 Sesión expirada - Limpiando y redirigiendo al login');
   
-  // 1. Limpiar completamente el localStorage
-  localStorage.clear();
+  // 1. Limpiar selectivamente el localStorage del usuario (preserva admin)
+  clearUserStorage();
   
   // 2. Mostrar mensaje al usuario
   handleToaster(

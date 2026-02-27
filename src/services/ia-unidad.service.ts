@@ -139,6 +139,40 @@ export async function generarTituloUnidad(
 
 // ─── Generación completa (los 8 pasos secuenciales) ───
 
+// ─── Imagen de Situación Significativa ───
+
+export interface ImagenSituacionPayload {
+  situacionSignificativa: string;
+  problematica: string;
+  grado: string;
+  nivel: string;
+  distrito?: string;
+}
+
+export interface ImagenSituacionResponse {
+  success: boolean;
+  url: string;
+  descripcion: string;
+  metadata?: {
+    modelo: string;
+    tiempo_generacion_s: number;
+    costo_estimado_usd: number;
+  };
+}
+
+/**
+ * POST /api/unidad/imagen-situacion
+ * Genera una imagen ilustrativa para la situación significativa.
+ */
+export async function generarImagenSituacion(
+  payload: ImagenSituacionPayload
+): Promise<ImagenSituacionResponse> {
+  const { data } = await instance.post("/unidad/imagen-situacion", payload, {
+    timeout: 120_000, // 2 min — generación de imagen puede tardar
+  });
+  return data;
+}
+
 /**
  * POST /api/ia-unidad/:unidadId/generar-completa
  * Ejecuta los 8 pasos de forma secuencial en el backend.

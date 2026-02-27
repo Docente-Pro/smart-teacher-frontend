@@ -75,8 +75,7 @@ export const CirculosFraccion: React.FC<Props> = ({ data }) => {
           const seccionRellena = rc.path(pathData, {
             ...defaultRoughConfig,
             fill: color,
-            fillStyle: 'cross-hatch',
-            fillWeight: 1.5,
+            fillStyle: 'solid',
             strokeWidth: 0,
             roughness: 1
           });

@@ -8,10 +8,22 @@ interface SecuenciaDidacticaSectionProps {
 }
 
 /**
- * Normaliza imágenes: soporta imagen singular (v2) e imagenes array (v1)
+ * Normaliza imágenes: soporta imagen singular (v2), imagenes array (v1)
+ * e imagenContenido (contenido didáctico: tabla, gráfico, mapa, etc.).
+ * imagenContenido se añade al final con su posicion (default: "debajo").
  */
 function normalizarImagenes(proceso: any) {
-  return proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
+  const base = proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
+  if (proceso.imagenContenido?.url) {
+    return [
+      ...base,
+      {
+        ...proceso.imagenContenido,
+        posicion: proceso.imagenContenido.posicion || "debajo",
+      },
+    ];
+  }
+  return base;
 }
 
 /**
@@ -21,7 +33,7 @@ function normalizarImagenes(proceso: any) {
 function renderImagenesProceso(proceso: any, posicion: 'antes' | 'despues' | 'junto') {
   const allImagenes = normalizarImagenes(proceso);
   const imagenes = posicion === 'despues'
-    ? allImagenes.filter((img: any) => img.posicion === 'despues' || (!img.posicion && img.posicion !== 'antes' && img.posicion !== 'junto'))
+    ? allImagenes.filter((img: any) => img.posicion === 'despues' || img.posicion === 'debajo' || (!img.posicion && img.posicion !== 'antes' && img.posicion !== 'junto'))
     : allImagenes.filter((img: any) => img.posicion === posicion);
   if (!imagenes || imagenes.length === 0) return null;
 
@@ -35,12 +47,23 @@ function renderImagenesProceso(proceso: any, posicion: 'antes' | 'despues' | 'ju
       ...(posicion === 'despues' ? { marginTop: "0.8rem" } : {}),
     }}>
       {imagenes.map((img: any, imgIdx: number) => (
-        <img
-          key={img.id ?? imgIdx}
-          src={img.url}
-          alt={img.descripcion || ""}
-          style={{ maxHeight: "300px", borderRadius: "8px" }}
-        />
+        <div key={img.id ?? imgIdx} style={{ display: "inline-block", textAlign: "center" }}>
+          <img
+            src={img.url}
+            alt={img.descripcion || ""}
+            style={{ maxHeight: "300px", borderRadius: "8px" }}
+          />
+          {img.texto_overlay && (
+            <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+              {img.texto_overlay}
+            </div>
+          )}
+          {img.descripcion && (
+            <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
+              {img.descripcion}
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );
@@ -84,12 +107,23 @@ function renderProcesoRow(proceso: any, idx: number) {
             </div>
             <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
               {imgJunto.map((img: any, imgIdx: number) => (
-                <img
-                  key={img.id ?? imgIdx}
-                  src={img.url}
-                  alt={img.descripcion || ""}
-                  style={{ maxHeight: "300px", borderRadius: "8px" }}
-                />
+                <div key={img.id ?? imgIdx} style={{ textAlign: "center" }}>
+                  <img
+                    src={img.url}
+                    alt={img.descripcion || ""}
+                    style={{ maxHeight: "300px", borderRadius: "8px" }}
+                  />
+                  {img.texto_overlay && (
+                    <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+                      {img.texto_overlay}
+                    </div>
+                  )}
+                  {img.descripcion && (
+                    <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
+                      {img.descripcion}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -104,7 +138,7 @@ function renderProcesoRow(proceso: any, idx: number) {
         {/* 🖼️ Imágenes posición "despues" */}
         {renderImagenesProceso(proceso, 'despues')}
 
-        {/* Gráfico del problema (Rough.js) - solo si existe */}
+        {/* Gráfico del problema (con problemaMatematico) */}
         {proceso.problemaMatematico && (proceso.grafico || proceso.graficoProblema) && (
           <div style={{ marginBottom: "1rem", marginTop: "1rem" }}>
             <div style={{
@@ -130,31 +164,47 @@ function renderProcesoRow(proceso: any, idx: number) {
                 {proceso.problemaMatematico}
               </p>
             </div>
+          </div>
+        )}
 
-            {/* Gráfico de la operación */}
-            {proceso.graficoOperacion && (
-              <div style={{
-                marginTop: "1rem",
-                backgroundColor: "#faf5ff",
-                padding: "1rem",
-                borderRadius: "8px",
-                border: "2px solid #d8b4fe",
-                overflowX: "auto"
-              }}>
-                <p style={{
-                  fontSize: "9pt",
-                  fontWeight: "bold",
-                  color: "#7c3aed",
-                  marginBottom: "0.5rem",
-                  margin: 0
-                }}>
-                  🔢 Operación Matemática:
-                </p>
-                <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
-                  <GraficoRenderer grafico={proceso.graficoOperacion} />
-                </div>
-              </div>
-            )}
+        {/* Gráfico standalone (sin problemaMatematico) — Math o Área */}
+        {proceso.grafico && !proceso.problemaMatematico && (
+          <div style={{
+            marginTop: "0.8rem",
+            marginBottom: "0.8rem",
+            padding: "0.8rem",
+            backgroundColor: "#fafafa",
+            borderRadius: "8px",
+            border: "1px solid #e2e8f0",
+            textAlign: "center",
+          }}>
+            <GraficoRenderer grafico={proceso.grafico} />
+          </div>
+        )}
+
+        {/* Gráfico de la operación — siempre que exista */}
+        {proceso.graficoOperacion && (
+          <div style={{
+            marginTop: "1rem",
+            marginBottom: "1rem",
+            backgroundColor: "#faf5ff",
+            padding: "1rem",
+            borderRadius: "8px",
+            border: "2px solid #d8b4fe",
+            overflowX: "auto"
+          }}>
+            <p style={{
+              fontSize: "9pt",
+              fontWeight: "bold",
+              color: "#7c3aed",
+              marginBottom: "0.5rem",
+              margin: 0
+            }}>
+              🔢 Operación / Recurso:
+            </p>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
+              <GraficoRenderer grafico={proceso.graficoOperacion} />
+            </div>
           </div>
         )}
 
@@ -165,7 +215,6 @@ function renderProcesoRow(proceso: any, idx: number) {
               <img
                 src={proceso.imagenProblema}
                 alt="Problema matemático"
-                crossOrigin="anonymous"
                 style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }}
               />
             </div>
@@ -207,7 +256,6 @@ function renderProcesoRow(proceso: any, idx: number) {
             <img
               src={proceso.imagenSolucion}
               alt="Solución del problema"
-              crossOrigin="anonymous"
               style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }}
             />
           </div>

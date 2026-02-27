@@ -73,3 +73,26 @@ export type {
 
 // Interfaces por área (Matemática, Comunicación, etc.)
 export * from './areas';
+
+// Instrumentos de Evaluación (lista de cotejo, escala, rúbrica)
+export type {
+  IListaCotejo,
+  IEscalaValoracion,
+  IRubrica,
+  INivelDescriptor,
+  ICriterioRubrica,
+  IInstrumentoEvaluacion,
+  IGenerarRubricaRequest,
+  IGenerarRubricaResponse,
+  IGuardarInstrumentoRequest,
+  IGuardarInstrumentoResponse,
+} from './IInstrumentoEvaluacion';
+
+// Aula / Alumnos
+export type {
+  IAlumno,
+  IExtraerAlumnosResponse,
+  IExtraerAlumnosError,
+  IGuardarAlumnosRequest,
+  IGuardarAlumnosResponse,
+} from './IAula';

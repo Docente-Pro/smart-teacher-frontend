@@ -61,11 +61,19 @@ export async function adminLogin(
  */
 export async function resetUsuario(
   usuarioId: string,
-  body: IResetUsuarioRequest = {}
+  body: IResetUsuarioRequest,
 ): Promise<IResetUsuarioResponse> {
+  // Enviar SIEMPRE los 5 flags explícitos; los ausentes → false
+  const safeBody: Required<IResetUsuarioRequest> = {
+    resetSesiones: body.resetSesiones ?? false,
+    resetPdfs: body.resetPdfs ?? false,
+    resetSuscripcion: body.resetSuscripcion ?? false,
+    resetUnidades: body.resetUnidades ?? false,
+    resetPerfil: body.resetPerfil ?? false,
+  };
   const { data } = await instance.post<IResetUsuarioResponse>(
     `/admin/reset-usuario/${usuarioId}`,
-    body,
+    safeBody,
     { headers: getAdminHeaders() }
   );
   return data;

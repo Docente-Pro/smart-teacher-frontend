@@ -81,8 +81,7 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
             ...defaultRoughConfig,
             stroke: color,
             fill: color,
-            fillStyle: 'cross-hatch',
-            fillWeight: 1,
+            fillStyle: 'solid',
             strokeWidth: 3,
             roughness: 0.8
           });
@@ -99,8 +98,7 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
             ...defaultRoughConfig,
             stroke: color,
             fill: color,
-            fillStyle: 'cross-hatch',
-            fillWeight: 1,
+            fillStyle: 'solid',
             strokeWidth: 3,
             roughness: 0.8
           });
@@ -114,8 +112,7 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
             ...defaultRoughConfig,
             stroke: color,
             fill: color,
-            fillStyle: 'cross-hatch',
-            fillWeight: 1,
+            fillStyle: 'solid',
             strokeWidth: 3,
             roughness: 0.6
           });
@@ -141,8 +138,7 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
             ...defaultRoughConfig,
             stroke: color,
             fill: color,
-            fillStyle: 'cross-hatch',
-            fillWeight: 1,
+            fillStyle: 'solid',
             strokeWidth: 3,
             roughness: 0.8
           });
@@ -164,8 +160,7 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
             ...defaultRoughConfig,
             stroke: color,
             fill: color,
-            fillStyle: 'cross-hatch',
-            fillWeight: 1,
+            fillStyle: 'solid',
             strokeWidth: 3,
             roughness: 0.8
           });
@@ -186,8 +181,7 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
             ...defaultRoughConfig,
             stroke: color,
             fill: color,
-            fillStyle: 'cross-hatch',
-            fillWeight: 1,
+            fillStyle: 'solid',
             strokeWidth: 3,
             roughness: 0.8
           });

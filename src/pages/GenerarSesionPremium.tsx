@@ -8,6 +8,8 @@ import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import { generarImagenesSesion } from "@/services/ia-sesion.service";
+import { useInstrumentoEvaluacion } from "@/hooks/useInstrumentoEvaluacion";
+import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 import AreaSelectionModal from "@/components/Shared/Modal/AreaSelectionModal";
 import type { IUnidadListItem, IUnidadListMiembroArea } from "@/interfaces/IUnidadList";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
@@ -20,9 +22,9 @@ import {
   ChevronRight,
   Eye,
   FolderOpen,
+  ImageIcon,
   Loader2,
   Lock,
-  Moon,
   Plus,
   RefreshCw,
   Sparkles,
@@ -60,6 +62,14 @@ type SlotState = "generada" | "disponible" | "en_espera" | "no_asignada" | "bloq
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const DIA_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+
+/**
+ * Áreas transversales / institucionales que todos los docentes pueden generar,
+ * independientemente de las áreas curriculares asignadas en una unidad COMPARTIDA.
+ */
+const AREAS_TRANSVERSALES = new Set(
+  ["tutoría", "plan lector", "tutoria"].map((a) => a.toLowerCase()),
+);
 
 
 
@@ -103,12 +113,17 @@ function findAreaId(
  * Determina si un área está asignada al miembro.
  * - PERSONAL: miembroAreas vacío = acceso total (no hay restricción).
  * - COMPARTIDA: miembroAreas vacío = debe elegir áreas primero.
+ * - Áreas transversales (Tutoría, Plan Lector) son accesibles para todos.
  */
 function isAreaAssigned(
   areaName: string,
   areas: IUnidadListMiembroArea[],
   tipoUnidad: "PERSONAL" | "COMPARTIDA" | undefined,
 ): boolean {
+  // Áreas transversales siempre están disponibles para cualquier miembro
+  if (AREAS_TRANSVERSALES.has(areaName.toLowerCase().trim())) {
+    return true;
+  }
   if (areas.length === 0) {
     // PERSONAL o sin tipo → acceso total (no hay exclusividad)
     return tipoUnidad !== "COMPARTIDA";
@@ -149,6 +164,7 @@ function GenerarSesionPremium() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const permissions = usePermissions();
+  const { generarInstrumento, guardar: guardarInstrumento } = useInstrumentoEvaluacion();
   const userId = user?.id;
 
   // ─── State ───
@@ -167,6 +183,8 @@ function GenerarSesionPremium() {
   const [generatingSlot, setGeneratingSlot] = useState<SlotKey | null>(null);
   /** Slots donde las imágenes se están generando en segundo plano */
   const [generatingImages, setGeneratingImages] = useState<Set<SlotKey>>(new Set());
+  /** Instrumentos de evaluación generados por slot */
+  const [instrumentosMap, setInstrumentosMap] = useState<Map<SlotKey, IInstrumentoEvaluacion>>(new Map());
 
   // ─── Area selection modal (COMPARTIDA sin áreas asignadas) ───
   const [showAreaModal, setShowAreaModal] = useState(false);
@@ -492,6 +510,25 @@ function GenerarSesionPremium() {
                 next.delete(key);
                 return next;
               });
+            });
+
+          // ═══════════════════════════════════════════════════════════
+          // FASE 3: Generar instrumento de evaluación en background
+          // ═══════════════════════════════════════════════════════════
+          generarInstrumento(fullResp.sesion)
+            .then((inst) => {
+              if (inst) {
+                // Almacenar en el Map para pasarlo a la vista de resultado
+                setInstrumentosMap((prev) => new Map(prev).set(key, inst));
+                handleToaster("Instrumento de evaluación generado", "success");
+                // Persistir en S3 en segundo plano (fire-and-forget)
+                guardarInstrumento(fullResp.sesion.id).catch((err) =>
+                  console.warn("⚠️ No se pudo guardar instrumento en S3:", err),
+                );
+              }
+            })
+            .catch((err) => {
+              console.warn("⚠️ No se pudo generar el instrumento:", err);
             });
 
           return; // No llegar al finally que haría setGeneratingSlot(null) otra vez
@@ -849,7 +886,10 @@ function GenerarSesionPremium() {
                       onVerSesion={(id, slotKey) => {
                         const premData = slotKey ? premiumResponses.get(slotKey) : null;
                         if (premData) {
-                          navigate("/sesion-premium-result", { state: { premiumData: premData } });
+                          const inst = slotKey ? instrumentosMap.get(slotKey) : undefined;
+                          navigate("/sesion-premium-result", {
+                            state: { premiumData: premData, instrumento: inst ?? null },
+                          });
                         } else {
                           navigate(`/sesion/${id}`);
                         }
@@ -932,7 +972,7 @@ function DayColumn({
 
   return (
     <div
-      className={`rounded-xl border overflow-hidden transition-all duration-200 ${
+      className={`rounded-xl border overflow-hidden transition-all duration-200 flex flex-col ${
         hoy
           ? "border-violet-300 dark:border-violet-600/50 shadow-lg shadow-violet-500/10 ring-2 ring-violet-200/60 dark:ring-violet-500/20"
           : "border-slate-200/70 dark:border-slate-700/50 shadow-sm"
@@ -964,7 +1004,7 @@ function DayColumn({
       </div>
 
       {/* Turno cards */}
-      <div className="p-2 space-y-2 bg-white dark:bg-slate-900/30">
+      <div className="p-2 space-y-2 bg-white dark:bg-slate-900/30 flex flex-col flex-1">
         <TurnoCard
           turno="mañana"
           data={dia.turnoManana}
@@ -1064,7 +1104,7 @@ function TurnoCard({
 
   return (
     <div
-      className={`relative rounded-lg border p-2.5 transition-all duration-300 ${
+      className={`relative rounded-lg border p-2.5 transition-all duration-300 flex flex-col flex-1 ${
         isAvailable && !isGenerating
           ? `${theme.bg} ${theme.border} shadow-sm ring-1 ring-violet-300/40 dark:ring-violet-500/20`
           : ""
@@ -1092,11 +1132,7 @@ function TurnoCard({
     >
       {/* Turno label */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        {isMañana ? (
-          <Sun className="h-3 w-3 text-amber-500" />
-        ) : (
-          <Moon className="h-3 w-3 text-indigo-400" />
-        )}
+        <Sun className={`h-3 w-3 ${isMañana ? "text-amber-500" : "text-orange-400"}`} />
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
           {isMañana ? "Primer Bloque" : "Segundo Bloque"}
         </span>
@@ -1112,16 +1148,17 @@ function TurnoCard({
 
       {/* Actividad */}
       <p
-        className={`text-[11px] leading-relaxed mb-2 ${
+        className={`text-[11px] leading-relaxed line-clamp-3 flex-1 ${
           isGenerated
-            ? "text-slate-500 dark:text-slate-400 line-clamp-2"
-            : "text-slate-700 dark:text-slate-300 line-clamp-3"
+            ? "text-slate-500 dark:text-slate-400"
+            : "text-slate-700 dark:text-slate-300"
         }`}
       >
         {data.actividad}
       </p>
 
       {/* ─── Actions ─── */}
+      <div className="mt-auto pt-1.5">
 
       {/* Disponible + NOT generating */}
       {isAvailable && !isGenerating && (
@@ -1148,18 +1185,27 @@ function TurnoCard({
       {/* Generada con datos */}
       {isGenerated && generatedSesion && (
         <div className="space-y-1">
-          <button
-            onClick={() => onVerSesion(generatedSesion.id, slotKey)}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 transition-colors"
-          >
-            <Eye className="h-3 w-3" />
-            Ver sesión
-          </button>
-          {isGeneratingImages && (
-            <div className="flex items-center justify-center gap-1 py-0.5 text-[9px] text-sky-600 dark:text-sky-400 animate-pulse">
-              <Loader2 className="h-2.5 w-2.5 animate-spin" />
-              Generando imágenes…
-            </div>
+          {isGeneratingImages ? (
+            <>
+              <div
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-500/20 cursor-not-allowed opacity-80"
+              >
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Preparando sesión…
+              </div>
+              <div className="flex items-center justify-center gap-1 py-0.5 text-[9px] text-sky-600 dark:text-sky-400 animate-pulse">
+                <ImageIcon className="h-2.5 w-2.5" />
+                Generando imágenes, espera un momento…
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={() => onVerSesion(generatedSesion.id, slotKey)}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 transition-colors"
+            >
+              <Eye className="h-3 w-3" />
+              Ver sesión
+            </button>
           )}
         </div>
       )}
@@ -1194,6 +1240,7 @@ function TurnoCard({
           Sin asignar
         </div>
       )}
+      </div>
     </div>
   );
 }

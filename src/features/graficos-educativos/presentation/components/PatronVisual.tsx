@@ -65,8 +65,7 @@ export const PatronVisual: React.FC<Props> = ({ data }) => {
                 ...defaultRoughConfig,
                 stroke: colorElem,
                 fill: colorElem,
-                fillStyle: 'cross-hatch',
-                fillWeight: 1,
+                fillStyle: 'solid',
                 strokeWidth: 3,
                 roughness: 0.8
               });
@@ -82,8 +81,7 @@ export const PatronVisual: React.FC<Props> = ({ data }) => {
                 ...defaultRoughConfig,
                 stroke: colorElem,
                 fill: colorElem,
-                fillStyle: 'cross-hatch',
-                fillWeight: 1,
+                fillStyle: 'solid',
                 strokeWidth: 3,
                 roughness: 0.8
               });

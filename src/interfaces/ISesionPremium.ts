@@ -51,9 +51,21 @@ export interface IPreparacionPremium {
 export interface IImagenProceso {
   id?: string;
   url: string;
+  /** "ilustrativa" = imagen decorativa, "contenido" = imagen con texto overlay */
+  tipo?: "ilustrativa" | "contenido";
   descripcion?: string;
-  /** "antes" = antes del texto de estrategias, "junto" = junto al texto */
-  posicion?: "antes" | "junto" | "despues";
+  /** "antes" = antes del texto, "junto" = junto al texto, "debajo"/"despues" = después */
+  posicion?: "antes" | "junto" | "despues" | "debajo";
+  /** Texto superpuesto en la imagen (solo presente cuando tipo === "contenido") */
+  texto_overlay?: string;
+}
+
+/** Imagen de contenido didáctico (tabla, gráfico, mapa, diagrama, etc.) */
+export interface IImagenContenido {
+  url: string;
+  tipo: "tabla_doble_entrada" | "grafico_barras" | "mapa_geografico" | "diagrama_flujo" | string;
+  descripcion?: string;
+  posicion?: "junto" | "debajo";
 }
 
 // ─── Secuencia Didáctica ─────────────────────────────────────────────────────
@@ -70,6 +82,10 @@ export interface IProcesoPremium {
   imagen?: IImagenProceso | null;
   /** @deprecated Imágenes en array (v1) — mantener por retrocompatibilidad */
   imagenes?: IImagenProceso[] | null;
+  /** Imagen de contenido didáctico (tabla, gráfico, mapa, etc.) — máx. 2 por sesión */
+  imagenContenido?: IImagenContenido | null;
+  /** Gráfico educativo generado por IA (Matemática o área curricular) */
+  grafico?: Record<string, unknown> | null;
 }
 
 export interface IFasePremium {

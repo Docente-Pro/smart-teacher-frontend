@@ -23,7 +23,31 @@ export enum TipoGraficoMatematica {
   OPERACION_VERTICAL = "operacion_vertical",
   BALANZA_EQUILIBRIO = "balanza_equilibrio",
   NUMEROS_ORDINALES = "numeros_ordinales",
-  COORDENADAS_EJERCICIOS = "coordenadas_ejercicios"
+  COORDENADAS_EJERCICIOS = "coordenadas_ejercicios",
+  // ===== NUEVOS TIPOS =====
+  VALOR_POSICIONAL = "valor_posicional",
+  DESCOMPOSICION_NUMERO = "descomposicion_numero",
+  ABACO = "abaco",
+  BASE_DIEZ_BLOQUES = "base_diez_bloques",
+  PICTOGRAMA = "pictograma",
+  GRAFICO_CIRCULAR = "grafico_circular",
+  GRAFICO_LINEAL = "grafico_lineal",
+  TABLA_FRECUENCIAS = "tabla_frecuencias",
+  RELOJ_TIEMPO = "reloj_tiempo",
+  CALENDARIO = "calendario",
+  TERMOMETRO = "termometro",
+  CONVERSION_MEDIDAS = "conversion_medidas",
+  REGLA_MEDICION = "regla_medicion",
+  CAJA_FUNCION = "caja_funcion",
+  ARBOL_FACTORES = "arbol_factores",
+  MULTIPLOS_TABLA = "multiplos_tabla",
+  POTENCIAS_RAICES = "potencias_raices",
+  CUERPOS_GEOMETRICOS = "cuerpos_geometricos",
+  ANGULOS = "angulos",
+  SIMETRIA = "simetria",
+  REDES_CUERPOS = "redes_cuerpos",
+  CAMBIO_MONEDAS = "cambio_monedas",
+  RECTA_FRACCION = "recta_fraccion"
 }
 
 export enum ColorGrafico {
@@ -402,6 +426,401 @@ export interface GraficoCoordenadasEjercicios extends ConfiguracionGrafico {
   tablas: TablaCoordenadas[];
 }
 
+// ============= VALOR POSICIONAL =============
+
+export interface PosicionValor {
+  posicion: string; // "unidades" | "decenas" | "centenas" | "millares"
+  digito: number;
+  valor: number;
+  color?: string;
+}
+
+export interface GraficoValorPosicional extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.VALOR_POSICIONAL;
+  numero: number;
+  posiciones: PosicionValor[];
+  mostrarDescomposicion?: boolean;
+  estilo?: "tabla" | "bloques" | "expandido";
+}
+
+// ============= DESCOMPOSICIÓN DE NÚMERO =============
+
+export interface ParteDescomposicion {
+  valor: number;
+  etiqueta: string;
+  color?: string;
+}
+
+export interface GraficoDescomposicionNumero extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.DESCOMPOSICION_NUMERO;
+  numero: number;
+  partes: ParteDescomposicion[];
+  tipo: "aditiva" | "multiplicativa" | "mixta";
+  mostrarArbol?: boolean;
+}
+
+// ============= ÁBACO =============
+
+export interface ColumnaAbaco {
+  posicion: string; // "unidades" | "decenas" | "centenas" | "millares"
+  cuentas: number;
+  color?: string;
+}
+
+export interface GraficoAbaco extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.ABACO;
+  columnas: ColumnaAbaco[];
+  numero: number;
+  mostrarValor?: boolean;
+  maxCuentas?: number;
+}
+
+// ============= BASE DIEZ BLOQUES =============
+
+export interface BloqueDiez {
+  tipo: "unidad" | "barra" | "placa" | "cubo";
+  cantidad: number;
+  color?: string;
+}
+
+export interface GraficoBaseDiezBloques extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.BASE_DIEZ_BLOQUES;
+  numero: number;
+  bloques: BloqueDiez[];
+  mostrarTotal?: boolean;
+  agrupacion?: boolean;
+}
+
+// ============= PICTOGRAMA =============
+
+export interface FilaPictograma {
+  categoria: string;
+  cantidad: number;
+  icono?: string;
+  color?: string;
+}
+
+export interface GraficoPictograma extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.PICTOGRAMA;
+  elementos: FilaPictograma[];
+  iconoBase?: string;
+  valorIcono?: number;
+  mostrarLeyenda?: boolean;
+  orientacion?: "horizontal" | "vertical";
+}
+
+// ============= GRÁFICO CIRCULAR =============
+
+export interface SectorCircular {
+  etiqueta: string;
+  valor: number;
+  porcentaje?: number;
+  color?: string;
+}
+
+export interface GraficoCircular extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.GRAFICO_CIRCULAR;
+  sectores: SectorCircular[];
+  mostrarPorcentajes?: boolean;
+  mostrarLeyenda?: boolean;
+  total?: number;
+}
+
+// ============= GRÁFICO LINEAL =============
+
+export interface PuntoLineal {
+  x: number | string;
+  y: number;
+  etiqueta?: string;
+}
+
+export interface SerieLineal {
+  nombre: string;
+  puntos: PuntoLineal[];
+  color?: string;
+}
+
+export interface GraficoLineal extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.GRAFICO_LINEAL;
+  series: SerieLineal[];
+  ejeX?: { titulo: string; etiquetas?: string[] };
+  ejeY?: { titulo: string; maximo?: number; intervalo?: number };
+  mostrarPuntos?: boolean;
+  mostrarArea?: boolean;
+}
+
+// ============= TABLA DE FRECUENCIAS =============
+
+export interface FilaFrecuencia {
+  dato: string | number;
+  conteo?: string;
+  frecuencia: number;
+  frecuenciaRelativa?: number;
+  frecuenciaAcumulada?: number;
+}
+
+export interface GraficoTablaFrecuencias extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.TABLA_FRECUENCIAS;
+  datos: FilaFrecuencia[];
+  mostrarConteo?: boolean;
+  mostrarRelativa?: boolean;
+  mostrarAcumulada?: boolean;
+  totalDatos?: number;
+}
+
+// ============= RELOJ / TIEMPO =============
+
+export interface ConfigReloj {
+  hora: number;
+  minuto: number;
+  etiqueta?: string;
+}
+
+export interface GraficoRelojTiempo extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.RELOJ_TIEMPO;
+  relojes: ConfigReloj[];
+  formato?: "12h" | "24h";
+  mostrarDigital?: boolean;
+  tipo?: "lectura" | "comparacion" | "duracion";
+}
+
+// ============= CALENDARIO =============
+
+export interface EventoCalendario {
+  dia: number;
+  texto?: string;
+  color?: string;
+  destacado?: boolean;
+}
+
+export interface GraficoCalendario extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.CALENDARIO;
+  mes: number;
+  anio: number;
+  eventos?: EventoCalendario[];
+  destacarDias?: number[];
+  pregunta?: string;
+}
+
+// ============= TERMÓMETRO =============
+
+export interface GraficoTermometro extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.TERMOMETRO;
+  temperatura: number;
+  minimo?: number;
+  maximo?: number;
+  unidad?: "C" | "F";
+  marcas?: number[];
+  etiqueta?: string;
+  colorLiquido?: string;
+}
+
+// ============= CONVERSIÓN DE MEDIDAS =============
+
+export interface PasoConversion {
+  desde: { valor: number; unidad: string };
+  hasta: { valor: number; unidad: string };
+  factor?: string;
+}
+
+export interface GraficoConversionMedidas extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.CONVERSION_MEDIDAS;
+  conversiones: PasoConversion[];
+  tipo?: "longitud" | "masa" | "capacidad" | "tiempo";
+  mostrarEscalera?: boolean;
+}
+
+// ============= REGLA DE MEDICIÓN =============
+
+export interface MarcaRegla {
+  posicion: number;
+  etiqueta?: string;
+  color?: string;
+  destacado?: boolean;
+}
+
+export interface GraficoReglaMedicion extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.REGLA_MEDICION;
+  inicio: number;
+  fin: number;
+  unidad: string;
+  intervalo?: number;
+  marcas?: MarcaRegla[];
+  objetoMedir?: string;
+}
+
+// ============= CAJA DE FUNCIÓN (MÁQUINA) =============
+
+export interface EntradaSalidaFuncion {
+  entrada: number | string;
+  salida: number | string;
+}
+
+export interface GraficoCajaFuncion extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.CAJA_FUNCION;
+  regla: string;
+  pares: EntradaSalidaFuncion[];
+  incognitas?: number[];
+  mostrarRegla?: boolean;
+}
+
+// ============= ÁRBOL DE FACTORES =============
+
+export interface NodoFactor {
+  valor: number;
+  esPrimo?: boolean;
+  hijos?: NodoFactor[];
+}
+
+export interface GraficoArbolFactores extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.ARBOL_FACTORES;
+  numero: number;
+  arbol: NodoFactor;
+  mostrarPrimos?: boolean;
+  resultado?: string;
+}
+
+// ============= MÚLTIPLOS Y TABLA =============
+
+export interface CeldaMultiplo {
+  valor: number;
+  esMultiplo?: boolean;
+  destacado?: boolean;
+  color?: string;
+}
+
+export interface GraficoMultiplosTabla extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.MULTIPLOS_TABLA;
+  numero: number;
+  rango: { inicio: number; fin: number };
+  multiplosDestacados?: number[];
+  mostrarTabla100?: boolean;
+  colorMultiplo?: string;
+}
+
+// ============= POTENCIAS Y RAÍCES =============
+
+export interface ExpresionPotencia {
+  base: number;
+  exponente: number;
+  resultado: number;
+  tipo: "potencia" | "raiz";
+}
+
+export interface GraficoPotenciasRaices extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.POTENCIAS_RAICES;
+  expresiones: ExpresionPotencia[];
+  mostrarVisualizacion?: boolean;
+  tipo?: "potencia" | "raiz" | "ambos";
+}
+
+// ============= CUERPOS GEOMÉTRICOS =============
+
+export interface CuerpoGeometrico {
+  tipo: "cubo" | "esfera" | "cilindro" | "cono" | "prisma" | "piramide";
+  etiqueta?: string;
+  medidas?: Record<string, number>;
+  color?: string;
+}
+
+export interface GraficoCuerposGeometricos extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.CUERPOS_GEOMETRICOS;
+  cuerpos: CuerpoGeometrico[];
+  mostrarNombres?: boolean;
+  mostrarMedidas?: boolean;
+  vista?: "frontal" | "isometrica";
+}
+
+// ============= ÁNGULOS =============
+
+export interface AnguloConfig {
+  grados: number;
+  tipo?: "agudo" | "recto" | "obtuso" | "llano" | "completo";
+  etiqueta?: string;
+  color?: string;
+  mostrarMedida?: boolean;
+}
+
+export interface GraficoAngulos extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.ANGULOS;
+  angulos: AnguloConfig[];
+  mostrarTransportador?: boolean;
+  mostrarClasificacion?: boolean;
+}
+
+// ============= SIMETRÍA =============
+
+export interface FiguraSimetria {
+  tipo: string;
+  puntos?: Array<{ x: number; y: number }>;
+  color?: string;
+}
+
+export interface GraficoSimetria extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.SIMETRIA;
+  figuraOriginal: FiguraSimetria;
+  ejeSimetria: "vertical" | "horizontal" | "diagonal";
+  mostrarEje?: boolean;
+  mostrarReflejo?: boolean;
+  cuadricula?: boolean;
+}
+
+// ============= REDES DE CUERPOS =============
+
+export interface RedCuerpo {
+  cuerpo: "cubo" | "prisma" | "piramide" | "cilindro" | "cono";
+  caras: Array<{
+    forma: string;
+    posicion: { x: number; y: number };
+    dimensiones: Record<string, number>;
+    color?: string;
+  }>;
+}
+
+export interface GraficoRedesCuerpos extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.REDES_CUERPOS;
+  redes: RedCuerpo[];
+  mostrarCuerpo3D?: boolean;
+  mostrarDobleces?: boolean;
+}
+
+// ============= CAMBIO DE MONEDAS =============
+
+export interface MonedaCambio {
+  tipo: "moneda" | "billete";
+  valor: number;
+  cantidad: number;
+}
+
+export interface GraficoCambioMonedas extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.CAMBIO_MONEDAS;
+  monedasInicio: MonedaCambio[];
+  monedasResultado: MonedaCambio[];
+  moneda?: "S/" | "$" | "€";
+  mostrarEquivalencia?: boolean;
+  totalOriginal?: number;
+}
+
+// ============= RECTA DE FRACCIONES =============
+
+export interface MarcaFraccion {
+  posicion: number; // valor decimal de la fracción
+  numerador: number;
+  denominador: number;
+  etiqueta?: string;
+  color?: string;
+  destacado?: boolean;
+}
+
+export interface GraficoRectaFraccion extends ConfiguracionGrafico {
+  tipoGrafico: TipoGraficoMatematica.RECTA_FRACCION;
+  inicio: number;
+  fin: number;
+  denominadorBase?: number;
+  marcas: MarcaFraccion[];
+  mostrarDivisiones?: boolean;
+}
+
 // ============= TIPOS DE EXPORTACIÓN =============
 
 export type TipoGraficoConfiguracion = 
@@ -424,5 +843,28 @@ export type TipoGraficoConfiguracion =
   | GraficoBalanzaEquilibrio
   | GraficoNumerosOrdinales
   | GraficoCoordenadasEjercicios
+  | GraficoValorPosicional
+  | GraficoDescomposicionNumero
+  | GraficoAbaco
+  | GraficoBaseDiezBloques
+  | GraficoPictograma
+  | GraficoCircular
+  | GraficoLineal
+  | GraficoTablaFrecuencias
+  | GraficoRelojTiempo
+  | GraficoCalendario
+  | GraficoTermometro
+  | GraficoConversionMedidas
+  | GraficoReglaMedicion
+  | GraficoCajaFuncion
+  | GraficoArbolFactores
+  | GraficoMultiplosTabla
+  | GraficoPotenciasRaices
+  | GraficoCuerposGeometricos
+  | GraficoAngulos
+  | GraficoSimetria
+  | GraficoRedesCuerpos
+  | GraficoCambioMonedas
+  | GraficoRectaFraccion
   | ConfiguracionGrafico;
 

@@ -31,6 +31,7 @@ import SelectProblematicaModal from "./SelectProblematicaModal";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useUnidadStore } from "@/store/unidad.store";
+import { useAuthStore } from "@/store/auth.store";
 import { createUnidad, seleccionarAreas } from "@/services/unidad.service";
 import { getAllAreas } from "@/services/areas.service";
 import { generarTituloUnidad } from "@/services/ia-unidad.service";
@@ -55,6 +56,7 @@ const duracionesUnidad = [
 
 function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros }: Props) {
   const { setUnidadId, setDatosBase } = useUnidadStore();
+  const updateAuthUser = useAuthStore((s) => s.updateUser);
   const { showLoading, hideLoading } = useGlobalLoading();
 
   // Catálogos
@@ -234,6 +236,10 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
           ? { maxMiembros, codigoCompartido: unidad.codigoCompartido }
           : {}),
       });
+
+      // Sincronizar problematicaCompleta en auth store (localStorage)
+      // para que el Dashboard no muestre el modal de problemática innecesariamente
+      updateAuthUser({ problematicaCompleta: true });
 
       handleToaster("Unidad creada exitosamente", "success");
       setPagina(pagina + 1);

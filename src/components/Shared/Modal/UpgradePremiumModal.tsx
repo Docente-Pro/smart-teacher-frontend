@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ReusableModal from "@/components/Shared/Modal/ReusableModal";
 import { Button } from "@/components/ui/button";
 import { Crown, Sparkles, Check, Lock, MessageCircle, Loader2, PartyPopper, Rocket, AlertCircle } from "lucide-react";
 import { usePaymentSocket, type PaymentStatus } from "@/hooks/usePaymentSocket";
+import { SubirListaAlumnosView } from "@/components/Shared/SubirListaAlumnosView";
 
 interface UpgradePremiumModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ interface UpgradePremiumModalProps {
 function UpgradePremiumModal({ isOpen, onClose }: UpgradePremiumModalProps) {
   const navigate = useNavigate();
   const { status, errorMessage, startPaymentFlow, cancelWaiting, reset } = usePaymentSocket();
+  /** true → muestra la vista de subir lista de alumnos (post-pago) */
+  const [showUploadStep, setShowUploadStep] = useState(false);
 
   const premiumFeatures = [
     "Crear Unidades de Aprendizaje con IA",
@@ -31,20 +34,31 @@ function UpgradePremiumModal({ isOpen, onClose }: UpgradePremiumModalProps) {
     "Soporte prioritario",
   ];
 
-  // Cuando el pago se confirma, esperar 2.5s y redirigir al dashboard
+  // Cuando el pago se confirma, mostrar brevemente el éxito y luego la vista de subir lista
   useEffect(() => {
-    if (status === "activated") {
+    if (status === "activated" && !showUploadStep) {
       const timer = setTimeout(() => {
-        reset();
-        onClose();
-        navigate("/dashboard");
+        setShowUploadStep(true);
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [status, navigate, onClose, reset]);
+  }, [status, showUploadStep]);
+
+  /** El usuario terminó el paso de subir lista (skip o continuar) → ir al dashboard */
+  const handleUploadContinue = useCallback(() => {
+    setShowUploadStep(false);
+    reset();
+    onClose();
+    navigate("/dashboard");
+  }, [navigate, onClose, reset]);
 
   // Al cerrar el modal, limpiar todo
   function handleClose() {
+    if (showUploadStep) {
+      // Si está en el paso de subir lista, tratar como "skip"
+      handleUploadContinue();
+      return;
+    }
     if (status === "waiting") {
       cancelWaiting();
     } else {
@@ -63,14 +77,21 @@ function UpgradePremiumModal({ isOpen, onClose }: UpgradePremiumModalProps) {
       onClose={handleClose}
       size="sm"
       gradient="amber-orange"
-      showCloseButton={status !== "activated" && status !== "loading"}
+      showCloseButton={status !== "activated" && status !== "loading" && !showUploadStep}
       closeOnOverlayClick={status === "idle" || status === "error"}
     >
-      {status === "idle" && <IdleView features={premiumFeatures} onContact={handleContactWhatsApp} onClose={handleClose} />}
-      {status === "loading" && <LoadingView />}
-      {status === "waiting" && <WaitingView onCancel={handleClose} />}
-      {status === "activated" && <ActivatedView />}
-      {status === "error" && <ErrorView message={errorMessage} onRetry={handleContactWhatsApp} onClose={handleClose} />}
+      {/* Paso post-pago: subir lista de alumnos (opcional) */}
+      {showUploadStep ? (
+        <SubirListaAlumnosView onContinue={handleUploadContinue} />
+      ) : (
+        <>
+          {status === "idle" && <IdleView features={premiumFeatures} onContact={handleContactWhatsApp} onClose={handleClose} />}
+          {status === "loading" && <LoadingView />}
+          {status === "waiting" && <WaitingView onCancel={handleClose} />}
+          {status === "activated" && <ActivatedView />}
+          {status === "error" && <ErrorView message={errorMessage} onRetry={handleContactWhatsApp} onClose={handleClose} />}
+        </>
+      )}
     </ReusableModal>
   );
 }

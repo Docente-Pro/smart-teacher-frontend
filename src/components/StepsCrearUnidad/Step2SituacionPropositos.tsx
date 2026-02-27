@@ -24,6 +24,7 @@ import {
   generarEvidencias,
   generarPropositos,
   regenerarPasoUnidad,
+  generarImagenSituacion,
 } from "@/services/ia-unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type {
@@ -41,7 +42,7 @@ interface Props {
 type GenerationStatus = "idle" | "generating" | "done" | "error";
 
 function Step2SituacionPropositos({ pagina, setPagina }: Props) {
-  const { unidadId, contenido, updateContenido, setGenerandoPaso, generandoPaso } =
+  const { unidadId, datosBase, contenido, updateContenido, setGenerandoPaso, generandoPaso } =
     useUnidadStore();
 
   // Estado de generación por sección
@@ -117,9 +118,25 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
       });
       setStatusSituacion("done");
 
-      // 2. Evidencias
+      // 2. Evidencias + Imagen de la situación (en paralelo)
       setStatusEvidencias("generating");
       setGenerandoPaso("Evidencias");
+
+      // Lanzar imagen en background (no bloquea el flujo)
+      const imagenPromise = generarImagenSituacion({
+        situacionSignificativa: sitTexto,
+        problematica: datosBase?.problematicaNombre || "",
+        grado: datosBase?.grado || "",
+        nivel: datosBase?.nivel || "",
+      })
+        .then((imgRes) => {
+          updateContenido({ imagenSituacionUrl: imgRes.url });
+        })
+        .catch((err) => {
+          console.warn("No se pudo generar la imagen de situación:", err);
+          // No es crítico, se continua sin imagen
+        });
+
       const resEv = await generarEvidencias(unidadId);
       const evData = resEv.data as IEvidencias;
       setEvidencias(evData);
@@ -134,6 +151,9 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
       setPropositos(propData);
       updateContenido({ propositos: propData });
       setStatusPropositos("done");
+
+      // Esperar la imagen si aún no terminó (no bloquea UX, ya terminaron los 3 pasos)
+      await imagenPromise;
 
       setGenerandoPaso(null);
       handleToaster("¡Contenido generado con éxito!", "success");
