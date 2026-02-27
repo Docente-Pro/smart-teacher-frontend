@@ -64,7 +64,7 @@ function Hero() {
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 max-w-4xl mx-auto">
             <div className="bg-white/90 backdrop-blur-xl rounded-2xl p-6 border-2 border-white shadow-xl hover:bg-white hover:shadow-2xl transition-all">
-              <div className="text-4xl font-extrabold text-blue-700">+1000</div>
+              <div className="text-4xl font-extrabold text-blue-700">+100</div>
               <div className="text-blue-600 mt-2 font-medium">Sesiones generadas</div>
             </div>
             <div className="bg-white/90 backdrop-blur-xl rounded-2xl p-6 border-2 border-white shadow-xl hover:bg-white hover:shadow-2xl transition-all">

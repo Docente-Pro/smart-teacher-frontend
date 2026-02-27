@@ -113,7 +113,11 @@ function OnboardingPage() {
       try {
         const [nivelesResponse, gradosResponse] = await Promise.all([getNiveles(), getAllGrados()]);
 
-        setNiveles(nivelesResponse.data.data);
+        setNiveles(
+          nivelesResponse.data.data.filter(
+            (nivel: INivel) => !nivel.nombre?.toLowerCase().includes("secundaria")
+          )
+        );
         setTodosLosGrados(gradosResponse.data.data);
       } catch (error) {
         handleToaster("Error al cargar datos", "error");

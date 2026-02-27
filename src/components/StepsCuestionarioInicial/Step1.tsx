@@ -29,7 +29,11 @@ function Step1({ state, usuario, setValuesOfUser, setCurrentStep }: Props) {
     //obtenemos los niveles de educacion (primaria, secundaria)
 
     getNiveles().then((response) => {
-      setNiveles(response.data.data);
+      // Solo mostrar primaria por ahora (comentar secundaria)
+      const soloprimaria = response.data.data.filter(
+        (nivel: INivel) => !nivel.nombre?.toLowerCase().includes("secundaria")
+      );
+      setNiveles(soloprimaria);
     });
 
     //obtenemos los grados (1ro, 2do, 3ro, etc)
