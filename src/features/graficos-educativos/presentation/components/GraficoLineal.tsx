@@ -35,13 +35,13 @@ export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
     });
 
     // Encontrar max Y
-    const allYVals = seriesNorm.flatMap(s => (s.puntos || []).map(p => p.y));
+    const allYVals = seriesNorm.flatMap(s => (s.puntos || []).map((p: {x: number | string; y: number}) => p.y));
     if (allYVals.length === 0) return;
     const maxY = ejeY?.maximo || Math.ceil(Math.max(...allYVals) * 1.1);
     const intervaloY = ejeY?.intervalo || Math.ceil(maxY / 5);
 
     // Encontrar etiquetas X
-    const allXLabels = ejeX?.etiquetas || seriesNorm[0].puntos.map(p => String(p.x));
+    const allXLabels = ejeX?.etiquetas || seriesNorm[0].puntos.map((p: {x: number | string; y: number}) => String(p.x));
     const numPoints = allXLabels.length;
 
     // Eje Y
@@ -67,7 +67,7 @@ export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
 
     // Etiquetas X
     const xStep = (chartW - padding * 2) / Math.max(numPoints - 1, 1);
-    allXLabels.forEach((label, i) => {
+    allXLabels.forEach((label: string, i: number) => {
       const x = axisX + i * xStep;
       const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       t.setAttribute('x', x.toString());
@@ -95,7 +95,7 @@ export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
       }
 
       if (mostrarPuntos) {
-        puntos.forEach((p, i) => {
+        puntos.forEach((p: {x: number | string; y: number}, i: number) => {
           const x = axisX + i * xStep;
           const y = axisY - (p.y / maxY) * yRange;
           svgRef.current!.appendChild(rc.circle(x, y, 10, { fill: color, fillStyle: 'solid', stroke: color, strokeWidth: 2, roughness: 0.5 }));
