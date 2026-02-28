@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,22 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
   const [situacionTexto, setSituacionTexto] = useState(contenido.situacionSignificativa || "");
   const [evidencias, setEvidencias] = useState<IEvidencias | null>(contenido.evidencias || null);
   const [propositos, setPropositos] = useState<IPropositos | null>(contenido.propositos || null);
+
+  // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
+  useEffect(() => {
+    if (contenido.situacionSignificativa && !situacionTexto) {
+      setSituacionTexto(contenido.situacionSignificativa);
+      setStatusSituacion("done");
+    }
+    if (contenido.evidencias && !evidencias) {
+      setEvidencias(contenido.evidencias);
+      setStatusEvidencias("done");
+    }
+    if (contenido.propositos && !propositos) {
+      setPropositos(contenido.propositos);
+      setStatusPropositos("done");
+    }
+  }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos]);
 
   // Secciones colapsadas
   const [expandedPropositos, setExpandedPropositos] = useState(true);

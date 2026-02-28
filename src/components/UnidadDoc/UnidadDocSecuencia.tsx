@@ -1,5 +1,6 @@
 import type { ISecuencia } from "@/interfaces/IUnidadIA";
 import { getAreaColor } from "@/constants/areaColors";
+import { parseMarkdown } from "@/utils/parseMarkdown";
 
 interface Props {
   secuencia?: ISecuencia;
@@ -90,7 +91,7 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                 </td>
                 {semana.dias.map((dia, i) => (
                   <td key={i} style={{ fontSize: "8pt", textAlign: "center" }}>
-                    {dia.turnoManana?.actividad || ""}
+                    {parseMarkdown(dia.turnoManana?.actividad || "")}
                   </td>
                 ))}
               </tr>
@@ -122,7 +123,7 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                 </td>
                 {semana.dias.map((dia, i) => (
                   <td key={i} style={{ fontSize: "8pt", textAlign: "center" }}>
-                    {dia.turnoTarde?.actividad || ""}
+                    {parseMarkdown(dia.turnoTarde?.actividad || "")}
                   </td>
                 ))}
               </tr>
@@ -138,10 +139,16 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
 function extractDayNumber(fecha: string): string {
   if (!fecha) return "";
 
-  // Intentar parsear como Date válido
-  const d = new Date(fecha);
-  if (!isNaN(d.getTime())) {
-    return String(d.getDate()).padStart(2, "0");
+  // Si viene en formato YYYY-MM-DD, extraer el día directamente
+  if (/^\d{4}-\d{2}-\d{2}/.test(fecha)) {
+    const day = fecha.split("-")[2]?.substring(0, 2);
+    return day || "";
+  }
+
+  // Parsear como fecha local (sin timezone conversion)
+  const [year, month, day] = fecha.split("-").map(Number);
+  if (year && month && day) {
+    return String(day).padStart(2, "0");
   }
 
   // Fallback: extraer el último grupo de 1-2 dígitos (día) del string

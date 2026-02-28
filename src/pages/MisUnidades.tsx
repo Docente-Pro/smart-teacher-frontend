@@ -37,11 +37,17 @@ import {
 
 function formatFecha(fecha: string) {
   try {
+    // Parsear como fecha local (sin timezone conversion)
+    // fecha viene en formato "YYYY-MM-DD" o ISO string
+    const dateOnly = fecha.split("T")[0]; // Si es ISO, tomar solo la fecha
+    const [year, month, day] = dateOnly.split("-").map(Number);
+    if (!year || !month || !day) return fecha;
+    const d = new Date(year, month - 1, day);
     return new Intl.DateTimeFormat("es-PE", {
       day: "2-digit",
       month: "short",
       year: "numeric",
-    }).format(new Date(fecha));
+    }).format(d);
   } catch {
     return fecha;
   }

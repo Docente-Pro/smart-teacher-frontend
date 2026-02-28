@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,22 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const [reflexiones, setReflexiones] = useState<IReflexionPregunta[]>(
     contenido.reflexiones || []
   );
+
+  // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
+  useEffect(() => {
+    if (contenido.secuencia && !secuencia) {
+      setSecuencia(contenido.secuencia);
+      setStatusSecuencia("done");
+    }
+    if (contenido.materiales?.length && materiales.length === 0) {
+      setMateriales(contenido.materiales);
+      setStatusMateriales("done");
+    }
+    if (contenido.reflexiones?.length && reflexiones.length === 0) {
+      setReflexiones(contenido.reflexiones);
+      setStatusReflexiones("done");
+    }
+  }, [contenido.secuencia, contenido.materiales, contenido.reflexiones]);
 
   // Semanas expandidas
   const [expandedWeeks, setExpandedWeeks] = useState<Record<number, boolean>>({});

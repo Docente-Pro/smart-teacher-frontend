@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { parseMarkdown } from "@/utils/parseMarkdown";
 import {
   Sparkles,
   ArrowRight,
@@ -69,6 +70,18 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
     contenido.areasComplementarias || []
   );
   const [enfoques, setEnfoques] = useState<IEnfoqueUnidad[]>(contenido.enfoques || []);
+
+  // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
+  useEffect(() => {
+    if (contenido.areasComplementarias?.length && areasComp.length === 0) {
+      setAreasComp(contenido.areasComplementarias);
+      setStatusAreas("done");
+    }
+    if (contenido.enfoques?.length && enfoques.length === 0) {
+      setEnfoques(contenido.enfoques);
+      setStatusEnfoques("done");
+    }
+  }, [contenido.areasComplementarias, contenido.enfoques]);
 
   const isGenerating = generandoPaso !== null;
 
@@ -266,7 +279,7 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
                       {ac.actividades?.length > 0 && (
                         <ul className="list-disc list-inside text-xs text-slate-500 space-y-0.5">
                           {ac.actividades.map((act, j) => (
-                            <li key={j}>{act}</li>
+                            <li key={j}>{parseMarkdown(act)}</li>
                           ))}
                         </ul>
                       )}
@@ -322,10 +335,10 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
                   >
                     <h4 className="font-bold text-base">{enf.enfoque}</h4>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-                      <span className="font-medium">Valor:</span> {enf.valor}
+                      <span className="font-medium">Valor:</span> {parseMarkdown(enf.valor)}
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                      <span className="font-medium">Actitudes:</span> {enf.actitudes}
+                      <span className="font-medium">Actitudes:</span> {parseMarkdown(enf.actitudes)}
                     </p>
                     <button
                       onClick={() => removeEnfoque(i)}

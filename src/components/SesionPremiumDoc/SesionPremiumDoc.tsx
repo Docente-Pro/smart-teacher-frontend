@@ -21,6 +21,7 @@ import { getAreaColor, type AreaColorConfig } from "@/constants/areaColors";
 import { InstrumentoEvaluacionSection } from "./InstrumentoEvaluacionSection";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
+import { parseMarkdown } from "@/utils/parseMarkdown";
 import type {
   ISesionPremiumResponse,
   IPropositoAprendizajePremium,
@@ -39,6 +40,35 @@ import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion
 
 /** Hex colors for inline PDF styles (subset of AreaColorConfig) */
 type AreaHex = AreaColorConfig["hex"];
+
+/** Tipos de gráficos que son tablas y necesitan ancho completo */
+const GRAFICOS_TABLA = [
+  'tabla_doble_entrada',
+  'tabla_precios',
+  'tabla_valores',
+  'tabla_observacion',
+  'tabla_frecuencias',
+  'tabla_habitos',
+  'cuadro_comparativo',
+  'linea_tiempo',
+  'organizador_kvl',
+  'planificador_escritura',
+  'estructura_narrativa',
+  'ficha_autoconocimiento',
+  'ficha_analisis_obra',
+  'ficha_proceso_creativo',
+  'tarjeta_reflexion',
+  'tarjeta_compromiso',
+  'clasificacion_dicotomica',
+  'ciclo_proceso',
+  'secuencia_movimiento',
+];
+
+/** Determina si un gráfico necesita ancho completo (tablas, organizadores, etc.) */
+function esGraficoAnchoCompleto(grafico: Record<string, unknown> | null | undefined): boolean {
+  if (!grafico || !grafico.tipoGrafico) return false;
+  return GRAFICOS_TABLA.includes(grafico.tipoGrafico as string);
+}
 
 /**
  * El backend puede devolver area/nivel/grado como string O como objeto
@@ -459,11 +489,11 @@ function ProcesoPremiumRow({
               {Array.isArray(proceso.estrategias) && proceso.estrategias.length > 1 ? (
                 <ul style={{ marginLeft: "1rem", marginTop: "0.3rem", lineHeight: 1.6 }}>
                   {proceso.estrategias.map((e, i) => (
-                    <li key={i} style={{ marginBottom: "0.2rem" }}>{e}</li>
+                    <li key={i} style={{ marginBottom: "0.2rem" }}>{parseMarkdown(e)}</li>
                   ))}
                 </ul>
               ) : (
-                <span>{estrategiasTexto}</span>
+                <span>{parseMarkdown(estrategiasTexto)}</span>
               )}
             </div>
             <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -502,12 +532,12 @@ function ProcesoPremiumRow({
               >
                 {proceso.estrategias.map((e, i) => (
                   <li key={i} style={{ marginBottom: "0.2rem" }}>
-                    {e}
+                    {parseMarkdown(e)}
                   </li>
                 ))}
               </ul>
             ) : (
-              <span>{estrategiasTexto}</span>
+              <span>{parseMarkdown(estrategiasTexto)}</span>
             )}
           </div>
         ) : null}
@@ -548,7 +578,11 @@ function ProcesoPremiumRow({
             border: "1px solid #e2e8f0",
             textAlign: "center",
           }}>
-            <div style={{ maxWidth: 420, width: "100%", margin: "0 auto" }}>
+            <div style={{ 
+              maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 420, 
+              width: "100%", 
+              margin: "0 auto" 
+            }}>
               <GraficoRenderer grafico={proceso.grafico as any} />
             </div>
           </div>
@@ -569,7 +603,10 @@ function ProcesoPremiumRow({
               🔢 Operación / Recurso:
             </p>
             <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
-              <div style={{ maxWidth: 420, width: "100%" }}>
+              <div style={{ 
+                maxWidth: esGraficoAnchoCompleto((proceso as any).graficoOperacion) ? "100%" : 420, 
+                width: "100%" 
+              }}>
                 <GraficoRenderer grafico={(proceso as any).graficoOperacion} />
               </div>
             </div>

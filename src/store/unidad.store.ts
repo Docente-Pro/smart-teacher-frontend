@@ -130,6 +130,7 @@ export const useUnidadStore = create<UnidadWizardState>()(
     }),
     {
       name: "unidad-wizard-storage",
+      version: 1, // Incrementar al cambiar la estructura
       // Excluir generandoPaso de la persistencia (es estado transitorio)
       partialize: (state) => ({
         unidadId: state.unidadId,
@@ -142,12 +143,17 @@ export const useUnidadStore = create<UnidadWizardState>()(
         maxMiembros: state.maxMiembros,
         // generandoPaso NO se persiste
       }),
-      // Al rehidratar, asegurar que generandoPaso sea null
-      merge: (persistedState, currentState) => ({
-        ...currentState,
-        ...(persistedState as Partial<UnidadWizardState>),
-        generandoPaso: null, // Siempre resetear al cargar
-      }),
+      // Al rehidratar, asegurar que generandoPaso sea null y mergear correctamente
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<UnidadWizardState> | undefined;
+        return {
+          ...currentState,
+          ...persisted,
+          // Asegurar que contenido sea objeto válido
+          contenido: persisted?.contenido ?? currentState.contenido,
+          generandoPaso: null, // Siempre resetear al cargar
+        };
+      },
     }
   )
 );

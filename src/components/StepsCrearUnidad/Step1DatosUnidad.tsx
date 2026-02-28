@@ -47,7 +47,14 @@ interface Props {
   maxMiembros: number;
 }
 
-
+/** Helper: formatear fecha sin problemas de timezone */
+function formatFechaLocal(fecha: string): string {
+  if (!fecha) return "";
+  const dateOnly = fecha.split("T")[0];
+  const [year, month, day] = dateOnly.split("-").map(Number);
+  if (!year || !month || !day) return fecha;
+  return new Date(year, month - 1, day).toLocaleDateString("es-PE");
+}
 
 const duracionesUnidad = [
   { semanas: 4, label: "4 semanas", desc: "Unidad estándar", gradient: "from-blue-500 to-cyan-500" },
@@ -315,7 +322,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                       Tipo: <span className="font-medium">{unidadActiva.tipo}</span>
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Finaliza: <span className="font-medium">{new Date(unidadActiva.fechaFin).toLocaleDateString("es-PE")}</span>
+                      Finaliza: <span className="font-medium">{formatFechaLocal(unidadActiva.fechaFin)}</span>
                     </p>
                   </div>
                 </div>

@@ -73,7 +73,11 @@ export function UnidadDocDatosGenerales({
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return "";
-  const d = new Date(dateStr);
+  // Parsear como fecha local (sin timezone conversion)
+  // dateStr viene en formato "YYYY-MM-DD"
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (!year || !month || !day) return dateStr;
+  const d = new Date(year, month - 1, day); // month es 0-indexed
   if (!isNaN(d.getTime())) {
     return d.toLocaleDateString("es-PE", { day: "numeric", month: "long" });
   }

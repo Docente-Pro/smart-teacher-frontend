@@ -1,6 +1,7 @@
 import type { IPropositos, IAreaComplementaria } from "@/interfaces/IUnidadIA";
 import React, { Fragment } from "react";
 import { getAreaColor } from "@/constants/areaColors";
+import { parseMarkdown } from "@/utils/parseMarkdown";
 
 interface Props {
   propositos?: IPropositos;
@@ -109,7 +110,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                   {comp.criterios.map((crit, i) => (
                     <p key={i} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
                       <span style={{ flexShrink: 0 }}>•</span>
-                      <span>{crit}</span>
+                      <span>{parseMarkdown(crit)}</span>
                     </p>
                   ))}
                 </td>
@@ -119,7 +120,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                   {comp.actividades.map((act, i) => (
                     <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem", display: "flex", gap: "0.2rem" }}>
                       <span style={{ flexShrink: 0 }}>•</span>
-                      <span>{act}</span>
+                      <span>{parseMarkdown(act)}</span>
                     </p>
                   ))}
                 </td>
@@ -218,7 +219,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                     {ac.actividades.map((act, j) => (
                       <p key={j} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
                         <span style={{ flexShrink: 0 }}>•</span>
-                        <span>{act}</span>
+                        <span>{parseMarkdown(act)}</span>
                       </p>
                     ))}
                   </td>

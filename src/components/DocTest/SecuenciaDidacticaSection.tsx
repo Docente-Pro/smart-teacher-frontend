@@ -1,5 +1,35 @@
 import { ISecuenciaDidactica } from "@/interfaces/ISesionAprendizaje";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
+import { parseMarkdown } from "@/utils/parseMarkdown";
+
+/** Tipos de gráficos que son tablas y necesitan ancho completo */
+const GRAFICOS_TABLA = [
+  'tabla_doble_entrada',
+  'tabla_precios',
+  'tabla_valores',
+  'tabla_observacion',
+  'tabla_frecuencias',
+  'tabla_habitos',
+  'cuadro_comparativo',
+  'linea_tiempo',
+  'organizador_kvl',
+  'planificador_escritura',
+  'estructura_narrativa',
+  'ficha_autoconocimiento',
+  'ficha_analisis_obra',
+  'ficha_proceso_creativo',
+  'tarjeta_reflexion',
+  'tarjeta_compromiso',
+  'clasificacion_dicotomica',
+  'ciclo_proceso',
+  'secuencia_movimiento',
+];
+
+/** Determina si un gráfico necesita ancho completo (tablas, organizadores, etc.) */
+function esGraficoAnchoCompleto(grafico: Record<string, unknown> | null | undefined): boolean {
+  if (!grafico || !grafico.tipoGrafico) return false;
+  return GRAFICOS_TABLA.includes(grafico.tipoGrafico as string);
+}
 
 interface SecuenciaDidacticaSectionProps {
   secuencia: ISecuenciaDidactica;
@@ -101,7 +131,7 @@ function renderProcesoRow(proceso: any, idx: number) {
             <div style={{ flex: 1 }}>
               {proceso.estrategias && (
                 <div>
-                  <strong>Estrategias:</strong> {proceso.estrategias}
+                  <strong>Estrategias:</strong> {parseMarkdown(proceso.estrategias)}
                 </div>
               )}
             </div>
@@ -130,7 +160,7 @@ function renderProcesoRow(proceso: any, idx: number) {
         ) : (
           proceso.estrategias && (
             <div style={{ marginBottom: "0.8rem" }}>
-              <strong>Estrategias:</strong> {proceso.estrategias}
+              <strong>Estrategias:</strong> {parseMarkdown(proceso.estrategias)}
             </div>
           )
         )}
@@ -150,7 +180,11 @@ function renderProcesoRow(proceso: any, idx: number) {
             }}>
               📝 Problema Matemático:
             </div>
-            <div style={{ maxWidth: 420, width: "100%", margin: "0 auto 0.8rem" }}>
+            <div style={{ 
+              maxWidth: esGraficoAnchoCompleto(proceso.grafico || proceso.graficoProblema) ? "100%" : 420, 
+              width: "100%", 
+              margin: "0 auto 0.8rem" 
+            }}>
               <GraficoRenderer grafico={proceso.grafico || proceso.graficoProblema} />
             </div>
             <div style={{
@@ -203,7 +237,10 @@ function renderProcesoRow(proceso: any, idx: number) {
               🔢 Operación / Recurso:
             </p>
             <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
-              <div style={{ maxWidth: 420, width: "100%" }}>
+              <div style={{ 
+                maxWidth: esGraficoAnchoCompleto(proceso.graficoOperacion) ? "100%" : 420, 
+                width: "100%" 
+              }}>
                 <GraficoRenderer grafico={proceso.graficoOperacion} />
               </div>
             </div>

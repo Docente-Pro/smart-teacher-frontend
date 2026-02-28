@@ -1,4 +1,5 @@
 import type { IEnfoqueUnidad } from "@/interfaces/IUnidadIA";
+import { parseMarkdown } from "@/utils/parseMarkdown";
 
 interface Props {
   enfoques?: IEnfoqueUnidad[];
@@ -30,10 +31,10 @@ export function UnidadDocEnfoques({ enfoques }: Props) {
                 {enfoque.enfoque.toUpperCase()}
               </td>
               <td style={{ fontSize: "9pt", textAlign: "center", fontWeight: "bold" }}>
-                {enfoque.valor}
+                {parseMarkdown(enfoque.valor)}
               </td>
               <td style={{ fontSize: "9pt" }}>
-                {enfoque.actitudes}
+                {parseMarkdown(enfoque.actitudes)}
               </td>
             </tr>
           ))}
