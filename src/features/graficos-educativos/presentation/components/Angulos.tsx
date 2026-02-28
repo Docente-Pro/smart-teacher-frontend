@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoAngulos } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoAngulos;
@@ -23,7 +23,7 @@ export const Angulos: React.FC<Props> = ({ data }) => {
     angulos.forEach((ang, idx) => {
       const cx = margen + idx * spacing;
       const cy = 120;
-      const color = ang.color || [roughColors.azul, roughColors.rojo, roughColors.verde][idx % 3];
+      const color = resolveColor(ang.color) || [roughColors.azul, roughColors.rojo, roughColors.verde][idx % 3];
       const rad = (ang.grados * Math.PI) / 180;
 
       // Rayo base (horizontal)

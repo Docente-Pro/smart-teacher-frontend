@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoRedesCuerpos } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoRedesCuerpos;
@@ -21,7 +21,7 @@ export const RedesCuerpos: React.FC<Props> = ({ data }) => {
     redes.forEach((red, redIdx) => {
       const offsetX = margen + redIdx * 280;
       const offsetY = 40;
-      const color = roughColors.azul;
+      const color = resolveColor('azul');
 
       // Título del cuerpo
       const titulo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -31,7 +31,7 @@ export const RedesCuerpos: React.FC<Props> = ({ data }) => {
       titulo.setAttribute('font-size', '15');
       titulo.setAttribute('font-weight', 'bold');
       titulo.setAttribute('font-family', 'Comic Sans MS, cursive');
-      titulo.setAttribute('fill', roughColors.azul);
+      titulo.setAttribute('fill', resolveColor('azul'));
       titulo.textContent = `Red: ${red.cuerpo}`;
       svgRef.current!.appendChild(titulo);
 
@@ -45,7 +45,7 @@ export const RedesCuerpos: React.FC<Props> = ({ data }) => {
         positions.forEach(([col, row], i) => {
           const x = offsetX + col * s;
           const y = offsetY + row * s;
-          const c = red.caras[i]?.color || [roughColors.azul, roughColors.rojo, roughColors.verde, roughColors.amarillo, roughColors.naranja, roughColors.morado][i % 6];
+          const c = resolveColor(red.caras[i]?.color) || [roughColors.azul, roughColors.rojo, roughColors.verde, roughColors.amarillo, roughColors.naranja, roughColors.morado][i % 6];
           svgRef.current!.appendChild(rc.rectangle(x, y, s, s, {
             ...defaultRoughConfig, stroke: c, fill: c, fillStyle: 'solid', strokeWidth: 2, roughness: 0.8,
           }));
@@ -83,7 +83,7 @@ export const RedesCuerpos: React.FC<Props> = ({ data }) => {
           const y = cara.posicion?.y || offsetY + Math.floor(i / 3) * 60;
           const w = cara.dimensiones?.ancho || 50;
           const h = cara.dimensiones?.alto || 50;
-          const c = cara.color || color;
+          const c = resolveColor(cara.color) || color;
           svgRef.current!.appendChild(rc.rectangle(x, y, w, h, {
             ...defaultRoughConfig, stroke: c, fill: c, fillStyle: 'solid', strokeWidth: 2, roughness: 0.8,
           }));

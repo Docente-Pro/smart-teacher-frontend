@@ -672,6 +672,15 @@ function Step8({ pagina, setPagina }: Props) {
                   </div>
                 )}
 
+                {/* Gráfico standalone (sin problemaMatematico) — áreas no-Math */}
+                {!(proc as any).problemaMatematico && (proc as any).grafico && (
+                  <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-center overflow-x-auto max-w-full">
+                    <div className="flex justify-center">
+                      <GraficoRenderer grafico={(proc as any).grafico} />
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   {/* 🖼️ Imágenes con posición "antes" — soporta imagen singular (v2) e imagenes array (v1) */}
                   {(() => {
@@ -721,6 +730,19 @@ function Step8({ pagina, setPagina }: Props) {
                     );
                   })()}
                 </div>
+                {/* 📋 Respuestas del docente */}
+                {(proc as any).respuestasDocente && (proc as any).respuestasDocente.length > 0 && (
+                  <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg border-l-4 border-amber-500">
+                    <p className="text-sm font-bold text-amber-800 dark:text-amber-400 mb-2">📋 Respuestas para el docente:</p>
+                    {(proc as any).respuestasDocente.map((r: { pregunta: string; respuestaEsperada: string }, idx: number) => (
+                      <div key={idx} className="mt-2">
+                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">{idx + 1}. {r.pregunta}</p>
+                        <p className="text-sm text-emerald-700 dark:text-emerald-400 ml-4 italic">→ {r.respuestaEsperada}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {(proc.recursos || proc.recursosDidacticos) && (
                   <div className="pt-2">
                     <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Recursos:</p>

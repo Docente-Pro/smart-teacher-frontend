@@ -320,18 +320,31 @@ function Step9({ pagina, setPagina }: Props) {
                   Inicio - {sesion.secuenciaDidactica.inicio.tiempo} ({sesion.secuenciaDidactica.inicio.procesos.length} procesos)
                 </p>
                 {sesion.secuenciaDidactica.inicio.procesos.map((proceso: any, idx) => (
-                  proceso.problemaMatematico && (
-                    <div key={idx} className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                      {proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
-                        <img 
-                          src={proceso.imagenProblema} 
-                          alt="Problema" 
-                          className="w-full max-w-sm rounded-lg shadow-md mb-2"
-                        />
-                      )}
-                      <p className="text-sm text-slate-700 dark:text-slate-300">{proceso.problemaMatematico}</p>
-                    </div>
-                  )
+                  <div key={idx}>
+                    {proceso.problemaMatematico && (
+                      <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                        {proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
+                          <img 
+                            src={proceso.imagenProblema} 
+                            alt="Problema" 
+                            className="w-full max-w-sm rounded-lg shadow-md mb-2"
+                          />
+                        )}
+                        <p className="text-sm text-slate-700 dark:text-slate-300">{proceso.problemaMatematico}</p>
+                      </div>
+                    )}
+                    {proceso.respuestasDocente && proceso.respuestasDocente.length > 0 && (
+                      <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border-l-4 border-amber-500">
+                        <p className="text-sm font-bold text-amber-800 dark:text-amber-400 mb-2">📋 Respuestas para el docente:</p>
+                        {proceso.respuestasDocente.map((r: { pregunta: string; respuestaEsperada: string }, rIdx: number) => (
+                          <div key={rIdx} className="mt-2">
+                            <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">{rIdx + 1}. {r.pregunta}</p>
+                            <p className="text-sm text-emerald-700 dark:text-emerald-400 ml-4 italic">→ {r.respuestaEsperada}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
               
@@ -341,18 +354,31 @@ function Step9({ pagina, setPagina }: Props) {
                   Desarrollo - {sesion.secuenciaDidactica.desarrollo.tiempo} ({sesion.secuenciaDidactica.desarrollo.procesos.length} procesos)
                 </p>
                 {sesion.secuenciaDidactica.desarrollo.procesos.map((proceso: any, idx) => (
-                  proceso.problemaMatematico && (
-                    <div key={idx} className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                      {proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
-                        <img 
-                          src={proceso.imagenProblema} 
-                          alt="Problema" 
-                          className="w-full max-w-sm rounded-lg shadow-md mb-2"
-                        />
-                      )}
-                      <p className="text-sm text-slate-700 dark:text-slate-300">{proceso.problemaMatematico}</p>
-                    </div>
-                  )
+                  <div key={idx}>
+                    {proceso.problemaMatematico && (
+                      <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                        {proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
+                          <img 
+                            src={proceso.imagenProblema} 
+                            alt="Problema" 
+                            className="w-full max-w-sm rounded-lg shadow-md mb-2"
+                          />
+                        )}
+                        <p className="text-sm text-slate-700 dark:text-slate-300">{proceso.problemaMatematico}</p>
+                      </div>
+                    )}
+                    {proceso.respuestasDocente && proceso.respuestasDocente.length > 0 && (
+                      <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border-l-4 border-amber-500">
+                        <p className="text-sm font-bold text-amber-800 dark:text-amber-400 mb-2">📋 Respuestas para el docente:</p>
+                        {proceso.respuestasDocente.map((r: { pregunta: string; respuestaEsperada: string }, rIdx: number) => (
+                          <div key={rIdx} className="mt-2">
+                            <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">{rIdx + 1}. {r.pregunta}</p>
+                            <p className="text-sm text-emerald-700 dark:text-emerald-400 ml-4 italic">→ {r.respuestaEsperada}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
               
@@ -362,18 +388,31 @@ function Step9({ pagina, setPagina }: Props) {
                   Cierre - {sesion.secuenciaDidactica.cierre.tiempo} ({sesion.secuenciaDidactica.cierre.procesos.length} procesos)
                 </p>
                 {sesion.secuenciaDidactica.cierre.procesos.map((proceso: any, idx) => (
-                  proceso.problemaMatematico && (
-                    <div key={idx} className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                      {proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
-                        <img 
-                          src={proceso.imagenProblema} 
-                          alt="Problema" 
-                          className="w-full max-w-sm rounded-lg shadow-md mb-2"
-                        />
-                      )}
-                      <p className="text-sm text-slate-700 dark:text-slate-300">{proceso.problemaMatematico}</p>
-                    </div>
-                  )
+                  <div key={idx}>
+                    {proceso.problemaMatematico && (
+                      <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                        {proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
+                          <img 
+                            src={proceso.imagenProblema} 
+                            alt="Problema" 
+                            className="w-full max-w-sm rounded-lg shadow-md mb-2"
+                          />
+                        )}
+                        <p className="text-sm text-slate-700 dark:text-slate-300">{proceso.problemaMatematico}</p>
+                      </div>
+                    )}
+                    {proceso.respuestasDocente && proceso.respuestasDocente.length > 0 && (
+                      <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border-l-4 border-amber-500">
+                        <p className="text-sm font-bold text-amber-800 dark:text-amber-400 mb-2">📋 Respuestas para el docente:</p>
+                        {proceso.respuestasDocente.map((r: { pregunta: string; respuestaEsperada: string }, rIdx: number) => (
+                          <div key={rIdx} className="mt-2">
+                            <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">{rIdx + 1}. {r.pregunta}</p>
+                            <p className="text-sm text-emerald-700 dark:text-emerald-400 ml-4 italic">→ {r.respuestaEsperada}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </CardContent>

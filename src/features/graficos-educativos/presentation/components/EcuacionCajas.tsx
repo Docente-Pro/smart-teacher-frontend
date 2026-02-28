@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoEcuacionCajas } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 import '../styles/EcuacionCajas.css';
 
 interface Props {
@@ -67,12 +67,7 @@ export const EcuacionCajas: React.FC<Props> = ({ data }) => {
         const startX = currentX;
         
         if (elem.tipo === 'caja') {
-          let color: string;
-          if (elem.color && elem.color.startsWith('#')) {
-            color = elem.color;
-          } else {
-            color = roughColors[elem.color as keyof typeof roughColors] || roughColors.neutro;
-          }
+          const color = resolveColor(elem.color, roughColors.neutro);
           
           const box = rc.rectangle(currentX, yPosition, boxWidth, boxHeight, {
             ...defaultRoughConfig,
@@ -123,7 +118,7 @@ export const EcuacionCajas: React.FC<Props> = ({ data }) => {
           const startX = elementosPos[agrup.desde]?.startX || 20;
           const endX = elementosPos[agrup.hasta]?.endX || startX + boxWidth;
           const width = endX - startX;
-          const color = roughColors[agrup.colorLlave as keyof typeof roughColors] || roughColors.amarillo;
+          const color = resolveColor(agrup.colorLlave, roughColors.amarillo);
 
           const midX = startX + width / 2;
           const path = `M ${startX},${agrupY} Q ${startX},${agrupY + 15} ${startX + 10},${agrupY + 15} L ${midX - 5},${agrupY + 15} Q ${midX},${agrupY + 15} ${midX},${agrupY + 25} Q ${midX},${agrupY + 15} ${midX + 5},${agrupY + 15} L ${endX - 10},${agrupY + 15} Q ${endX},${agrupY + 15} ${endX},${agrupY}`;

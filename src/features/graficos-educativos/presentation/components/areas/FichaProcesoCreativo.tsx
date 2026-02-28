@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoFichaProcesoCreativo } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoFichaProcesoCreativo;
@@ -31,20 +32,22 @@ export const FichaProcesoCreativo: React.FC<Props> = ({ data }) => {
 
       {/* Etapas */}
       <div className="space-y-0">
-        {etapas.map((etapa, i) => (
+        {etapas.map((etapa, i) => {
+          const c = resolveColor(etapa.color);
+          return (
           <div key={i} className="flex items-start gap-3">
             {/* Indicador lateral */}
             <div className="flex flex-col items-center">
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow shrink-0"
-                style={{ background: etapa.color }}
+                style={{ background: c }}
               >
                 {etapa.icono}
               </div>
               {i < etapas.length - 1 && (
                 <div
                   className="w-0.5 flex-1 min-h-[24px]"
-                  style={{ background: etapa.color, opacity: 0.4 }}
+                  style={{ background: c, opacity: 0.4 }}
                 />
               )}
             </div>
@@ -59,7 +62,7 @@ export const FichaProcesoCreativo: React.FC<Props> = ({ data }) => {
                 <ul className="mt-2 space-y-1">
                   {etapa.lista.map((item, j) => (
                     <li key={j} className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: etapa.color }} />
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />
                       {item}
                     </li>
                   ))}
@@ -78,7 +81,8 @@ export const FichaProcesoCreativo: React.FC<Props> = ({ data }) => {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

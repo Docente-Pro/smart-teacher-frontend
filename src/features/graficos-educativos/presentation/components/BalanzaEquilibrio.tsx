@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
 import { GraficoBalanzaEquilibrio, ColorGrafico } from '../../domain/types';
+import { resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoBalanzaEquilibrio;
@@ -37,15 +38,9 @@ export const BalanzaEquilibrio: React.FC<Props> = ({ data }) => {
     ? 'inclinada_izquierda'
     : 'inclinada_derecha';
 
-  // Mapeo de colores
-  const colorMap: Record<ColorGrafico, string> = {
-    [ColorGrafico.AZUL]: '#3B82F6',
-    [ColorGrafico.NARANJA]: '#F97316',
-    [ColorGrafico.ROJO]: '#EF4444',
-    [ColorGrafico.VERDE]: '#10B981',
-    [ColorGrafico.AMARILLO]: '#F59E0B',
-    [ColorGrafico.MORADO]: '#A855F7',
-    [ColorGrafico.NEUTRO]: '#6B7280'
+  // Mapeo de colores — usa resolveColor centralizado
+  const resolveBalanzaColor = (color: ColorGrafico | string): string => {
+    return resolveColor(color as string, '#6B7280');
   };
 
   useEffect(() => {
@@ -112,7 +107,7 @@ export const BalanzaEquilibrio: React.FC<Props> = ({ data }) => {
         const cuboY = -(i + 1) * (cuboSize + espaciado);
         
         rc.rectangle(cuboX, cuboY, cuboSize - 2, cuboSize - 2, {
-          fill: colorMap[color],
+          fill: resolveBalanzaColor(color),
           fillStyle: 'solid',
           stroke: '#1F2937',
           strokeWidth: 2,
@@ -291,7 +286,7 @@ export const BalanzaEquilibrio: React.FC<Props> = ({ data }) => {
       }
     }
 
-  }, [data, estadoReal, colorMap]);
+  }, [data, estadoReal]);
 
   return (
     <div className="balanza-equilibrio-container">

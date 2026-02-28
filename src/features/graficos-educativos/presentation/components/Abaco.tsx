@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoAbaco } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoAbaco;
@@ -42,7 +42,7 @@ export const Abaco: React.FC<Props> = ({ data }) => {
 
     columnas.forEach((col, idx) => {
       const x = margen + idx * colWidth + colWidth / 2;
-      const color = col.color || [roughColors.rojo, roughColors.azul, roughColors.verde, roughColors.naranja][idx % 4];
+      const color = resolveColor(col.color) || [roughColors.rojo, roughColors.azul, roughColors.verde, roughColors.naranja][idx % 4];
 
       // Varilla vertical
       const varilla = rc.line(x, topY, x, bottomY, {

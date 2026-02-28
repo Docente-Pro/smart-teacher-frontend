@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoTablaHabitos } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoTablaHabitos;
@@ -57,7 +58,7 @@ export const TablaHabitos: React.FC<Props> = ({ data }) => {
                   >
                     <div
                       className="w-6 h-6 mx-auto rounded border-2 border-gray-300 dark:border-gray-600"
-                      style={{ borderColor: hab.color }}
+                      style={{ borderColor: resolveColor(hab.color) }}
                     />
                   </td>
                 ))}

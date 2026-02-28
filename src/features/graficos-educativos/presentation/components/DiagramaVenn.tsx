@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { ConfiguracionGrafico } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface ConjuntoVenn {
   nombre: string;
@@ -40,30 +40,38 @@ export const DiagramaVenn: React.FC<Props> = ({ data }) => {
       const centerX1 = 120;
       const centerX2 = 200;
 
-      const color1 = elementos[0].color || roughColors.azul;
-      const color2 = elementos[1].color || roughColors.rojo;
+      const color1 = resolveColor(elementos[0].color, roughColors.azul);
+      const color2 = resolveColor(elementos[1].color, roughColors.rojo);
 
       // Círculo 1
       const circulo1 = rc.circle(centerX1, centerY, radio * 2, {
-        ...defaultRoughConfig,
         stroke: color1,
         fill: color1,
         fillStyle: 'solid',
-        strokeWidth: 3,
-        roughness: 0.6
+        strokeWidth: 2.5,
+        roughness: 0.8
       });
+      circulo1.setAttribute('opacity', '0.25');
       svgRef.current.appendChild(circulo1);
 
       // Círculo 2
       const circulo2 = rc.circle(centerX2, centerY, radio * 2, {
-        ...defaultRoughConfig,
         stroke: color2,
         fill: color2,
         fillStyle: 'solid',
-        strokeWidth: 3,
-        roughness: 0.6
+        strokeWidth: 2.5,
+        roughness: 0.8
       });
+      circulo2.setAttribute('opacity', '0.25');
       svgRef.current.appendChild(circulo2);
+
+      // Bordes encima (opacos) para definir bien los círculos
+      svgRef.current.appendChild(rc.circle(centerX1, centerY, radio * 2, {
+        stroke: color1, strokeWidth: 2.5, roughness: 0.8, fill: 'none',
+      }));
+      svgRef.current.appendChild(rc.circle(centerX2, centerY, radio * 2, {
+        stroke: color2, strokeWidth: 2.5, roughness: 0.8, fill: 'none',
+      }));
 
       // Nombre conjunto 1
       const nombre1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -136,42 +144,53 @@ export const DiagramaVenn: React.FC<Props> = ({ data }) => {
       const centerY1 = 120;
       const centerY2 = 200;
 
-      const color1 = elementos[0].color || roughColors.azul;
-      const color2 = elementos[1].color || roughColors.rojo;
-      const color3 = elementos[2].color || roughColors.amarillo;
+      const color1 = resolveColor(elementos[0].color, roughColors.azul);
+      const color2 = resolveColor(elementos[1].color, roughColors.rojo);
+      const color3 = resolveColor(elementos[2].color, roughColors.amarillo);
 
       // Círculo 1
       const circulo1 = rc.circle(centerX1, centerY1, radio * 2, {
-        ...defaultRoughConfig,
         stroke: color1,
         fill: color1,
         fillStyle: 'solid',
-        strokeWidth: 3,
-        roughness: 0.6
+        strokeWidth: 2.5,
+        roughness: 0.8
       });
+      circulo1.setAttribute('opacity', '0.25');
       svgRef.current.appendChild(circulo1);
 
       // Círculo 2
       const circulo2 = rc.circle(centerX2, centerY1, radio * 2, {
-        ...defaultRoughConfig,
         stroke: color2,
         fill: color2,
         fillStyle: 'solid',
-        strokeWidth: 3,
-        roughness: 0.6
+        strokeWidth: 2.5,
+        roughness: 0.8
       });
+      circulo2.setAttribute('opacity', '0.25');
       svgRef.current.appendChild(circulo2);
 
       // Círculo 3
       const circulo3 = rc.circle((centerX1 + centerX2) / 2, centerY2, radio * 2, {
-        ...defaultRoughConfig,
         stroke: color3,
         fill: color3,
         fillStyle: 'solid',
-        strokeWidth: 3,
-        roughness: 0.6
+        strokeWidth: 2.5,
+        roughness: 0.8
       });
+      circulo3.setAttribute('opacity', '0.25');
       svgRef.current.appendChild(circulo3);
+
+      // Bordes opacos encima
+      svgRef.current.appendChild(rc.circle(centerX1, centerY1, radio * 2, {
+        stroke: color1, strokeWidth: 2.5, roughness: 0.8, fill: 'none',
+      }));
+      svgRef.current.appendChild(rc.circle(centerX2, centerY1, radio * 2, {
+        stroke: color2, strokeWidth: 2.5, roughness: 0.8, fill: 'none',
+      }));
+      svgRef.current.appendChild(rc.circle((centerX1 + centerX2) / 2, centerY2, radio * 2, {
+        stroke: color3, strokeWidth: 2.5, roughness: 0.8, fill: 'none',
+      }));
 
       // Nombres de conjuntos
       [elementos[0].nombre, elementos[1].nombre, elementos[2].nombre].forEach((nombre, idx) => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoMultiplosTabla } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoMultiplosTabla;
@@ -18,7 +18,7 @@ export const MultiplosTabla: React.FC<Props> = ({ data }) => {
 
     const cellSize = 38;
     const margen = 20;
-    const color = colorMultiplo || roughColors.azul;
+    const color = resolveColor(colorMultiplo, roughColors.azul);
 
     if (mostrarTabla100) {
       // Tabla del 1 al 100

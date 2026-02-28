@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoRectaNumerica } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoRectaNumerica;
@@ -25,10 +25,7 @@ export const RectaNumerica: React.FC<Props> = ({ data }) => {
   // Función auxiliar para mapear colores
   const obtenerColor = (color?: string | any): string => {
     if (!color) return roughColors.rojo;
-    // Si es un color hex directo, usarlo
-    if (typeof color === 'string' && color.startsWith('#')) return color;
-    // Si es un nombre de color del enum, usar roughColors
-    return (roughColors as any)[color] || color || roughColors.rojo;
+    return resolveColor(color, roughColors.rojo);
   };
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoTarjetaReflexion } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoTarjetaReflexion;
@@ -10,7 +11,8 @@ interface Props {
  * Muestra un texto bíblico o parábola con preguntas de reflexión.
  */
 export const TarjetaReflexion: React.FC<Props> = ({ data }) => {
-  const { referencia, texto, esParabola, color, preguntas } = data;
+  const { referencia, texto, esParabola, color: _color, preguntas } = data;
+  const color = resolveColor(_color);
 
   return (
     <div

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoLineal as GraficoLinealType } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoLinealType;
@@ -82,7 +82,7 @@ export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
 
     // Series
     seriesNorm.forEach((serie, sIdx) => {
-      const color = serie.color || COLORES_SERIE[sIdx % COLORES_SERIE.length];
+      const color = resolveColor(serie.color) || COLORES_SERIE[sIdx % COLORES_SERIE.length];
       const puntos = serie.puntos;
 
       for (let i = 0; i < puntos.length - 1; i++) {

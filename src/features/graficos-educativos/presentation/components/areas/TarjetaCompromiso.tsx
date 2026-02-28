@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoTarjetaCompromiso } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoTarjetaCompromiso;
@@ -10,7 +11,8 @@ interface Props {
  * Ficha de compromiso concreto con 4 campos de ejecución.
  */
 export const TarjetaCompromiso: React.FC<Props> = ({ data }) => {
-  const { valor, campos, colorFondo = '#FCE4EC' } = data;
+  const { valor, campos, colorFondo: _colorFondo = '#FCE4EC' } = data;
+  const colorFondo = resolveColor(_colorFondo);
 
   return (
     <div

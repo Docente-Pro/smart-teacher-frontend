@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { ConfiguracionGrafico } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface ElementoPatron {
   tipo: 'forma' | 'numero' | 'color';
@@ -45,7 +45,7 @@ export const PatronVisual: React.FC<Props> = ({ data }) => {
         const centerY = y + tamañoElemento / 2;
 
         if (elem.tipo === 'forma') {
-          const colorElem = elem.color || roughColors.azul;
+          const colorElem = resolveColor(elem.color, roughColors.azul);
           
           switch (elem.valor) {
             case 'circulo':

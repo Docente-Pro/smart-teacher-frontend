@@ -548,7 +548,9 @@ function ProcesoPremiumRow({
             border: "1px solid #e2e8f0",
             textAlign: "center",
           }}>
-            <GraficoRenderer grafico={proceso.grafico as any} />
+            <div style={{ maxWidth: 420, width: "100%", margin: "0 auto" }}>
+              <GraficoRenderer grafico={proceso.grafico as any} />
+            </div>
           </div>
         )}
 
@@ -567,31 +569,50 @@ function ProcesoPremiumRow({
               🔢 Operación / Recurso:
             </p>
             <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
-              <GraficoRenderer grafico={(proceso as any).graficoOperacion} />
+              <div style={{ maxWidth: 420, width: "100%" }}>
+                <GraficoRenderer grafico={(proceso as any).graficoOperacion} />
+              </div>
             </div>
           </div>
         )}
 
+        {/* Respuestas del docente (transversal — todas las áreas) */}
+        {(proceso as any).respuestasDocente && (proceso as any).respuestasDocente.length > 0 && (
+          <div style={{
+            marginTop: "0.8rem",
+            marginBottom: "0.8rem",
+            backgroundColor: "#fffbeb",
+            padding: "0.8rem 1rem",
+            borderRadius: "8px",
+            borderLeft: "4px solid #f59e0b",
+          }}>
+            <p style={{ fontSize: "9pt", fontWeight: "bold", color: "#92400e", marginBottom: "0.5rem", margin: 0 }}>
+              📋 Respuestas para el docente:
+            </p>
+            {(proceso as any).respuestasDocente.map((r: { pregunta: string; respuestaEsperada: string }, idx: number) => (
+              <div key={idx} style={{ marginTop: "0.5rem", fontSize: "8.5pt", lineHeight: "1.5" }}>
+                <p style={{ margin: 0, fontWeight: "600", color: "#78350f" }}>
+                  {idx + 1}. {r.pregunta}
+                </p>
+                <p style={{ margin: "0.15rem 0 0 0.8rem", color: "#065f46", fontStyle: "italic" }}>
+                  → {r.respuestaEsperada}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Recursos didácticos y tiempo */}
-        <div
-          style={{
-            display: "flex",
-            gap: "1rem",
-            fontSize: "8pt",
-            color: "#64748b",
-          }}
-        >
-          {recursosTexto && (
-            <div>
-              <strong>Recursos:</strong> {recursosTexto}
-            </div>
-          )}
-          {proceso.tiempo && (
-            <div>
-              <strong>Tiempo:</strong> {proceso.tiempo}
-            </div>
-          )}
-        </div>
+        {recursosTexto && (
+          <div>
+            <strong>Recursos:</strong> {recursosTexto}
+          </div>
+        )}
+        {proceso.tiempo && (
+          <div>
+            <strong>Tiempo:</strong> {proceso.tiempo}
+          </div>
+        )}
       </td>
     </tr>
   );

@@ -47,6 +47,62 @@ export const roughColors = {
 };
 
 /**
+ * Paleta extendida de colores con nombre.
+ * El backend envía nombres como "verde", "azul", etc.
+ * Esta paleta mapea TODOS los nombres aceptados a su hex correspondiente.
+ */
+export const colorPalette: Record<string, string> = {
+  // — Colores base (ColorGrafico enum) —
+  azul:      '#4A90E2',
+  rojo:      '#E24A4A',
+  amarillo:  '#F5D547',
+  verde:     '#7ED321',
+  naranja:   '#F5A623',
+  morado:    '#BD10E0',
+  neutro:    '#2C3E50',
+  // — Colores extendidos —
+  rosa:      '#E91E63',
+  celeste:   '#03A9F4',
+  turquesa:  '#009688',
+  marron:    '#795548',
+  gris:      '#607D8B',
+  dorado:    '#F5A623',
+  indigo:    '#3F51B5',
+  cyan:      '#00BCD4',
+  lima:      '#CDDC39',
+  coral:     '#FF6B6B',
+  lavanda:   '#CE93D8',
+  oliva:     '#8BC34A',
+  salmon:    '#FF8A80',
+  borgoña:   '#880E4F',
+  esmeralda: '#2ECC71',
+  oceano:    '#1565C0',
+  menta:     '#80CBC4',
+  melocoton: '#FFAB91',
+  // — Aliases comunes (español) —
+  blanco:    '#FFFFFF',
+  negro:     '#1E293B',
+  purpura:   '#BD10E0',
+  violeta:   '#9C27B0',
+};
+
+/**
+ * Resuelve un color que puede venir como nombre ("verde", "azul")
+ * o como hex ("#FF6B6B").
+ * - Si es un nombre conocido → devuelve el hex de la paleta
+ * - Si ya es hex (#xxx o #xxxxxx) → lo pasa tal cual
+ * - Fallback → '#4A90E2' (azul)
+ */
+export function resolveColor(color: string | undefined, fallback = '#4A90E2'): string {
+  if (!color) return fallback;
+  // Si empieza con # es hex directo
+  if (color.startsWith('#')) return color;
+  // Buscar en la paleta (lowercase + trim)
+  const key = color.toLowerCase().trim();
+  return colorPalette[key] ?? fallback;
+}
+
+/**
  * Determina el color de texto óptimo (blanco o negro) según la
  * luminosidad del fondo. Esencial para impresión B&N.
  */

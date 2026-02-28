@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoLineaTiempo } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoLineaTiempo;
@@ -10,7 +11,8 @@ interface Props {
  * Ordena eventos cronológicamente (horizontal o vertical).
  */
 export const LineaTiempo: React.FC<Props> = ({ data }) => {
-  const { subtitulo, orientacion = 'horizontal', eventos, colorLinea = '#795548' } = data;
+  const { subtitulo, orientacion = 'horizontal', eventos, colorLinea: _colorLinea = '#795548' } = data;
+  const colorLinea = resolveColor(_colorLinea);
 
   if (orientacion === 'horizontal') {
     return <TimelineHorizontal eventos={eventos} subtitulo={subtitulo} colorLinea={colorLinea} />;
@@ -38,19 +40,21 @@ const TimelineHorizontal: React.FC<{
           style={{ background: colorLinea }}
         />
 
-        {eventos.map((ev, i) => (
+        {eventos.map((ev, i) => {
+          const c = resolveColor(ev.color);
+          return (
           <div key={i} className="relative flex flex-col items-center w-44 shrink-0">
             {/* Fecha */}
             <span
               className="text-xs font-bold px-2 py-0.5 rounded-full mb-2 text-white"
-              style={{ background: ev.color }}
+              style={{ background: c }}
             >
               {ev.fecha}
             </span>
             {/* Punto */}
             <div
               className="w-5 h-5 rounded-full border-4 border-white dark:border-gray-900 shadow z-10"
-              style={{ background: ev.color }}
+              style={{ background: c }}
             />
             {/* Contenido debajo */}
             <div className="mt-3 text-center px-2">
@@ -63,7 +67,8 @@ const TimelineHorizontal: React.FC<{
               </p>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   </div>
@@ -87,12 +92,14 @@ const TimelineVertical: React.FC<{
         style={{ background: colorLinea }}
       />
 
-      {eventos.map((ev, i) => (
+      {eventos.map((ev, i) => {
+        const c = resolveColor(ev.color);
+        return (
         <div key={i} className="relative flex items-start gap-4 mb-6 last:mb-0">
           {/* Punto */}
           <div
             className="absolute -left-4 top-1 w-5 h-5 rounded-full border-4 border-white dark:border-gray-900 shadow z-10"
-            style={{ background: ev.color }}
+            style={{ background: c }}
           />
           {/* Contenido */}
           <div className="ml-4">
@@ -100,7 +107,7 @@ const TimelineVertical: React.FC<{
               <span className="text-lg">{ev.icono}</span>
               <span
                 className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                style={{ background: ev.color }}
+                style={{ background: c }}
               >
                 {ev.fecha}
               </span>
@@ -111,7 +118,8 @@ const TimelineVertical: React.FC<{
             <p className="text-xs text-gray-500 dark:text-gray-400">{ev.descripcion}</p>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   </div>
 );

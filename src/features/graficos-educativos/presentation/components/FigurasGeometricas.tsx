@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { ConfiguracionGrafico, ColorGrafico } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Figura {
   tipo: 'cuadrado' | 'rectangulo' | 'círculo' | 'circulo' | 'triángulo' | 'triangulo' | 'trapecio' | 'rombo';
@@ -54,14 +54,7 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
       const centerX = margen + (col * espacioX);
       const centerY = margen + (fila * espacioY);
 
-      // Manejar color: puede ser del enum o string directo
-      let color: string;
-      if (typeof figura.color === 'string') {
-        // Si es un string, puede ser un valor del enum o un color directo
-        color = roughColors[figura.color as keyof typeof roughColors] || figura.color;
-      } else {
-        color = roughColors[figura.color] || roughColors.azul;
-      }
+      const color = resolveColor(figura.color as string, roughColors.azul);
 
       // Normalizar tipo (eliminar acentos)
       const tipoNormalizado = figura.tipo

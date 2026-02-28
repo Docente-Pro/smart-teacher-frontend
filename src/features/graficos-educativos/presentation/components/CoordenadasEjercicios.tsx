@@ -4,8 +4,9 @@ import {
   GraficoCoordenadasEjercicios,
   PlanoCartesiano,
   FiguraCartesiana,
+  VerticeCartesiano,
 } from '../../domain/types';
-import { defaultRoughConfig } from '../hooks/useRoughSVG';
+import { defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoCoordenadasEjercicios;
@@ -15,6 +16,38 @@ interface Props {
 const CELDA = 30; // px por unidad en el plano
 const PADDING = 40;
 const LABEL_OFFSET = 14;
+
+/**
+ * Crea un <text> SVG para la etiqueta de un vértice.
+ * - Si vertex.etiqueta existe y mostrarCoordenada !== false → "A(x,y)"
+ * - Si vertex.etiqueta existe y mostrarCoordenada === false  → "A"
+ * - Si vertex.etiqueta no existe → "(x,y)" (retrocompatible)
+ */
+function crearEtiquetaVertice(
+  v: VerticeCartesiano,
+  svgX: number,
+  svgY: number,
+): SVGTextElement {
+  const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  label.setAttribute('x', svgX.toString());
+  label.setAttribute('y', (svgY - 8).toString());
+  label.setAttribute('text-anchor', 'middle');
+  label.setAttribute('font-size', '11');
+  label.setAttribute('font-family', 'Comic Sans MS, cursive');
+  label.setAttribute('fill', '#374151');
+
+  if (v.etiqueta) {
+    // mostrarCoordenada defaults to true when undefined
+    label.textContent = v.mostrarCoordenada === false
+      ? v.etiqueta
+      : `${v.etiqueta}(${v.x},${v.y})`;
+  } else {
+    // Retrocompatible: sin etiqueta → mostrar solo coordenada
+    label.textContent = `(${v.x},${v.y})`;
+  }
+
+  return label;
+}
 
 // ============= SUB-COMPONENTE: PLANO CARTESIANO =============
 
@@ -29,9 +62,9 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
   const svgWidth = tamano.ancho * CELDA + PADDING * 2;
   const svgHeight = tamano.alto * CELDA + PADDING * 2;
 
-  // Convertir coordenadas del plano a coordenadas SVG
-  const toSvgX = (x: number) => PADDING + (x - 0) * CELDA;
-  const toSvgY = (y: number) => PADDING + (tamano.alto - y) * CELDA;
+  // Convertir coordenadas matemáticas (relativas al origen) a coordenadas SVG
+  const toSvgX = (x: number) => PADDING + (origen.x + x) * CELDA;
+  const toSvgY = (y: number) => PADDING + (tamano.alto - origen.y - y) * CELDA;
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -43,6 +76,7 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
 
     // Dibujar figuras con RoughJS
     figuras.forEach((fig, idx) => {
+      const figColor = resolveColor(fig.color);
       const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       group.classList.add('rough-element');
 
@@ -50,34 +84,26 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
         const points: [number, number][] = fig.vertices.map(v => [toSvgX(v.x), toSvgY(v.y)]);
         const polygon = rc.polygon(points, {
           ...defaultRoughConfig,
-          fill: fig.color,
+          fill: figColor,
           fillStyle: 'solid',
-          stroke: fig.color,
+          stroke: figColor,
           strokeWidth: 2.5,
           roughness: 0.8,
         });
         group.appendChild(polygon);
 
         // Etiquetas en vértices
-        fig.vertices.forEach((v, vIdx) => {
-          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          label.setAttribute('x', toSvgX(v.x).toString());
-          label.setAttribute('y', (toSvgY(v.y) - 8).toString());
-          label.setAttribute('text-anchor', 'middle');
-          label.setAttribute('font-size', '11');
-          label.setAttribute('font-family', 'Comic Sans MS, cursive');
-          label.setAttribute('fill', '#374151');
-          label.textContent = `(${v.x},${v.y})`;
-          group.appendChild(label);
+        fig.vertices.forEach((v) => {
+          group.appendChild(crearEtiquetaVertice(v, toSvgX(v.x), toSvgY(v.y)));
         });
       }
 
       if (fig.tipo === 'circulo' && fig.centro && fig.radio) {
         const circle = rc.circle(toSvgX(fig.centro.x), toSvgY(fig.centro.y), fig.radio * CELDA * 2, {
           ...defaultRoughConfig,
-          fill: fig.color,
+          fill: figColor,
           fillStyle: 'solid',
-          stroke: fig.color,
+          stroke: figColor,
           strokeWidth: 2.5,
           roughness: 0.8,
         });
@@ -94,27 +120,57 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
           (maxX - minX) * CELDA, (maxY - minY) * CELDA,
           {
             ...defaultRoughConfig,
-            fill: fig.color,
+            fill: figColor,
             fillStyle: 'solid',
-            stroke: fig.color,
+            stroke: figColor,
             strokeWidth: 2.5,
             roughness: 0.8,
           }
         );
         group.appendChild(rect);
+
+        // Etiquetas en vértices
+        fig.vertices.forEach((v) => {
+          group.appendChild(crearEtiquetaVertice(v, toSvgX(v.x), toSvgY(v.y)));
+        });
       }
 
       if (fig.tipo === 'triangulo' && fig.vertices && fig.vertices.length >= 3) {
         const points: [number, number][] = fig.vertices.map(v => [toSvgX(v.x), toSvgY(v.y)]);
         const triangle = rc.polygon(points, {
           ...defaultRoughConfig,
-          fill: fig.color,
+          fill: figColor,
           fillStyle: 'solid',
-          stroke: fig.color,
+          stroke: figColor,
           strokeWidth: 2.5,
           roughness: 0.8,
         });
         group.appendChild(triangle);
+
+        // Etiquetas en vértices
+        fig.vertices.forEach((v) => {
+          group.appendChild(crearEtiquetaVertice(v, toSvgX(v.x), toSvgY(v.y)));
+        });
+      }
+
+      // === PUNTO ===
+      if (fig.tipo === 'punto' && fig.vertices) {
+        fig.vertices.forEach((v) => {
+          const svgX = toSvgX(v.x);
+          const svgY = toSvgY(v.y);
+          // Dibujar punto relleno
+          const dot = rc.circle(svgX, svgY, 10, {
+            ...defaultRoughConfig,
+            fill: figColor,
+            fillStyle: 'solid',
+            stroke: figColor,
+            strokeWidth: 1.5,
+            roughness: 0.5,
+          });
+          group.appendChild(dot);
+          // Etiqueta del vértice ("A(4,6)")
+          group.appendChild(crearEtiquetaVertice(v, svgX, svgY));
+        });
       }
 
       // Etiqueta general de la figura
@@ -123,7 +179,9 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
         const centroY = fig.centro?.y ?? (fig.vertices ? fig.vertices.reduce((s, v) => s + v.y, 0) / fig.vertices.length : 0);
         const etiqueta = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         etiqueta.setAttribute('x', toSvgX(centroX).toString());
-        etiqueta.setAttribute('y', (toSvgY(centroY) - 2).toString());
+        // Para puntos, colocar etiqueta DEBAJO para no solapar con "A(4,6)"
+        const yOffset = fig.tipo === 'punto' ? 18 : -2;
+        etiqueta.setAttribute('y', (toSvgY(centroY) + yOffset).toString());
         etiqueta.setAttribute('text-anchor', 'middle');
         etiqueta.setAttribute('dominant-baseline', 'middle');
         etiqueta.setAttribute('font-size', '13');
@@ -178,7 +236,7 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
           />
         ))}
 
-        {/* Etiquetas eje X */}
+        {/* Etiquetas eje X (relativas al origen) */}
         {Array.from({ length: tamano.ancho + 1 }).map((_, i) => (
           <text
             key={`xl-${i}`}
@@ -189,11 +247,11 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
             fontFamily="Comic Sans MS, cursive"
             fill="#6B7280"
           >
-            {i}
+            {i - origen.x}
           </text>
         ))}
 
-        {/* Etiquetas eje Y */}
+        {/* Etiquetas eje Y (relativas al origen) */}
         {Array.from({ length: tamano.alto + 1 }).map((_, j) => (
           <text
             key={`yl-${j}`}
@@ -204,18 +262,18 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
             fontFamily="Comic Sans MS, cursive"
             fill="#6B7280"
           >
-            {j}
+            {j - origen.y}
           </text>
         ))}
 
-        {/* Flechas ejes */}
+        {/* Flechas ejes — usar toSvgX(0)/toSvgY(0) = posición del origen en SVG */}
         <polygon
-          points={`${PADDING + tamano.ancho * CELDA + 8},${toSvgY(origen.y)} ${PADDING + tamano.ancho * CELDA - 2},${toSvgY(origen.y) - 5} ${PADDING + tamano.ancho * CELDA - 2},${toSvgY(origen.y) + 5}`}
+          points={`${PADDING + tamano.ancho * CELDA + 8},${toSvgY(0)} ${PADDING + tamano.ancho * CELDA - 2},${toSvgY(0) - 5} ${PADDING + tamano.ancho * CELDA - 2},${toSvgY(0) + 5}`}
           fill="#374151"
         />
         <text
           x={PADDING + tamano.ancho * CELDA + 14}
-          y={toSvgY(origen.y) + 4}
+          y={toSvgY(0) + 4}
           fontSize="12"
           fontWeight="bold"
           fontFamily="Comic Sans MS, cursive"
@@ -225,11 +283,11 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
         </text>
 
         <polygon
-          points={`${toSvgX(origen.x)},${PADDING - 8} ${toSvgX(origen.x) - 5},${PADDING + 2} ${toSvgX(origen.x) + 5},${PADDING + 2}`}
+          points={`${toSvgX(0)},${PADDING - 8} ${toSvgX(0) - 5},${PADDING + 2} ${toSvgX(0) + 5},${PADDING + 2}`}
           fill="#374151"
         />
         <text
-          x={toSvgX(origen.x) + 10}
+          x={toSvgX(0) + 10}
           y={PADDING - 2}
           fontSize="12"
           fontWeight="bold"

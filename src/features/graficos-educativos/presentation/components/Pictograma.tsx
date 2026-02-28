@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoPictograma } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoPictograma;
@@ -24,7 +24,7 @@ export const Pictograma: React.FC<Props> = ({ data }) => {
 
     elementos.forEach((fila, idx) => {
       const y = margenTop + idx * filaHeight;
-      const color = fila.color || [roughColors.azul, roughColors.rojo, roughColors.verde, roughColors.naranja][idx % 4];
+      const color = resolveColor(fila.color) || [roughColors.azul, roughColors.rojo, roughColors.verde, roughColors.naranja][idx % 4];
 
       // Etiqueta de categoría
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');

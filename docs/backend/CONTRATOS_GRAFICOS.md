@@ -1,7 +1,7 @@
 # Contratos de Datos — Campo `grafico` en Procesos de Sesión
 
 > **Documento para el equipo de Backend**
-> Última actualización: 27/02/2026
+> Última actualización: 28/02/2026
 
 ## Contexto
 
@@ -41,12 +41,57 @@ El frontend soporta **59 tipos de gráficos** organizados en:
 
 ---
 
-## Colores válidos (Matemática)
+## Paleta de Colores (TODOS los gráficos)
 
-Cuando un campo pida `color` en los tipos matemáticos, usar uno de:
+El frontend acepta **nombres de colores en español**. Todos los campos `color`, `colorFondo`, `colorLinea`, `colorEncabezado`, etc. deben usar un nombre de esta paleta. Si necesitas un color no listado, puedes enviar hex directamente (`"#FF6B6B"`), pero se recomienda usar nombres.
+
+### Colores base (ColorGrafico enum — Matemática)
+
+| Nombre      | Hex       | Muestra |
+|-------------|-----------|---------|
+| `azul`      | `#4A90E2` | 🔵      |
+| `rojo`      | `#E24A4A` | 🔴      |
+| `amarillo`  | `#F5D547` | 🟡      |
+| `verde`     | `#7ED321` | 🟢      |
+| `naranja`   | `#F5A623` | 🟠      |
+| `morado`    | `#BD10E0` | 🟣      |
+| `neutro`    | `#2C3E50` | ⚫      |
+
+### Colores extendidos (Áreas curriculares + propósito general)
+
+| Nombre       | Hex       | Uso sugerido                              |
+|--------------|-----------|-------------------------------------------|
+| `rosa`       | `#E91E63` | Arte, emociones, destacado femenino       |
+| `celeste`    | `#03A9F4` | Ciencia, agua, tecnología                 |
+| `turquesa`   | `#009688` | Ciencia, ciclos naturales                 |
+| `marron`     | `#795548` | Historia, tierra, líneas de tiempo        |
+| `gris`       | `#607D8B` | Neutro secundario, interrogación          |
+| `dorado`     | `#F5A623` | Premios, valores, reflexión               |
+| `indigo`     | `#3F51B5` | Tablas comparativas, encabezados          |
+| `cyan`       | `#00BCD4` | Agua, calma, hábitos                      |
+| `lima`       | `#CDDC39` | Naturaleza, fresco                        |
+| `coral`      | `#FF6B6B` | Patrones, alertas suaves                  |
+| `lavanda`    | `#CE93D8` | Emociones suaves, miedo                   |
+| `oliva`      | `#8BC34A` | Naturaleza, ecología                      |
+| `salmon`     | `#FF8A80` | Cálido, suave                             |
+| `borgoña`    | `#880E4F` | Formal, religioso                         |
+| `esmeralda`  | `#2ECC71` | Éxito, confirmación, naturaleza           |
+| `oceano`     | `#1565C0` | Profundidad, parábolas                    |
+| `menta`      | `#80CBC4` | Sorpresa, fresco, suave                   |
+| `melocoton`  | `#FFAB91` | Cálido suave, enojo suave                 |
+| `violeta`    | `#9C27B0` | Creatividad, arte                         |
+| `blanco`     | `#FFFFFF` | Fondos                                    |
+| `negro`      | `#1E293B` | Texto, bordes                             |
+
+### Regla general
 
 ```
-"azul" | "rojo" | "amarillo" | "verde" | "naranja" | "morado" | "neutro"
+- Campos `color` en items/secciones → usar nombres base o extendidos.
+- Campos `colorFondo` → hex pastel o nombre (ambos aceptados).
+- Campos `colorLinea` / `colorEncabezado` → nombre o hex.
+- Si el color empieza con '#' se usa tal cual.
+- Si es un nombre → se resuelve a hex desde la paleta.
+- Nombres no reconocidos → fallback a azul (#4A90E2).
 ```
 
 ---
@@ -551,18 +596,22 @@ Planos cartesianos con figuras y ejercicios de ubicación/traslación.
       "figuras": [
         {
           "tipo": "triangulo",
-          "vertices": [{ "x": 2, "y": 3 }, { "x": 5, "y": 3 }, { "x": 3, "y": 6 }],
+          "vertices": [
+            { "x": 2, "y": 3, "etiqueta": "A", "mostrarCoordenada": true },
+            { "x": 5, "y": 3, "etiqueta": "B", "mostrarCoordenada": true },
+            { "x": 3, "y": 6, "etiqueta": "C", "mostrarCoordenada": false }
+          ],
           "color": "#FF6B6B",
           "etiqueta": "ABC"
         }
       ],
-      "instruccion": "Observa el triángulo ABC"
+      "instruccion": "Observa el triángulo ABC y descubre las coordenadas del vértice C"
     }
   ],
   "ejercicios": [
     {
       "numero": 1,
-      "pregunta": "¿Cuáles son las coordenadas del vértice A?",
+      "pregunta": "¿Cuáles son las coordenadas del vértice C?",
       "tipo": "identificacion",
       "planoId": 1
     }
@@ -573,7 +622,8 @@ Planos cartesianos con figuras y ejercicios de ubicación/traslación.
       "encabezados": ["Vértice", "x", "y"],
       "filas": [
         { "elemento": "A", "valores": ["2", "3"] },
-        { "elemento": "B", "valores": ["5", "3"] }
+        { "elemento": "B", "valores": ["5", "3"] },
+        { "elemento": "C", "valores": ["", ""] }
       ],
       "pregunta": "Completa la tabla"
     }
@@ -584,9 +634,24 @@ Planos cartesianos con figuras y ejercicios de ubicación/traslación.
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|:-----------:|-------------|
 | `planos` | `Array<{id, tamano, origen, figuras, instruccion}>` | ✅ | |
-| `planos[].figuras` | `Array<{tipo, vertices?, centro?, radio?, color, etiqueta?}>` | ✅ | tipo: `"poligono"` \| `"circulo"` \| `"cuadrado"` \| `"triangulo"` \| `"rectangulo"` |
+| `planos[].figuras` | `Array<{tipo, vertices?, centro?, radio?, color, etiqueta?}>` | ✅ | tipo: `"poligono"` \| `"circulo"` \| `"cuadrado"` \| `"triangulo"` \| `"rectangulo"` \| `"punto"` |
+| `planos[].figuras[].vertices[]` | `{x, y, etiqueta?, mostrarCoordenada?}` | ✅* | Ver tabla de vértices abajo |
 | `ejercicios` | `Array<{numero, pregunta, tipo, planoId}>` | ✅ | tipo: `"traslacion"` \| `"ubicacion"` \| `"identificacion"` |
 | `tablas` | `Array<{titulo, encabezados, filas, pregunta}>` | ✅ | |
+
+### `vertices[]` — Campos por vértice
+
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|:-----------:|-------------|
+| `x` | `number` | ✅ | Coordenada X |
+| `y` | `number` | ✅ | Coordenada Y |
+| `etiqueta` | `string` | ❌ | Letra del vértice: `"A"`, `"B"`, `"C"`... Se muestra junto al punto |
+| `mostrarCoordenada` | `boolean` | ❌ | Default `true`. Si `true` → renderiza `A(2,3)`. Si `false` → renderiza solo `A` (el alumno debe descubrir la coordenada) |
+
+**Lógica de renderizado:**
+- Si `etiqueta` existe y `mostrarCoordenada` es `true` (o no se envía) → `"A(1,1)"`
+- Si `etiqueta` existe y `mostrarCoordenada` es `false` → `"A"` (sin coordenada)
+- Si `etiqueta` no existe → `"(x,y)"` (retrocompatible con JSONs anteriores)
 
 ---
 
@@ -1905,6 +1970,118 @@ Tabla semanal para seguimiento de hábitos saludables.
 
 ---
 
+---
+
+# CAMPOS TRANSVERSALES EN PROCESOS
+
+---
+
+## Campo `respuestasDocente`
+
+> **Nuevo campo transversal** — Disponible en procesos de TODAS las áreas curriculares (excepto Matemática, que usa `solucionProblema`).
+
+El campo `respuestasDocente` contiene las respuestas esperadas que el docente necesita para guiar la clase. Se muestra en un bloque visual destacado (fondo ámbar) con pares de pregunta/respuesta numerados.
+
+### Ubicación en el proceso
+
+```jsonc
+{
+  "nombre": "Desarrollo",
+  "descripcion": "...",
+  "duracion": "20 min",
+  "grafico": { ... },           // opcional
+  "respuestasDocente": [        // <── ESTE CAMPO
+    {
+      "pregunta": "¿Cuál es el tema principal del texto?",
+      "respuestaEsperada": "El tema principal es la importancia del agua para la vida."
+    },
+    {
+      "pregunta": "¿Qué tipo de texto es?",
+      "respuestaEsperada": "Es un texto informativo."
+    }
+  ]
+}
+```
+
+### Estructura
+
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|:-----------:|-------------|
+| `respuestasDocente` | `array` | ❌ | Array de pares pregunta/respuesta. Si no hay preguntas, omitir o enviar `[]`. |
+| `respuestasDocente[].pregunta` | `string` | ✅ | La pregunta que el docente formulará a los estudiantes. |
+| `respuestasDocente[].respuestaEsperada` | `string` | ✅ | La respuesta esperada / correcta para el docente. |
+
+### Áreas y procesos donde se usa
+
+| Área | Procesos típicos donde aparece |
+|------|-------------------------------|
+| **Comunicación** | Comprensión lectora, Análisis de textos, Producción oral |
+| **Ciencia y Tecnología** | Indagación, Formulación de hipótesis, Análisis de resultados |
+| **Inglés** | Reading comprehension, Listening activities, Grammar exercises |
+| **Personal Social** | Reflexión sobre valores, Análisis de situaciones sociales |
+| **Educación Religiosa** | Reflexión bíblica, Preguntas de comprensión |
+| **Arte y Cultura** | Análisis de obras, Reflexión sobre el proceso creativo |
+| **Educación Física** | Preguntas de reflexión sobre hábitos saludables |
+
+### Reglas
+
+1. **El array puede tener cualquier cantidad de elementos** (típicamente 2-5 preguntas por proceso).
+2. **Ambos campos (`pregunta` y `respuestaEsperada`) son obligatorios** dentro de cada elemento.
+3. **No usar para Matemática** — las sesiones de Matemática usan `solucionProblema` + `graficoOperacion` en su lugar.
+4. El campo es **opcional** en cada proceso. Si el proceso no tiene preguntas para el docente, simplemente no incluir el campo.
+
+---
+
+## Regla de Matemática: `problemaMatematico` + `solucionProblema` + `graficoOperacion`
+
+> **Regla actualizada** — Todo proceso que contenga `problemaMatematico` DEBE incluir también `solucionProblema` y `graficoOperacion`.
+
+El docente debe poder **VER la solución completa de CADA ejercicio** directamente en el documento.
+
+### Estructura obligatoria para procesos con problema matemático
+
+```jsonc
+{
+  "nombre": "Planteamiento del problema",
+  "descripcion": "...",
+  "duracion": "15 min",
+  "problemaMatematico": "María tiene 24 manzanas y compra 13 más. ¿Cuántas manzanas tiene ahora?",
+  "solucionProblema": "María tiene 24 + 13 = 37 manzanas en total.",
+  "graficoOperacion": {
+    "tipoGrafico": "ecuacion_cajas",
+    "titulo": "Resolvemos la suma",
+    "elementos": [
+      { "tipo": "caja", "contenido": "24", "color": "azul", "destacado": false },
+      { "tipo": "operador", "contenido": "+" },
+      { "tipo": "caja", "contenido": "13", "color": "verde", "destacado": false },
+      { "tipo": "operador", "contenido": "=" },
+      { "tipo": "caja", "contenido": "37", "color": "amarillo", "destacado": true }
+    ]
+  },
+  "imagenProblema": "GENERATE_IMAGE",    // opcional
+  "imagenSolucion": "GENERATE_IMAGE",    // opcional
+  "grafico": { ... }                     // opcional (gráfico del proceso, independiente)
+}
+```
+
+### Campos relacionados con problemas matemáticos
+
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|:-----------:|-------------|
+| `problemaMatematico` | `string` | Condicional | El enunciado del problema. Si existe, `solucionProblema` y `graficoOperacion` son obligatorios. |
+| `solucionProblema` | `string` | ⚠️ Si hay `problemaMatematico` | Explicación textual de la solución paso a paso. |
+| `graficoOperacion` | `object` | ⚠️ Si hay `problemaMatematico` | Gráfico que visualiza la operación/solución. Usa el mismo formato de `grafico` (con `tipoGrafico`, etc.). |
+| `imagenProblema` | `string` | ❌ | URL de imagen o `"GENERATE_IMAGE"` para generación automática. |
+| `imagenSolucion` | `string` | ❌ | URL de imagen de la solución o `"GENERATE_IMAGE"`. |
+| `graficoProblema` | `object` | ❌ | Gráfico adicional que ilustra el enunciado del problema (mismo formato que `grafico`). |
+| `graficoSolucion` | `object` | ❌ | Gráfico adicional que ilustra la solución (mismo formato que `grafico`). |
+
+### Aplica también a "Planteamiento de otros problemas"
+
+Si un proceso del cierre incluye **"Planteamiento de otros problemas"**, también DEBE incluir `solucionProblema` + `graficoOperacion` con la solución de cada problema adicional.
+
+---
+
 ## Nota para el Backend
 
 1. **Siempre incluir `tipoGrafico`** como string en snake_case. Es el campo que el frontend usa para decidir qué componente renderizar.
@@ -1916,3 +2093,5 @@ Tabla semanal para seguimiento de hábitos saludables.
    - Nombres: `"azul"`, `"rojo"`, etc. (solo para tipos de Matemática)
    - Hex: `"#FF6B6B"`, `"#4ECDC4"`, etc. (para todos los tipos)
 7. El campo `grafico` es **opcional** en cada proceso. Si la sesión no necesita gráfico, no lo incluyan.
+8. **`respuestasDocente`** es un campo **transversal** disponible en procesos de todas las áreas. Contiene pares `{pregunta, respuestaEsperada}`.
+9. **Regla de Matemática**: Todo `problemaMatematico` DEBE venir acompañado de `solucionProblema` + `graficoOperacion`. El docente debe poder ver la solución completa de cada ejercicio.

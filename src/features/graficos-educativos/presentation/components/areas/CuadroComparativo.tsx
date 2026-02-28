@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoCuadroComparativo } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoCuadroComparativo;
@@ -10,7 +11,8 @@ interface Props {
  * Compara 2-3 elementos con criterios comunes.
  */
 export const CuadroComparativo: React.FC<Props> = ({ data }) => {
-  const { criterios, columnas, colorEncabezado = '#3F51B5' } = data;
+  const { criterios, columnas, colorEncabezado: _colorEncabezado = '#3F51B5' } = data;
+  const colorEncabezado = resolveColor(_colorEncabezado);
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
@@ -28,7 +30,7 @@ export const CuadroComparativo: React.FC<Props> = ({ data }) => {
               <th
                 key={i}
                 className="px-4 py-3 text-center font-bold text-white"
-                style={{ background: col.color }}
+                style={{ background: resolveColor(col.color) }}
               >
                 {col.nombre}
               </th>

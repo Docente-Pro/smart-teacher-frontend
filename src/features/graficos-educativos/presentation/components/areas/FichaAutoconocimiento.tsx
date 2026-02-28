@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoFichaAutoconocimiento } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoFichaAutoconocimiento;
@@ -10,10 +11,11 @@ interface Props {
  * Tarjetas con preguntas de autoreflexión agrupadas por sección.
  */
 export const FichaAutoconocimiento: React.FC<Props> = ({ data }) => {
-  const { subtitulo, colorFondo, secciones } = data;
+  const { subtitulo, colorFondo: _colorFondo, secciones } = data;
+  const colorFondo = resolveColor(_colorFondo, 'transparent');
 
   return (
-    <div className="space-y-4" style={{ background: colorFondo ?? 'transparent', borderRadius: 12, padding: colorFondo ? 16 : 0 }}>
+    <div className="space-y-4" style={{ background: colorFondo, borderRadius: 12, padding: colorFondo !== 'transparent' ? 16 : 0 }}>
       {subtitulo && (
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 italic">{subtitulo}</p>
       )}

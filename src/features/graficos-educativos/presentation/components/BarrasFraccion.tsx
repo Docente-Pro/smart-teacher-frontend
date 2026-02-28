@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoBarrasFraccion } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoBarrasFraccion;
@@ -28,7 +28,7 @@ export const BarrasFraccion: React.FC<Props> = ({ data }) => {
 
     elementos.forEach((fraccion, idx) => {
       const y = margen + (idx * espacioEntreBarras);
-      const color = roughColors[fraccion.color] || roughColors.azul;
+      const color = resolveColor(fraccion.color, roughColors.azul);
       const { numerador, denominador } = fraccion;
 
       // Barra completa (fondo)

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { ConfiguracionGrafico } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface TablaDobleEntradaData extends ConfiguracionGrafico {
   encabezadosColumnas?: string[];
@@ -71,7 +71,7 @@ export const TablaDobleEntrada: React.FC<Props> = ({ data }) => {
     const altoCelda = 50;
     const margenX = 20;
     const margenY = 20;
-    const color = colorEncabezado || roughColors.azul;
+    const color = resolveColor(colorEncabezado, roughColors.azul);
 
     // Celda vacía superior izquierda
     const celdaVacia = rc.rectangle(margenX, margenY, anchoCelda, altoCelda, {

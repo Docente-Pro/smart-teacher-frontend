@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoBloqueAgrupados } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 import '../styles/BloqueAgrupados.css';
 
 interface Props {
@@ -53,15 +53,7 @@ export const BloqueAgrupados: React.FC<Props> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   const getBlockColor = (color: string): string => {
-    const colorMap: Record<string, string> = {
-      azul: roughColors.azul,
-      rojo: roughColors.rojo,
-      verde: roughColors.verde,
-      amarillo: roughColors.amarillo,
-      morado: roughColors.morado,
-      naranja: roughColors.naranja,
-    };
-    return colorMap[color] || roughColors.azul;
+    return resolveColor(color, roughColors.azul);
   };
 
   useEffect(() => {

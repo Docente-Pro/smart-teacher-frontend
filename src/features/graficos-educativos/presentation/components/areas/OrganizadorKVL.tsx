@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoOrganizadorKVL } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoOrganizadorKVL;
@@ -21,16 +22,18 @@ export const OrganizadorKVL: React.FC<Props> = ({ data }) => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {columnas.map((col, idx) => (
+        {columnas.map((col, idx) => {
+          const c = resolveColor(col.color);
+          return (
           <div
             key={idx}
             className="rounded-xl border-2 overflow-hidden shadow-sm"
-            style={{ borderColor: col.color }}
+            style={{ borderColor: c }}
           >
             {/* Encabezado */}
             <div
               className="flex items-center gap-2 px-4 py-3"
-              style={{ background: col.color, color: '#fff' }}
+              style={{ background: c, color: '#fff' }}
             >
               <span className="text-xl">{col.icono}</span>
               <h4 className="font-bold text-sm">{col.encabezado}</h4>
@@ -45,7 +48,7 @@ export const OrganizadorKVL: React.FC<Props> = ({ data }) => {
                       key={i}
                       className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
                     >
-                      <span className="mt-0.5 text-xs" style={{ color: col.color }}>●</span>
+                      <span className="mt-0.5 text-xs" style={{ color: c }}>●</span>
                       {item}
                     </li>
                   ))}
@@ -57,7 +60,8 @@ export const OrganizadorKVL: React.FC<Props> = ({ data }) => {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

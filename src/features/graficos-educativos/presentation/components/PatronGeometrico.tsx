@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoPatronGeometrico } from '../../domain/types';
-import { defaultRoughConfig } from '../hooks/useRoughSVG';
+import { defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoPatronGeometrico;
@@ -83,7 +83,7 @@ export const PatronGeometrico: React.FC<Props> = ({ data }) => {
       const centerY = y + figuraSize / 2;
 
       // Configuración de estilo
-      const fillColor = elemento.color || '#3B82F6';
+      const fillColor = resolveColor(elemento.color, '#3B82F6');
       const strokeWidth = elemento.destacado ? 4 : 2;
       const roughness = elemento.destacado ? 0.3 : 0.8;
 

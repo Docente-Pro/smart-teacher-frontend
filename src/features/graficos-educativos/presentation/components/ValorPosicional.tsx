@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoValorPosicional } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoValorPosicional;
@@ -37,7 +37,7 @@ export const ValorPosicional: React.FC<Props> = ({ data }) => {
     // Encabezados de posición
     posiciones.forEach((pos, idx) => {
       const x = margen + idx * anchoCelda;
-      const color = pos.color || roughColors.azul;
+      const color = resolveColor(pos.color, roughColors.azul);
 
       const celda = rc.rectangle(x, startY, anchoCelda, altoCelda, {
         ...defaultRoughConfig,
@@ -106,7 +106,7 @@ export const ValorPosicional: React.FC<Props> = ({ data }) => {
       digitText.setAttribute('font-size', '28');
       digitText.setAttribute('font-weight', 'bold');
       digitText.setAttribute('font-family', 'Comic Sans MS, cursive');
-      digitText.setAttribute('fill', pos.color || roughColors.azul);
+      digitText.setAttribute('fill', resolveColor(pos.color, roughColors.azul));
       digitText.textContent = pos.digito.toString();
       svgRef.current!.appendChild(digitText);
     });
@@ -116,7 +116,7 @@ export const ValorPosicional: React.FC<Props> = ({ data }) => {
       const yDescomp = startY + altoCelda * 2 + 20;
       posiciones.forEach((pos, idx) => {
         const x = margen + idx * anchoCelda;
-        const color = pos.color || roughColors.azul;
+        const color = resolveColor(pos.color, roughColors.azul);
 
         const valorText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         valorText.setAttribute('x', (x + anchoCelda / 2).toString());

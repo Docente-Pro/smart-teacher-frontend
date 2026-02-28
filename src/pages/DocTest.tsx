@@ -1,7 +1,8 @@
 import { Document, Footer } from "@htmldocs/react";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer, Cloud, CloudOff, Loader2 } from "lucide-react";
+import { FileDown, Printer, Cloud, CloudOff, Loader2, Home } from "lucide-react";
 import { useRef, useMemo } from "react";
+import { useNavigate } from "react-router";
 import { usePDFGeneration } from "@/hooks/usePDFGeneration";
 import { DocumentStyles } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
@@ -21,6 +22,7 @@ import { getAreaColor } from "@/constants/areaColors";
 
 function DocTest() {
   const documentRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const { sesion } = useSesionStore();
   const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } = usePDFGeneration(documentRef, sesion?.datosGenerales.area);
 
@@ -133,6 +135,14 @@ function DocTest() {
                 </>
               )}
             </div>
+            <Button 
+              onClick={() => navigate('/dashboard')} 
+              variant="outline" 
+              style={{gap: "0.5rem"}}
+            >
+              <Home className="h-4 w-4" />
+              Inicio
+            </Button>
             <Button 
               onClick={handlePrint} 
               disabled={isGenerating}

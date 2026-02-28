@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoBaseDiezBloques } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoBaseDiezBloques;
@@ -22,7 +22,7 @@ export const BaseDiezBloques: React.FC<Props> = ({ data }) => {
     const gap = 6;
 
     bloques.forEach((bloque) => {
-      const color = bloque.color || roughColors.azul;
+      const color = resolveColor(bloque.color, roughColors.azul);
 
       if (bloque.tipo === 'placa') {
         // 100: cuadrado 10x10

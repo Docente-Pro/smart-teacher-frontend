@@ -150,7 +150,7 @@ function renderProcesoRow(proceso: any, idx: number) {
             }}>
               📝 Problema Matemático:
             </div>
-            <div style={{ textAlign: "center", marginBottom: "0.8rem" }}>
+            <div style={{ maxWidth: 420, width: "100%", margin: "0 auto 0.8rem" }}>
               <GraficoRenderer grafico={proceso.grafico || proceso.graficoProblema} />
             </div>
             <div style={{
@@ -203,7 +203,9 @@ function renderProcesoRow(proceso: any, idx: number) {
               🔢 Operación / Recurso:
             </p>
             <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
-              <GraficoRenderer grafico={proceso.graficoOperacion} />
+              <div style={{ maxWidth: 420, width: "100%" }}>
+                <GraficoRenderer grafico={proceso.graficoOperacion} />
+              </div>
             </div>
           </div>
         )}
@@ -273,6 +275,32 @@ function renderProcesoRow(proceso: any, idx: number) {
             <div style={{ whiteSpace: "pre-wrap", fontSize: "9pt", lineHeight: "1.6" }}>
               {proceso.solucionProblema}
             </div>
+          </div>
+        )}
+
+        {/* Respuestas del docente (transversal — todas las áreas) */}
+        {proceso.respuestasDocente && proceso.respuestasDocente.length > 0 && (
+          <div style={{
+            marginTop: "0.8rem",
+            marginBottom: "0.8rem",
+            backgroundColor: "#fffbeb",
+            padding: "0.8rem 1rem",
+            borderRadius: "8px",
+            borderLeft: "4px solid #f59e0b",
+          }}>
+            <p style={{ fontSize: "9pt", fontWeight: "bold", color: "#92400e", marginBottom: "0.5rem", margin: 0 }}>
+              📋 Respuestas para el docente:
+            </p>
+            {proceso.respuestasDocente.map((r: { pregunta: string; respuestaEsperada: string }, idx: number) => (
+              <div key={idx} style={{ marginTop: "0.5rem", fontSize: "8.5pt", lineHeight: "1.5" }}>
+                <p style={{ margin: 0, fontWeight: "600", color: "#78350f" }}>
+                  {idx + 1}. {r.pregunta}
+                </p>
+                <p style={{ margin: "0.15rem 0 0 0.8rem", color: "#065f46", fontStyle: "italic" }}>
+                  → {r.respuestaEsperada}
+                </p>
+              </div>
+            ))}
           </div>
         )}
 

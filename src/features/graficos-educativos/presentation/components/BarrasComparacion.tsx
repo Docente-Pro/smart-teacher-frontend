@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoBarrasComparacion } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 import '../styles/BarrasComparacion.css';
 
 interface Props {
@@ -24,15 +24,7 @@ export const BarrasComparacion: React.FC<Props> = ({ data }) => {
   ).reverse();
 
   const getBarColor = (color: string): string => {
-    const colorMap: Record<string, string> = {
-      azul: roughColors.azul,
-      rojo: roughColors.rojo,
-      verde: roughColors.verde,
-      amarillo: roughColors.amarillo,
-      morado: roughColors.morado,
-      naranja: roughColors.naranja,
-    };
-    return colorMap[color] || roughColors.azul;
+    return resolveColor(color, roughColors.azul);
   };
 
   useEffect(() => {

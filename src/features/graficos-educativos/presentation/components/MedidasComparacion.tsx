@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { ConfiguracionGrafico, ColorGrafico } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Medida {
   tipo: 'longitud' | 'peso' | 'capacidad' | 'tiempo';
@@ -44,7 +44,7 @@ export const MedidasComparacion: React.FC<Props> = ({ data }) => {
 
     elementos.forEach((medida, idx) => {
       const y = margen + (idx * espacioEntre);
-      const color = roughColors[medida.color] || roughColors.azul;
+      const color = resolveColor(medida.color, roughColors.azul);
       
       // Escalar la barra según el valor
       const anchoReal = (medida.valor / valorMax) * anchoBarra;

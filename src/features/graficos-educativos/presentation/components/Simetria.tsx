@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoSimetria } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoSimetria;
@@ -48,7 +48,7 @@ export const Simetria: React.FC<Props> = ({ data }) => {
     }
 
     // Dibujar figura original
-    const color = figuraOriginal.color || roughColors.azul;
+    const color = resolveColor(figuraOriginal.color, roughColors.azul);
     const puntos = figuraOriginal.puntos || [];
 
     if (puntos.length >= 2) {

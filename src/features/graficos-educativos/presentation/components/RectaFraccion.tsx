@@ -1,14 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoRectaFraccion } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoRectaFraccion;
 }
 
 export const RectaFraccion: React.FC<Props> = ({ data }) => {
-  const { inicio, fin, denominadorBase, marcas, mostrarDivisiones = true } = data;
+  const { inicio, fin, denominadorBase, marcas } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export const RectaFraccion: React.FC<Props> = ({ data }) => {
     svgRef.current.appendChild(rc.line(totalW - margen, lineY, totalW - margen - 10, lineY + 6, { stroke: '#2C3E50', strokeWidth: 2, roughness: 0.5 }));
 
     // Divisiones del denominador base
-    if (mostrarDivisiones && denominadorBase) {
+    if (denominadorBase) {
       const totalDivisions = Math.round(rango * denominadorBase);
       for (let i = 0; i <= totalDivisions; i++) {
         const x = margen + (i / totalDivisions) * lineW;
@@ -64,7 +64,7 @@ export const RectaFraccion: React.FC<Props> = ({ data }) => {
     marcas.forEach((marca) => {
       const frac = (marca.posicion - inicio) / rango;
       const x = margen + frac * lineW;
-      const color = marca.color || roughColors.rojo;
+      const color = resolveColor(marca.color, roughColors.rojo);
 
       // Punto
       svgRef.current!.appendChild(rc.circle(x, lineY, 14, {

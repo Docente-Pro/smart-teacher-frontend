@@ -38,6 +38,7 @@ export const ConversionMedidas: React.FC<Props> = ({ data }) => {
       t1.setAttribute('font-weight', 'bold');
       t1.setAttribute('font-family', 'Comic Sans MS, cursive');
       t1.setAttribute('fill', '#fff');
+      t1.textContent = `${conv.desde.valor} ${conv.desde.unidad}`;
       svgRef.current!.appendChild(t1);
 
       // Flecha

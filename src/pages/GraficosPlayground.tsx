@@ -138,14 +138,14 @@ const ejemplosPredefinidos = {
     tipoGrafico: "patron_geometrico",
     titulo: "¿Qué figura sigue en el patrón?",
     secuencia: [
-      { forma: "circulo", color: "#FF6B6B", etiqueta: "", destacado: false },
-      { forma: "cuadrado", color: "#4ECDC4", etiqueta: "", destacado: false },
-      { forma: "circulo", color: "#FF6B6B", etiqueta: "", destacado: false },
-      { forma: "cuadrado", color: "#4ECDC4", etiqueta: "", destacado: false },
-      { forma: "circulo", color: "#FF6B6B", etiqueta: "", destacado: false },
-      { forma: "cuadrado", color: "#4ECDC4", etiqueta: "", destacado: false },
-      { forma: "circulo", color: "#FF6B6B", etiqueta: "", destacado: false },
-      { forma: "interrogacion", color: "#95A5A6", etiqueta: "?", destacado: true }
+      { forma: "circulo", color: "coral", etiqueta: "", destacado: false },
+      { forma: "cuadrado", color: "turquesa", etiqueta: "", destacado: false },
+      { forma: "circulo", color: "coral", etiqueta: "", destacado: false },
+      { forma: "cuadrado", color: "turquesa", etiqueta: "", destacado: false },
+      { forma: "circulo", color: "coral", etiqueta: "", destacado: false },
+      { forma: "cuadrado", color: "turquesa", etiqueta: "", destacado: false },
+      { forma: "circulo", color: "coral", etiqueta: "", destacado: false },
+      { forma: "interrogacion", color: "gris", etiqueta: "?", destacado: true }
     ],
     orientacion: "horizontal",
     mostrarIndices: false,
@@ -164,29 +164,29 @@ const ejemplosPredefinidos = {
           {
             tipo: "poligono",
             vertices: [
-              { x: 2, y: 1 },
-              { x: 4, y: 1 },
-              { x: 5, y: 3 },
-              { x: 3, y: 5 },
-              { x: 1, y: 3 }
+              { x: 2, y: 1, etiqueta: "A", mostrarCoordenada: true },
+              { x: 4, y: 1, etiqueta: "B", mostrarCoordenada: true },
+              { x: 5, y: 3, etiqueta: "C", mostrarCoordenada: true },
+              { x: 3, y: 5, etiqueta: "D", mostrarCoordenada: true },
+              { x: 1, y: 3, etiqueta: "E", mostrarCoordenada: true }
             ],
-            color: "#FF9500",
+            color: "naranja",
             etiqueta: "Pentágono A"
           },
           {
             tipo: "poligono",
             vertices: [
-              { x: 7, y: 4 },
-              { x: 9, y: 4 },
-              { x: 10, y: 6 },
-              { x: 8, y: 8 },
-              { x: 6, y: 6 }
+              { x: 7, y: 4, etiqueta: "A'", mostrarCoordenada: false },
+              { x: 9, y: 4, etiqueta: "B'", mostrarCoordenada: false },
+              { x: 10, y: 6, etiqueta: "C'", mostrarCoordenada: false },
+              { x: 8, y: 8, etiqueta: "D'", mostrarCoordenada: false },
+              { x: 6, y: 6, etiqueta: "E'", mostrarCoordenada: false }
             ],
-            color: "#00C853",
+            color: "esmeralda",
             etiqueta: "Pentágono B"
           }
         ],
-        instruccion: "Observa la traslación del pentágono A al pentágono B"
+        instruccion: "Observa la traslación del pentágono A al pentágono B. ¡Descubre las coordenadas de B!"
       },
       {
         id: 2,
@@ -196,23 +196,23 @@ const ejemplosPredefinidos = {
           {
             tipo: "rectangulo",
             vertices: [
-              { x: 1, y: 1 },
-              { x: 4, y: 1 },
-              { x: 4, y: 3 },
-              { x: 1, y: 3 }
+              { x: 1, y: 1, etiqueta: "A", mostrarCoordenada: true },
+              { x: 4, y: 1, etiqueta: "B", mostrarCoordenada: true },
+              { x: 4, y: 3, etiqueta: "C", mostrarCoordenada: true },
+              { x: 1, y: 3, etiqueta: "D", mostrarCoordenada: true }
             ],
-            color: "#2979FF",
+            color: "azul",
             etiqueta: "Casa 1"
           },
           {
             tipo: "rectangulo",
             vertices: [
-              { x: 5, y: 4 },
-              { x: 8, y: 4 },
-              { x: 8, y: 6 },
-              { x: 5, y: 6 }
+              { x: 5, y: 4, etiqueta: "A'", mostrarCoordenada: false },
+              { x: 8, y: 4, etiqueta: "B'", mostrarCoordenada: false },
+              { x: 8, y: 6, etiqueta: "C'", mostrarCoordenada: false },
+              { x: 5, y: 6, etiqueta: "D'", mostrarCoordenada: false }
             ],
-            color: "#E91E63",
+            color: "rosa",
             etiqueta: "Casa 2"
           }
         ],
@@ -280,9 +280,9 @@ const ejemplosPredefinidos = {
     tipoGrafico: "patron_visual",
     titulo: "Descubre el patrón",
     elementos: [
-      { tipo: "forma", valor: "circulo", color: "#3b82f6" },
-      { tipo: "forma", valor: "cuadrado", color: "#ef4444" },
-      { tipo: "forma", valor: "triangulo", color: "#10b981" }
+      { tipo: "forma", valor: "circulo", color: "azul" },
+      { tipo: "forma", valor: "cuadrado", color: "rojo" },
+      { tipo: "forma", valor: "triangulo", color: "esmeralda" }
     ],
     repeticiones: 3
   },
@@ -293,12 +293,12 @@ const ejemplosPredefinidos = {
       {
         nombre: "Fútbol",
         elementos: ["Ana", "Luis", "María", "Carlos"],
-        color: "#3b82f6"
+        color: "azul"
       },
       {
         nombre: "Básquet",
         elementos: ["Pedro", "María", "Carlos", "Rosa"],
-        color: "#ef4444"
+        color: "rojo"
       }
     ],
     interseccion: ["María", "Carlos"]
@@ -314,7 +314,7 @@ const ejemplosPredefinidos = {
       [8, 12, 14, 9],
       [20, 18, 22, 16]
     ],
-    colorEncabezado: "#10b981"
+    colorEncabezado: "esmeralda"
   },
   medidas_comparacion: {
     tipoGrafico: "medidas_comparacion",
@@ -330,10 +330,10 @@ const ejemplosPredefinidos = {
     titulo: "Valor posicional de 3 527",
     numero: 3527,
     posiciones: [
-      { posicion: "unidades de millar", digito: 3, valor: 3000, color: "#e74c3c" },
-      { posicion: "centenas", digito: 5, valor: 500, color: "#3498db" },
-      { posicion: "decenas", digito: 2, valor: 20, color: "#2ecc71" },
-      { posicion: "unidades", digito: 7, valor: 7, color: "#f39c12" }
+      { posicion: "unidades de millar", digito: 3, valor: 3000, color: "rojo" },
+      { posicion: "centenas", digito: 5, valor: 500, color: "azul" },
+      { posicion: "decenas", digito: 2, valor: 20, color: "esmeralda" },
+      { posicion: "unidades", digito: 7, valor: 7, color: "dorado" }
     ],
     mostrarDescomposicion: true,
     elementos: []
@@ -344,9 +344,9 @@ const ejemplosPredefinidos = {
     numero: 456,
     tipo: "aditiva",
     partes: [
-      { valor: 400, etiqueta: "4 centenas", color: "#e74c3c" },
-      { valor: 50, etiqueta: "5 decenas", color: "#3498db" },
-      { valor: 6, etiqueta: "6 unidades", color: "#2ecc71" }
+      { valor: 400, etiqueta: "4 centenas", color: "rojo" },
+      { valor: 50, etiqueta: "5 decenas", color: "azul" },
+      { valor: 6, etiqueta: "6 unidades", color: "esmeralda" }
     ],
     mostrarOperacion: true,
     elementos: []
@@ -356,9 +356,9 @@ const ejemplosPredefinidos = {
     titulo: "Representación en ábaco: 243",
     numero: 243,
     columnas: [
-      { posicion: "Centenas", cuentas: 2, color: "#e74c3c" },
-      { posicion: "Decenas", cuentas: 4, color: "#3498db" },
-      { posicion: "Unidades", cuentas: 3, color: "#2ecc71" }
+      { posicion: "Centenas", cuentas: 2, color: "rojo" },
+      { posicion: "Decenas", cuentas: 4, color: "azul" },
+      { posicion: "Unidades", cuentas: 3, color: "esmeralda" }
     ],
     mostrarValor: true,
     elementos: []
@@ -368,9 +368,9 @@ const ejemplosPredefinidos = {
     titulo: "Representación de 135 con bloques base 10",
     numero: 135,
     bloques: [
-      { tipo: "placa", cantidad: 1, color: "#e74c3c", valor: 100 },
-      { tipo: "barra", cantidad: 3, color: "#3498db", valor: 10 },
-      { tipo: "unidad", cantidad: 5, color: "#2ecc71", valor: 1 }
+      { tipo: "placa", cantidad: 1, color: "rojo", valor: 100 },
+      { tipo: "barra", cantidad: 3, color: "azul", valor: 10 },
+      { tipo: "unidad", cantidad: 5, color: "esmeralda", valor: 1 }
     ],
     mostrarTotal: true,
     elementos: []
@@ -392,10 +392,10 @@ const ejemplosPredefinidos = {
     tipoGrafico: "grafico_circular",
     titulo: "Frutas favoritas del salón",
     sectores: [
-      { etiqueta: "Manzana", valor: 8, color: "#e74c3c", porcentaje: 32 },
-      { etiqueta: "Plátano", valor: 6, color: "#f1c40f", porcentaje: 24 },
-      { etiqueta: "Naranja", valor: 5, color: "#e67e22", porcentaje: 20 },
-      { etiqueta: "Uva", valor: 6, color: "#9b59b6", porcentaje: 24 }
+      { etiqueta: "Manzana", valor: 8, color: "rojo", porcentaje: 32 },
+      { etiqueta: "Plátano", valor: 6, color: "amarillo", porcentaje: 24 },
+      { etiqueta: "Naranja", valor: 5, color: "naranja", porcentaje: 20 },
+      { etiqueta: "Uva", valor: 6, color: "violeta", porcentaje: 24 }
     ],
     mostrarPorcentaje: true,
     mostrarLeyenda: true,
@@ -407,8 +407,8 @@ const ejemplosPredefinidos = {
     ejeX: { titulo: "Día", etiquetas: ["Lun", "Mar", "Mié", "Jue", "Vie"] },
     ejeY: { titulo: "°C", maximo: 35, intervalo: 5 },
     series: [
-      { nombre: "Mañana", puntos: [{ x: "Lun", y: 18 }, { x: "Mar", y: 20 }, { x: "Mié", y: 22 }, { x: "Jue", y: 19 }, { x: "Vie", y: 21 }], color: "#3498db" },
-      { nombre: "Tarde", puntos: [{ x: "Lun", y: 25 }, { x: "Mar", y: 28 }, { x: "Mié", y: 30 }, { x: "Jue", y: 26 }, { x: "Vie", y: 27 }], color: "#e74c3c" }
+      { nombre: "Mañana", puntos: [{ x: "Lun", y: 18 }, { x: "Mar", y: 20 }, { x: "Mié", y: 22 }, { x: "Jue", y: 19 }, { x: "Vie", y: 21 }], color: "azul" },
+      { nombre: "Tarde", puntos: [{ x: "Lun", y: 25 }, { x: "Mar", y: 28 }, { x: "Mié", y: 30 }, { x: "Jue", y: 26 }, { x: "Vie", y: 27 }], color: "rojo" }
     ],
     mostrarPuntos: true,
     mostrarValores: true,
@@ -418,10 +418,10 @@ const ejemplosPredefinidos = {
     tipoGrafico: "tabla_frecuencias",
     titulo: "Notas del examen de matemáticas",
     datos: [
-      { dato: "AD", frecuencia: 5, color: "#2ecc71" },
-      { dato: "A", frecuencia: 12, color: "#3498db" },
-      { dato: "B", frecuencia: 8, color: "#f39c12" },
-      { dato: "C", frecuencia: 3, color: "#e74c3c" }
+      { dato: "AD", frecuencia: 5, color: "esmeralda" },
+      { dato: "A", frecuencia: 12, color: "azul" },
+      { dato: "B", frecuencia: 8, color: "dorado" },
+      { dato: "C", frecuencia: 3, color: "rojo" }
     ],
     totalDatos: 28,
     mostrarRelativa: true,
@@ -444,12 +444,11 @@ const ejemplosPredefinidos = {
     titulo: "Calendario de Junio 2025",
     mes: 6,
     anio: 2025,
-    diasDestacados: [
-      { dia: 7, color: "#e74c3c", etiqueta: "Día de la Bandera" },
-      { dia: 24, color: "#f39c12", etiqueta: "Día del campesino" }
-    ],
+    destacarDias: [7, 24],
     eventos: [
-      { dia: 15, descripcion: "Examen de matemáticas", color: "#3498db" }
+      { dia: 7, texto: "Día de la Bandera", color: "rojo" },
+      { dia: 15, texto: "Examen de matemáticas", color: "azul" },
+      { dia: 24, texto: "Día del campesino", color: "dorado" }
     ],
     elementos: []
   },
@@ -460,10 +459,10 @@ const ejemplosPredefinidos = {
     unidad: "C",
     escala: { min: 0, max: 50, intervalo: 5 },
     zonas: [
-      { desde: 0, hasta: 15, color: "#3498db", etiqueta: "Frío" },
-      { desde: 15, hasta: 25, color: "#2ecc71", etiqueta: "Agradable" },
-      { desde: 25, hasta: 35, color: "#f39c12", etiqueta: "Cálido" },
-      { desde: 35, hasta: 50, color: "#e74c3c", etiqueta: "Caliente" }
+      { desde: 0, hasta: 15, color: "azul", etiqueta: "Frío" },
+      { desde: 15, hasta: 25, color: "esmeralda", etiqueta: "Agradable" },
+      { desde: 25, hasta: 35, color: "dorado", etiqueta: "Cálido" },
+      { desde: 35, hasta: 50, color: "rojo", etiqueta: "Caliente" }
     ],
     elementos: []
   },
@@ -483,9 +482,9 @@ const ejemplosPredefinidos = {
     inicio: 0,
     fin: 15,
     intervalo: 1,
-    marcasEspeciales: [
-      { posicion: 3, etiqueta: "Inicio", color: "#2ecc71" },
-      { posicion: 12, etiqueta: "Fin", color: "#e74c3c" }
+    marcas: [
+      { posicion: 3, etiqueta: "Inicio", color: "esmeralda" },
+      { posicion: 12, etiqueta: "Fin", color: "rojo" }
     ],
     elementos: []
   },
@@ -529,7 +528,7 @@ const ejemplosPredefinidos = {
     rango: { inicio: 1, fin: 30 },
     multiplosDestacados: [6, 12, 18],
     mostrarTabla100: false,
-    colorMultiplo: "#3498db",
+    colorMultiplo: "azul",
     elementos: []
   },
   potencias_raices: {
@@ -547,10 +546,10 @@ const ejemplosPredefinidos = {
     tipoGrafico: "cuerpos_geometricos",
     titulo: "Cuerpos geométricos 3D",
     cuerpos: [
-      { tipo: "cubo", etiqueta: "Cubo", color: "#3498db" },
-      { tipo: "esfera", etiqueta: "Esfera", color: "#e74c3c" },
-      { tipo: "cilindro", etiqueta: "Cilindro", color: "#2ecc71" },
-      { tipo: "cono", etiqueta: "Cono", color: "#f39c12" }
+      { tipo: "cubo", etiqueta: "Cubo", color: "azul" },
+      { tipo: "esfera", etiqueta: "Esfera", color: "rojo" },
+      { tipo: "cilindro", etiqueta: "Cilindro", color: "esmeralda" },
+      { tipo: "cono", etiqueta: "Cono", color: "dorado" }
     ],
     mostrarNombres: true,
     mostrarMedidas: false,
@@ -560,9 +559,9 @@ const ejemplosPredefinidos = {
     tipoGrafico: "angulos",
     titulo: "Clasificación de ángulos",
     angulos: [
-      { grados: 45, tipo: "agudo", color: "#3498db", etiqueta: "Ángulo A" },
-      { grados: 90, tipo: "recto", color: "#2ecc71", etiqueta: "Ángulo B" },
-      { grados: 135, tipo: "obtuso", color: "#e74c3c", etiqueta: "Ángulo C" }
+      { grados: 45, tipo: "agudo", color: "azul", etiqueta: "Ángulo A" },
+      { grados: 90, tipo: "recto", color: "esmeralda", etiqueta: "Ángulo B" },
+      { grados: 135, tipo: "obtuso", color: "rojo", etiqueta: "Ángulo C" }
     ],
     mostrarTransportador: false,
     mostrarClasificacion: true,
@@ -579,7 +578,7 @@ const ejemplosPredefinidos = {
         { x: -3, y: 2 },
         { x: -4, y: 0 }
       ],
-      color: "#3498db"
+      color: "azul"
     },
     ejeSimetria: "vertical",
     mostrarEje: true,
@@ -594,12 +593,12 @@ const ejemplosPredefinidos = {
       {
         cuerpo: "cubo",
         caras: [
-          { forma: "cuadrado", color: "#3498db" },
-          { forma: "cuadrado", color: "#e74c3c" },
-          { forma: "cuadrado", color: "#2ecc71" },
-          { forma: "cuadrado", color: "#f39c12" },
-          { forma: "cuadrado", color: "#9b59b6" },
-          { forma: "cuadrado", color: "#1abc9c" }
+          { forma: "cuadrado", color: "azul" },
+          { forma: "cuadrado", color: "rojo" },
+          { forma: "cuadrado", color: "esmeralda" },
+          { forma: "cuadrado", color: "dorado" },
+          { forma: "cuadrado", color: "violeta" },
+          { forma: "cuadrado", color: "turquesa" }
         ]
       }
     ],
@@ -628,12 +627,11 @@ const ejemplosPredefinidos = {
     fin: 2,
     denominadorBase: 4,
     marcas: [
-      { posicion: 0.25, numerador: 1, denominador: 4, color: "#3498db" },
-      { posicion: 0.5, numerador: 1, denominador: 2, color: "#e74c3c", etiqueta: "1/2" },
-      { posicion: 1, numerador: 4, denominador: 4, color: "#2ecc71", etiqueta: "1" },
-      { posicion: 1.5, numerador: 3, denominador: 2, color: "#f39c12", etiqueta: "3/2" }
+      { posicion: 0.25, numerador: 1, denominador: 4, color: "azul" },
+      { posicion: 0.5, numerador: 1, denominador: 2, color: "rojo", etiqueta: "1/2" },
+      { posicion: 1, numerador: 4, denominador: 4, color: "esmeralda", etiqueta: "1" },
+      { posicion: 1.5, numerador: 3, denominador: 2, color: "dorado", etiqueta: "3/2" }
     ],
-    mostrarDivisiones: true,
     elementos: []
   }
 };

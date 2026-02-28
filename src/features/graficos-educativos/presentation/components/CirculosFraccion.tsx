@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoCirculosFraccion } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoCirculosFraccion;
@@ -34,7 +34,7 @@ export const CirculosFraccion: React.FC<Props> = ({ data }) => {
       const centerX = margen + (col * espacioX);
       const centerY = margen + (fila * espacioY);
 
-      const color = roughColors[fraccion.color] || roughColors.azul;
+      const color = resolveColor(fraccion.color, roughColors.azul);
 
       // Círculo completo (borde)
       const circulo = rc.circle(centerX, centerY, radioCirculo * 2, {

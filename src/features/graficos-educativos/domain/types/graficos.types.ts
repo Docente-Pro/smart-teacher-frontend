@@ -173,7 +173,6 @@ export interface GraficoBloqueAgrupados extends ConfiguracionGrafico {
 // ============= RECTA NUMÉRICA =============
 
 export interface MarcaRecta {
-  tipo?: string;
   posicion: number;
   etiqueta?: string;
   destacado?: boolean;
@@ -391,9 +390,16 @@ export interface PlanoCartesiano {
   instruccion: string;
 }
 
+export interface VerticeCartesiano {
+  x: number;
+  y: number;
+  etiqueta?: string;           // "A", "B", "C"... Se muestra junto al punto
+  mostrarCoordenada?: boolean;  // Default true. true → "A(2,3)", false → solo "A"
+}
+
 export interface FiguraCartesiana {
-  tipo: 'poligono' | 'circulo' | 'cuadrado' | 'triangulo' | 'rectangulo';
-  vertices?: Array<{ x: number; y: number }>;
+  tipo: 'poligono' | 'circulo' | 'cuadrado' | 'triangulo' | 'rectangulo' | 'punto';
+  vertices?: VerticeCartesiano[];
   centro?: { x: number; y: number };
   radio?: number;
   color: string;
@@ -818,7 +824,6 @@ export interface GraficoRectaFraccion extends ConfiguracionGrafico {
   fin: number;
   denominadorBase?: number;
   marcas: MarcaFraccion[];
-  mostrarDivisiones?: boolean;
 }
 
 // ============= TIPOS DE EXPORTACIÓN =============

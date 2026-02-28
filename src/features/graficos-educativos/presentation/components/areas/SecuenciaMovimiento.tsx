@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoSecuenciaMovimiento } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoSecuenciaMovimiento;
@@ -19,12 +20,13 @@ const tipoMovEmoji: Record<string, string> = {
  * Pasos de una rutina, juego o ejercicio físico.
  */
 export const SecuenciaMovimiento: React.FC<Props> = ({ data }) => {
-  const { tipo, pasos, repeticiones, materiales, colorFondo } = data;
+  const { tipo, pasos, repeticiones, materiales, colorFondo: _colorFondo } = data;
+  const colorFondoResolved = resolveColor(_colorFondo, 'transparent');
 
   return (
     <div
       className="space-y-4 rounded-xl p-4"
-      style={{ background: colorFondo ?? 'transparent' }}
+      style={{ background: colorFondoResolved }}
     >
       {/* Tipo + meta */}
       <div className="flex flex-wrap items-center justify-center gap-3 text-sm">

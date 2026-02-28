@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoNumerosOrdinales, ColorGrafico } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoNumerosOrdinales;
@@ -103,7 +103,7 @@ export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
       // Determinar color
       const colorIndex = (elemento.numero - 1) % coloresPredeterminados.length;
       const color = elemento.color 
-        ? colorMap[elemento.color] 
+        ? resolveColor(elemento.color, roughColors.neutro)
         : colorMap[coloresPredeterminados[colorIndex]];
 
       // Estilo de caja (más destacado si está marcado)

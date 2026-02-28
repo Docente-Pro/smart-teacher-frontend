@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoCuerposGeometricos } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoCuerposGeometricos;
@@ -22,7 +22,7 @@ export const CuerposGeometricos: React.FC<Props> = ({ data }) => {
     cuerpos.forEach((cuerpo, idx) => {
       const cx = margen + idx * spacing;
       const cy = 120;
-      const color = cuerpo.color || [roughColors.azul, roughColors.rojo, roughColors.verde, roughColors.naranja][idx % 4];
+      const color = resolveColor(cuerpo.color) || [roughColors.azul, roughColors.rojo, roughColors.verde, roughColors.naranja][idx % 4];
 
       if (cuerpo.tipo === 'cubo') {
         const s = 60;

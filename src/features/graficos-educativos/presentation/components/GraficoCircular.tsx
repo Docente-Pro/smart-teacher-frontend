@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoCircular as GraficoCircularType } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoCircularType;
@@ -29,7 +29,7 @@ export const GraficoCircularComp: React.FC<Props> = ({ data }) => {
       const porcion = sector.valor / total;
       const angInicio = angAcumulado;
       const angFin = angAcumulado + porcion * 2 * Math.PI;
-      const color = sector.color || COLORES_SECTOR[idx % COLORES_SECTOR.length];
+      const color = resolveColor(sector.color) || COLORES_SECTOR[idx % COLORES_SECTOR.length];
 
       const x1 = centerX + radio * Math.cos(angInicio);
       const y1 = centerY + radio * Math.sin(angInicio);
@@ -78,7 +78,7 @@ export const GraficoCircularComp: React.FC<Props> = ({ data }) => {
       sectores.forEach((sector, idx) => {
         const lx = 20;
         const ly = centerY + radio + 30 + idx * 25;
-        const color = sector.color || COLORES_SECTOR[idx % COLORES_SECTOR.length];
+        const color = resolveColor(sector.color) || COLORES_SECTOR[idx % COLORES_SECTOR.length];
 
         const box = rc.rectangle(lx, ly - 12, 16, 16, {
           fill: color,

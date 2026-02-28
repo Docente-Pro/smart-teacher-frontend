@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoCicloProceso } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoCicloProceso;
@@ -11,12 +12,13 @@ interface Props {
  */
 export const CicloProceso: React.FC<Props> = ({ data }) => {
   const { tipo, fases, colorFondo } = data;
+  const resolvedColorFondo = resolveColor(colorFondo, 'transparent');
 
   if (tipo === 'circular') {
-    return <CicloCircular fases={fases} colorFondo={colorFondo} />;
+    return <CicloCircular fases={fases} colorFondo={resolvedColorFondo} />;
   }
 
-  return <ProcesoLineal fases={fases} colorFondo={colorFondo} />;
+  return <ProcesoLineal fases={fases} colorFondo={resolvedColorFondo} />;
 };
 
 /* ---------- Circular ---------- */
@@ -66,7 +68,7 @@ const CicloCircular: React.FC<{ fases: GraficoCicloProceso['fases']; colorFondo?
                 markerEnd="url(#arrowhead)"
               />
               {/* Nodo */}
-              <circle cx={x} cy={y} r="30" fill={fase.color} opacity={0.9} />
+              <circle cx={x} cy={y} r="30" fill={resolveColor(fase.color)} opacity={0.9} />
               <text
                 x={x}
                 y={y + 2}
@@ -92,7 +94,7 @@ const CicloCircular: React.FC<{ fases: GraficoCicloProceso['fases']; colorFondo?
           <div key={i} className="flex items-start gap-2 text-sm">
             <span
               className="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center text-xs shrink-0"
-              style={{ background: fase.color, color: '#fff' }}
+              style={{ background: resolveColor(fase.color), color: '#fff' }}
             >
               {i + 1}
             </span>
@@ -124,7 +126,7 @@ const ProcesoLineal: React.FC<{ fases: GraficoCicloProceso['fases']; colorFondo?
           <div className="flex flex-col items-center">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 shadow"
-              style={{ background: fase.color }}
+              style={{ background: resolveColor(fase.color) }}
             >
               {fase.icono}
             </div>

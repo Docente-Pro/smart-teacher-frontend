@@ -85,6 +85,18 @@ export interface IProcesoSecuencia {
   imagenes?: IImagenProcesoGeneral[];
   /** Gráfico educativo generado por IA (Matemática o área curricular) */
   grafico?: Record<string, unknown> | null;
+
+  // ─── Campos de Matemática ─────────────────
+  problemaMatematico?: string;
+  graficoProblema?: Record<string, unknown> | null;
+  solucionProblema?: string;
+  graficoSolucion?: Record<string, unknown> | null;
+  graficoOperacion?: Record<string, unknown> | null;
+  imagenProblema?: string;
+  imagenSolucion?: string;
+
+  // ─── Respuestas del docente (transversal) ──
+  respuestasDocente?: { pregunta: string; respuestaEsperada: string }[];
 }
 
 export interface IFaseInicio {

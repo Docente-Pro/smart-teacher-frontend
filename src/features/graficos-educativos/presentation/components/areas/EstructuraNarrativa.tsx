@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GraficoEstructuraNarrativa } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoEstructuraNarrativa;
@@ -16,15 +17,17 @@ export const EstructuraNarrativa: React.FC<Props> = ({ data }) => {
     <div className="space-y-4">
       {/* Secciones: Inicio – Nudo – Desenlace */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {secciones.map((sec, idx) => (
+        {secciones.map((sec, idx) => {
+          const c = resolveColor(sec.color);
+          return (
           <div
             key={idx}
             className="rounded-xl border-2 p-4 flex flex-col gap-2 shadow-sm"
-            style={{ borderColor: sec.color, background: `${sec.color}12` }}
+            style={{ borderColor: c, background: `${c}12` }}
           >
             <div className="flex items-center gap-2">
               <span className="text-2xl">{sec.icono}</span>
-              <h4 className="font-bold text-base" style={{ color: sec.color }}>
+              <h4 className="font-bold text-base" style={{ color: c }}>
                 {sec.nombre}
               </h4>
             </div>
@@ -32,7 +35,8 @@ export const EstructuraNarrativa: React.FC<Props> = ({ data }) => {
               {sec.contenido}
             </p>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Flechas de conexión (sólo visual, md+) */}

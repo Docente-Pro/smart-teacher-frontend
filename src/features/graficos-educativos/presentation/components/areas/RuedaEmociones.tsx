@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { GraficoRuedaEmociones } from '../../../domain/types/graficos-areas.types';
+import { resolveColor } from '../../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoRuedaEmociones;
@@ -30,6 +31,7 @@ export const RuedaEmociones: React.FC<Props> = ({ data }) => {
       <div className="flex justify-center">
         <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[300px]">
           {emociones.map((emo, i) => {
+            const c = resolveColor(emo.color);
             const startAngle = (2 * Math.PI * i) / n - Math.PI / 2;
             const endAngle = (2 * Math.PI * (i + 1)) / n - Math.PI / 2;
 
@@ -55,7 +57,7 @@ export const RuedaEmociones: React.FC<Props> = ({ data }) => {
               >
                 <path
                   d={`M ${centro} ${centro} L ${x1} ${y1} A ${radio} ${radio} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                  fill={emo.color}
+                  fill={c}
                   stroke={isSelected ? '#1e293b' : '#fff'}
                   strokeWidth={isSelected ? 3 : 1.5}
                   opacity={isSelected ? 1 : 0.85}
@@ -99,7 +101,7 @@ export const RuedaEmociones: React.FC<Props> = ({ data }) => {
                 : 'border-gray-200 dark:border-gray-700'
             }`}
             style={{
-              background: seleccionada === emo.nombre ? `${emo.color}30` : undefined,
+              background: seleccionada === emo.nombre ? `${resolveColor(emo.color)}30` : undefined,
             }}
           >
             <span className="text-lg">{emo.icono}</span>

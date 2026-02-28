@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoCalendario } from '../../domain/types';
-import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { roughColors, resolveColor } from '../hooks/useRoughSVG';
 
 interface Props {
   data: GraficoCalendario;
@@ -10,111 +10,186 @@ interface Props {
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
+/* ── Helper: crear texto SVG ── */
+function svgText(
+  parent: SVGSVGElement,
+  x: number, y: number, text: string,
+  opts: { size?: number; weight?: string; fill?: string; anchor?: string } = {}
+) {
+  const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  t.setAttribute('x', x.toString());
+  t.setAttribute('y', y.toString());
+  t.setAttribute('text-anchor', opts.anchor ?? 'middle');
+  t.setAttribute('font-size', (opts.size ?? 14).toString());
+  t.setAttribute('font-weight', opts.weight ?? 'normal');
+  t.setAttribute('font-family', 'Comic Sans MS, cursive');
+  t.setAttribute('fill', opts.fill ?? '#334155');
+  t.textContent = text;
+  parent.appendChild(t);
+  return t;
+}
+
 export const Calendario: React.FC<Props> = ({ data }) => {
-  const { mes, anio, eventos = [], destacarDias = [], pregunta } = data;
+  const {
+    mes, anio,
+    eventos = [],
+    destacarDias = [],
+    pregunta,
+  } = data;
+
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Layout
+  const cellW = 56;
+  const cellH = 44;
+  const gap = 3;                                   // espacio entre celdas
+  const margen = 24;
+  const headerRowY = 70;                           // fila "Dom Lun Mar …"
+  const headerRowH = 32;
+  const gridStartY = headerRowY + headerRowH + gap;
+
+  const primerDia = new Date(anio, mes - 1, 1).getDay();
+  const diasEnMes = new Date(anio, mes, 0).getDate();
+  const numRows = Math.ceil((primerDia + diasEnMes) / 7);
+
+  // Mapas rápidos
+  const eventosMap = new Map(eventos.map(e => [e.dia, e]));
+  const destacarSet = new Set(destacarDias);
+
+  // Leyenda: reunir items de eventos con texto
+  const leyenda: { color: string; label: string }[] = [];
+  eventos.forEach(e => {
+    if (e.texto) leyenda.push({ color: resolveColor(e.color, roughColors.azul), label: e.texto });
+  });
+
+  const gridW = 7 * (cellW + gap) - gap;
+  const svgW = gridW + margen * 2;
+
+  const leyendaStartY = gridStartY + numRows * (cellH + gap) + 10;
+  const leyendaH = leyenda.length > 0 ? 20 + leyenda.length * 22 : 0;
+  const preguntaH = pregunta ? 30 : 0;
+  const svgH = leyendaStartY + leyendaH + preguntaH + 16;
 
   useEffect(() => {
     if (!svgRef.current) return;
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
+    const svg = svgRef.current;
 
-    const cellW = 50;
-    const cellH = 40;
-    const margen = 20;
-    const headerH = 60;
+    // ── Fondo general redondeado ──
+    svg.appendChild(rc.rectangle(4, 4, svgW - 8, svgH - 8, {
+      roughness: 0.4, strokeWidth: 2, stroke: '#cbd5e1',
+      fill: '#f8fafc', fillStyle: 'solid',
+    }));
 
-    // Título del mes
-    const titulo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    titulo.setAttribute('x', (margen + 7 * cellW / 2).toString());
-    titulo.setAttribute('y', '30');
-    titulo.setAttribute('text-anchor', 'middle');
-    titulo.setAttribute('font-size', '20');
-    titulo.setAttribute('font-weight', 'bold');
-    titulo.setAttribute('font-family', 'Comic Sans MS, cursive');
-    titulo.setAttribute('fill', roughColors.azul);
-    titulo.textContent = `${MESES[mes - 1]} ${anio}`;
-    svgRef.current.appendChild(titulo);
-
-    // Días de la semana
-    DIAS_SEMANA.forEach((dia, i) => {
-      const x = margen + i * cellW;
-      svgRef.current!.appendChild(rc.rectangle(x, headerH, cellW, cellH, {
-        ...defaultRoughConfig, stroke: roughColors.azul, fill: roughColors.azul, fillStyle: 'solid', strokeWidth: 2, roughness: 0.8,
-      }));
-      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      t.setAttribute('x', (x + cellW / 2).toString());
-      t.setAttribute('y', (headerH + cellH / 2 + 5).toString());
-      t.setAttribute('text-anchor', 'middle');
-      t.setAttribute('font-size', '12');
-      t.setAttribute('font-weight', 'bold');
-      t.setAttribute('font-family', 'Comic Sans MS, cursive');
-      t.setAttribute('fill', '#1e293b');
-      t.textContent = dia;
-      svgRef.current!.appendChild(t);
+    // ── Título del mes ──
+    svgText(svg, svgW / 2, 46, `${MESES[mes - 1]} ${anio}`, {
+      size: 22, weight: 'bold', fill: roughColors.azul,
     });
 
-    // Calcular primer día del mes
-    const primerDia = new Date(anio, mes - 1, 1).getDay();
-    const diasEnMes = new Date(anio, mes, 0).getDate();
+    // ── Fila de días de la semana ──
+    DIAS_SEMANA.forEach((dia, i) => {
+      const x = margen + i * (cellW + gap);
+      svg.appendChild(rc.rectangle(x, headerRowY, cellW, headerRowH, {
+        roughness: 0.5, strokeWidth: 1.5, stroke: roughColors.azul,
+        fill: roughColors.azul, fillStyle: 'solid',
+      }));
+      svgText(svg, x + cellW / 2, headerRowY + headerRowH / 2 + 5, dia, {
+        size: 12, weight: 'bold', fill: '#ffffff',
+      });
+    });
 
-    const eventosMap = new Map(eventos.map(e => [e.dia, e]));
-
+    // ── Celdas de días ──
     for (let d = 1; d <= diasEnMes; d++) {
       const pos = primerDia + d - 1;
       const col = pos % 7;
       const row = Math.floor(pos / 7);
-      const x = margen + col * cellW;
-      const y = headerH + cellH + row * cellH;
+      const x = margen + col * (cellW + gap);
+      const y = gridStartY + row * (cellH + gap);
 
-      const esDestacado = destacarDias.includes(d);
+      const esFinDeSemana = col === 0 || col === 6;
       const evento = eventosMap.get(d);
+      const esDestacadoSimple = destacarSet.has(d);
 
-      const fill = esDestacado ? roughColors.amarillo : (evento?.color || undefined);
-      svgRef.current.appendChild(rc.rectangle(x, y, cellW, cellH, {
-        ...defaultRoughConfig,
-        strokeWidth: 1.5,
-        roughness: 0.8,
-        ...(fill ? { fill, fillStyle: 'solid' as const } : {}),
+      // Determinar color de fondo
+      let fillColor: string | undefined;
+      let textColor = '#334155';
+      let bold = false;
+
+      if (esDestacadoSimple) {
+        fillColor = roughColors.amarillo;
+        textColor = '#92400e';
+        bold = true;
+      } else if (evento) {
+        fillColor = resolveColor(evento.color, roughColors.azul);
+        textColor = '#ffffff';
+        bold = true;
+      } else if (esFinDeSemana) {
+        fillColor = '#e0f2fe';       // azul muy clarito
+        textColor = '#1e40af';
+      }
+
+      // Celda
+      svg.appendChild(rc.rectangle(x, y, cellW, cellH, {
+        roughness: 0.6,
+        strokeWidth: fillColor ? 1.8 : 1,
+        stroke: fillColor ? fillColor : '#94a3b8',
+        ...(fillColor ? { fill: fillColor, fillStyle: 'solid' as const } : {}),
       }));
 
-      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      t.setAttribute('x', (x + cellW / 2).toString());
-      t.setAttribute('y', (y + cellH / 2 + 5).toString());
-      t.setAttribute('text-anchor', 'middle');
-      t.setAttribute('font-size', '14');
-      t.setAttribute('font-weight', esDestacado ? 'bold' : 'normal');
-      t.setAttribute('font-family', 'Comic Sans MS, cursive');
-      t.setAttribute('fill', esDestacado ? roughColors.rojo : '#1e293b');
-      t.textContent = d.toString();
-      svgRef.current.appendChild(t);
+      // Número del día
+      svgText(svg, x + cellW / 2, y + cellH / 2 + 5, d.toString(), {
+        size: 15, weight: bold ? 'bold' : 'normal', fill: textColor,
+      });
+
+      // Circulito indicador para eventos
+      if (evento) {
+        const dotColor = resolveColor(evento.color, roughColors.azul);
+        svg.appendChild(rc.circle(x + cellW / 2, y + cellH - 6, 6, {
+          roughness: 0.3, strokeWidth: 0, fill: '#ffffff', fillStyle: 'solid',
+        }));
+        svg.appendChild(rc.circle(x + cellW / 2, y + cellH - 6, 4, {
+          roughness: 0.2, strokeWidth: 0, fill: dotColor, fillStyle: 'solid',
+        }));
+      }
     }
 
-    // Pregunta
+    // ── Leyenda ──
+    if (leyenda.length > 0) {
+      let ly = leyendaStartY + 6;
+      leyenda.forEach(item => {
+        svg.appendChild(rc.rectangle(margen + 4, ly - 8, 14, 14, {
+          roughness: 0.4, strokeWidth: 1, stroke: item.color,
+          fill: item.color, fillStyle: 'solid',
+        }));
+        svgText(svg, margen + 26, ly + 3, item.label, {
+          size: 12, anchor: 'start', fill: '#475569',
+        });
+        ly += 22;
+      });
+    }
+
+    // ── Pregunta ──
     if (pregunta) {
-      const numRows = Math.ceil((primerDia + diasEnMes) / 7);
-      const py = headerH + cellH + numRows * cellH + 25;
-      const pt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      pt.setAttribute('x', (margen + 7 * cellW / 2).toString());
-      pt.setAttribute('y', py.toString());
-      pt.setAttribute('text-anchor', 'middle');
-      pt.setAttribute('font-size', '14');
-      pt.setAttribute('font-family', 'Comic Sans MS, cursive');
-      pt.setAttribute('fill', '#64748b');
-      pt.textContent = pregunta;
-      svgRef.current.appendChild(pt);
+      const py = leyendaStartY + leyendaH + 14;
+      svgText(svg, svgW / 2, py, pregunta, {
+        size: 14, fill: '#64748b',
+      });
     }
   }, [data]);
 
-  const primerDia = new Date(anio, mes - 1, 1).getDay();
-  const diasEnMes = new Date(anio, mes, 0).getDate();
-  const numRows = Math.ceil((primerDia + diasEnMes) / 7);
-  const width = 7 * 50 + 40;
-  const height = 60 + 40 + numRows * 40 + (pregunta ? 45 : 20);
-
   return (
-    <div className="calendario-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', justifyContent: 'center' }}>
-      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
+    <div className="calendario-container" style={{
+      padding: 16, background: '#fff', borderRadius: 12,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)', margin: '16px 0',
+      display: 'flex', justifyContent: 'center',
+    }}>
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ width: '100%', maxWidth: `${svgW}px`, height: 'auto' }}
+      />
     </div>
   );
 };
