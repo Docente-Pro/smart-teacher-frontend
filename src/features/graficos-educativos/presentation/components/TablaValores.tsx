@@ -9,6 +9,44 @@ interface Props {
 }
 
 /**
+ * Divide texto en múltiples líneas según el ancho máximo aproximado
+ * Usa aproximación de 7px por carácter para fuente de 13-14px
+ */
+const wrapText = (text: string, maxWidth: number, fontSize: number = 13): string[] => {
+  const charWidth = fontSize * 0.55; // Aproximación de ancho por carácter
+  const maxChars = Math.floor(maxWidth / charWidth);
+  
+  if (text.length <= maxChars) return [text];
+  
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+  
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    if (testLine.length <= maxChars) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      // Si la palabra es más larga que el máximo, la cortamos
+      if (word.length > maxChars) {
+        let remaining = word;
+        while (remaining.length > maxChars) {
+          lines.push(remaining.substring(0, maxChars - 1) + '-');
+          remaining = remaining.substring(maxChars - 1);
+        }
+        currentLine = remaining;
+      } else {
+        currentLine = word;
+      }
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  
+  return lines.slice(0, 4); // Máximo 4 líneas
+};
+
+/**
  * Componente para renderizar tablas de valores genéricas con estilo dibujado a mano
  * Útil para mostrar datos tabulares diversos
  */
@@ -62,12 +100,34 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
     svgRef.current.innerHTML = '';
 
     const padding = 15;
-    const rowHeight = 40;
-    const cellWidth = 120;
+    const baseRowHeight = 40;
+    const lineHeight = 18; // Altura por línea de texto
+    const cellWidth = 180; // Aumentado para textos largos
     const colCount = encabezados.length;
     const tableWidth = colCount * cellWidth + padding * 2;
-    const headerHeight = 45;
-    const tableHeight = headerHeight + elementos.length * rowHeight + padding;
+    const baseHeaderHeight = 45;
+
+    // Calcular altura del header basándose en los encabezados
+    let maxHeaderLines = 1;
+    encabezados.forEach((enc) => {
+      const lines = wrapText(enc, cellWidth - 20, 14);
+      maxHeaderLines = Math.max(maxHeaderLines, lines.length);
+    });
+    const headerHeight = Math.max(baseHeaderHeight, 20 + maxHeaderLines * lineHeight);
+
+    // Calcular altura de cada fila basándose en el contenido
+    const rowHeights: number[] = elementos.map((fila) => {
+      let maxLines = 1;
+      fila.celdas.forEach((celda) => {
+        const text = typeof celda === 'number' ? celda.toString() : celda;
+        const lines = wrapText(text, cellWidth - 20, 13);
+        maxLines = Math.max(maxLines, lines.length);
+      });
+      return Math.max(baseRowHeight, 20 + maxLines * lineHeight);
+    });
+
+    const totalRowsHeight = rowHeights.reduce((sum, h) => sum + h, 0);
+    const tableHeight = headerHeight + totalRowsHeight + padding;
 
     if (mostrarBordes) {
       // Borde exterior de la tabla
@@ -93,18 +153,27 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
     });
     svgRef.current.appendChild(headerBg);
 
-    // Encabezados
+    // Encabezados con wrapping
     encabezados.forEach((encabezado, idx) => {
       const headerX = padding + idx * cellWidth + cellWidth / 2;
+      const lines = wrapText(encabezado, cellWidth - 20, 14);
+      const totalTextHeight = lines.length * lineHeight;
+      const startY = 10 + (headerHeight - totalTextHeight) / 2 + lineHeight / 2 + 3;
+
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', headerX.toString());
-      text.setAttribute('y', '35');
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('font-size', '14');
       text.setAttribute('font-weight', 'bold');
       text.setAttribute('fill', '#2C3E50');
       text.setAttribute('class', 'rough-text');
-      text.textContent = encabezado;
+      
+      lines.forEach((line, lineIdx) => {
+        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        tspan.setAttribute('x', headerX.toString());
+        tspan.setAttribute('y', (startY + lineIdx * lineHeight).toString());
+        tspan.textContent = line;
+        text.appendChild(tspan);
+      });
       svgRef.current?.appendChild(text);
 
       // Líneas verticales del header
@@ -126,7 +195,9 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
 
     // Filas de datos
     let currentY = headerHeight + 10;
-    elementos.forEach((fila, _idxFila) => {
+    elementos.forEach((fila, idxFila) => {
+      const rowHeight = rowHeights[idxFila];
+      
       // Línea divisoria horizontal
       if (mostrarBordes) {
         const hLine = rc.line(10, currentY, tableWidth + 10, currentY, {
@@ -140,16 +211,29 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
       // Celdas de la fila
       fila.celdas.forEach((celda, idxCelda) => {
         const cellX = padding + idxCelda * cellWidth + cellWidth / 2;
-        const cellY = currentY + rowHeight / 2 + 5;
+        const cellText = typeof celda === 'number' ? celda.toString() : celda;
+        const lines = wrapText(cellText, cellWidth - 20, 13);
+        
+        // Calcular posición Y inicial centrada verticalmente
+        const totalTextHeight = lines.length * lineHeight;
+        const startY = currentY + (rowHeight - totalTextHeight) / 2 + lineHeight / 2 + 5;
 
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', cellX.toString());
-        text.setAttribute('y', cellY.toString());
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('font-size', '13');
         text.setAttribute('fill', '#2C3E50');
         text.setAttribute('class', 'rough-text');
-        text.textContent = typeof celda === 'number' ? celda.toString() : celda;
+        
+        // Crear tspan para cada línea
+        lines.forEach((line, lineIdx) => {
+          const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          tspan.setAttribute('x', cellX.toString());
+          tspan.setAttribute('y', (startY + lineIdx * lineHeight).toString());
+          tspan.textContent = line;
+          text.appendChild(tspan);
+        });
+        
         svgRef.current?.appendChild(text);
 
         // Líneas verticales

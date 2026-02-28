@@ -27,7 +27,7 @@ export const TablaObservacion: React.FC<Props> = ({ data }) => {
               {columnas.map((col, idx) => (
                 <th
                   key={idx}
-                  className="px-4 py-2.5 text-left whitespace-nowrap border-r border-teal-600 last:border-r-0"
+                  className="px-4 py-2.5 text-left border-r border-teal-600 last:border-r-0"
                   style={{ backgroundColor: '#0f766e', color: '#ffffff', fontWeight: 700 }}
                 >
                   {col.nombre}

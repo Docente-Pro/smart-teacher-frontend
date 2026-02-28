@@ -9,6 +9,43 @@ interface Props {
 }
 
 /**
+ * Divide texto en múltiples líneas según el ancho máximo aproximado
+ * Usa aproximación de 7px por carácter para fuente de 14px
+ */
+const wrapText = (text: string, maxWidth: number, fontSize: number = 14): string[] => {
+  const charWidth = fontSize * 0.55;
+  const maxChars = Math.floor(maxWidth / charWidth);
+  
+  if (text.length <= maxChars) return [text];
+  
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+  
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    if (testLine.length <= maxChars) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      if (word.length > maxChars) {
+        let remaining = word;
+        while (remaining.length > maxChars) {
+          lines.push(remaining.substring(0, maxChars - 1) + '-');
+          remaining = remaining.substring(maxChars - 1);
+        }
+        currentLine = remaining;
+      } else {
+        currentLine = word;
+      }
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  
+  return lines.slice(0, 3); // Máximo 3 líneas
+};
+
+/**
  * Componente para renderizar tablas de precios con estilo dibujado a mano
  * Útil para problemas de compras, ventas, etc.
  */
@@ -75,12 +112,22 @@ export const TablaPrecios: React.FC<Props> = ({ data }) => {
     svgRef.current.innerHTML = '';
 
     const padding = 15;
-    const rowHeight = 45;
-    const colWidths = [180, 100, 80, 100];
+    const baseRowHeight = 45;
+    const lineHeight = 18;
+    const colWidths = [200, 100, 80, 100]; // Aumentado columna producto
     const tableWidth = colWidths.reduce((a, b) => a + b, 0) + padding * 2;
     const headerHeight = 50;
-    const totalRows = elementos.length + (mostrarTotal ? 2 : 1);
-    const tableHeight = headerHeight + totalRows * rowHeight + padding;
+
+    // Calcular altura de cada fila basándose en el contenido del producto
+    const rowHeights: number[] = elementos.map((fila) => {
+      const productText = `${fila.icono || ''} ${fila.producto}`;
+      const lines = wrapText(productText, colWidths[0] - 20, 14);
+      return Math.max(baseRowHeight, 20 + lines.length * lineHeight);
+    });
+
+    const totalRowsHeight = rowHeights.reduce((sum, h) => sum + h, 0);
+    const totalSectionHeight = mostrarTotal ? baseRowHeight + 10 : 0;
+    const tableHeight = headerHeight + totalRowsHeight + totalSectionHeight + padding;
 
     // Fondo de la tabla
     const tableBg = rc.rectangle(10, 10, tableWidth, tableHeight, {
@@ -123,6 +170,8 @@ export const TablaPrecios: React.FC<Props> = ({ data }) => {
     // Líneas horizontales y contenido
     let currentY = headerHeight + 10;
     elementos.forEach((fila, idx) => {
+      const rowHeight = rowHeights[idx];
+      
       // Línea divisoria
       if (idx > 0) {
         const line = rc.line(10, currentY, tableWidth + 10, currentY, {
@@ -133,18 +182,30 @@ export const TablaPrecios: React.FC<Props> = ({ data }) => {
         svgRef.current?.appendChild(line);
       }
 
-      const rowY = currentY + 25;
-      
-      // Icono y producto
+      // Icono y producto con wrap
       let cellX = padding + 10;
+      const productFullText = `${fila.icono || ''} ${fila.producto}`;
+      const productLines = wrapText(productFullText, colWidths[0] - 20, 14);
+      const totalTextHeight = productLines.length * lineHeight;
+      const startY = currentY + (rowHeight - totalTextHeight) / 2 + lineHeight / 2 + 3;
+      
       const productText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       productText.setAttribute('x', cellX.toString());
-      productText.setAttribute('y', rowY.toString());
       productText.setAttribute('font-size', '14');
       productText.setAttribute('fill', '#2C3E50');
       productText.setAttribute('class', 'rough-text');
-      productText.textContent = `${fila.icono || ''} ${fila.producto}`;
+      
+      productLines.forEach((line, lineIdx) => {
+        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        tspan.setAttribute('x', cellX.toString());
+        tspan.setAttribute('y', (startY + lineIdx * lineHeight).toString());
+        tspan.textContent = line;
+        productText.appendChild(tspan);
+      });
       svgRef.current?.appendChild(productText);
+
+      // Posición Y centrada para las otras columnas (números)
+      const rowY = currentY + rowHeight / 2 + 5;
 
       // Precio unitario
       cellX += colWidths[0];
