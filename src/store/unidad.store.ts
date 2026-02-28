@@ -21,6 +21,9 @@ export interface UnidadDatosBase {
   codigoCompartido?: string;
 }
 
+// ─── Fases del wizard ───
+export type WizardPhase = "select-type" | "wizard" | "completed";
+
 // ─── State ───
 
 interface UnidadWizardState {
@@ -29,11 +32,28 @@ interface UnidadWizardState {
   contenido: IUnidadContenido;
   generandoPaso: string | null; // nombre del paso que se está generando
 
+  // ─── Estado del wizard (para recuperación) ───
+  currentStep: number;
+  maxStepReached: number;
+  wizardPhase: WizardPhase;
+  tipoUnidad: "PERSONAL" | "COMPARTIDA";
+  maxMiembros: number;
+
   // Actions
   setUnidadId: (id: string) => void;
   setDatosBase: (datos: UnidadDatosBase) => void;
   updateContenido: (partial: Partial<IUnidadContenido>) => void;
   setGenerandoPaso: (paso: string | null) => void;
+  
+  // Actions del wizard
+  setCurrentStep: (step: number) => void;
+  advanceStep: (step: number) => void;
+  setWizardPhase: (phase: WizardPhase) => void;
+  setTipoUnidad: (tipo: "PERSONAL" | "COMPARTIDA", maxMiembros?: number) => void;
+  markCompleted: () => void;
+  
+  // Utilidades
+  hasUnfinishedUnidad: () => boolean;
   resetUnidad: () => void;
 }
 
@@ -41,11 +61,18 @@ const contenidoInicial: IUnidadContenido = {};
 
 export const useUnidadStore = create<UnidadWizardState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       unidadId: null,
       datosBase: null,
       contenido: contenidoInicial,
       generandoPaso: null,
+      
+      // Estado inicial del wizard
+      currentStep: 1,
+      maxStepReached: 1,
+      wizardPhase: "select-type",
+      tipoUnidad: "PERSONAL",
+      maxMiembros: 2,
 
       setUnidadId: (id) => set({ unidadId: id }),
 
@@ -58,12 +85,47 @@ export const useUnidadStore = create<UnidadWizardState>()(
 
       setGenerandoPaso: (paso) => set({ generandoPaso: paso }),
 
+      // ─── Acciones del wizard ───
+      setCurrentStep: (step) => set({ currentStep: step }),
+      
+      advanceStep: (step) => set((state) => ({
+        currentStep: step,
+        maxStepReached: Math.max(state.maxStepReached, step),
+      })),
+      
+      setWizardPhase: (phase) => set({ wizardPhase: phase }),
+      
+      setTipoUnidad: (tipo, maxMiembros = 2) => set({ 
+        tipoUnidad: tipo, 
+        maxMiembros,
+        wizardPhase: "wizard",
+      }),
+      
+      markCompleted: () => set({ wizardPhase: "completed" }),
+      
+      hasUnfinishedUnidad: () => {
+        const state = get();
+        // Tiene unidad en progreso si:
+        // 1. Hay unidadId creado (ya pasó paso 1)
+        // 2. El wizard no está completado
+        // 3. Está en fase wizard o tiene datosBase
+        return (
+          state.wizardPhase !== "completed" &&
+          (state.unidadId !== null || state.datosBase !== null)
+        );
+      },
+
       resetUnidad: () =>
         set({
           unidadId: null,
           datosBase: null,
           contenido: contenidoInicial,
           generandoPaso: null,
+          currentStep: 1,
+          maxStepReached: 1,
+          wizardPhase: "select-type",
+          tipoUnidad: "PERSONAL",
+          maxMiembros: 2,
         }),
     }),
     {

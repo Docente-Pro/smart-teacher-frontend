@@ -8,6 +8,7 @@ import { instance } from "@/services/instance";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { StepIndicator } from "@/components/StepsCuestionarioCrearSesion/StepIndicator";
 import { UnidadDrawer } from "@/components/StepsCrearUnidad/UnidadDrawer";
+import { UnidadRecoveryDialog } from "@/components/StepsCrearUnidad/UnidadRecoveryDialog";
 import Step0TipoUnidad from "@/components/StepsCrearUnidad/Step0TipoUnidad";
 import Step1DatosUnidad from "@/components/StepsCrearUnidad/Step1DatosUnidad";
 import Step2SituacionPropositos from "@/components/StepsCrearUnidad/Step2SituacionPropositos";
@@ -34,29 +35,49 @@ function CrearUnidad() {
   const navigate = useNavigate();
   const { user } = useAuth0();
   const { showLoading, hideLoading } = useGlobalLoading();
-  const { resetUnidad } = useUnidadStore();
   const { isPremium, isSuscripcionActiva } = usePermissions();
 
+  // ── Store con persistencia ──
+  const {
+    currentStep,
+    maxStepReached,
+    wizardPhase,
+    tipoUnidad,
+    maxMiembros,
+    hasUnfinishedUnidad,
+    setCurrentStep,
+    advanceStep,
+    setWizardPhase,
+    setTipoUnidad,
+    resetUnidad,
+  } = useUnidadStore();
+
   const [usuarioData, setUsuarioData] = useState<IUsuario | null>(null);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [maxStepReached, setMaxStepReached] = useState(1);
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // ── Pre-paso: tipo de unidad ──
-  const [fase, setFase] = useState<"select-type" | "wizard">("select-type");
-  const [tipoUnidad, setTipoUnidad] = useState<TipoUnidad>("PERSONAL");
-  const [maxMiembros, setMaxMiembros] = useState(2);
-
+  // ── Manejador de paso ──
   const handleSetStep = (step: number) => {
-    setCurrentStep(step);
-    setMaxStepReached((prev) => Math.max(prev, step));
+    advanceStep(step);
   };
 
   const handleTipoContinue = (tipo: TipoUnidad, miembros: number) => {
-    setTipoUnidad(tipo);
-    setMaxMiembros(miembros);
-    setFase("wizard");
+    setTipoUnidad(tipo, miembros);
   };
 
+  // ── Recuperación: continuar donde se quedó ──
+  const handleContinueUnfinished = () => {
+    setShowRecoveryDialog(false);
+    // El estado ya está en el store, solo cerramos el diálogo
+  };
+
+  // ── Recuperación: empezar de nuevo ──
+  const handleStartNew = () => {
+    setShowRecoveryDialog(false);
+    resetUnidad();
+  };
+
+  // ── Cargar usuario y verificar unidad pendiente ──
   useEffect(() => {
     async function cargarUsuario() {
       if (!user?.id) {
@@ -70,7 +91,13 @@ function CrearUnidad() {
         const response = await instance.get(`/usuario/${user.id}`);
         const data = response.data.data || response.data;
         setUsuarioData(data);
-        resetUnidad();
+
+        // Verificar si hay una unidad sin completar
+        if (hasUnfinishedUnidad()) {
+          setShowRecoveryDialog(true);
+        }
+        
+        setIsInitialized(true);
       } catch (error) {
         console.error("Error al cargar usuario:", error);
         handleToaster("Error al cargar información del usuario", "error");
@@ -83,10 +110,22 @@ function CrearUnidad() {
     cargarUsuario();
   }, [user?.id]);
 
+  // No renderizar hasta que esté inicializado
+  if (!isInitialized) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* ── Diálogo de recuperación ── */}
+      <UnidadRecoveryDialog
+        open={showRecoveryDialog}
+        onContinue={handleContinueUnfinished}
+        onStartNew={handleStartNew}
+      />
+
       {/* ── Pre-paso: elegir tipo de unidad ── */}
-      {fase === "select-type" && (
+      {wizardPhase === "select-type" && (
         <Step0TipoUnidad
           onContinue={handleTipoContinue}
           isPremium={isPremium && isSuscripcionActiva}
@@ -95,7 +134,7 @@ function CrearUnidad() {
       )}
 
       {/* ── Wizard de 4 pasos ── */}
-      {fase === "wizard" && (
+      {wizardPhase === "wizard" && (
         <>
           {/* Step Indicator */}
           <StepIndicator

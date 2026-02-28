@@ -61,7 +61,7 @@ const SEMANA_COLORS = [
 
 function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const navigate = useNavigate();
-  const { unidadId, datosBase, contenido, updateContenido, generandoPaso, setGenerandoPaso } =
+  const { unidadId, datosBase, contenido, updateContenido, generandoPaso, setGenerandoPaso, markCompleted } =
     useUnidadStore();
 
   const isCompartida = datosBase?.tipo === "COMPARTIDA";
@@ -255,6 +255,8 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
   /* ─── Finalizar → ir a la vista previa del PDF ─── */
   function handleFinalizar() {
+    // Marcar la unidad como completada para que no aparezca el diálogo de recuperación
+    markCompleted();
     handleToaster("¡Unidad de aprendizaje completada! Generando documento...", "success");
     navigate("/unidad-result");
   }
