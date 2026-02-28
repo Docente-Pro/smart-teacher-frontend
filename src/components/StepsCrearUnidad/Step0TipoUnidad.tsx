@@ -183,7 +183,7 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
 
   if (fase === "payment") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6 flex items-center justify-center">
         <div className="max-w-md w-full">
           <div className="flex flex-col items-center text-center">
             <div className="relative mb-6">
@@ -269,7 +269,7 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
 
   if (fase === "waiting") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6 flex items-center justify-center">
         <div className="max-w-md w-full flex flex-col items-center text-center">
           <div className="relative mb-6">
             <div className="absolute inset-0 w-24 h-24 -m-2 rounded-full bg-amber-400/20 animate-ping" />
@@ -319,7 +319,7 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
 
   if (fase === "activated") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6 flex items-center justify-center">
         <div className="max-w-md w-full flex flex-col items-center text-center">
           <div className="relative mb-6">
             <div
@@ -351,7 +351,7 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
 
   if (fase === "error") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6 flex items-center justify-center">
         <div className="max-w-md w-full flex flex-col items-center text-center">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30 mb-6">
             <AlertCircle className="w-8 h-8 text-white" />
@@ -387,7 +387,7 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
   // ═══════════════════════════════════════════
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6">
       <div className="max-w-3xl mx-auto">
         {/* ── Volver al Dashboard ── */}
         {onBack && (
@@ -400,12 +400,12 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
           </button>
         )}
         {/* ── Header ── */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-6 sm:mb-10">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
             <span className="text-sm font-semibold tracking-wide">ANTES DE EMPEZAR</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-4 tracking-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-4 tracking-tight">
             ¿Cómo trabajarás tu unidad?
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-400">
@@ -432,7 +432,7 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
                 tipo === "PERSONAL" ? "opacity-100" : "opacity-10 group-hover:opacity-20"
               }`}
             />
-            <div className="relative p-8 flex flex-col items-center gap-4">
+            <div className="relative p-4 sm:p-8 flex flex-col items-center gap-4">
               <div
                 className={`p-4 rounded-xl transition-transform duration-300 ${
                   tipo === "PERSONAL"
@@ -499,7 +499,7 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
                 tipo === "COMPARTIDA" ? "opacity-100" : "opacity-10 group-hover:opacity-20"
               }`}
             />
-            <div className="relative p-8 flex flex-col items-center gap-4">
+            <div className="relative p-4 sm:p-8 flex flex-col items-center gap-4">
               <div
                 className={`p-4 rounded-xl transition-transform duration-300 ${
                   tipo === "COMPARTIDA"

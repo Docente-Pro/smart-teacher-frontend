@@ -132,59 +132,36 @@ function UnidadResult() {
   const institucion = usuario?.nombreInstitucion || "";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-900 dark:to-slate-800 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-900 dark:to-slate-800 p-4 sm:p-8">
       <style>{printStyles}</style>
       <div className="max-w-6xl mx-auto">
         {/* Header con botones */}
-        <div
-          className="no-print"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <div className="no-print flex flex-col gap-4 mb-6">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button
               onClick={() => navigate("/crear-unidad")}
               variant="ghost"
-              className="h-10 px-3"
+              className="h-10 px-3 flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1
-              style={{
-                fontSize: "1.875rem",
-                fontWeight: "700",
-                background: "linear-gradient(to right, #d97706, #ea580c)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
+            <h1 className="text-lg sm:text-[1.875rem] font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
               Vista Previa - Unidad de Aprendizaje
             </h1>
           </div>
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
             {/* Botón Ir al inicio */}
             <Button
               onClick={() => navigate("/dashboard")}
               variant="outline"
-              style={{ gap: "0.5rem" }}
+              size="sm"
+              className="gap-1.5"
             >
               <Home className="h-4 w-4" />
-              Inicio
+              <span className="hidden sm:inline">Inicio</span>
             </Button>
             {/* Indicador de guardado */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.25rem",
-                fontSize: "0.75rem",
-                color: isSaved ? "#16a34a" : isSaving ? "#d97706" : "#94a3b8",
-              }}
-            >
+            <div className="flex items-center gap-1 text-xs" style={{color: isSaved ? "#16a34a" : isSaving ? "#d97706" : "#94a3b8"}}>
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -206,19 +183,21 @@ function UnidadResult() {
               onClick={handlePrint}
               disabled={isGenerating}
               variant="outline"
-              style={{ gap: "0.5rem" }}
+              size="sm"
+              className="gap-1.5"
             >
               <Printer className="h-4 w-4" />
-              Imprimir
+              <span className="hidden sm:inline">Imprimir</span>
             </Button>
             <Button
               onClick={handleDownloadPDF}
               disabled={isGenerating}
-              style={{ gap: "0.5rem" }}
-              className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+              size="sm"
+              className="gap-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
             >
               <FileDown className="h-4 w-4" />
-              {isGenerating ? "Generando PDF..." : "Descargar PDF"}
+              <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
+              <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
             </Button>
           </div>
         </div>

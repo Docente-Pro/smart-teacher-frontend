@@ -26,6 +26,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { clearUserStorage } from "@/utils/clearUserStorage";
 import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
+import { getUsuarioById } from "@/services/usuarios.service";
 
 function Dashboard() {
   const { logout } = useAuth0();
@@ -44,6 +45,35 @@ function Dashboard() {
       if (!user) return;
       showLoading("Cargando dashboard...");
       try {
+        // Refrescar datos del usuario desde el backend (sesionesUsadas, sesionesRestantes, etc.)
+        if (user.id) {
+          const res = await getUsuarioById(user.id);
+          const freshUser = res.data?.data || res.data;
+          console.log("📊 DEBUG - freshUser del backend:", JSON.stringify(freshUser, null, 2));
+          if (freshUser) {
+            // El endpoint GET /usuario/:id puede devolver los campos en la raíz
+            // O anidados dentro de "suscripcion". Intentamos ambos.
+            const updatePayload: Partial<Record<string, unknown>> = {};
+
+            const sesUsadas = freshUser.sesionesUsadas ?? freshUser.cantidadSesionesUsadas;
+            const sesRestantes = freshUser.sesionesRestantes ?? freshUser.cantidadSesionesRestantes;
+            const plan = freshUser.plan ?? freshUser.suscripcion?.plan;
+            const suscActiva = freshUser.suscripcionActiva ?? freshUser.suscripcion?.activa;
+
+            if (sesUsadas !== undefined) updatePayload.sesionesUsadas = sesUsadas;
+            if (sesRestantes !== undefined) updatePayload.sesionesRestantes = sesRestantes;
+            if (plan !== undefined) updatePayload.plan = plan;
+            if (suscActiva !== undefined) updatePayload.suscripcionActiva = suscActiva;
+
+            if (Object.keys(updatePayload).length > 0) {
+              console.log("📊 DEBUG - updatePayload:", updatePayload);
+              useAuthStore.getState().updateUser(updatePayload);
+            } else {
+              console.log("📊 DEBUG - No se encontraron campos para actualizar");
+            }
+          }
+        }
+
         // Verificar si el usuario es suscriptor de alguna unidad con pago confirmado
         if (user.id) {
           const items = await listarUnidadesByUsuario(user.id);
@@ -239,26 +269,31 @@ function Dashboard() {
         </div>
 
         {/* Stats row (mobile-friendly) */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 mb-8 sm:mb-10">
-          <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
-            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/10">
-              <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium">Usadas</p>
-              <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">{user?.sesionesUsadas ?? 0}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
-              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium">Restantes</p>
-              <p className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">{user?.sesionesRestantes ?? 0}</p>
-            </div>
-          </div>
-          <div className="col-span-2 sm:col-span-1 flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
+        <div className={`grid gap-3 sm:gap-4 mb-8 sm:mb-10 ${isPremium ? 'grid-cols-1 max-w-xs' : 'grid-cols-2 sm:grid-cols-3'}`}>
+          {/* Usadas y Restantes solo se muestran para usuarios FREE (premium no tiene límite) */}
+          {!isPremium && (
+            <>
+              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
+                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/10">
+                  <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium">Usadas</p>
+                  <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">{user?.sesionesUsadas ?? 0}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
+                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium">Restantes</p>
+                  <p className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">{user?.sesionesRestantes ?? 0}</p>
+                </div>
+              </div>
+            </>
+          )}
+          <div className={`${!isPremium ? 'col-span-2 sm:col-span-1' : ''} flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm`}>
             <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10">
               <User className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
@@ -342,8 +377,8 @@ function Dashboard() {
           })}
         </div>
 
-        {/* Recent Activity */}
-        <div className="rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm overflow-hidden">
+        {/* TODO: Actividad Reciente — descomentar cuando haya servicio de actividad */}
+        {/* <div className="rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm overflow-hidden">
           <div className="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-700/50">
             <h3 className="font-semibold text-slate-900 dark:text-white">Actividad Reciente</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Tus últimas sesiones y actividades</p>
@@ -355,7 +390,7 @@ function Dashboard() {
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Aún no has creado ninguna sesión</p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Comienza creando tu primera sesión de aprendizaje</p>
           </div>
-        </div>
+        </div> */}
       </main>
 
       {/* Modal de Problemática */}

@@ -30,10 +30,10 @@ function Step9({ pagina, setPagina }: Props) {
   if (!sesion) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-6 sm:mb-12">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-green-600 text-xs font-bold">
@@ -41,7 +41,7 @@ function Step9({ pagina, setPagina }: Props) {
             </div>
             <span className="text-sm font-semibold tracking-wide">PASO 7 DE 7</span>
           </div>
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4 tracking-tight">
+          <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4 tracking-tight">
             ¡Sesión Completada!
           </h1>
           <p className="text-xl text-slate-600 dark:text-slate-400">
@@ -113,7 +113,7 @@ function Step9({ pagina, setPagina }: Props) {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-4 grid grid-cols-2 gap-4">
+              <CardContent className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Institución</p>
                 <p className="text-slate-900 dark:text-white">{sesion.datosGenerales.institucion || "No especificado"}</p>

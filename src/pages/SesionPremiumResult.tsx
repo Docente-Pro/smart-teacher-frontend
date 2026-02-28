@@ -72,63 +72,27 @@ function SesionPremiumResult() {
 
   // ── Página con documento ──────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 sm:p-8">
       <style>{printStyles}</style>
       <div className="max-w-6xl mx-auto">
         {/* Header con botones */}
-        <div
-          className="no-print"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1.5rem",
-            flexWrap: "wrap",
-            gap: "0.75rem",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <div className="no-print flex flex-col gap-4 mb-6">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate("/generar-sesion")}
+              className="flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1
-              style={{
-                fontSize: "1.875rem",
-                fontWeight: "700",
-                background:
-                  "linear-gradient(to right, #2563eb, #0891b2)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
+            <h1 className="text-lg sm:text-[1.875rem] font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Vista Previa – Sesión Premium
             </h1>
           </div>
-          <div
-            style={{
-              display: "flex",
-              gap: "0.75rem",
-              alignItems: "center",
-            }}
-          >
+          <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
             {/* Indicador de guardado */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.25rem",
-                fontSize: "0.75rem",
-                color: isSaved
-                  ? "#16a34a"
-                  : isSaving
-                    ? "#2563eb"
-                    : "#94a3b8",
-              }}
-            >
+            <div className="flex items-center gap-1 text-xs" style={{color: isSaved ? "#16a34a" : isSaving ? "#2563eb" : "#94a3b8"}}>
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -151,19 +115,21 @@ function SesionPremiumResult() {
               onClick={handlePrint}
               disabled={isGenerating}
               variant="outline"
-              style={{ gap: "0.5rem" }}
+              size="sm"
+              className="gap-1.5"
             >
               <Printer className="h-4 w-4" />
-              Imprimir
+              <span className="hidden sm:inline">Imprimir</span>
             </Button>
             <Button
               onClick={handleDownloadPDF}
               disabled={isGenerating}
-              style={{ gap: "0.5rem" }}
-              className="bg-gradient-to-r from-blue-600 to-cyan-600"
+              size="sm"
+              className="gap-1.5 bg-gradient-to-r from-blue-600 to-cyan-600"
             >
               <FileDown className="h-4 w-4" />
-              {isGenerating ? "Generando PDF..." : "Descargar PDF"}
+              <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
+              <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
             </Button>
           </div>
         </div>

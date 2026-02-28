@@ -26,7 +26,7 @@ export const ClasificacionDicotomica: React.FC<Props> = ({ data }) => {
   if (!raiz) return null;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-visible">
       <div className="inline-flex flex-col items-center min-w-full py-4">
         <NodoArbol nodo={raiz} nodoMap={nodoMap} />
       </div>
@@ -43,12 +43,12 @@ const NodoArbol: React.FC<{
   if (nodo.esHoja) {
     return (
       <div className="flex flex-col items-center">
-        <div className="bg-emerald-50 dark:bg-emerald-900/40 border-2 border-emerald-400 rounded-xl px-4 py-3 text-center max-w-[180px]">
-          <p className="font-bold text-sm text-emerald-700 dark:text-emerald-300">
+        <div className="bg-emerald-50 border-2 border-emerald-400 rounded-xl px-4 py-3 text-center max-w-[180px]">
+          <p className="font-bold text-sm text-emerald-700">
             {nodo.etiqueta}
           </p>
           {nodo.ejemplos && nodo.ejemplos.length > 0 && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               {nodo.ejemplos.join(', ')}
             </p>
           )}
@@ -63,18 +63,18 @@ const NodoArbol: React.FC<{
   return (
     <div className="flex flex-col items-center gap-2">
       {/* Nodo pregunta */}
-      <div className="bg-blue-50 dark:bg-blue-900/40 border-2 border-blue-400 rounded-xl px-4 py-3 text-center max-w-[220px]">
+      <div className="bg-blue-50 border-2 border-blue-400 rounded-xl px-4 py-3 text-center max-w-[220px]">
         {nodo.etiqueta && (
           <p className="text-xs font-semibold text-blue-500 mb-1">{nodo.etiqueta}</p>
         )}
-        <p className="font-bold text-sm text-gray-800 dark:text-gray-200">{nodo.pregunta}</p>
+        <p className="font-bold text-sm text-gray-800">{nodo.pregunta}</p>
       </div>
 
       {/* Ramas Sí / No */}
       <div className="flex gap-8 mt-1">
         {/* Sí */}
         <div className="flex flex-col items-center gap-1">
-          <span className="text-xs font-bold text-green-600 bg-green-100 dark:bg-green-900/50 px-2 py-0.5 rounded">
+          <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded">
             Sí
           </span>
           <div className="w-0.5 h-4 bg-green-400" />
@@ -82,7 +82,7 @@ const NodoArbol: React.FC<{
         </div>
         {/* No */}
         <div className="flex flex-col items-center gap-1">
-          <span className="text-xs font-bold text-red-600 bg-red-100 dark:bg-red-900/50 px-2 py-0.5 rounded">
+          <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded">
             No
           </span>
           <div className="w-0.5 h-4 bg-red-400" />

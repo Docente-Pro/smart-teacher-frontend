@@ -130,7 +130,7 @@ export default function PlanesPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-dp-text-title mb-4">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-dp-text-title mb-4">
             Elige tu Plan Perfecto
           </h1>
           <p className="text-lg text-dp-text-secondary max-w-2xl mx-auto">

@@ -22,7 +22,7 @@ export const RuedaEmociones: React.FC<Props> = ({ data }) => {
   return (
     <div className="space-y-4">
       {instruccion && (
-        <p className="text-center text-sm text-gray-600 dark:text-gray-400 italic">
+        <p className="text-center text-sm text-gray-600 italic">
           {instruccion}
         </p>
       )}
@@ -95,25 +95,25 @@ export const RuedaEmociones: React.FC<Props> = ({ data }) => {
             key={i}
             type="button"
             onClick={() => setSeleccionada(emo.nombre)}
-            className={`flex items-center gap-2 text-left text-xs rounded-lg px-3 py-2 border transition-all ${
+            className={`flex items-center gap-2 text-left text-xs rounded-lg px-3 py-2 border ${
               seleccionada === emo.nombre
-                ? 'ring-2 ring-offset-1 border-gray-800 dark:border-gray-200 font-bold'
-                : 'border-gray-200 dark:border-gray-700'
+                ? 'ring-2 ring-offset-1 border-gray-800 font-bold'
+                : 'border-gray-200'
             }`}
             style={{
               background: seleccionada === emo.nombre ? `${resolveColor(emo.color)}30` : undefined,
             }}
           >
             <span className="text-lg">{emo.icono}</span>
-            <span className="text-gray-700 dark:text-gray-300">{emo.nombre}</span>
+            <span className="text-gray-700">{emo.nombre}</span>
           </button>
         ))}
       </div>
 
       {/* Pregunta de reflexión */}
       {preguntaReflexion && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-          <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <p className="text-sm font-semibold text-yellow-800">
             ✍️ {preguntaReflexion}
           </p>
         </div>

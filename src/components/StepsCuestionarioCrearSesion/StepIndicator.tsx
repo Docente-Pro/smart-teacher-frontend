@@ -16,7 +16,7 @@ interface StepIndicatorProps {
 export const StepIndicator = ({ steps, currentStep, maxStepReached, onStepClick, onBack }: StepIndicatorProps) => {
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
         {/* Botón volver al dashboard */}
         {onBack && (
           <button
@@ -27,21 +27,21 @@ export const StepIndicator = ({ steps, currentStep, maxStepReached, onStepClick,
             Dashboard
           </button>
         )}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between overflow-x-auto">
           {steps.map((step, index) => {
             const isCompleted = maxStepReached > step.number;
             const isCurrent = currentStep === step.number;
             const isClickable = step.number <= maxStepReached;
 
             return (
-              <div key={step.number} className="flex items-center flex-1">
+              <div key={step.number} className="flex items-center flex-1 min-w-0">
                 {/* Step Circle */}
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center flex-shrink-0">
                   <button
                     onClick={() => isClickable && onStepClick(step.number)}
                     disabled={!isClickable}
                     className={cn(
-                      "w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300",
+                      "w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-300",
                       "focus:outline-none focus:ring-2 focus:ring-offset-2",
                       {
                         "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-110 focus:ring-blue-500": isCurrent,
@@ -52,7 +52,7 @@ export const StepIndicator = ({ steps, currentStep, maxStepReached, onStepClick,
                     )}
                   >
                     {isCompleted ? (
-                      <Check className="h-6 w-6" />
+                      <Check className="h-4 w-4 sm:h-6 sm:w-6" />
                     ) : (
                       step.number
                     )}
@@ -79,7 +79,7 @@ export const StepIndicator = ({ steps, currentStep, maxStepReached, onStepClick,
                 {/* Connector Line */}
                 {index < steps.length - 1 && (
                   <div className={cn(
-                    "flex-1 h-1 mx-2 rounded-full transition-all duration-300",
+                    "flex-1 h-0.5 sm:h-1 mx-1 sm:mx-2 rounded-full transition-all duration-300 min-w-[8px]",
                     {
                       "bg-gradient-to-r from-green-500 to-emerald-500": isCompleted,
                       "bg-gradient-to-r from-blue-600 to-purple-600": isCurrent && index === currentStep - 1,
@@ -93,9 +93,9 @@ export const StepIndicator = ({ steps, currentStep, maxStepReached, onStepClick,
         </div>
 
         {/* Mobile Step Title */}
-        <div className="md:hidden mt-4 text-center">
+        <div className="md:hidden mt-3 text-center">
           <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-            {steps[currentStep - 1]?.title}
+            Paso {currentStep} de {steps.length}: {steps[currentStep - 1]?.title}
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {steps[currentStep - 1]?.description}

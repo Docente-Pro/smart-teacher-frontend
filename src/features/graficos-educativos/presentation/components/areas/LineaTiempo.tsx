@@ -30,10 +30,11 @@ const TimelineHorizontal: React.FC<{
 }> = ({ eventos, subtitulo, colorLinea }) => (
   <div className="space-y-3">
     {subtitulo && (
-      <p className="text-center text-sm text-gray-500 dark:text-gray-400 italic">{subtitulo}</p>
+      <p className="text-center text-sm text-gray-500 italic">{subtitulo}</p>
     )}
-    <div className="overflow-x-auto pb-2">
-      <div className="relative flex items-start gap-0 min-w-max px-4 pt-8">
+    {/* Sin overflow-x-auto para que html2canvas capture todo el contenido */}
+    <div className="pb-2">
+      <div className="relative flex items-start gap-0 flex-wrap justify-center px-4 pt-8">
         {/* Línea base */}
         <div
           className="absolute top-[52px] left-4 right-4 h-1 rounded-full"
@@ -43,7 +44,7 @@ const TimelineHorizontal: React.FC<{
         {eventos.map((ev, i) => {
           const c = resolveColor(ev.color);
           return (
-          <div key={i} className="relative flex flex-col items-center w-44 shrink-0">
+          <div key={i} className="relative flex flex-col items-center" style={{ width: '10rem', flexShrink: 0 }}>
             {/* Fecha */}
             <span
               className="text-xs font-bold px-2 py-0.5 rounded-full mb-2 text-white"
@@ -53,16 +54,16 @@ const TimelineHorizontal: React.FC<{
             </span>
             {/* Punto */}
             <div
-              className="w-5 h-5 rounded-full border-4 border-white dark:border-gray-900 shadow z-10"
+              className="w-5 h-5 rounded-full border-4 border-white shadow z-10"
               style={{ background: c }}
             />
             {/* Contenido debajo */}
             <div className="mt-3 text-center px-2">
               <span className="text-lg">{ev.icono}</span>
-              <p className="font-semibold text-xs text-gray-800 dark:text-gray-200 mt-1">
+              <p className="font-semibold text-xs text-gray-800 mt-1">
                 {ev.etiqueta}
               </p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">
+              <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">
                 {ev.descripcion}
               </p>
             </div>
@@ -83,7 +84,7 @@ const TimelineVertical: React.FC<{
 }> = ({ eventos, subtitulo, colorLinea }) => (
   <div className="space-y-3">
     {subtitulo && (
-      <p className="text-center text-sm text-gray-500 dark:text-gray-400 italic">{subtitulo}</p>
+      <p className="text-center text-sm text-gray-500 italic">{subtitulo}</p>
     )}
     <div className="relative pl-8">
       {/* Línea vertical */}
@@ -98,7 +99,7 @@ const TimelineVertical: React.FC<{
         <div key={i} className="relative flex items-start gap-4 mb-6 last:mb-0">
           {/* Punto */}
           <div
-            className="absolute -left-4 top-1 w-5 h-5 rounded-full border-4 border-white dark:border-gray-900 shadow z-10"
+            className="absolute -left-4 top-1 w-5 h-5 rounded-full border-4 border-white shadow z-10"
             style={{ background: c }}
           />
           {/* Contenido */}
@@ -112,10 +113,10 @@ const TimelineVertical: React.FC<{
                 {ev.fecha}
               </span>
             </div>
-            <p className="font-semibold text-sm text-gray-800 dark:text-gray-200 mt-1">
+            <p className="font-semibold text-sm text-gray-800 mt-1">
               {ev.etiqueta}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{ev.descripcion}</p>
+            <p className="text-xs text-gray-500">{ev.descripcion}</p>
           </div>
         </div>
         );

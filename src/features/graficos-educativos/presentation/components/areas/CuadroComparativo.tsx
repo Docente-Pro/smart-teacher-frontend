@@ -15,7 +15,7 @@ export const CuadroComparativo: React.FC<Props> = ({ data }) => {
   const colorEncabezado = resolveColor(_colorEncabezado);
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+    <div className="overflow-visible rounded-lg border border-gray-200">
       <table className="w-full text-sm">
         <thead>
           <tr>
@@ -43,17 +43,17 @@ export const CuadroComparativo: React.FC<Props> = ({ data }) => {
               key={rIdx}
               className={
                 rIdx % 2 === 0
-                  ? 'bg-white dark:bg-gray-900'
-                  : 'bg-gray-50 dark:bg-gray-800'
+                  ? 'bg-white'
+                  : 'bg-gray-50'
               }
             >
-              <td className="px-4 py-2 font-semibold text-gray-700 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700">
+              <td className="px-4 py-2 font-semibold text-gray-700 border-t border-gray-200">
                 {criterio}
               </td>
               {columnas.map((col, cIdx) => (
                 <td
                   key={cIdx}
-                  className="px-4 py-2 text-center text-gray-700 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700"
+                  className="px-4 py-2 text-center text-gray-700 border-t border-gray-200"
                 >
                   {col.valores[rIdx] ?? '—'}
                 </td>

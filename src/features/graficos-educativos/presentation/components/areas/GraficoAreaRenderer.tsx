@@ -70,7 +70,7 @@ export const GraficoAreaRenderer: React.FC<Props> = ({
   if (!grafico || !grafico.tipoGrafico) {
     if (!mostrarErrores) return null;
     return (
-      <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg p-4 text-sm text-red-700 dark:text-red-300">
+      <div className="bg-red-50 border border-red-300 rounded-lg p-4 text-sm text-red-700">
         ⚠️ No se recibió un gráfico válido.
       </div>
     );
@@ -81,7 +81,7 @@ export const GraficoAreaRenderer: React.FC<Props> = ({
   if (!Component) {
     if (!mostrarErrores) return null;
     return (
-      <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg p-4 text-sm text-yellow-700 dark:text-yellow-300">
+      <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 text-sm text-yellow-700">
         📊 Gráfico "<strong>{grafico.tipoGrafico}</strong>" no implementado aún.
         <p className="text-xs mt-1 opacity-70">
           Tipos soportados: {tiposGraficoAreaSoportados.slice(0, 6).join(', ')}…
@@ -93,7 +93,7 @@ export const GraficoAreaRenderer: React.FC<Props> = ({
   return (
     <div className={`grafico-area ${className}`}>
       {grafico.titulo && (
-        <h4 className="text-base font-bold text-center text-gray-800 dark:text-gray-200 mb-3">
+        <h4 className="text-base font-bold text-center text-gray-800 mb-3">
           {grafico.titulo}
         </h4>
       )}

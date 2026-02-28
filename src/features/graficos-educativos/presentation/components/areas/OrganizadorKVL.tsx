@@ -16,8 +16,8 @@ export const OrganizadorKVL: React.FC<Props> = ({ data }) => {
   return (
     <div className="space-y-3">
       {tema && (
-        <p className="text-center text-sm font-medium text-gray-600 dark:text-gray-400">
-          Tema: <span className="font-semibold text-gray-800 dark:text-gray-200">{tema}</span>
+        <p className="text-center text-sm font-medium text-gray-600">
+          Tema: <span className="font-semibold text-gray-800">{tema}</span>
         </p>
       )}
 
@@ -27,7 +27,7 @@ export const OrganizadorKVL: React.FC<Props> = ({ data }) => {
           return (
           <div
             key={idx}
-            className="rounded-xl border-2 overflow-hidden shadow-sm"
+            className="rounded-xl border-2 overflow-visible shadow-sm"
             style={{ borderColor: c }}
           >
             {/* Encabezado */}
@@ -40,13 +40,13 @@ export const OrganizadorKVL: React.FC<Props> = ({ data }) => {
             </div>
 
             {/* Items */}
-            <div className="p-4 min-h-[120px] bg-white dark:bg-gray-900">
+            <div className="p-4 min-h-[120px] bg-white">
               {col.items.length > 0 ? (
                 <ul className="space-y-2">
                   {col.items.map((item, i) => (
                     <li
                       key={i}
-                      className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
+                      className="flex items-start gap-2 text-sm text-gray-700"
                     >
                       <span className="mt-0.5 text-xs" style={{ color: c }}>●</span>
                       {item}

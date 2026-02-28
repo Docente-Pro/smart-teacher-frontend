@@ -13,7 +13,8 @@ import LoadingComponent from '@/components/LoadingComponent';
  * 3. Free sin sesiones en rutas de CREACIÓN → /planes
  *    (dashboard, mis-sesiones, sesion/:id, evaluaciones, crear-unidad → siempre accesibles)
  *    crear-unidad se permite porque el wizard interno gestiona el pago
- * 4. Premium vencido (pero NO free) → /suscripcion-vencida
+ * 4. Premium vencido (pero NO free) en rutas de CREACIÓN → /suscripcion-vencida
+ *    (dashboard, mis-sesiones, sesion/:id, evaluaciones, planes → accesibles en modo limitado)
  * 5. Todo bien → muestra children
  * 
  * IMPORTANTE: No renderiza children hasta que la validación sea exitosa.
@@ -70,8 +71,12 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       };
     }
 
-    // 4. Usuario PREMIUM vencido → renovar (salvo que ya estemos en /suscripcion-vencida)
-    if (user.plan !== 'free' && !user.suscripcionActiva && currentPath !== '/suscripcion-vencida') {
+    // 4. Usuario PREMIUM vencido → renovar
+    //    Rutas de lectura (dashboard, mis-sesiones, sesion/:id, evaluaciones, planes, etc.) siguen accesibles en modo limitado.
+    const PREMIUM_EXPIRED_ALLOWED_PATHS = ['/dashboard', '/mis-sesiones', '/sesion', '/evaluaciones', '/planes', '/result', '/graficos', '/suscripcion-vencida'];
+    const isExpiredAllowedPath = PREMIUM_EXPIRED_ALLOWED_PATHS.some((p) => currentPath.startsWith(p));
+
+    if (user.plan !== 'free' && !user.suscripcionActiva && !isExpiredAllowedPath) {
       return { status: 'redirect' as const, to: '/suscripcion-vencida', reason: 'premium-vencido' };
     }
 

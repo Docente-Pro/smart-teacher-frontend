@@ -25,7 +25,7 @@ export const FichaProcesoCreativo: React.FC<Props> = ({ data }) => {
       {/* Badge del lenguaje */}
       <div className="flex items-center justify-center gap-2">
         <span className="text-xl">{lenguajeEmoji[lenguajeArtistico] ?? '🎨'}</span>
-        <span className="text-xs font-semibold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-3 py-1 rounded-full capitalize">
+        <span className="text-xs font-semibold uppercase tracking-wider bg-gray-100 text-gray-600 px-3 py-1 rounded-full capitalize">
           Lenguaje {lenguajeArtistico}
         </span>
       </div>
@@ -54,14 +54,14 @@ export const FichaProcesoCreativo: React.FC<Props> = ({ data }) => {
 
             {/* Contenido */}
             <div className="pb-5 flex-1">
-              <p className="font-bold text-sm text-gray-800 dark:text-gray-200">{etapa.nombre}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{etapa.descripcion}</p>
+              <p className="font-bold text-sm text-gray-800">{etapa.nombre}</p>
+              <p className="text-xs text-gray-600 mt-0.5">{etapa.descripcion}</p>
 
               {/* Lista de materiales (opcional) */}
               {etapa.lista && etapa.lista.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {etapa.lista.map((item, j) => (
-                    <li key={j} className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                    <li key={j} className="flex items-center gap-1.5 text-xs text-gray-600">
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />
                       {item}
                     </li>
@@ -73,7 +73,7 @@ export const FichaProcesoCreativo: React.FC<Props> = ({ data }) => {
               {etapa.pasos && etapa.pasos.length > 0 && (
                 <ol className="mt-2 space-y-1 list-decimal list-inside">
                   {etapa.pasos.map((paso, j) => (
-                    <li key={j} className="text-xs text-gray-600 dark:text-gray-400">
+                    <li key={j} className="text-xs text-gray-600">
                       {paso}
                     </li>
                   ))}

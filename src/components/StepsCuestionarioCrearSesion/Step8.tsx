@@ -525,7 +525,7 @@ function Step8({ pagina, setPagina }: Props) {
                       rows={3}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1 block">Recursos</label>
                       <Input
@@ -701,12 +701,12 @@ function Step8({ pagina, setPagina }: Props) {
 
                         {/* Estrategias — si hay imágenes "junto", usar layout flex */}
                         {imgJunto.length > 0 ? (
-                          <div className="flex gap-4 items-start">
+                          <div className="flex flex-col sm:flex-row gap-4 items-start">
                             <div className="flex-1">
                               <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-2">Estrategias:</p>
                               <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{proc.estrategias}</p>
                             </div>
-                            <div className="flex flex-wrap gap-2 flex-shrink-0 max-w-[40%]">
+                            <div className="flex flex-wrap gap-2 flex-shrink-0 max-w-full sm:max-w-[40%]">
                               {imgJunto.map((img, imgIdx) => (
                                 <img key={img.id ?? imgIdx} src={img.url} alt={img.descripcion} loading="lazy" className="max-h-[300px] rounded-lg" />
                               ))}
@@ -758,7 +758,7 @@ function Step8({ pagina, setPagina }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -767,7 +767,7 @@ function Step8({ pagina, setPagina }: Props) {
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-emerald-600 text-xs font-bold">6</div>
             <span className="text-sm font-semibold tracking-wide">PASO 6 DE 7</span>
           </div>
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-4 tracking-tight">
+          <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-4 tracking-tight">
             Secuencia Didáctica
           </h1>
           <p className="text-xl text-slate-600 dark:text-slate-400 mb-4">Planifica las actividades de tu sesión</p>
@@ -801,10 +801,10 @@ function Step8({ pagina, setPagina }: Props) {
         </div>
 
         {/* Selector de sección con tabs */}
-        <div className="flex justify-center gap-2 mb-8">
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
           <button
             onClick={() => setSeccionActual("inicio")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+            className={`flex items-center gap-2 px-3 py-2 sm:px-6 sm:py-3 rounded-lg font-semibold transition-all duration-200 ${
               seccionActual === "inicio"
                 ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105"
                 : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-2 border-slate-200 dark:border-slate-700 hover:border-green-400 dark:hover:border-green-600"
@@ -822,7 +822,7 @@ function Step8({ pagina, setPagina }: Props) {
           </button>
           <button
             onClick={() => setSeccionActual("desarrollo")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+            className={`flex items-center gap-2 px-3 py-2 sm:px-6 sm:py-3 rounded-lg font-semibold transition-all duration-200 ${
               seccionActual === "desarrollo"
                 ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg scale-105"
                 : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600"
@@ -842,7 +842,7 @@ function Step8({ pagina, setPagina }: Props) {
           </button>
           <button
             onClick={() => setSeccionActual("cierre")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+            className={`flex items-center gap-2 px-3 py-2 sm:px-6 sm:py-3 rounded-lg font-semibold transition-all duration-200 ${
               seccionActual === "cierre"
                 ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg scale-105"
                 : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-2 border-slate-200 dark:border-slate-700 hover:border-orange-400 dark:hover:border-orange-600"

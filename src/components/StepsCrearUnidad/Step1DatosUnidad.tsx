@@ -261,21 +261,21 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         {/* ── Header ── */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg mb-6 shadow-lg">
+        <div className="text-center mb-6 sm:mb-10">
+          <div className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg mb-4 sm:mb-6 shadow-lg">
             <Sparkles className="h-4 w-4" />
             <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-violet-600 text-xs font-bold">
               1
             </div>
             <span className="text-sm font-semibold tracking-wide">PASO 1 DE 4</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-4 tracking-tight">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-3 sm:mb-4 tracking-tight">
             Crear Unidad de Aprendizaje
           </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-400">
+          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400">
             Hola{" "}
             <span className="font-bold text-slate-900 dark:text-white">{usuario.nombre}</span>,
             configura los datos generales de tu unidad
@@ -339,8 +339,8 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
           </CardHeader>
           <CardContent>
             {problematica ? (
-              <div className="flex items-start gap-4 p-4 rounded-xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20">
-                <div className="flex-shrink-0 mt-1">
+              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-4 rounded-xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20">
+                <div className="flex-shrink-0 mt-1 hidden sm:block">
                   <CheckCircle2 className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -720,11 +720,11 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         </Card>
 
         {/* ── Botón continuar ── */}
-        <div className="flex justify-end pb-10">
+        <div className="flex justify-center sm:justify-end pb-10">
           <Button
             onClick={handleContinuar}
             disabled={!titulo || duracion <= 0 || !fechaInicio || areasSeleccionadas.length === 0 || !problematica || !!unidadActiva}
-            className="h-14 px-10 text-lg font-semibold bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto h-14 px-10 text-lg font-semibold bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continuar
             <ArrowRight className="ml-2 h-5 w-5" />

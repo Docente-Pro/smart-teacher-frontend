@@ -238,21 +238,21 @@ function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 relative overflow-hidden">
       {/* Decorative background */}
       <div className="absolute top-0 left-0 w-full h-full opacity-25">
         <div className="absolute top-10 -left-20 w-96 h-96 bg-cyan-400 rounded-full blur-3xl"></div>
         <div className="absolute bottom-10 -right-20 w-[500px] h-[500px] bg-sky-400 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="w-full max-w-3xl bg-white dark:bg-gray-950 rounded-2xl shadow-2xl p-8 md:p-12 relative z-10">
+      <div className="w-full max-w-3xl bg-white dark:bg-gray-950 rounded-2xl shadow-2xl p-5 sm:p-8 md:p-12 relative z-10">
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">¡Bienvenido, {auth0User?.name}! 🎉</h1>
-          <p className="text-gray-500 dark:text-gray-400">Completa tu perfil para personalizar tu experiencia en DocentePro</p>
+        <div className="text-center mb-6 sm:mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">¡Bienvenido, {auth0User?.name}! 🎉</h1>
+          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Completa tu perfil para personalizar tu experiencia en DocentePro</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
 
           {/* ── Sección: Datos personales ── */}
           <div className="space-y-4">
@@ -261,7 +261,7 @@ function OnboardingPage() {
               <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Datos personales</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="nombre" className="text-gray-700 dark:text-gray-300 text-sm">
                   Nombre completo
@@ -308,7 +308,7 @@ function OnboardingPage() {
               <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Información académica</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Género */}
               <div className="space-y-1.5">
                 <Label htmlFor="genero" className="text-gray-700 dark:text-gray-300 text-sm">
@@ -385,7 +385,7 @@ function OnboardingPage() {
               <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Ubicación geográfica</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="departamento" className="text-gray-700 dark:text-gray-300 text-sm">
                   Departamento
