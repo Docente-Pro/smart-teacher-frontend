@@ -130,6 +130,24 @@ export const useUnidadStore = create<UnidadWizardState>()(
     }),
     {
       name: "unidad-wizard-storage",
+      // Excluir generandoPaso de la persistencia (es estado transitorio)
+      partialize: (state) => ({
+        unidadId: state.unidadId,
+        datosBase: state.datosBase,
+        contenido: state.contenido,
+        currentStep: state.currentStep,
+        maxStepReached: state.maxStepReached,
+        wizardPhase: state.wizardPhase,
+        tipoUnidad: state.tipoUnidad,
+        maxMiembros: state.maxMiembros,
+        // generandoPaso NO se persiste
+      }),
+      // Al rehidratar, asegurar que generandoPaso sea null
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<UnidadWizardState>),
+        generandoPaso: null, // Siempre resetear al cargar
+      }),
     }
   )
 );
