@@ -24,7 +24,7 @@ if (typeof Node !== "undefined" && Node.prototype) {
   // ── removeChild ──────────────────────────────────────────────────────
   const originalRemoveChild = Node.prototype.removeChild;
 
-  // @ts-expect-error - override con firma compatible
+  // @ts-ignore — override intencional de firma nativa
   Node.prototype.removeChild = function <T extends Node>(child: T): T {
     if (child.parentNode !== this) {
       // El nodo ya no es hijo de este padre (probablemente movido por
@@ -45,7 +45,7 @@ if (typeof Node !== "undefined" && Node.prototype) {
   // ── insertBefore ─────────────────────────────────────────────────────
   const originalInsertBefore = Node.prototype.insertBefore;
 
-  // @ts-expect-error - override con firma compatible
+  // @ts-ignore — override intencional de firma nativa
   Node.prototype.insertBefore = function <T extends Node>(
     newNode: T,
     referenceNode: Node | null,
