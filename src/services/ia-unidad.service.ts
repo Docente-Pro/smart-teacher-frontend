@@ -147,6 +147,8 @@ export interface ImagenSituacionPayload {
   grado: string;
   nivel: string;
   distrito?: string;
+  /** Si viene, el backend guarda imagenUrl en contenido.situacionSignificativa y sincroniza suscriptores */
+  unidadId?: string;
 }
 
 export interface ImagenSituacionResponse {

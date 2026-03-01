@@ -26,9 +26,11 @@ import GraficosPlayground from "@/pages/GraficosPlayground";
 import GraficosAreasPlayground from "@/pages/GraficosAreasPlayground";
 import CrearUnidad from "@/pages/CrearUnidad";
 import UnidadResult from "@/pages/UnidadResult";
+import UnidadSuscriptorResult from "@/pages/UnidadSuscriptorResult";
 import UnirseUnidad from "@/pages/UnirseUnidad";
 import GenerarSesionPremium from "@/pages/GenerarSesionPremium";
 import SesionPremiumResult from "@/pages/SesionPremiumResult";
+import SesionSuscriptorResult from "@/pages/SesionSuscriptorResult";
 import UnidadDetail from "@/pages/UnidadDetail";
 
 interface IRouteToCreate {
@@ -110,6 +112,22 @@ export const routes: IRouteToCreate[] = [
     element: (
       <ProtectedRoute>
         <UnidadResult />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/unidad-suscriptor-result",
+    element: (
+      <ProtectedRoute>
+        <UnidadSuscriptorResult />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/sesion-suscriptor-result/:id",
+    element: (
+      <ProtectedRoute>
+        <SesionSuscriptorResult />
       </ProtectedRoute>
     ),
   },

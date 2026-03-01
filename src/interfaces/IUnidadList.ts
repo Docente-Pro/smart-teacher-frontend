@@ -13,6 +13,10 @@ export interface IUnidadListItem {
   numeroUnidad: number;
   titulo: string;
   usuarioId: string;
+  /** Rol del usuario actual en esta unidad (solo presente en respuesta) */
+  _rol?: "PROPIETARIO" | "SUSCRIPTOR";
+  /** true si el suscriptor necesita sincronizar contenido personalizado */
+  necesitaSincronizacion?: boolean;
   nivelId: number;
   gradoId: number;
   problematicaId: number;

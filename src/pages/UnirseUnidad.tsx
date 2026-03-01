@@ -21,6 +21,7 @@ import {
   unirseAUnidad,
   solicitarPagoSuscriptor,
   getUnidadPrecios,
+  getUnidadDetalleSuscriptor,
 } from "@/services/unidad.service";
 import {
   conectarSocket,
@@ -90,15 +91,32 @@ function UnirseUnidad() {
     return () => { cleanupRef.current?.(); };
   }, []);
 
-  // ── Auto-redirect tras activación ──
+  // ── Auto-redirect tras activación → obtener unidad y generar PDF ──
   useEffect(() => {
-    if (fase === "activated") {
-      const timer = setTimeout(() => {
-        navigate("/dashboard");
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [fase, navigate]);
+    if (fase !== "activated") return;
+
+    let cancelled = false;
+
+    const redirigir = async () => {
+      if (unidadId && user?.id) {
+        try {
+          const unidad = await getUnidadDetalleSuscriptor(unidadId, user.id);
+          if (!cancelled && unidad?.contenido) {
+            navigate("/unidad-suscriptor-result", { state: { unidad } });
+            return;
+          }
+        } catch (err) {
+          console.error("⚠️ Error al obtener detalle de unidad:", err);
+        }
+      }
+
+      // Fallback si no se pudo cargar el detalle
+      if (!cancelled) navigate("/mis-unidades");
+    };
+
+    redirigir();
+    return () => { cancelled = true; };
+  }, [fase, unidadId, user?.id, navigate]);
 
   // ── Handlers ──
 
@@ -442,7 +460,14 @@ function UnirseUnidad() {
           <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-full px-4 py-2">
             <Rocket className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-              Redirigiendo al dashboard…
+              Preparando tu unidad personalizada…
+            </span>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Cargando contenido…
             </span>
           </div>
         </div>

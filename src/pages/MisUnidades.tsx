@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { listarUnidadesByUsuario, obtenerDownloadUrlUnidad } from "@/services/unidad.service";
+import { listarUnidadesByUsuario, obtenerDownloadUrlUnidad, sincronizarMiembroUnidad } from "@/services/unidad.service";
 import { buildCdnPdfUrl } from "@/utils/cdn";
 import type { IUnidadListItem } from "@/interfaces/IUnidadList";
 import {
@@ -111,6 +111,7 @@ function MisUnidades() {
 
   const [unidades, setUnidades] = useState<IUnidadListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sincronizando, setSincronizando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -145,7 +146,31 @@ function MisUnidades() {
     setLoading(true);
     setError(null);
     try {
-      const items = await listarUnidadesByUsuario(userId);
+      let items = await listarUnidadesByUsuario(userId);
+
+      // Sincronizar suscriptores que necesitan contenido personalizado actualizado
+      const needSync = items.filter(
+        (u) => u._rol === "SUSCRIPTOR" && u.necesitaSincronizacion === true,
+      );
+      if (needSync.length > 0) {
+        setSincronizando(true);
+        try {
+          await Promise.all(
+            needSync.map(async (u) => {
+              try {
+                await sincronizarMiembroUnidad(u.id);
+              } catch (syncErr) {
+                console.warn(`⚠️ Error sincronizando ${u.titulo}:`, syncErr);
+              }
+            }),
+          );
+          // Recargar lista con datos actualizados
+          items = await listarUnidadesByUsuario(userId);
+        } finally {
+          setSincronizando(false);
+        }
+      }
+
       // Ordenar por fecha más reciente
       items.sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -180,10 +205,37 @@ function MisUnidades() {
 
   // ─── Descargar PDF ───
   const handleDescargar = async (unidadId: string) => {
+    const unidad = unidades.find((u) => u.id === unidadId);
+    const esSuscriptor = unidad?._rol === "SUSCRIPTOR";
+
+    // Suscriptor sin PDF pero con contenido → generar PDF primero
+    if (
+      unidad &&
+      esSuscriptor &&
+      !unidad.pdfUrl &&
+      unidad.contenido
+    ) {
+      navigate("/unidad-suscriptor-result", { state: { unidad } });
+      return;
+    }
+
     setDownloadingId(unidadId);
     try {
-      // 1) Intentar CloudFront directo con pdfUrl del entity
-      const unidad = unidades.find((u) => u.id === unidadId);
+      // Suscriptores: siempre usar URL pre-firmada con usuarioId
+      // para obtener SU PDF, no el del propietario
+      if (esSuscriptor) {
+        const resp = await obtenerDownloadUrlUnidad(unidadId, userId!);
+        const url = resp?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
+        if (!url) {
+          handleToaster("No se encontró la URL de descarga", "error");
+          return;
+        }
+        window.open(url, "_blank");
+        handleToaster("PDF descargado", "success");
+        return;
+      }
+
+      // Propietario: intentar CDN directo con pdfUrl
       const cdnUrl = buildCdnPdfUrl(unidad?.pdfUrl);
       if (cdnUrl) {
         window.open(cdnUrl, "_blank");
@@ -191,7 +243,7 @@ function MisUnidades() {
         return;
       }
 
-      // 2) Fallback: URL pre-firmada del backend
+      // Fallback: URL pre-firmada del backend
       const resp = await obtenerDownloadUrlUnidad(unidadId);
       const url = resp?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
       if (!url) {
@@ -325,6 +377,16 @@ function MisUnidades() {
             Actualizar
           </Button>
         </div>
+
+        {/* ─── Sincronizando contenido personalizado ─── */}
+        {sincronizando && (
+          <div className="mb-4 p-4 rounded-xl border border-violet-200 dark:border-violet-700/50 bg-violet-50 dark:bg-violet-500/10 flex items-center gap-3">
+            <Loader2 className="h-5 w-5 text-violet-500 animate-spin flex-shrink-0" />
+            <p className="text-sm text-violet-700 dark:text-violet-300">
+              Sincronizando contenido personalizado de tus unidades compartidas...
+            </p>
+          </div>
+        )}
 
         {/* ─── Content ─── */}
         {loading ? (
@@ -551,7 +613,13 @@ function MisUnidades() {
                       variant="outline"
                       size="sm"
                       className="flex-1 text-sm h-9 border-slate-200 dark:border-slate-700 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 dark:hover:bg-violet-500/10 dark:hover:text-violet-400 transition-all"
-                      onClick={() => navigate(`/unidad/${unidad.id}`)}
+                      onClick={() => {
+                        if (unidad._rol === "SUSCRIPTOR") {
+                          navigate(`/unidad/${unidad.id}`, { state: { rol: "SUSCRIPTOR" } });
+                        } else {
+                          navigate(`/unidad/${unidad.id}`);
+                        }
+                      }}
                     >
                       <Eye className="h-3.5 w-3.5 mr-1.5" />
                       Ver

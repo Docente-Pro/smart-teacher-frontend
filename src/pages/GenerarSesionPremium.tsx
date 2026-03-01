@@ -5,12 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { listarUnidadesByUsuario } from "@/services/unidad.service";
+import { listarUnidadesByUsuario, sincronizarMiembroUnidad } from "@/services/unidad.service";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import { generarImagenesSesion } from "@/services/ia-sesion.service";
 import { useInstrumentoEvaluacion } from "@/hooks/useInstrumentoEvaluacion";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
-import AreaSelectionModal from "@/components/Shared/Modal/AreaSelectionModal";
 import type { IUnidadListItem, IUnidadListMiembroArea } from "@/interfaces/IUnidadList";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import {
@@ -55,21 +54,13 @@ interface ISemanaData {
 }
 
 type SlotKey = string;
-type SlotState = "generada" | "disponible" | "en_espera" | "no_asignada" | "bloqueada";
+type SlotState = "generada" | "clonada" | "disponible" | "en_espera" | "bloqueada";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const DIA_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
-
-/**
- * Áreas transversales / institucionales que todos los docentes pueden generar,
- * independientemente de las áreas curriculares asignadas en una unidad COMPARTIDA.
- */
-const AREAS_TRANSVERSALES = new Set(
-  ["tutoría", "plan lector", "tutoria"].map((a) => a.toLowerCase()),
-);
 
 
 
@@ -95,40 +86,31 @@ function calcularSemanaActual(fechaInicio: string, duracion: number): number {
   return Math.min(Math.max(Math.floor(diffDays / 7) + 1, 1), duracion);
 }
 
+/** Busca el areaId por nombre dentro de las areas del miembro.
+ *  Normaliza ambos lados: elimina "Área de " prefix y compara.
+ *  Fallback: coincidencia parcial (includes) si no hay match exacto.
+ */
 function findAreaId(
   areaName: string,
   areas: IUnidadListMiembroArea[],
 ): number | undefined {
-  const normalized = areaName.toLowerCase().trim();
-  return areas.find((a) => {
-    const clean = (a.area?.nombre || "")
-      .toLowerCase()
-      .replace(/^área de\s*/i, "")
-      .trim();
-    return clean === normalized;
-  })?.areaId;
-}
+  if (!areaName || !areas.length) return undefined;
 
-/**
- * Determina si un área está asignada al miembro.
- * - PERSONAL: miembroAreas vacío = acceso total (no hay restricción).
- * - COMPARTIDA: miembroAreas vacío = debe elegir áreas primero.
- * - Áreas transversales (Tutoría, Plan Lector) son accesibles para todos.
- */
-function isAreaAssigned(
-  areaName: string,
-  areas: IUnidadListMiembroArea[],
-  tipoUnidad: "PERSONAL" | "COMPARTIDA" | undefined,
-): boolean {
-  // Áreas transversales siempre están disponibles para cualquier miembro
-  if (AREAS_TRANSVERSALES.has(areaName.toLowerCase().trim())) {
-    return true;
-  }
-  if (areas.length === 0) {
-    // PERSONAL o sin tipo → acceso total (no hay exclusividad)
-    return tipoUnidad !== "COMPARTIDA";
-  }
-  return findAreaId(areaName, areas) != null;
+  const stripPrefix = (s: string) =>
+    s.toLowerCase().replace(/^área de\s*/i, "").trim();
+
+  const normalized = stripPrefix(areaName);
+
+  // Intento 1: match exacto (sin prefijo "Área de")
+  const exact = areas.find((a) => stripPrefix(a.area?.nombre || "") === normalized);
+  if (exact) return exact.areaId;
+
+  // Intento 2: coincidencia parcial (includes en ambas direcciones)
+  const partial = areas.find((a) => {
+    const clean = stripPrefix(a.area?.nombre || "");
+    return clean.includes(normalized) || normalized.includes(clean);
+  });
+  return partial?.areaId;
 }
 
 function getAreaTheme(area: string): AreaColorConfig {
@@ -171,6 +153,8 @@ function GenerarSesionPremium() {
   const [unidades, setUnidades] = useState<IUnidadListItem[]>([]);
   const [loadingUnidades, setLoadingUnidades] = useState(true);
   const [errorUnidades, setErrorUnidades] = useState<string | null>(null);
+  /** Sincronizando contenido personalizado para suscriptor */
+  const [sincronizando, setSincronizando] = useState(false);
   const [selectedUnidadId, setSelectedUnidadId] = useState<string | null>(null);
   const [displayWeek, setDisplayWeek] = useState(1);
   const [generatedSlots, setGeneratedSlots] = useState<Set<SlotKey>>(new Set());
@@ -185,9 +169,8 @@ function GenerarSesionPremium() {
   const [generatingImages, setGeneratingImages] = useState<Set<SlotKey>>(new Set());
   /** Instrumentos de evaluación generados por slot */
   const [instrumentosMap, setInstrumentosMap] = useState<Map<SlotKey, IInstrumentoEvaluacion>>(new Map());
-
-  // ─── Area selection modal (COMPARTIDA sin áreas asignadas) ───
-  const [showAreaModal, setShowAreaModal] = useState(false);
+  /** Slots que fueron clonados (otro miembro creó la sesión) */
+  const [clonedSlots, setClonedSlots] = useState<Set<SlotKey>>(new Set());
 
   // ─── Derived ───
   const unidadesActivas = useMemo(
@@ -204,6 +187,7 @@ function GenerarSesionPremium() {
     [unidadesActivas, selectedUnidadId],
   );
 
+  /** Áreas del miembro actual (puede estar vacío si ya no hay restricciones por miembro) */
   const miembroAreas = useMemo<IUnidadListMiembroArea[]>(() => {
     if (!selectedUnidad || !userId) return [];
     return (
@@ -211,12 +195,23 @@ function GenerarSesionPremium() {
     );
   }, [selectedUnidad, userId]);
 
-  /** true cuando el miembro no tiene áreas asignadas en una unidad COMPARTIDA */
-  const needsAreaSelection = useMemo(() => {
-    if (!selectedUnidad || !userId) return false;
-    if (selectedUnidad.tipo !== "COMPARTIDA") return false;
-    return miembroAreas.length === 0;
-  }, [selectedUnidad, userId, miembroAreas]);
+  /** Pool de TODAS las áreas de la unidad (de cualquier miembro).
+   *  Se usa como fallback cuando el miembro actual no tiene áreas asignadas,
+   *  ya que ahora todos los docentes acceden a todas las áreas. */
+  const allUnidadAreas = useMemo<IUnidadListMiembroArea[]>(() => {
+    if (!selectedUnidad) return [];
+    const seen = new Set<number>();
+    const all: IUnidadListMiembroArea[] = [];
+    for (const mb of selectedUnidad.miembros) {
+      for (const a of mb.areas ?? []) {
+        if (!seen.has(a.areaId)) {
+          seen.add(a.areaId);
+          all.push(a);
+        }
+      }
+    }
+    return all;
+  }, [selectedUnidad]);
 
   const semanas = useMemo<ISemanaData[]>(() => {
     try {
@@ -274,25 +269,19 @@ function GenerarSesionPremium() {
     });
     allSlots.sort((a, b) => a.order - b.order);
 
-    const tipo = selectedUnidad?.tipo;
-
     // Future weeks → all blocked
     if (isFutureWeek) {
       for (const slot of allSlots) {
-        const assigned = isAreaAssigned(slot.area, miembroAreas, tipo);
-        map.set(slot.key, assigned ? "bloqueada" : "no_asignada");
+        map.set(slot.key, "bloqueada");
       }
       return map;
     }
 
-    // Past weeks → show generated or blocked
+    // Past weeks → show generated/clonada or blocked
     if (isPastWeek) {
       for (const slot of allSlots) {
-        const assigned = isAreaAssigned(slot.area, miembroAreas, tipo);
-        if (!assigned) {
-          map.set(slot.key, "no_asignada");
-        } else if (generatedSlots.has(slot.key)) {
-          map.set(slot.key, "generada");
+        if (generatedSlots.has(slot.key)) {
+          map.set(slot.key, clonedSlots.has(slot.key) ? "clonada" : "generada");
         } else {
           map.set(slot.key, "bloqueada");
         }
@@ -300,21 +289,16 @@ function GenerarSesionPremium() {
       return map;
     }
 
-    // Current week → all ungenerated ASSIGNED slots are available (any order)
+    // Current week → slots disponibles, generados o clonados
     for (const slot of allSlots) {
-      const assigned = isAreaAssigned(slot.area, miembroAreas, tipo);
-      if (!assigned) {
-        map.set(slot.key, "no_asignada");
-        continue;
-      }
       if (generatedSlots.has(slot.key)) {
-        map.set(slot.key, "generada");
+        map.set(slot.key, clonedSlots.has(slot.key) ? "clonada" : "generada");
       } else {
         map.set(slot.key, "disponible");
       }
     }
     return map;
-  }, [currentSemana, generatedSlots, miembroAreas, selectedUnidad?.tipo, isCurrentWeek, isPastWeek, isFutureWeek]);
+  }, [currentSemana, generatedSlots, clonedSlots, isCurrentWeek, isPastWeek, isFutureWeek]);
 
   // ─── Progress ───
   const weekProgress = useMemo(() => {
@@ -324,16 +308,12 @@ function GenerarSesionPremium() {
     let generated = 0;
     currentSemana.dias.forEach((d) => {
       for (const turno of ["mañana", "tarde"] as const) {
-        const area =
-          turno === "mañana" ? d.turnoManana.area : d.turnoTarde.area;
-        if (isAreaAssigned(area, miembroAreas, selectedUnidad?.tipo)) {
-          total++;
-          if (generatedSlots.has(makeSlotKey(wk, d.dia, turno))) generated++;
-        }
+        total++;
+        if (generatedSlots.has(makeSlotKey(wk, d.dia, turno))) generated++;
       }
     });
     return { generated, total };
-  }, [currentSemana, generatedSlots, miembroAreas]);
+  }, [currentSemana, generatedSlots]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // EFFECTS
@@ -344,7 +324,34 @@ function GenerarSesionPremium() {
     setLoadingUnidades(true);
     setErrorUnidades(null);
     try {
-      const items = await listarUnidadesByUsuario(userId);
+      let items = await listarUnidadesByUsuario(userId);
+      
+      // Sincronizar automáticamente suscriptores que necesitan contenido personalizado
+      const unidadesNecesitanSync = items.filter(
+        (u) => u._rol === "SUSCRIPTOR" && u.necesitaSincronizacion === true
+      );
+      
+      if (unidadesNecesitanSync.length > 0) {
+        setSincronizando(true);
+        try {
+          // Sincronizar cada unidad que lo necesite
+          await Promise.all(
+            unidadesNecesitanSync.map(async (u) => {
+              try {
+                const result = await sincronizarMiembroUnidad(u.id);
+                console.log(`✅ Sincronizado: ${u.titulo} - ${result.sesionesClonadas} sesiones clonadas`);
+              } catch (syncErr) {
+                console.warn(`⚠️ Error sincronizando ${u.titulo}:`, syncErr);
+              }
+            })
+          );
+          // Recargar unidades después de sincronizar
+          items = await listarUnidadesByUsuario(userId);
+        } finally {
+          setSincronizando(false);
+        }
+      }
+      
       setUnidades(items);
       const activas = items.filter((u) => {
         const mb = u.miembros.find((m) => m.usuarioId === userId);
@@ -377,6 +384,7 @@ function GenerarSesionPremium() {
 
     // Try to restore generated sessions from unidad.sesiones
     const gen = new Set<SlotKey>();
+    const cloned = new Set<SlotKey>();
     const sesMap = new Map<SlotKey, { id: string; titulo: string }>();
     if (selectedUnidad.sesiones?.length) {
       for (const ses of selectedUnidad.sesiones as any[]) {
@@ -387,19 +395,17 @@ function GenerarSesionPremium() {
             id: ses.id,
             titulo: ses.titulo || "Sesión generada",
           });
+          // sesionOrigenId !== null indica que fue clonada de otro miembro
+          if (ses.sesionOrigenId) {
+            cloned.add(key);
+          }
         }
       }
     }
     setGeneratedSlots(gen);
+    setClonedSlots(cloned);
     setGeneratedSesiones(sesMap);
   }, [selectedUnidad]);
-
-  // Auto-abrir modal de selección de áreas si el miembro no tiene áreas
-  useEffect(() => {
-    if (needsAreaSelection) {
-      setShowAreaModal(true);
-    }
-  }, [needsAreaSelection]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // HANDLERS
@@ -412,7 +418,19 @@ function GenerarSesionPremium() {
     areaName: string,
   ) => {
     if (!selectedUnidadId || !currentSemana) return;
-    const areaId = findAreaId(areaName, miembroAreas); // puede ser undefined si no hay restricciones
+
+    // Buscar areaId: primero en áreas del miembro, luego en todas las áreas de la unidad
+    const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
+    const areaId = findAreaId(areaName, areasPool);
+
+    if (!areaId) {
+      handleToaster(
+        `No se pudo identificar el área "${areaName}". Intenta recargar la página.`,
+        "error",
+      );
+      return;
+    }
+
     const key = makeSlotKey(currentSemana.semana, dia, turno);
     setGeneratingSlot(key);
     try {
@@ -420,16 +438,24 @@ function GenerarSesionPremium() {
       // FASE 1: Generar texto de la sesión (rápido, ~20-30s)
       // ═══════════════════════════════════════════════════════════════
       const resp = await generarSesionUnidad(selectedUnidadId, {
-        ...(areaId != null && { areaId }),
+        areaId,
         semana: currentSemana.semana,
         dia,
         turno,
         tituloActividad: actividad,
       });
-      handleToaster(
-        resp.message || "¡Sesión generada con éxito!",
-        "success",
-      );
+      // Si yaExistia === true, la sesión ya fue generada por otro miembro (clonada)
+      if ((resp as any).yaExistia) {
+        handleToaster(
+          "Esta sesión ya fue generada por otro miembro. Se cargó tu copia personalizada.",
+          "success",
+        );
+      } else {
+        handleToaster(
+          resp.message || "¡Sesión generada con éxito!",
+          "success",
+        );
+      }
       setGeneratedSlots((prev) => new Set(prev).add(key));
       if (resp.sesion) {
         setGeneratedSesiones((prev) =>
@@ -554,12 +580,6 @@ function GenerarSesionPremium() {
     setPremiumResponses(new Map());
   };
 
-  /** Callback cuando el suscriptor elige sus áreas → recargar unidades */
-  const handleAreasGuardadas = () => {
-    setShowAreaModal(false);
-    cargarUnidades();
-  };
-
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
@@ -595,7 +615,7 @@ function GenerarSesionPremium() {
         </div>
 
         {/* ─── Loading ─── */}
-        {loadingUnidades && (
+        {loadingUnidades && !sincronizando && (
           <div className="space-y-4">
             <Skeleton className="h-20 rounded-xl" />
             <Skeleton className="h-14 rounded-xl" />
@@ -603,6 +623,31 @@ function GenerarSesionPremium() {
               {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton key={i} className="h-72 rounded-xl" />
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Sincronizando contenido personalizado (Suscriptor) ─── */}
+        {sincronizando && (
+          <div className="rounded-2xl border border-violet-200 dark:border-violet-700/50 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 dark:from-violet-500/10 dark:via-purple-500/10 dark:to-indigo-500/10 p-12 text-center">
+            <div className="relative w-24 h-24 mx-auto mb-6">
+              {/* Círculos animados */}
+              <div className="absolute inset-0 rounded-full border-4 border-violet-200 dark:border-violet-700/50" />
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-violet-500 dark:border-t-violet-400 animate-spin" />
+              <div className="absolute inset-2 rounded-full border-4 border-transparent border-t-purple-400 dark:border-t-purple-300 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="h-8 w-8 text-violet-600 dark:text-violet-400 animate-pulse" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              Preparando tu contenido personalizado
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 max-w-md mx-auto">
+              Estamos clonando tu unidad con tu nombre e institución educativa...
+            </p>
+            <div className="flex items-center justify-center gap-2 text-xs text-violet-600 dark:text-violet-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Sincronizando sesiones...</span>
             </div>
           </div>
         )}
@@ -711,32 +756,6 @@ function GenerarSesionPremium() {
                       {selectedUnidad.grado?.nombre} ·{" "}
                       {selectedUnidad.duracion} semanas
                     </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ─── Banner: necesita seleccionar áreas (COMPARTIDA) ─── */}
-            {selectedUnidad && needsAreaSelection && (
-              <div className="mb-6 p-4 rounded-xl border-2 border-amber-300 dark:border-amber-600/50 bg-amber-50 dark:bg-amber-500/10">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex-shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">
-                      Selecciona tus áreas de enseñanza
-                    </p>
-                    <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
-                      Esta es una unidad compartida. Debes elegir las áreas que vas a enseñar antes de generar sesiones.
-                    </p>
-                    <Button
-                      onClick={() => setShowAreaModal(true)}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Elegir mis áreas
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -885,12 +904,22 @@ function GenerarSesionPremium() {
                       onGenerar={handleGenerar}
                       onVerSesion={(id, slotKey) => {
                         const premData = slotKey ? premiumResponses.get(slotKey) : null;
-                        if (premData) {
+                        const esSuscriptor = selectedUnidad?._rol === "SUSCRIPTOR";
+
+                        if (premData && !esSuscriptor) {
+                          // Propietario acaba de generar esta sesión → tiene datos frescos en memoria
                           const inst = slotKey ? instrumentosMap.get(slotKey) : undefined;
                           navigate("/sesion-premium-result", {
                             state: { premiumData: premData, instrumento: inst ?? null },
                           });
+                        } else if (esSuscriptor) {
+                          // Suscriptor: siempre va a generar su propio PDF personalizado
+                          navigate(`/sesion-suscriptor-result/${id}`);
+                        } else if (slotKey && clonedSlots.has(slotKey)) {
+                          // Sesión clonada (propietario viendo sesión de otro) → generar PDF
+                          navigate(`/sesion-suscriptor-result/${id}`);
                         } else {
+                          // Propietario viendo sesión ya existente sin datos en memoria
                           navigate(`/sesion/${id}`);
                         }
                       }}
@@ -925,16 +954,6 @@ function GenerarSesionPremium() {
           </>
         )}
 
-        {/* ─── Modal de selección de áreas ─── */}
-        {selectedUnidad && (
-          <AreaSelectionModal
-            isOpen={showAreaModal}
-            onClose={() => setShowAreaModal(false)}
-            unidadId={selectedUnidad.id}
-            unidadTitulo={selectedUnidad.titulo}
-            onAreasGuardadas={handleAreasGuardadas}
-          />
-        )}
       </div>
     </div>
   );
@@ -1098,8 +1117,8 @@ function TurnoCard({
 
   const isAvailable = state === "disponible";
   const isGenerated = state === "generada";
+  const isClonada = state === "clonada";
   const isWaiting = state === "en_espera";
-  const isNA = state === "no_asignada";
   const isBlocked = state === "bloqueada";
 
   return (
@@ -1125,8 +1144,8 @@ function TurnoCard({
           ? "bg-slate-50/40 dark:bg-slate-800/20 border-slate-200/30 dark:border-slate-700/20 opacity-45"
           : ""
       } ${
-        isNA
-          ? "bg-slate-50/30 dark:bg-slate-800/20 border-dashed border-slate-200/30 dark:border-slate-700/20 opacity-40"
+        isClonada
+          ? "bg-sky-50/60 dark:bg-sky-500/5 border-sky-200/60 dark:border-sky-500/20"
           : ""
       }`}
     >
@@ -1218,6 +1237,25 @@ function TurnoCard({
         </div>
       )}
 
+      {/* Clonada (solo lectura) */}
+      {isClonada && generatedSesion && (
+        <button
+          onClick={() => onVerSesion(generatedSesion.id, slotKey)}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-500/20 hover:bg-sky-200 dark:hover:bg-sky-500/30 transition-colors"
+        >
+          <Eye className="h-3 w-3" />
+          Ver sesión
+        </button>
+      )}
+
+      {/* Clonada sin datos */}
+      {isClonada && !generatedSesion && (
+        <div className="w-full flex items-center justify-center gap-1 py-1 text-[10px] font-medium text-sky-600 dark:text-sky-400">
+          <Check className="h-3 w-3" />
+          Clonada
+        </div>
+      )}
+
       {/* En espera */}
       {isWaiting && (
         <div className="w-full flex items-center justify-center gap-1 py-1 text-[10px] text-slate-400 dark:text-slate-500">
@@ -1234,12 +1272,6 @@ function TurnoCard({
         </div>
       )}
 
-      {/* No asignada */}
-      {isNA && (
-        <div className="w-full flex items-center justify-center py-1 text-[10px] text-slate-300 dark:text-slate-600 italic">
-          Sin asignar
-        </div>
-      )}
       </div>
     </div>
   );

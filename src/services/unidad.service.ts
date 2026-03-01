@@ -63,6 +63,24 @@ export function getUnidadById(id: string) {
   return instance.get<IUnidad>(`/unidad/${id}`);
 }
 
+/**
+ * GET /api/unidades/:id?usuarioId=X
+ * Detalle de unidad con contenido personalizado para suscriptor.
+ * Retorna la unidad con `contenido` ya reemplazado (nombre/institución del suscriptor)
+ * y sus sesiones filtradas.
+ */
+export async function getUnidadDetalleSuscriptor(
+  unidadId: string,
+  usuarioId: string
+): Promise<IUnidadListItem> {
+  const { data } = await instance.get<{ data: IUnidadListItem } | IUnidadListItem>(
+    `/unidades/${unidadId}`,
+    { params: { usuarioId } }
+  );
+  // El backend puede envolver en { data } o devolver directamente
+  return (data as any)?.data ?? data;
+}
+
 /** POST /api/unidad/ — genera codigoCompartido si tipo=COMPARTIDA */
 export function createUnidad(data: IUnidadCreateRequest) {
   return instance.post<{ message: string; data: IUnidad }>("/unidad", data);
@@ -103,10 +121,12 @@ export async function confirmarUploadUnidad(
 
 /** GET /api/unidad/:id/download-url — URL presignada para descargar PDF */
 export async function obtenerDownloadUrlUnidad(
-  unidadId: string
+  unidadId: string,
+  usuarioId?: string
 ): Promise<IUnidadDownloadUrlResponse> {
   const { data } = await instance.get<IUnidadDownloadUrlResponse>(
-    `/unidad/${unidadId}/download-url`
+    `/unidad/${unidadId}/download-url`,
+    usuarioId ? { params: { usuarioId } } : undefined
   );
   return data;
 }
@@ -253,6 +273,31 @@ export async function actualizarDistribucionSesiones(
   const { data } = await instance.put(
     `/unidad/${unidadId}/distribucion-sesiones`,
     body
+  );
+  return data;
+}
+
+// ============================================
+// Sincronización de miembro (unidades compartidas)
+// ============================================
+
+export interface ISincronizarMiembroResponse {
+  sesionesClonadas: number;
+  tieneContenidoPersonalizado: boolean;
+}
+
+/**
+ * POST /api/unidades/:unidadId/sincronizar-miembro
+ * Re-ejecuta clonación de contenido personalizado (nombre/institución).
+ * Clona todas las sesiones existentes que coincidan con las áreas del suscriptor.
+ * Llamar cuando el suscriptor abre la unidad compartida por primera vez
+ * o si no tiene sesiones clonadas.
+ */
+export async function sincronizarMiembroUnidad(
+  unidadId: string
+): Promise<ISincronizarMiembroResponse> {
+  const { data } = await instance.post<ISincronizarMiembroResponse>(
+    `/unidades/${unidadId}/sincronizar-miembro`
   );
   return data;
 }

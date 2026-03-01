@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import {
   ArrowLeft,
   Download,
@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getUnidadById, obtenerDownloadUrlUnidad } from "@/services/unidad.service";
+import { getUnidadById, obtenerDownloadUrlUnidad, getUnidadDetalleSuscriptor } from "@/services/unidad.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { buildCdnPdfUrl } from "@/utils/cdn";
 import type { IUnidadListItem } from "@/interfaces/IUnidadList";
@@ -75,7 +75,11 @@ function getEstadoPagoBadge(estado?: string) {
 function UnidadDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: authUser } = useAuthStore();
+
+  // Detectar si es suscriptor (viene desde MisUnidades con state.rol)
+  const esSuscriptor = (location.state as any)?.rol === "SUSCRIPTOR";
 
   const [unidad, setUnidad] = useState<IUnidadListItem | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -97,28 +101,47 @@ function UnidadDetail() {
       setError(null);
       setPdfError(null);
       const unidadId = id!;
+      const userId = authUser?.id;
 
       try {
-        const { data: rawData } = await getUnidadById(unidadId);
-        // El backend puede devolver { data: {...} } o el objeto directo
-        const data = (rawData as any)?.data ?? rawData;
+        let data: any;
+
+        if (esSuscriptor && userId) {
+          // Suscriptor: GET /unidades/:id?usuarioId=X → contenido personalizado
+          data = await getUnidadDetalleSuscriptor(unidadId, userId);
+        } else {
+          // Propietario: GET /unidad/:id
+          const { data: rawData } = await getUnidadById(unidadId);
+          data = (rawData as any)?.data ?? rawData;
+        }
+
         if (cancelled) return;
         setUnidad(data as IUnidadListItem);
 
         setLoadingPdf(true);
         try {
-          // 1) Intentar CloudFront directo si pdfUrl existe
-          const cdnUrl = buildCdnPdfUrl(data.pdfUrl);
-          if (cdnUrl) {
-            setPdfUrl(cdnUrl);
-          } else {
-            // 2) Fallback: URL pre-firmada
-            const resp = await obtenerDownloadUrlUnidad(unidadId);
+          if (esSuscriptor && userId) {
+            // Suscriptor: siempre URL pre-firmada con usuarioId
+            const resp = await obtenerDownloadUrlUnidad(unidadId, userId);
             const url = resp?.data?.downloadUrl;
             if (!cancelled && url) {
               setPdfUrl(url);
             } else if (!cancelled) {
               setPdfError("Esta unidad aún no tiene un PDF generado.");
+            }
+          } else {
+            // Propietario: CDN directo o fallback
+            const cdnUrl = buildCdnPdfUrl(data.pdfUrl);
+            if (cdnUrl) {
+              setPdfUrl(cdnUrl);
+            } else {
+              const resp = await obtenerDownloadUrlUnidad(unidadId);
+              const url = resp?.data?.downloadUrl;
+              if (!cancelled && url) {
+                setPdfUrl(url);
+              } else if (!cancelled) {
+                setPdfError("Esta unidad aún no tiene un PDF generado.");
+              }
             }
           }
         } catch (pdfErr: any) {
@@ -146,7 +169,7 @@ function UnidadDetail() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, esSuscriptor, authUser?.id]);
 
   const handleOpenNewTab = () => {
     if (pdfUrl) window.open(pdfUrl, "_blank");

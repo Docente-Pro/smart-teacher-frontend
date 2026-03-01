@@ -144,6 +144,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
         problematica: datosBase?.problematicaNombre || "",
         grado: datosBase?.grado || "",
         nivel: datosBase?.nivel || "",
+        unidadId: unidadId ?? undefined,
       })
         .then((imgRes) => {
           updateContenido({ imagenSituacionUrl: imgRes.url });
