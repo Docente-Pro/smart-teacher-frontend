@@ -78,7 +78,7 @@ function UnidadSuscriptorResult() {
       setLoadingUnidad(true);
       setLoadError(null);
       try {
-        const data = await getUnidadDetalleSuscriptor(unidadIdFromState!, user!.id);
+        const data = await getUnidadDetalleSuscriptor(unidadIdFromState!, user!.id!);
         if (!cancelled) {
           setUnidad(data);
         }

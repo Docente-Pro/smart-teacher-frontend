@@ -87,3 +87,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Fix: Radix Select crash on mobile devices ──────────────────────
+   Radix UI Select usa pointer-events:none en el wrapper del portal
+   durante la animación de apertura. En algunos móviles (Android Chrome,
+   iOS Safari antiguo) el estado nunca se limpia correctamente y los
+   touch events no llegan a los items del select.
+   Forzamos pointer-events:auto para asegurar interactividad. ── */
+[data-radix-popper-content-wrapper] {
+  pointer-events: auto !important;
+}
