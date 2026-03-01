@@ -1,3 +1,6 @@
+// ⚠️ Este import DEBE ir PRIMERO — parchea Node.prototype antes de React
+import "./utils/patchDomForReact";
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
@@ -13,6 +16,7 @@ import { useLoadingStore } from "./store/loading.store";
 import { useAuthFlow } from "./hooks/useAuthFlow";
 import { useSubscriptionSocket } from "./hooks/useSubscriptionSocket";
 import RenewalModal from "./components/Shared/Modal/RenewalModal";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Componente wrapper - Solo hooks esenciales
 function App() {
@@ -52,11 +56,13 @@ function App() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <CustomAuth0Provider>
-        <App />
-        <Toaster />
-      </CustomAuth0Provider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <CustomAuth0Provider>
+          <App />
+          <Toaster />
+        </CustomAuth0Provider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>
 );
