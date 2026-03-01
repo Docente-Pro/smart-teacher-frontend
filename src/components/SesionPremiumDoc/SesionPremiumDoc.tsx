@@ -577,6 +577,7 @@ function ProcesoPremiumRow({
             borderRadius: "8px",
             border: "1px solid #e2e8f0",
             textAlign: "center",
+            overflow: "hidden",
           }}>
             <div style={{ 
               maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 420, 
@@ -597,7 +598,7 @@ function ProcesoPremiumRow({
             padding: "1rem",
             borderRadius: "8px",
             border: "2px solid #d8b4fe",
-            overflowX: "auto",
+            overflow: "hidden",
           }}>
             <p style={{ fontSize: "9pt", fontWeight: "bold", color: "#7c3aed", marginBottom: "0.5rem", margin: 0 }}>
               🔢 Operación / Recurso:

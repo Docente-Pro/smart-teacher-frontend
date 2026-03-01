@@ -22,6 +22,7 @@ import { useAuthStore } from "@/store/auth.store";
 import ProblematicaModal from "@/components/Shared/Modal/ProblematicaModal";
 import UpgradePremiumModal from "@/components/Shared/Modal/UpgradePremiumModal";
 import SubirAlumnosModal from "@/components/Shared/Modal/SubirAlumnosModal";
+import WelcomeGuideModal, { hasSeenWelcomeGuide } from "@/components/Shared/Modal/WelcomeGuideModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { clearUserStorage } from "@/utils/clearUserStorage";
 import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
@@ -39,6 +40,7 @@ function Dashboard() {
   const [showAlumnosModal, setShowAlumnosModal] = useState(false);
   const [alumnosSubidos, setAlumnosSubidos] = useState(() => hasUploadedAlumnos());
   const [hasSuscripcionUnidad, setHasSuscripcionUnidad] = useState(false);
+  const [showWelcomeGuide, setShowWelcomeGuide] = useState(false);
 
   useEffect(() => {
     async function cargarDashboard() {
@@ -59,11 +61,13 @@ function Dashboard() {
             const sesRestantes = freshUser.sesionesRestantes ?? freshUser.cantidadSesionesRestantes;
             const plan = freshUser.plan ?? freshUser.suscripcion?.plan;
             const suscActiva = freshUser.suscripcionActiva ?? freshUser.suscripcion?.activa;
+            const genero = freshUser.genero;
 
             if (sesUsadas !== undefined) updatePayload.sesionesUsadas = sesUsadas;
             if (sesRestantes !== undefined) updatePayload.sesionesRestantes = sesRestantes;
             if (plan !== undefined) updatePayload.plan = plan;
             if (suscActiva !== undefined) updatePayload.suscripcionActiva = suscActiva;
+            if (genero) updatePayload.genero = genero;
 
             if (Object.keys(updatePayload).length > 0) {
               console.log("📊 DEBUG - updatePayload:", updatePayload);
@@ -76,18 +80,32 @@ function Dashboard() {
 
         // Verificar si el usuario es suscriptor de alguna unidad con pago confirmado
         if (user.id) {
-          const items = await listarUnidadesByUsuario(user.id);
-          const tieneSuscripcion = items.some((u) => {
-            const miembro = u.miembros?.find((m) => m.usuarioId === user.id);
-            return miembro?.rol === "SUSCRIPTOR" && miembro?.estadoPago === "CONFIRMADO";
-          });
-          setHasSuscripcionUnidad(tieneSuscripcion);
+          try {
+            const items = await listarUnidadesByUsuario(user.id);
+            const tieneSuscripcion = items.some((u) => {
+              const miembro = u.miembros?.find((m) => m.usuarioId === user.id);
+              return miembro?.rol === "SUSCRIPTOR" && miembro?.estadoPago === "CONFIRMADO";
+            });
+            setHasSuscripcionUnidad(tieneSuscripcion);
+          } catch (e) {
+            console.warn("No se pudieron cargar unidades:", e);
+          }
         }
       } catch (error: any) {
         console.error("Error al cargar dashboard:", error);
         handleToaster("Error al cargar el dashboard", "error");
       } finally {
         hideLoading();
+
+        // Mostrar guía de bienvenida a usuarios free sin sesiones creadas
+        // Se ejecuta en finally para garantizar que siempre se evalúe
+        const currentUser = useAuthStore.getState().user;
+        const totalUsadas = Number(currentUser?.sesionesUsadas ?? 0);
+        const esFree = !currentUser?.plan || currentUser.plan === "free";
+        console.log("📊 WelcomeGuide check:", { esFree, totalUsadas, seen: hasSeenWelcomeGuide() });
+        if (esFree && totalUsadas === 0 && !hasSeenWelcomeGuide()) {
+          setShowWelcomeGuide(true);
+        }
       }
     }
     cargarDashboard();
@@ -213,6 +231,7 @@ function Dashboard() {
   ];
 
   const firstName = user?.name?.split(" ")[0] || "Docente";
+  const saludo = user?.genero === "Femenino" ? "Bienvenida" : "Bienvenido";
   const { isPremium, planLabel } = permissions;
 
   return (
@@ -262,7 +281,7 @@ function Dashboard() {
             <span className="text-sm text-slate-500 dark:text-slate-400">¡Hola de nuevo!</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
-            <span className="bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">¡Bienvenido, {firstName}!</span>{" "}
+            <span className="bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">¡{saludo}, {firstName}!</span>{" "}
             <span className="inline-block animate-[wave_1.5s_ease-in-out_1]">👋</span>
           </h2>
           <p className="text-sm sm:text-lg text-slate-500 dark:text-slate-400">¿Qué te gustaría hacer hoy?</p>
@@ -417,6 +436,12 @@ function Dashboard() {
           setShowAlumnosModal(false);
           setAlumnosSubidos(hasUploadedAlumnos());
         }}
+      />
+
+      {/* Modal guía de bienvenida (una sola vez para usuarios free) */}
+      <WelcomeGuideModal
+        isOpen={showWelcomeGuide}
+        onClose={() => setShowWelcomeGuide(false)}
       />
     </div>
   );

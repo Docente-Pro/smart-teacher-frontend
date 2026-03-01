@@ -42,6 +42,7 @@ export interface JWTPayload {
 export interface EnrichedUser extends JWTPayload {
   // Datos adicionales del backend
   id?: string;
+  genero?: string;
   perfilCompleto?: boolean;
   plan?: PlanType;
   suscripcionActiva?: boolean;

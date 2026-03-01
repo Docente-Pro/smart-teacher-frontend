@@ -121,6 +121,7 @@ export const useAuthStore = create<AuthState>()(
             iat: Math.floor(Date.now() / 1000),
             // Campos adicionales del backend
             id: tokens.user.id,
+            genero: (tokens.user as any).genero,
             perfilCompleto: tokens.user.perfilCompleto,
             plan: tokens.user.plan,
             suscripcionActiva: tokens.user.suscripcionActiva,
@@ -159,6 +160,7 @@ export const useAuthStore = create<AuthState>()(
               iat: decodedUser.iat,
               // Luego datos del backend
               id: tokens.user?.id,
+              genero: (tokens.user as any)?.genero,
               perfilCompleto: tokens.user?.perfilCompleto,
               plan: tokens.user?.plan,
               suscripcionActiva: tokens.user?.suscripcionActiva,

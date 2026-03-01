@@ -178,6 +178,8 @@ async function inlineExternalImages(container: HTMLElement): Promise<() => void>
 /**
  * Desactiva temporalmente TODAS las animaciones y transiciones CSS
  * dentro del contenedor para que html2canvas capture el estado final.
+ * También corrige contenedores con overflow-x:auto que impiden captura
+ * completa, y fuerza SVGs a escalar al ancho disponible.
  * Retorna una función que restaura los estilos originales.
  */
 function disableAnimations(container: HTMLElement): () => void {
@@ -207,6 +209,37 @@ function disableAnimations(container: HTMLElement): () => void {
     path.setAttribute("opacity", "1");
   });
 
+  // ── Fix overflow → forzar contenedores scrollables a visible ──
+  const overflowContainers = container.querySelectorAll<HTMLElement>(
+    ".tabla-doble-entrada-container, .recta-numerica-container, " +
+    ".circulos-fraccion-container, .barras-fraccion-container, " +
+    ".diagrama-dinero-container, .figuras-geometricas-container, " +
+    ".patron-visual-container, .patron-geometrico-container, " +
+    ".diagrama-venn-container, .operacion-vertical-container, " +
+    ".medidas-comparacion-container, .balanza-equilibrio-container, " +
+    ".numeros-ordinales-container, .bloques-agrupados, " +
+    ".barras-comparacion, .tabla-valores, .tabla-precios, " +
+    ".ecuacion-cajas, .coordenadas-ejercicios-container, " +
+    ".tabla-frecuencias-container"
+  );
+  const overflowOriginals = new Map<HTMLElement, { ox: string; oy: string }>();
+  overflowContainers.forEach((el) => {
+    overflowOriginals.set(el, {
+      ox: el.style.overflowX,
+      oy: el.style.overflowY,
+    });
+    el.style.overflowX = "visible";
+    el.style.overflowY = "visible";
+  });
+
+  // ── Fix SVGs: forzar max-width:100% para que escalen al contenedor ──
+  const allSvgs = container.querySelectorAll<SVGSVGElement>("svg");
+  const svgStyleOriginals = new Map<SVGSVGElement, string>();
+  allSvgs.forEach((svg) => {
+    svgStyleOriginals.set(svg, svg.style.maxWidth);
+    svg.style.maxWidth = "100%";
+  });
+
   return () => {
     style.remove();
     graficos.forEach((el) => {
@@ -219,6 +252,14 @@ function disableAnimations(container: HTMLElement): () => void {
       } else {
         path.removeAttribute("opacity");
       }
+    });
+    overflowContainers.forEach((el) => {
+      const orig = overflowOriginals.get(el);
+      el.style.overflowX = orig?.ox ?? "";
+      el.style.overflowY = orig?.oy ?? "";
+    });
+    allSvgs.forEach((svg) => {
+      svg.style.maxWidth = svgStyleOriginals.get(svg) ?? "";
     });
   };
 }

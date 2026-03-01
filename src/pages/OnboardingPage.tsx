@@ -214,6 +214,7 @@ function OnboardingPage() {
       const usuarioActualizado = response.data.data || response.data;
       updateUser({
         perfilCompleto: true,
+        genero: formData.genero,
         nombreInstitucion: formData.nombreInstitucion,
         nivelId: formData.nivelId,
         gradoId: formData.gradoId,
