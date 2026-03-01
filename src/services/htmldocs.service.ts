@@ -176,6 +176,54 @@ async function inlineExternalImages(container: HTMLElement): Promise<() => void>
 }
 
 /**
+ * Desactiva temporalmente TODAS las animaciones y transiciones CSS
+ * dentro del contenedor para que html2canvas capture el estado final.
+ * Retorna una función que restaura los estilos originales.
+ */
+function disableAnimations(container: HTMLElement): () => void {
+  const style = document.createElement("style");
+  style.id = "__pdf-no-anim";
+  style.textContent = `
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Forzar opacity:1 en .grafico-educativo (previene el bug fadeIn)
+  const graficos = container.querySelectorAll<HTMLElement>(".grafico-educativo");
+  const originals = new Map<HTMLElement, string>();
+  graficos.forEach((el) => {
+    originals.set(el, el.style.opacity);
+    el.style.opacity = "1";
+  });
+
+  // Forzar opacity en SVG paths que usen opacity < 1
+  const svgPaths = container.querySelectorAll<SVGElement>("svg path[opacity]");
+  const svgOriginals = new Map<SVGElement, string | null>();
+  svgPaths.forEach((path) => {
+    svgOriginals.set(path, path.getAttribute("opacity"));
+    path.setAttribute("opacity", "1");
+  });
+
+  return () => {
+    style.remove();
+    graficos.forEach((el) => {
+      el.style.opacity = originals.get(el) ?? "";
+    });
+    svgPaths.forEach((path) => {
+      const orig = svgOriginals.get(path);
+      if (orig !== null && orig !== undefined) {
+        path.setAttribute("opacity", orig);
+      } else {
+        path.removeAttribute("opacity");
+      }
+    });
+  };
+}
+
+/**
  * Configuración base para html2pdf.js
  */
 function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
@@ -219,6 +267,8 @@ export async function generateAndDownloadPDF(
 ): Promise<void> {
   // Pre-convertir imágenes externas a data URLs para evitar problemas de CORS
   const restoreImages = await inlineExternalImages(element);
+  // Desactivar animaciones/transiciones para captura limpia
+  const restoreAnimations = disableAnimations(element);
   try {
     const pdfOptions = getHtml2PdfOptions({
       ...options,
@@ -230,6 +280,7 @@ export async function generateAndDownloadPDF(
     console.error("Error al generar y descargar PDF:", error);
     throw error;
   } finally {
+    restoreAnimations();
     restoreImages();
   }
 }
@@ -246,6 +297,8 @@ export async function generatePDFBlob(
 ): Promise<Blob> {
   // Pre-convertir imágenes externas a data URLs para evitar problemas de CORS
   const restoreImages = await inlineExternalImages(element);
+  // Desactivar animaciones/transiciones para captura limpia
+  const restoreAnimations = disableAnimations(element);
   try {
     const pdfOptions = getHtml2PdfOptions(options);
 
@@ -259,6 +312,7 @@ export async function generatePDFBlob(
     console.error("Error al generar PDF Blob:", error);
     throw error;
   } finally {
+    restoreAnimations();
     restoreImages();
   }
 }

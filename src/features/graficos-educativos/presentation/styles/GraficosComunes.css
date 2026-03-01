@@ -126,9 +126,12 @@
   color: #78350f;
 }
 
-/* Animaciones suaves */
-.grafico-educativo {
-  animation: fadeIn 0.3s ease-in;
+/* Animaciones suaves — solo en pantalla, nunca en captura PDF */
+@media screen {
+  .grafico-educativo {
+    animation: fadeIn 0.3s ease-in;
+    animation-fill-mode: forwards;
+  }
 }
 
 @keyframes fadeIn {

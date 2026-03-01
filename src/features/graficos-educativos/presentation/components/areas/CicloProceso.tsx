@@ -95,7 +95,7 @@ const CicloCircular: React.FC<{ fases: GraficoCicloProceso['fases']; colorFondo?
                 fill="#94a3b8"
               />
               {/* Nodo */}
-              <circle cx={x} cy={y} r="30" fill={resolveColor(fase.color)} opacity={0.9} />
+              <circle cx={x} cy={y} r="30" fill={resolveColor(fase.color)} />
               <text
                 x={x}
                 y={y + 2}

@@ -7,6 +7,20 @@ interface Props {
 }
 
 /**
+ * Aclara un color hex mezclándolo con blanco.
+ * factor = 0 → color original, factor = 1 → blanco puro.
+ */
+function lightenHex(hex: string, factor: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const lr = Math.round(r + (255 - r) * factor);
+  const lg = Math.round(g + (255 - g) * factor);
+  const lb = Math.round(b + (255 - b) * factor);
+  return `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`;
+}
+
+/**
  * Rueda de Emociones — Personal Social
  * Sectores circulares coloreados; el estudiante selecciona en clase.
  */
@@ -57,10 +71,9 @@ export const RuedaEmociones: React.FC<Props> = ({ data }) => {
               >
                 <path
                   d={`M ${centro} ${centro} L ${x1} ${y1} A ${radio} ${radio} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                  fill={c}
+                  fill={isSelected ? c : lightenHex(c, 0.15)}
                   stroke={isSelected ? '#1e293b' : '#fff'}
                   strokeWidth={isSelected ? 3 : 1.5}
-                  opacity={isSelected ? 1 : 0.85}
                 />
                 <text
                   x={lx}
@@ -101,7 +114,7 @@ export const RuedaEmociones: React.FC<Props> = ({ data }) => {
                 : 'border-gray-200'
             }`}
             style={{
-              background: seleccionada === emo.nombre ? `${resolveColor(emo.color)}30` : undefined,
+              background: seleccionada === emo.nombre ? lightenHex(resolveColor(emo.color), 0.8) : undefined,
             }}
           >
             <span className="text-lg">{emo.icono}</span>
