@@ -118,19 +118,34 @@ function getAreaTheme(area: string): AreaColorConfig {
 }
 
 function formatFechaDia(fecha: string): string {
+  if (!fecha) return "";
+  // Si ya viene en formato DD/MM (ej: "16/03"), devolverlo tal cual
+  if (/^\d{1,2}\/\d{1,2}$/.test(fecha.trim())) return fecha.trim();
   try {
+    const d = new Date(fecha + "T12:00:00");
+    if (isNaN(d.getTime())) return fecha;
     return new Intl.DateTimeFormat("es-PE", {
       day: "2-digit",
       month: "short",
-    }).format(new Date(fecha + "T12:00:00"));
+    }).format(d);
   } catch {
     return fecha;
   }
 }
 
 function isHoy(fecha: string): boolean {
+  if (!fecha) return false;
   const today = new Date();
+  // Si fecha es DD/MM, comparar directamente
+  const match = fecha.trim().match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (match) {
+    return (
+      today.getDate() === parseInt(match[1], 10) &&
+      today.getMonth() + 1 === parseInt(match[2], 10)
+    );
+  }
   const d = new Date(fecha + "T12:00:00");
+  if (isNaN(d.getTime())) return false;
   return (
     today.getFullYear() === d.getFullYear() &&
     today.getMonth() === d.getMonth() &&
@@ -823,10 +838,7 @@ function GenerarSesionPremium() {
                     {weekDateRange && (
                       <span>
                         {formatFechaDia(weekDateRange.start)} —{" "}
-                        {formatFechaDia(weekDateRange.end)}{" "}
-                        {new Date(
-                          weekDateRange.start + "T12:00:00",
-                        ).getFullYear()}
+                        {formatFechaDia(weekDateRange.end)}
                       </span>
                     )}
                   </div>
