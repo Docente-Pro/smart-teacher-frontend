@@ -16,13 +16,7 @@ const GRAFICOS_TABLA = [
   'planificador_escritura',
   'estructura_narrativa',
   'ficha_autoconocimiento',
-  'ficha_analisis_obra',
-  'ficha_proceso_creativo',
-  'tarjeta_reflexion',
-  'tarjeta_compromiso',
   'clasificacion_dicotomica',
-  'ciclo_proceso',
-  'secuencia_movimiento',
 ];
 
 /** Determina si un gráfico necesita ancho completo (tablas, organizadores, etc.) */
