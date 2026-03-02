@@ -104,10 +104,11 @@ export const ReglaMedicion: React.FC<Props> = ({ data }) => {
     marcas.forEach((marca) => {
       const x = margen + (marca.posicion - inicio) * scale;
       const color = resolveColor(marca.color, roughColors.rojo);
+      const esDestacado = marca.destacado === true;
 
       // Línea vertical desde arriba de la regla
       svg.appendChild(rc.line(x, reglaY - 18, x, reglaY + 2, {
-        stroke: color, strokeWidth: 2.5, roughness: 0.4,
+        stroke: color, strokeWidth: esDestacado ? 3.5 : 2.5, roughness: 0.4,
       }));
 
       // Triángulo apuntando abajo

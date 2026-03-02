@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const Pictograma: React.FC<Props> = ({ data }) => {
-  const { elementos, iconoBase = '⭐', valorIcono = 1, mostrarLeyenda = true } = data;
+  const { elementos, iconoBase = '⭐', valorIcono = 1, mostrarLeyenda = true, orientacion = 'horizontal' } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {

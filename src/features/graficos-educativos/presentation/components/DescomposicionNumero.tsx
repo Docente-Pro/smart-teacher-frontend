@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const DescomposicionNumero: React.FC<Props> = ({ data }) => {
-  const { numero, partes, tipo } = data;
+  const { numero, partes, tipo, mostrarArbol = true } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -18,6 +18,9 @@ export const DescomposicionNumero: React.FC<Props> = ({ data }) => {
 
     const width = Math.max(partes.length * 130, 400);
     const centerX = width / 2;
+
+    // Si mostrarArbol=false, layout lineal sin líneas de conexión
+    // (mostrarArbol=true usa layout de árbol con líneas)
 
     // Número principal arriba
     const circulo = rc.circle(centerX, 50, 70, {
@@ -49,13 +52,15 @@ export const DescomposicionNumero: React.FC<Props> = ({ data }) => {
       const px = partWidth * idx + partWidth / 2;
       const color = resolveColor(parte.color) || [roughColors.rojo, roughColors.verde, roughColors.naranja, roughColors.morado][idx % 4];
 
-      // Línea del número a la parte
-      const linea = rc.line(centerX, 85, px, yParts - 30, {
-        stroke: '#64748b',
-        strokeWidth: 2,
-        roughness: 1,
-      });
-      svgRef.current!.appendChild(linea);
+      // Línea del número a la parte (solo si mostrarArbol)
+      if (mostrarArbol) {
+        const linea = rc.line(centerX, 85, px, yParts - 30, {
+          stroke: '#64748b',
+          strokeWidth: 2,
+          roughness: 1,
+        });
+        svgRef.current!.appendChild(linea);
+      }
 
       // Círculo de la parte
       const partCirc = rc.circle(px, yParts, 60, {

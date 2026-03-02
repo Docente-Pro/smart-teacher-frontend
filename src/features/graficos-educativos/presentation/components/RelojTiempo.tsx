@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const RelojTiempo: React.FC<Props> = ({ data }) => {
-  const { relojes, formato = '12h', mostrarDigital = true } = data;
+  const { relojes, formato = '12h', mostrarDigital = true, tipo } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -101,10 +101,15 @@ export const RelojTiempo: React.FC<Props> = ({ data }) => {
   }, [data]);
 
   const width = relojes.length * 200 + 50;
-  const height = 250;
+  const height = tipo ? 275 : 250;
 
   return (
-    <div className="reloj-tiempo-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', justifyContent: 'center' }}>
+    <div className="reloj-tiempo-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {tipo && (
+        <p style={{ fontFamily: 'Comic Sans MS, cursive', fontSize: 13, color: '#64748b', marginBottom: 8 }}>
+          ⏰ Tipo: {tipo === 'lectura' ? 'Lectura de hora' : tipo === 'comparacion' ? 'Comparación de horas' : 'Duración'}
+        </p>
+      )}
       <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
     </div>
   );

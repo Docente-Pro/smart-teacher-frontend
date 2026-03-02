@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const BaseDiezBloques: React.FC<Props> = ({ data }) => {
-  const { numero, bloques, mostrarTotal = true } = data;
+  const { numero, bloques, mostrarTotal = true, agrupacion = false } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -127,6 +127,19 @@ export const BaseDiezBloques: React.FC<Props> = ({ data }) => {
       totalText.setAttribute('fill', roughColors.azul);
       totalText.textContent = `= ${numero}`;
       svgRef.current.appendChild(totalText);
+    }
+
+    // Indicador de agrupación
+    if (agrupacion) {
+      const agrupText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      agrupText.setAttribute('x', (cursorX / 2).toString());
+      agrupText.setAttribute('y', (startY + 10 * unitSize + (mostrarTotal ? 75 : 50)).toString());
+      agrupText.setAttribute('text-anchor', 'middle');
+      agrupText.setAttribute('font-size', '14');
+      agrupText.setAttribute('font-family', 'Comic Sans MS, cursive');
+      agrupText.setAttribute('fill', '#64748b');
+      agrupText.textContent = '📦 Con agrupación';
+      svgRef.current.appendChild(agrupText);
     }
   }, [data]);
 

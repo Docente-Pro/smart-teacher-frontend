@@ -142,14 +142,15 @@ export const RectaNumerica: React.FC<Props> = ({ data }) => {
       
       const x = marginX + ((elem.posicion - inicio) * unidad);
       const color = obtenerColor(elem.color);
+      const esDestacado = elem.destacado === true;
 
       // Círculo destacado
-      const circulo = rc.circle(x, lineY, 16, {
+      const circulo = rc.circle(x, lineY, esDestacado ? 20 : 16, {
         ...defaultRoughConfig,
-        stroke: color,
+        stroke: esDestacado ? '#1e293b' : color,
         fill: color,
         fillStyle: 'solid',
-        strokeWidth: 3,
+        strokeWidth: esDestacado ? 4 : 3,
         roughness: 0.5
       });
       svgRef.current.appendChild(circulo);

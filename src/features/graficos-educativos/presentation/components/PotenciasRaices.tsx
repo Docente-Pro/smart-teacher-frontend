@@ -8,18 +8,23 @@ interface Props {
 }
 
 export const PotenciasRaices: React.FC<Props> = ({ data }) => {
-  const { expresiones, mostrarVisualizacion = true } = data;
+  const { expresiones, mostrarVisualizacion = true, tipo: tipoGlobal } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // Filtrar expresiones según tipo global si se especifica
+  const expresionesFiltradas = tipoGlobal && tipoGlobal !== 'ambos'
+    ? expresiones.filter(e => e.tipo === tipoGlobal)
+    : expresiones;
+
   useEffect(() => {
-    if (!svgRef.current || expresiones.length === 0) return;
+    if (!svgRef.current || expresionesFiltradas.length === 0) return;
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
 
     const blockW = 200;
     const margen = 30;
 
-    expresiones.forEach((expr, idx) => {
+    expresionesFiltradas.forEach((expr, idx) => {
       const x = margen + idx * blockW;
       const y = 30;
       const color = expr.tipo === 'potencia' ? roughColors.azul : roughColors.verde;
@@ -81,9 +86,9 @@ export const PotenciasRaices: React.FC<Props> = ({ data }) => {
         }
       }
     });
-  }, [data]);
+  }, [data, expresionesFiltradas]);
 
-  const width = expresiones.length * 200 + 60;
+  const width = expresionesFiltradas.length * 200 + 60;
   const height = mostrarVisualizacion ? 200 : 100;
 
   return (

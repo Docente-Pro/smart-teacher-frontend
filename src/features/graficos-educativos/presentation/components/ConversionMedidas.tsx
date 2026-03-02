@@ -20,7 +20,21 @@ export const ConversionMedidas: React.FC<Props> = ({ data }) => {
     const boxW = 120;
     const boxH = 50;
     const arrowW = 80;
-    const startY = 40;
+    const startY = mostrarEscalera ? 80 : 40;
+
+    // Escalera de conversiones
+    if (mostrarEscalera && tipo) {
+      const escaleraLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      escaleraLabel.setAttribute('x', '210');
+      escaleraLabel.setAttribute('y', '25');
+      escaleraLabel.setAttribute('text-anchor', 'middle');
+      escaleraLabel.setAttribute('font-size', '14');
+      escaleraLabel.setAttribute('font-weight', 'bold');
+      escaleraLabel.setAttribute('font-family', 'Comic Sans MS, cursive');
+      escaleraLabel.setAttribute('fill', roughColors.verde);
+      escaleraLabel.textContent = `⚖️ Escalera de ${tipo}`;
+      svgRef.current.appendChild(escaleraLabel);
+    }
 
     conversiones.forEach((conv, idx) => {
       const y = startY + idx * 80;

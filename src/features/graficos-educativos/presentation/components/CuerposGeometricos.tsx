@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const CuerposGeometricos: React.FC<Props> = ({ data }) => {
-  const { cuerpos, mostrarNombres = true, mostrarMedidas = false } = data;
+  const { cuerpos, mostrarNombres = true, mostrarMedidas = false, vista = 'frontal' } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -121,14 +121,31 @@ export const CuerposGeometricos: React.FC<Props> = ({ data }) => {
         nt.textContent = cuerpo.etiqueta || cuerpo.tipo.charAt(0).toUpperCase() + cuerpo.tipo.slice(1);
         svgRef.current!.appendChild(nt);
       }
+
+      // Medidas del cuerpo
+      if (mostrarMedidas && cuerpo.medidas) {
+        const entries = Object.entries(cuerpo.medidas);
+        entries.forEach(([key, val], mIdx) => {
+          const mt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          mt.setAttribute('x', cx.toString());
+          mt.setAttribute('y', (225 + mIdx * 16).toString());
+          mt.setAttribute('text-anchor', 'middle');
+          mt.setAttribute('font-size', '11');
+          mt.setAttribute('font-family', 'Comic Sans MS, cursive');
+          mt.setAttribute('fill', '#64748b');
+          mt.textContent = `${key}: ${val}`;
+          svgRef.current!.appendChild(mt);
+        });
+      }
     });
   }, [data]);
 
   const width = cuerpos.length * 180 + 60;
+  const heightSvg = mostrarMedidas ? 280 : 240;
 
   return (
     <div className="cuerpos-geometricos-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', justifyContent: 'center' }}>
-      <svg ref={svgRef} viewBox={`0 0 ${width} 240`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${heightSvg}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
     </div>
   );
 };

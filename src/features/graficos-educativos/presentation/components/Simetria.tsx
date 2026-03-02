@@ -80,7 +80,9 @@ export const Simetria: React.FC<Props> = ({ data }) => {
     origLabel.setAttribute('font-weight', 'bold');
     origLabel.setAttribute('font-family', 'Comic Sans MS, cursive');
     origLabel.setAttribute('fill', color);
-    origLabel.textContent = 'Original';
+    // Mostrar tipo de figura si viene en el contrato
+    const tipoLabel = figuraOriginal.tipo ? `Original (${figuraOriginal.tipo})` : 'Original';
+    origLabel.textContent = tipoLabel;
     svgRef.current.appendChild(origLabel);
 
     if (mostrarReflejo) {

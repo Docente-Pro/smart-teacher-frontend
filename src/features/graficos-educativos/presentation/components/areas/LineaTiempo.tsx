@@ -11,14 +11,14 @@ interface Props {
  * Ordena eventos cronológicamente (horizontal o vertical).
  */
 export const LineaTiempo: React.FC<Props> = ({ data }) => {
-  const { subtitulo, orientacion = 'horizontal', eventos, colorLinea: _colorLinea = '#795548' } = data;
+  const { subtitulo, orientacion = 'horizontal', eventos, colorLinea: _colorLinea = '#795548', mostrarDecadas = false } = data;
   const colorLinea = resolveColor(_colorLinea);
 
   if (orientacion === 'horizontal') {
-    return <TimelineHorizontal eventos={eventos} subtitulo={subtitulo} colorLinea={colorLinea} />;
+    return <TimelineHorizontal eventos={eventos} subtitulo={subtitulo} colorLinea={colorLinea} mostrarDecadas={mostrarDecadas} />;
   }
 
-  return <TimelineVertical eventos={eventos} subtitulo={subtitulo} colorLinea={colorLinea} />;
+  return <TimelineVertical eventos={eventos} subtitulo={subtitulo} colorLinea={colorLinea} mostrarDecadas={mostrarDecadas} />;
 };
 
 /* ---------- Horizontal ---------- */
@@ -27,10 +27,16 @@ const TimelineHorizontal: React.FC<{
   eventos: GraficoLineaTiempo['eventos'];
   subtitulo?: string;
   colorLinea: string;
-}> = ({ eventos, subtitulo, colorLinea }) => (
+  mostrarDecadas?: boolean;
+}> = ({ eventos, subtitulo, colorLinea, mostrarDecadas }) => (
   <div className="space-y-3">
     {subtitulo && (
       <p className="text-center text-sm text-gray-500 italic">{subtitulo}</p>
+    )}
+    {mostrarDecadas && (
+      <p className="text-center text-xs text-indigo-500 font-semibold">
+        📅 Vista por décadas
+      </p>
     )}
     {/* Sin overflow-x-auto para que html2canvas capture todo el contenido */}
     <div className="pb-2">
@@ -81,10 +87,16 @@ const TimelineVertical: React.FC<{
   eventos: GraficoLineaTiempo['eventos'];
   subtitulo?: string;
   colorLinea: string;
-}> = ({ eventos, subtitulo, colorLinea }) => (
+  mostrarDecadas?: boolean;
+}> = ({ eventos, subtitulo, colorLinea, mostrarDecadas }) => (
   <div className="space-y-3">
     {subtitulo && (
       <p className="text-center text-sm text-gray-500 italic">{subtitulo}</p>
+    )}
+    {mostrarDecadas && (
+      <p className="text-center text-xs text-indigo-500 font-semibold">
+        📅 Vista por décadas
+      </p>
     )}
     <div className="relative pl-8">
       {/* Línea vertical */}

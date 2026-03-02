@@ -101,7 +101,7 @@ export const RuedaEmociones: React.FC<Props> = ({ data }) => {
         </svg>
       </div>
 
-      {/* Leyenda */}
+      {/* Leyenda con descripción */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {emociones.map((emo, i) => (
           <button
@@ -116,9 +116,15 @@ export const RuedaEmociones: React.FC<Props> = ({ data }) => {
             style={{
               background: seleccionada === emo.nombre ? lightenHex(resolveColor(emo.color), 0.8) : undefined,
             }}
+            title={emo.descripcion || emo.nombre}
           >
             <span className="text-lg">{emo.icono}</span>
-            <span className="text-gray-700">{emo.nombre}</span>
+            <div>
+              <span className="text-gray-700">{emo.nombre}</span>
+              {emo.descripcion && seleccionada === emo.nombre && (
+                <p className="text-[10px] text-gray-500 mt-0.5">{emo.descripcion}</p>
+              )}
+            </div>
           </button>
         ))}
       </div>

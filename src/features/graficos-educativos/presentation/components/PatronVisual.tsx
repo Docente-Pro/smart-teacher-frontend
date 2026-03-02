@@ -1,21 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
-import { ConfiguracionGrafico } from '../../domain/types';
+import { GraficoPatronVisual } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
-interface ElementoPatron {
-  tipo: 'forma' | 'numero' | 'color';
-  valor: string | number;
-  color?: string;
-}
-
-interface PatronVisualData extends ConfiguracionGrafico {
-  elementos: ElementoPatron[];
-  repeticiones?: number;
-}
-
 interface Props {
-  data: PatronVisualData;
+  data: GraficoPatronVisual;
 }
 
 /**

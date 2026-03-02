@@ -10,7 +10,7 @@ interface Props {
 const COLORES_SECTOR = [roughColors.azul, roughColors.rojo, roughColors.verde, roughColors.amarillo, roughColors.naranja, roughColors.morado];
 
 export const GraficoCircularComp: React.FC<Props> = ({ data }) => {
-  const { sectores, mostrarPorcentajes = true, mostrarLeyenda = true } = data;
+  const { sectores, mostrarPorcentajes = true, mostrarLeyenda = true, total: totalProp } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -21,7 +21,8 @@ export const GraficoCircularComp: React.FC<Props> = ({ data }) => {
     const centerX = 200;
     const centerY = 180;
     const radio = 140;
-    const total = sectores.reduce((sum, s) => sum + s.valor, 0);
+    // Usar total del contrato si viene, sino calcular de valores
+    const total = totalProp ?? sectores.reduce((sum, s) => sum + s.valor, 0);
 
     let angAcumulado = -Math.PI / 2;
 
@@ -66,7 +67,9 @@ export const GraficoCircularComp: React.FC<Props> = ({ data }) => {
         pctText.setAttribute('fill', '#fff');
         pctText.setAttribute('stroke', '#1e293b');
         pctText.setAttribute('stroke-width', '0.3');
-        pctText.textContent = `${Math.round(porcion * 100)}%`;
+        // Usar porcentaje del contrato si viene, sino calcular
+        const pct = sector.porcentaje ?? Math.round(porcion * 100);
+        pctText.textContent = `${pct}%`;
         svgRef.current!.appendChild(pctText);
       }
 

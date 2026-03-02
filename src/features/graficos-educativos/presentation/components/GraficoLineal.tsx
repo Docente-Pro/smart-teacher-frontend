@@ -10,7 +10,7 @@ interface Props {
 const COLORES_SERIE = [roughColors.azul, roughColors.rojo, roughColors.verde, roughColors.naranja, roughColors.morado];
 
 export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
-  const { series, ejeX, ejeY, mostrarPuntos = true } = data;
+  const { series, ejeX, ejeY, mostrarPuntos = true, mostrarArea = false } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -24,13 +24,9 @@ export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
     const axisX = padding;
     const axisY = chartH - padding;
 
-    // Normalizar series: aceptar tanto 'puntos' como 'datos' (array de números)
+    // Normalizar series: asegurar que cada serie tenga puntos válidos
     const seriesNorm = series.map(s => {
-      const sAny = s as any;
       if (s.puntos && Array.isArray(s.puntos)) return s;
-      if (sAny.datos && Array.isArray(sAny.datos)) {
-        return { ...s, puntos: sAny.datos.map((v: number, i: number) => ({ x: i, y: v })) };
-      }
       return { ...s, puntos: [] };
     });
 
@@ -84,6 +80,24 @@ export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
     seriesNorm.forEach((serie, sIdx) => {
       const color = resolveColor(serie.color) || COLORES_SERIE[sIdx % COLORES_SERIE.length];
       const puntos = serie.puntos;
+
+      // Relleno del área bajo la curva si mostrarArea está activo
+      if (mostrarArea && puntos.length >= 2) {
+        let areaPath = `M ${axisX} ${axisY}`;
+        puntos.forEach((p: {x: number | string; y: number}, i: number) => {
+          const x = axisX + i * xStep;
+          const y = axisY - (p.y / maxY) * yRange;
+          areaPath += ` L ${x} ${y}`;
+        });
+        areaPath += ` L ${axisX + (puntos.length - 1) * xStep} ${axisY} Z`;
+        svgRef.current!.appendChild(rc.path(areaPath, {
+          fill: color, fillStyle: 'solid', stroke: 'none', strokeWidth: 0,
+          roughness: 0.3, fillWeight: 0.5,
+        }));
+        // Overlay translúcido
+        const areaEl = svgRef.current!.lastChild as SVGElement;
+        if (areaEl) areaEl.setAttribute('opacity', '0.15');
+      }
 
       for (let i = 0; i < puntos.length - 1; i++) {
         const x1 = axisX + i * xStep;

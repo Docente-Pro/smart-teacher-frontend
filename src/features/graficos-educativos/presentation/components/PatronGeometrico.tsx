@@ -55,6 +55,8 @@ export const PatronGeometrico: React.FC<Props> = ({ data }) => {
   
   const orientacion = data.orientacion || 'horizontal';
   const mostrarIndices = data.mostrarIndices || false;
+  const nucleoPatron = data.nucleoPatron;
+  const repeticiones = data.repeticiones;
 
   useEffect(() => {
     if (!svgRef.current || !secuencia || secuencia.length === 0) return;
@@ -220,6 +222,32 @@ export const PatronGeometrico: React.FC<Props> = ({ data }) => {
         svgRef.current.appendChild(indiceText);
       }
     });
+
+    // Indicador visual del núcleo del patrón y repeticiones
+    if (nucleoPatron && nucleoPatron > 0 && secuencia.length > 0 && orientacion === 'horizontal') {
+      const nucleoW = nucleoPatron * (figuraSize + spacing) - spacing;
+      const reps = repeticiones ?? Math.floor(secuencia.length / nucleoPatron);
+      for (let r = 0; r < reps; r++) {
+        const startX = margen + r * nucleoPatron * (figuraSize + spacing);
+        svgRef.current.appendChild(rc.rectangle(startX - 4, margen + 30 - figuraSize / 2 - 8, nucleoW + 8, figuraSize + 16, {
+          stroke: r === 0 ? '#6366f1' : '#a5b4fc',
+          strokeWidth: r === 0 ? 2.5 : 1.5,
+          roughness: 0.5,
+          fill: 'none',
+          strokeLineDash: [6, 4],
+        }));
+      }
+      // Etiqueta del núcleo
+      const nucLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      nucLabel.setAttribute('x', (margen + nucleoW / 2).toString());
+      nucLabel.setAttribute('y', (margen + 30 + figuraSize / 2 + 20).toString());
+      nucLabel.setAttribute('text-anchor', 'middle');
+      nucLabel.setAttribute('font-size', '11');
+      nucLabel.setAttribute('font-family', 'Comic Sans MS, cursive');
+      nucLabel.setAttribute('fill', '#6366f1');
+      nucLabel.textContent = `Núcleo (${nucleoPatron})${reps > 1 ? ` × ${reps} rep.` : ''}`;
+      svgRef.current.appendChild(nucLabel);
+    }
 
   }, [data]);
 

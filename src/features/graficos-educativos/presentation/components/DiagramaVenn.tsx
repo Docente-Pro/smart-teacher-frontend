@@ -1,21 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
-import { ConfiguracionGrafico } from '../../domain/types';
+import { GraficoDiagramaVenn } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
-interface ConjuntoVenn {
-  nombre: string;
-  elementos: string[];
-  color: string;
-}
-
-interface DiagramaVennData extends ConfiguracionGrafico {
-  elementos: ConjuntoVenn[];
-  interseccion?: string[];
-}
-
 interface Props {
-  data: DiagramaVennData;
+  data: GraficoDiagramaVenn;
 }
 
 /**

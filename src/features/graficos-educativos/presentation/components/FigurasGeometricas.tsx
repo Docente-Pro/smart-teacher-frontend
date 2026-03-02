@@ -1,24 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
-import { ConfiguracionGrafico, ColorGrafico } from '../../domain/types';
+import { GraficoFigurasGeometricas } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
-interface Figura {
-  tipo: 'cuadrado' | 'rectangulo' | 'círculo' | 'circulo' | 'triángulo' | 'triangulo' | 'trapecio' | 'rombo';
-  ancho?: number;
-  alto?: number;
-  radio?: number;
-  dimensiones?: string; // Backend puede enviar "3cm", "4cm", etc.
-  color: ColorGrafico | string; // Permite string para compatibilidad
-  etiqueta?: string;
-}
-
-interface FigurasGeometricasData extends ConfiguracionGrafico {
-  elementos: Figura[];
-}
-
 interface Props {
-  data: FigurasGeometricasData;
+  data: GraficoFigurasGeometricas;
 }
 
 /**

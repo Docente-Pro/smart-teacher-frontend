@@ -1,22 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
-import { ConfiguracionGrafico, ColorGrafico } from '../../domain/types';
+import { GraficoMedidasComparacion } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
-interface Medida {
-  tipo: 'longitud' | 'peso' | 'capacidad' | 'tiempo';
-  valor: number;
-  unidad: string;
-  etiqueta?: string;
-  color: ColorGrafico;
-}
-
-interface MedidasComparacionData extends ConfiguracionGrafico {
-  elementos: Medida[];
-}
-
 interface Props {
-  data: MedidasComparacionData;
+  data: GraficoMedidasComparacion;
 }
 
 /**

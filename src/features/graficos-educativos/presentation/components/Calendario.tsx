@@ -110,6 +110,8 @@ export const Calendario: React.FC<Props> = ({ data }) => {
       const esFinDeSemana = col === 0 || col === 6;
       const evento = eventosMap.get(d);
       const esDestacadoSimple = destacarSet.has(d);
+      // Evento puede tener destacado=true para resaltar extra
+      const esEventoDestacado = evento?.destacado === true;
 
       // Determinar color de fondo
       let fillColor: string | undefined;
@@ -132,7 +134,7 @@ export const Calendario: React.FC<Props> = ({ data }) => {
       // Celda
       svg.appendChild(rc.rectangle(x, y, cellW, cellH, {
         roughness: 0.6,
-        strokeWidth: fillColor ? 1.8 : 1,
+        strokeWidth: (fillColor ? 1.8 : 1) + (esEventoDestacado ? 1.5 : 0),
         stroke: fillColor ? fillColor : '#94a3b8',
         ...(fillColor ? { fill: fillColor, fillStyle: 'solid' as const } : {}),
       }));

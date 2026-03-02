@@ -65,10 +65,11 @@ export const RectaFraccion: React.FC<Props> = ({ data }) => {
       const frac = (marca.posicion - inicio) / rango;
       const x = margen + frac * lineW;
       const color = resolveColor(marca.color, roughColors.rojo);
+      const esDestacado = marca.destacado === true;
 
       // Punto
-      svgRef.current!.appendChild(rc.circle(x, lineY, 14, {
-        fill: color, fillStyle: 'solid', stroke: color, strokeWidth: 2, roughness: 0.5,
+      svgRef.current!.appendChild(rc.circle(x, lineY, esDestacado ? 18 : 14, {
+        fill: color, fillStyle: 'solid', stroke: esDestacado ? '#1e293b' : color, strokeWidth: esDestacado ? 3 : 2, roughness: 0.5,
       }));
 
       // Etiqueta de fracción arriba

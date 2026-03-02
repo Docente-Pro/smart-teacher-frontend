@@ -20,6 +20,44 @@ export const Angulos: React.FC<Props> = ({ data }) => {
     const margen = 100;
     const armLength = 70;
 
+    // Transportador de fondo si está activo
+    if (mostrarTransportador && angulos.length === 1) {
+      const cx = margen;
+      const cy = 120;
+      const transportR = 85;
+      // Semicírculo
+      const tPath = `M ${cx - transportR} ${cy} A ${transportR} ${transportR} 0 0 0 ${cx + transportR} ${cy}`;
+      svgRef.current.appendChild(rc.path(tPath, {
+        stroke: '#cbd5e1', strokeWidth: 1.5, roughness: 0.3, fill: '#f1f5f9', fillStyle: 'solid',
+      }));
+      // Marcas cada 10°
+      for (let deg = 0; deg <= 180; deg += 10) {
+        const rad = (deg * Math.PI) / 180;
+        const inner = transportR - 8;
+        const outer = transportR;
+        const x1 = cx + inner * Math.cos(-rad);
+        const y1 = cy + inner * Math.sin(-rad);
+        const x2 = cx + outer * Math.cos(-rad);
+        const y2 = cy + outer * Math.sin(-rad);
+        svgRef.current.appendChild(rc.line(x1, y1, x2, y2, {
+          stroke: '#94a3b8', strokeWidth: deg % 30 === 0 ? 1.5 : 0.8, roughness: 0.2,
+        }));
+        if (deg % 30 === 0) {
+          const lx = cx + (transportR + 12) * Math.cos(-rad);
+          const ly = cy + (transportR + 12) * Math.sin(-rad);
+          const dt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          dt.setAttribute('x', lx.toString());
+          dt.setAttribute('y', ly.toString());
+          dt.setAttribute('text-anchor', 'middle');
+          dt.setAttribute('font-size', '9');
+          dt.setAttribute('font-family', 'Comic Sans MS, cursive');
+          dt.setAttribute('fill', '#94a3b8');
+          dt.textContent = `${deg}°`;
+          svgRef.current.appendChild(dt);
+        }
+      }
+    }
+
     angulos.forEach((ang, idx) => {
       const cx = margen + idx * spacing;
       const cy = 120;

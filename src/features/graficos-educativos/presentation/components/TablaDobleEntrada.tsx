@@ -1,17 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
-import { ConfiguracionGrafico } from '../../domain/types';
+import { GraficoTablaDobleEntrada } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 
-interface TablaDobleEntradaData extends ConfiguracionGrafico {
-  encabezadosColumnas?: string[];
-  encabezadosFilas?: string[];
-  datos?: (string | number)[][];
-  colorEncabezado?: string;
-}
-
 interface Props {
-  data: TablaDobleEntradaData;
+  data: GraficoTablaDobleEntrada;
 }
 
 /**

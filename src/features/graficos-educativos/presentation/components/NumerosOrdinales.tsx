@@ -28,11 +28,8 @@ const numerosOrdinalesTexto: Record<number, string> = {
  * Útil para enseñar secuencias, orden y posiciones
  */
 export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
-  const { elementos, mostrarTexto = false } = data;
+  const { elementos, mostrarTexto = false, orientacion = 'horizontal' } = data;
   const svgRef = useRef<SVGSVGElement>(null);
-  
-  // Siempre usar orientación horizontal
-  const orientacion = 'horizontal';
 
   // Mapeo de colores
   const colorMap: Record<ColorGrafico, string> = {

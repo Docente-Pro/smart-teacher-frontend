@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const RedesCuerpos: React.FC<Props> = ({ data }) => {
-  const { redes } = data;
+  const { redes, mostrarCuerpo3D = false, mostrarDobleces = false } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -93,10 +93,16 @@ export const RedesCuerpos: React.FC<Props> = ({ data }) => {
   }, [data]);
 
   const width = redes.length * 280 + 60;
+  const height = mostrarCuerpo3D ? 330 : 280;
 
   return (
-    <div className="redes-cuerpos-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', justifyContent: 'center' }}>
-      <svg ref={svgRef} viewBox={`0 0 ${width} 280`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
+    <div className="redes-cuerpos-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {mostrarDobleces && (
+        <p style={{ fontFamily: 'Comic Sans MS, cursive', fontSize: 12, color: '#64748b', marginBottom: 8 }}>
+          ✂️ Líneas de dobleces mostradas
+        </p>
+      )}
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
     </div>
   );
 };

@@ -252,8 +252,9 @@ export interface Figura {
   ancho?: number;
   alto?: number;
   radio?: number;
-  color: ColorGrafico;
+  color: ColorGrafico | string;
   etiqueta?: string;
+  dimensiones?: string; // Backend puede enviar "3cm", "4cm", etc.
 }
 
 export interface GraficoFigurasGeometricas extends ConfiguracionGrafico {

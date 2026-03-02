@@ -1,28 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
-import { ConfiguracionGrafico } from '../../domain/types';
+import { GraficoDiagramaDinero } from '../../domain/types';
 import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
 
-interface Billete {
-  tipo: 'billete';
-  valor: number;
-  cantidad: number;
-}
-
-interface Moneda {
-  tipo: 'moneda';
-  valor: number;
-  cantidad: number;
-}
-
-interface DiagramaDineroData extends ConfiguracionGrafico {
-  elementos: (Billete | Moneda)[];
-  moneda: 'S/' | '$' | '€';
-  mostrarTotal?: boolean;
-}
-
 interface Props {
-  data: DiagramaDineroData;
+  data: GraficoDiagramaDinero;
 }
 
 /**

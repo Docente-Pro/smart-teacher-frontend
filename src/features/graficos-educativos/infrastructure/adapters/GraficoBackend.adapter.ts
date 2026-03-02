@@ -61,20 +61,25 @@ export class GraficoBackendAdapter {
   }
 
   /**
-   * Verifica si los datos ya tienen el formato correcto
+   * Verifica si los datos ya tienen el formato correcto.
+   * Un gráfico es válido si tiene al menos `tipoGrafico`.
+   * Muchos tipos (38 de 59) NO usan `elementos[]` como campo principal
+   * — usan campos propios como `posiciones`, `sectores`, `series`, etc.
    */
   private static esFormatoCorrecto(datos: any): boolean {
     return (
       datos &&
       typeof datos === 'object' &&
-      'tipoGrafico' in datos &&
-      'elementos' in datos &&
-      Array.isArray(datos.elementos)
+      typeof datos.tipoGrafico === 'string' &&
+      datos.tipoGrafico.trim() !== ''
     );
   }
 
   /**
-   * Normaliza diferentes estructuras posibles del backend
+   * Normaliza diferentes estructuras posibles del backend.
+   * IMPORTANTE: Preserva TODAS las propiedades originales del objeto
+   * porque cada tipo de gráfico tiene sus campos específicos
+   * (posiciones, sectores, series, bloques, relojes, etc.)
    */
   private static normalizarEstructura(datos: any): ConfiguracionGrafico | null {
     // Caso 1: Los datos están envueltos en una propiedad 'grafico'
@@ -93,8 +98,16 @@ export class GraficoBackendAdapter {
     }
 
     // Caso 4: Tiene 'data' que contiene elementos
-    if (datos.data && Array.isArray(datos.data)) {
+    if (datos.data && Array.isArray(datos.data) && !datos.elementos) {
       datos.elementos = datos.data;
+    }
+
+    // Normalizar título si viene en inglés
+    if (datos.title && !datos.titulo) {
+      datos.titulo = datos.title;
+    }
+    if (datos.description && !datos.descripcion) {
+      datos.descripcion = datos.description;
     }
 
     // Validar que ahora tenga la estructura mínima
@@ -103,13 +116,9 @@ export class GraficoBackendAdapter {
       return null;
     }
 
-    return {
-      tipoGrafico: datos.tipoGrafico,
-      elementos: datos.elementos,
-      titulo: datos.titulo || datos.title,
-      descripcion: datos.descripcion || datos.description,
-      opciones: datos.opciones || datos.options || {}
-    };
+    // Devolver el objeto completo preservando TODAS las propiedades
+    // específicas de cada tipo (posiciones, sectores, series, etc.)
+    return datos as ConfiguracionGrafico;
   }
 
   /**
