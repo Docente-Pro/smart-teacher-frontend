@@ -41,7 +41,7 @@ const tiemposEstudio = [
   {
     id: 2,
     nombre: "Media",
-    descripcion: "1 hora",
+    descripcion: "45 min",
     duracion: "45 minutos",
     icon: Clock,
     gradient: "from-blue-500 to-cyan-500",
@@ -50,7 +50,7 @@ const tiemposEstudio = [
   {
     id: 3,
     nombre: "Larga",
-    descripcion: "2 horas",
+    descripcion: "90 min",
     duracion: "90 minutos",
     icon: Clock,
     gradient: "from-purple-500 to-pink-500",
