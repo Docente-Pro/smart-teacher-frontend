@@ -24,6 +24,7 @@ import DocTest from "@/pages/DocTest";
 import SesionViewer from "@/pages/SesionViewer";
 import GraficosPlayground from "@/pages/GraficosPlayground";
 import GraficosAreasPlayground from "@/pages/GraficosAreasPlayground";
+import { DevRoute } from "@/components/DevRoute";
 import CrearUnidad from "@/pages/CrearUnidad";
 import UnidadResult from "@/pages/UnidadResult";
 import UnidadSuscriptorResult from "@/pages/UnidadSuscriptorResult";
@@ -277,11 +278,19 @@ export const routes: IRouteToCreate[] = [
   },
   {
     path: "/graficos",
-    element: <GraficosPlayground />,
+    element: (
+      <DevRoute>
+        <GraficosPlayground />
+      </DevRoute>
+    ),
   },
   {
     path: "/graficos-areas",
-    element: <GraficosAreasPlayground />,
+    element: (
+      <DevRoute>
+        <GraficosAreasPlayground />
+      </DevRoute>
+    ),
   },
 
 ];
