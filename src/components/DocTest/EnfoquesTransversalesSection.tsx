@@ -19,11 +19,13 @@ export function EnfoquesTransversalesSection({ enfoques, sectionColor = "#E8F5E9
       <tbody>
         <tr>
           <th style={{width: "30%", backgroundColor: sectionColor}}>ENFOQUES TRANSVERSALES</th>
-          <th style={{width: "70%", backgroundColor: sectionColor}}>ACTITUDES O ACCIONES OBSERVABLES</th>
+          <th style={{width: "25%", backgroundColor: sectionColor}}>VALOR</th>
+          <th style={{width: "45%", backgroundColor: sectionColor}}>ACTITUDES O ACCIONES OBSERVABLES</th>
         </tr>
         {enfoques.map((enfoque, idx) => (
           <tr key={idx}>
             <td style={{fontSize: "9pt", fontWeight: "bold"}}>{enfoque.nombre}</td>
+            <td style={{fontSize: "9pt"}}>{enfoque.valor || "–"}</td>
             <td style={{fontSize: "9pt"}}>{enfoque.actitudesObservables}</td>
           </tr>
         ))}

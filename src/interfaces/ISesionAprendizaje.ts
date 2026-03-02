@@ -42,6 +42,7 @@ export type IPropositoSesion = string;
 
 export interface IEnfoqueTransversal {
   nombre: string;
+  valor?: string;
   actitudesObservables: string;
 }
 
