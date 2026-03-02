@@ -16,6 +16,7 @@ import Step3EnfoquesComplementos from "@/components/StepsCrearUnidad/Step3Enfoqu
 import Step4SecuenciaFinal from "@/components/StepsCrearUnidad/Step4SecuenciaFinal";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { TipoUnidad } from "@/interfaces/IUnidad";
+import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
 
 const STEPS = [
   { number: 1, title: "Datos Generales", description: "Configuración" },
@@ -51,6 +52,9 @@ function CrearUnidad() {
     setTipoUnidad,
     resetUnidad,
   } = useUnidadStore();
+
+  // Scroll al tope cada vez que cambia el paso
+  useScrollTopOnStep(currentStep);
 
   const [usuarioData, setUsuarioData] = useState<IUsuario | null>(null);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);

@@ -10,10 +10,12 @@ import { encrypt } from "@/utils/cryptoUtil";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
 
 function CuestionarioInicial() {
   const { user } = useAuth0();
   const [currentStep, setCurrentStep] = useState<number>(1);
+  useScrollTopOnStep(currentStep);
   const [valuesOfUser, setValuesOfUser] = useState<IUsuarioToCreate>(initialStateCuestionarioInicial);
   const [loading, setLoading] = useState<boolean>(true);
   const [redirectToHome, setRedirectToHome] = useState<boolean>(false);

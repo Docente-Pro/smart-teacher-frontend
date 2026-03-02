@@ -16,6 +16,7 @@ import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useSesionStore } from "@/store/sesion.store";
 import { initialStateSesion } from "@/constants/initialStateSesion";
 import { useNavigate } from "react-router";
+import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
 
 const STEPS = [
   { number: 1, title: "Datos Generales", description: "Información básica" },
@@ -36,6 +37,9 @@ function CuestionarioSesion() {
   const [usuarioFromState, setUsuarioFromState] = useState<IUsuario | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [maxStepReached, setMaxStepReached] = useState<number>(1);
+
+  // Scroll al tope cada vez que cambia el paso
+  useScrollTopOnStep(currentStep);
 
   // Actualizar maxStepReached cuando se avanza
   const handleSetStep = (step: number) => {
