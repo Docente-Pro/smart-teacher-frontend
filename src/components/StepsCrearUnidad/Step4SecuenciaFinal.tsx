@@ -18,7 +18,6 @@ import {
   Trash2,
   Download,
   Sun,
-  Moon,
   Users,
   BookOpen,
 } from "lucide-react";
@@ -432,7 +431,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
                             {/* Segundo Bloque */}
                             <div className="flex items-start gap-2 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg p-3 border border-indigo-100 dark:border-indigo-900">
-                              <Moon className="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
+                              <BookOpen className="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-0.5">
                                   Segundo Bloque — {dia.turnoTarde?.area}
