@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoDescomposicionNumero } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { calcDynamicSpacing, createSVGText, getWrappedTextExtraHeight } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoDescomposicionNumero;
@@ -16,7 +17,15 @@ export const DescomposicionNumero: React.FC<Props> = ({ data }) => {
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
 
-    const width = Math.max(partes.length * 130, 400);
+    const etiquetas = partes.map(p => p.etiqueta || '');
+    const { spacing: partSpacing } = calcDynamicSpacing({
+      labels: etiquetas,
+      minSpacing: 130,
+      fontSize: 12,
+      paddingExtra: 30,
+      maxCharsPerLine: 18,
+    });
+    const width = Math.max(partes.length * partSpacing, 400);
     const centerX = width / 2;
 
     // Si mostrarArbol=false, layout lineal sin líneas de conexión
@@ -45,7 +54,7 @@ export const DescomposicionNumero: React.FC<Props> = ({ data }) => {
     svgRef.current.appendChild(numText);
 
     // Líneas y partes
-    const partWidth = width / partes.length;
+    const partWidth = Math.max(width / partes.length, partSpacing);
     const yParts = 160;
 
     partes.forEach((parte, idx) => {
@@ -85,15 +94,14 @@ export const DescomposicionNumero: React.FC<Props> = ({ data }) => {
       svgRef.current!.appendChild(valText);
 
       // Etiqueta
-      const etiqText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      etiqText.setAttribute('x', px.toString());
-      etiqText.setAttribute('y', (yParts + 50).toString());
-      etiqText.setAttribute('text-anchor', 'middle');
-      etiqText.setAttribute('font-size', '12');
-      etiqText.setAttribute('font-family', 'Comic Sans MS, cursive');
-      etiqText.setAttribute('fill', '#64748b');
-      etiqText.textContent = parte.etiqueta;
-      svgRef.current!.appendChild(etiqText);
+      if (parte.etiqueta) {
+        const etiqEl = createSVGText({
+          x: px, y: yParts + 50, text: parte.etiqueta,
+          fontSize: 12, fill: '#64748b',
+          maxCharsPerLine: 18, lineHeight: 14,
+        });
+        svgRef.current!.appendChild(etiqEl);
+      }
 
       // Operador
       if (idx < partes.length - 1) {
@@ -111,11 +119,17 @@ export const DescomposicionNumero: React.FC<Props> = ({ data }) => {
     });
   }, [data]);
 
-  const width = Math.max(partes.length * 130, 400);
+  const etiquetas = partes.map(p => p.etiqueta || '');
+  const { spacing: partSpacing } = calcDynamicSpacing({
+    labels: etiquetas, minSpacing: 130, fontSize: 12, paddingExtra: 30, maxCharsPerLine: 18,
+  });
+  const width = Math.max(partes.length * partSpacing, 400);
+  const extraH = getWrappedTextExtraHeight(etiquetas, 18, 14);
+  const svgHeight = 220 + extraH;
 
   return (
     <div className="descomposicion-numero-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', justifyContent: 'center' }}>
-      <svg ref={svgRef} viewBox={`0 0 ${width} 220`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${svgHeight}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
     </div>
   );
 };

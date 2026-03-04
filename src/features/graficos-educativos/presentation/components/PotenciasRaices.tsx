@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoPotenciasRaices } from '../../domain/types';
 import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { estimateTextWidth } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoPotenciasRaices;
@@ -21,8 +22,15 @@ export const PotenciasRaices: React.FC<Props> = ({ data }) => {
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
 
-    const blockW = 200;
     const margen = 30;
+    // Ancho dinámico por bloque según expresión más larga
+    const exprTexts = expresionesFiltradas.map(e =>
+      e.tipo === 'potencia' ? `${e.base}` : `\u221A${e.base} (\u207F${e.exponente})`
+    );
+    const resultTexts = expresionesFiltradas.map(e => `= ${e.resultado}`);
+    const maxExprW = Math.max(...exprTexts.map(t => estimateTextWidth(t, 22)));
+    const maxResW = Math.max(...resultTexts.map(t => estimateTextWidth(t, 18)));
+    const blockW = Math.max(200, Math.max(maxExprW, maxResW) + 60);
 
     expresionesFiltradas.forEach((expr, idx) => {
       const x = margen + idx * blockW;
@@ -88,7 +96,15 @@ export const PotenciasRaices: React.FC<Props> = ({ data }) => {
     });
   }, [data, expresionesFiltradas]);
 
-  const width = expresionesFiltradas.length * 200 + 60;
+  // Ancho dinámico por bloque
+  const exprTextsR = expresionesFiltradas.map(e =>
+    e.tipo === 'potencia' ? `${e.base}` : `\u221A${e.base} (\u207F${e.exponente})`
+  );
+  const resultTextsR = expresionesFiltradas.map(e => `= ${e.resultado}`);
+  const maxExprWR = Math.max(0, ...exprTextsR.map(t => estimateTextWidth(t, 22)));
+  const maxResWR = Math.max(0, ...resultTextsR.map(t => estimateTextWidth(t, 18)));
+  const dynBlockW = Math.max(200, Math.max(maxExprWR, maxResWR) + 60);
+  const width = expresionesFiltradas.length * dynBlockW + 60;
   const height = mostrarVisualizacion ? 200 : 100;
 
   return (

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoCircular as GraficoCircularType } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { estimateTextWidth, createSVGText } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoCircularType;
@@ -91,23 +92,25 @@ export const GraficoCircularComp: React.FC<Props> = ({ data }) => {
         });
         svgRef.current!.appendChild(box);
 
-        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        t.setAttribute('x', (lx + 24).toString());
-        t.setAttribute('y', (ly + 2).toString());
-        t.setAttribute('font-size', '13');
-        t.setAttribute('font-family', 'Comic Sans MS, cursive');
-        t.setAttribute('fill', '#1e293b');
-        t.textContent = `${sector.etiqueta}: ${sector.valor}`;
-        svgRef.current!.appendChild(t);
+        const legendEl = createSVGText({
+          x: lx + 24, y: ly + 2, text: `${sector.etiqueta}: ${sector.valor}`,
+          fontSize: 13, fill: '#1e293b',
+          textAnchor: 'start', maxCharsPerLine: 30, lineHeight: 15,
+        });
+        svgRef.current!.appendChild(legendEl);
       });
     }
   }, [data]);
 
+  // Ancho dinámico según leyenda
+  const legendTexts = sectores.map(s => `${s.etiqueta}: ${s.valor}`);
+  const maxLegendW = Math.max(0, ...legendTexts.map(t => estimateTextWidth(t, 13)));
+  const svgWidth = Math.max(400, 24 + 24 + maxLegendW + 20);
   const height = 180 + 140 + (mostrarLeyenda ? 30 + sectores.length * 25 : 20);
 
   return (
     <div className="grafico-circular-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', justifyContent: 'center' }}>
-      <svg ref={svgRef} viewBox={`0 0 400 ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: '400px', height: 'auto' }} />
+      <svg ref={svgRef} viewBox={`0 0 ${svgWidth} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${svgWidth}px`, height: 'auto' }} />
     </div>
   );
 };

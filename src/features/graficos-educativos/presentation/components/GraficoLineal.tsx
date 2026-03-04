@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoLineal as GraficoLinealType } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { calcDynamicSpacing, createSVGText, getWrappedTextExtraHeight } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoLinealType;
@@ -19,8 +20,22 @@ export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
     svgRef.current.innerHTML = '';
 
     const padding = 60;
-    const chartW = 500;
-    const chartH = 300;
+    // Obtener etiquetas X
+    const seriesNorm0 = series.map(s => {
+      if (s.puntos && Array.isArray(s.puntos)) return s;
+      return { ...s, puntos: [] };
+    });
+    const xLabelsForSize = ejeX?.etiquetas || seriesNorm0[0].puntos.map((p: {x: number | string; y: number}) => String(p.x));
+    const { spacing: xSpacing } = calcDynamicSpacing({
+      labels: xLabelsForSize,
+      minSpacing: 60,
+      fontSize: 11,
+      paddingExtra: 20,
+      maxCharsPerLine: 14,
+    });
+    const extraLabelH = getWrappedTextExtraHeight(xLabelsForSize, 14, 13);
+    const chartW = Math.max(500, padding * 2 + (xLabelsForSize.length - 1) * xSpacing + 40);
+    const chartH = 300 + extraLabelH;
     const axisX = padding;
     const axisY = chartH - padding;
 
@@ -65,15 +80,12 @@ export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
     const xStep = (chartW - padding * 2) / Math.max(numPoints - 1, 1);
     allXLabels.forEach((label: string, i: number) => {
       const x = axisX + i * xStep;
-      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      t.setAttribute('x', x.toString());
-      t.setAttribute('y', (axisY + 20).toString());
-      t.setAttribute('text-anchor', 'middle');
-      t.setAttribute('font-size', '11');
-      t.setAttribute('font-family', 'Comic Sans MS, cursive');
-      t.setAttribute('fill', '#64748b');
-      t.textContent = label;
-      svgRef.current!.appendChild(t);
+      const labelEl = createSVGText({
+        x, y: axisY + 20, text: label,
+        fontSize: 11, fill: '#64748b',
+        maxCharsPerLine: 14, lineHeight: 13,
+      });
+      svgRef.current!.appendChild(labelEl);
     });
 
     // Series
@@ -145,9 +157,22 @@ export const GraficoLinealComp: React.FC<Props> = ({ data }) => {
     }
   }, [data]);
 
+  // Calcular dimensiones dinámicas para el render
+  const seriesForSize = series.map(s => {
+    if (s.puntos && Array.isArray(s.puntos)) return s;
+    return { ...s, puntos: [] };
+  });
+  const xLabelsRender = ejeX?.etiquetas || (seriesForSize[0]?.puntos || []).map((p: {x: number | string; y: number}) => String(p.x));
+  const { spacing: xSpRender } = calcDynamicSpacing({
+    labels: xLabelsRender, minSpacing: 60, fontSize: 11, paddingExtra: 20, maxCharsPerLine: 14,
+  });
+  const extraLabelHRender = getWrappedTextExtraHeight(xLabelsRender, 14, 13);
+  const renderW = Math.max(500, 120 + (xLabelsRender.length - 1) * xSpRender + 40);
+  const renderH = 300 + extraLabelHRender;
+
   return (
     <div className="grafico-lineal-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', justifyContent: 'center' }}>
-      <svg ref={svgRef} viewBox="0 0 500 300" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: '500px', height: 'auto' }} />
+      <svg ref={svgRef} viewBox={`0 0 ${renderW} ${renderH}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${renderW}px`, height: 'auto' }} />
     </div>
   );
 };

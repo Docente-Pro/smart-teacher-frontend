@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoConversionMedidas } from '../../domain/types';
 import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { estimateTextWidth } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoConversionMedidas;
@@ -17,7 +18,13 @@ export const ConversionMedidas: React.FC<Props> = ({ data }) => {
     svgRef.current.innerHTML = '';
 
     const margen = 30;
-    const boxW = 120;
+    // Ancho dinámico de cajas según contenido
+    const allTexts = conversiones.flatMap(c => [
+      `${c.desde.valor} ${c.desde.unidad}`,
+      `${c.hasta.valor} ${c.hasta.unidad}`,
+    ]);
+    const maxTextW = Math.max(...allTexts.map(t => estimateTextWidth(t, 14)));
+    const boxW = Math.max(120, maxTextW + 30);
     const boxH = 50;
     const arrowW = 80;
     const startY = mostrarEscalera ? 80 : 40;
@@ -97,7 +104,14 @@ export const ConversionMedidas: React.FC<Props> = ({ data }) => {
     });
   }, [data]);
 
-  const width = 420;
+  // Ancho dinámico de cajas
+  const allTexts = conversiones.flatMap(c => [
+    `${c.desde.valor} ${c.desde.unidad}`,
+    `${c.hasta.valor} ${c.hasta.unidad}`,
+  ]);
+  const maxTextW = Math.max(...allTexts.map(t => estimateTextWidth(t, 14)));
+  const dynBoxW = Math.max(120, maxTextW + 30);
+  const width = 30 + dynBoxW + 10 + 80 + 10 + dynBoxW + 30;
   const height = conversiones.length * 80 + 60;
 
   return (

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoCirculosFraccion } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { calcDynamicSpacing, createSVGText, getWrappedTextExtraHeight } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoCirculosFraccion;
@@ -15,6 +16,22 @@ export const CirculosFraccion: React.FC<Props> = ({ data }) => {
   const { elementos, mostrarEtiquetas = true } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
+  const labels = elementos.map(e => e.etiqueta || `${e.numerador}/${e.denominador}`);
+  const { spacing: espacioX } = calcDynamicSpacing({
+    labels,
+    minSpacing: 180,
+    fontSize: 14,
+    paddingExtra: 40,
+    maxCharsPerLine: 20,
+  });
+  const espacioY = 200;
+  const margen = Math.max(80, espacioX / 2);
+  const circulosPorFila = Math.min(elementos.length, 4);
+  const extraH = getWrappedTextExtraHeight(labels, 20);
+
+  const width = Math.min(elementos.length, circulosPorFila) * espacioX + margen + 20;
+  const height = Math.ceil(elementos.length / circulosPorFila) * espacioY + 100 + extraH;
+
   useEffect(() => {
     if (!svgRef.current) return;
 
@@ -22,11 +39,6 @@ export const CirculosFraccion: React.FC<Props> = ({ data }) => {
     svgRef.current.innerHTML = '';
 
     const radioCirculo = 60;
-    const espacioX = 180;
-    const espacioY = 200;
-    const margen = 80;
-    
-    const circulosPorFila = Math.min(elementos.length, 4);
 
     elementos.forEach((fraccion, idx) => {
       const fila = Math.floor(idx / circulosPorFila);
@@ -97,23 +109,16 @@ export const CirculosFraccion: React.FC<Props> = ({ data }) => {
         svgRef.current!.appendChild(labelText);
 
         if (fraccion.etiqueta) {
-          const etiqueta = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          etiqueta.setAttribute('x', centerX.toString());
-          etiqueta.setAttribute('y', (centerY + radioCirculo + 45).toString());
-          etiqueta.setAttribute('text-anchor', 'middle');
-          etiqueta.setAttribute('font-size', '14');
-          etiqueta.setAttribute('font-family', 'Comic Sans MS, cursive');
-          etiqueta.setAttribute('fill', '#64748b');
-          etiqueta.textContent = fraccion.etiqueta;
+          const etiqueta = createSVGText({
+            x: centerX, y: centerY + radioCirculo + 45, text: fraccion.etiqueta,
+            fontSize: 14, fill: '#64748b', maxCharsPerLine: 20, lineHeight: 16,
+          });
           svgRef.current!.appendChild(etiqueta);
         }
       }
     });
 
-  }, [data]);
-
-  const width = Math.min(elementos.length, 4) * 180 + 100;
-  const height = Math.ceil(elementos.length / 4) * 200 + 100;
+  }, [data, espacioX, margen]);
 
   return (
     <div className="circulos-fraccion-container">

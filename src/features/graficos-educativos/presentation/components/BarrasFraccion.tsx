@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoBarrasFraccion } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { estimateTextWidth, createSVGText, getWrappedTextExtraHeight } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoBarrasFraccion;
@@ -82,25 +83,28 @@ export const BarrasFraccion: React.FC<Props> = ({ data }) => {
 
       // Etiqueta personalizada
       if (fraccion.etiqueta) {
-        const etiqueta = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        etiqueta.setAttribute('x', margen.toString());
-        etiqueta.setAttribute('y', (y - 8).toString());
-        etiqueta.setAttribute('text-anchor', 'start');
-        etiqueta.setAttribute('font-size', '14');
-        etiqueta.setAttribute('font-family', 'Comic Sans MS, cursive');
-        etiqueta.setAttribute('fill', '#64748b');
-        etiqueta.textContent = fraccion.etiqueta;
-        svgRef.current!.appendChild(etiqueta);
+        const etiquetaEl = createSVGText({
+          x: margen, y: y - 8, text: fraccion.etiqueta,
+          fontSize: 14, fill: '#64748b',
+          textAnchor: 'start', maxCharsPerLine: 30, lineHeight: 16,
+        });
+        svgRef.current!.appendChild(etiquetaEl);
       }
     });
 
   }, [data]);
 
-  const height = 60 + (elementos.length * 80);
+  // Ancho dinámico según etiquetas de fracción
+  const fracLabels = elementos.map(f => `${f.numerador}/${f.denominador}`);
+  const maxFracW = Math.max(...fracLabels.map(l => estimateTextWidth(l, 20)));
+  const svgWidth = Math.max(500, 60 + 300 + 20 + maxFracW + 20);
+  const etiquetas = elementos.map(f => f.etiqueta || '');
+  const extraH = getWrappedTextExtraHeight(etiquetas, 30, 16);
+  const height = 60 + (elementos.length * 80) + extraH;
 
   return (
     <div className="barras-fraccion-container">
-      <svg ref={svgRef} viewBox={`0 0 500 ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: '500px' }} />
+      <svg ref={svgRef} viewBox={`0 0 ${svgWidth} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${svgWidth}px` }} />
     </div>
   );
 };

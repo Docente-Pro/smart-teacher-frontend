@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoMedidasComparacion } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { estimateTextWidth, createSVGText } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoMedidasComparacion;
@@ -25,7 +26,10 @@ export const MedidasComparacion: React.FC<Props> = ({ data }) => {
     const anchoBarra = 400;
     const altoBarra = 50;
     const espacioEntre = 80;
-    const margen = 100;
+    // Margen izquierdo dinámico según la etiqueta más larga
+    const allLabels = elementos.map((m, i) => m.etiqueta || `Medida ${i + 1}`);
+    const maxLabelW = Math.max(...allLabels.map(l => estimateTextWidth(l, 14)));
+    const margen = Math.max(100, maxLabelW + 20);
 
     // Encontrar el valor máximo para escalar
     const valorMax = Math.max(...elementos.map(e => e.valor));
@@ -50,16 +54,12 @@ export const MedidasComparacion: React.FC<Props> = ({ data }) => {
 
       // Etiqueta de la medida
       const etiqueta = medida.etiqueta || `Medida ${idx + 1}`;
-      const labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      labelText.setAttribute('x', (margen - 10).toString());
-      labelText.setAttribute('y', (y + altoBarra / 2 + 5).toString());
-      labelText.setAttribute('text-anchor', 'end');
-      labelText.setAttribute('font-size', '14');
-      labelText.setAttribute('font-weight', 'bold');
-      labelText.setAttribute('font-family', 'Comic Sans MS, cursive');
-      labelText.setAttribute('fill', '#1e293b');
-      labelText.textContent = etiqueta;
-      svgRef.current!.appendChild(labelText);
+      const labelEl = createSVGText({
+        x: margen - 10, y: y + altoBarra / 2 + 5, text: etiqueta,
+        fontSize: 14, fontWeight: '700', fill: '#1e293b',
+        textAnchor: 'end', maxCharsPerLine: 20, lineHeight: 16,
+      });
+      svgRef.current!.appendChild(labelEl);
 
       // Valor y unidad
       const valorText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -103,11 +103,15 @@ export const MedidasComparacion: React.FC<Props> = ({ data }) => {
 
   }, [data]);
 
+  const allLabels = elementos.map((m, i) => m.etiqueta || `Medida ${i + 1}`);
+  const maxLabelW = Math.max(...allLabels.map(l => estimateTextWidth(l, 14)));
+  const dynamicMargen = Math.max(100, maxLabelW + 20);
+  const svgWidth = dynamicMargen + 400 + 150;
   const height = 100 + (elementos.length * 80);
 
   return (
     <div className="medidas-comparacion-container">
-      <svg ref={svgRef} viewBox={`0 0 650 ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: '650px' }} />
+      <svg ref={svgRef} viewBox={`0 0 ${svgWidth} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${svgWidth}px` }} />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoDiagramaVenn } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { estimateTextWidth, createSVGText } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoDiagramaVenn;
@@ -63,26 +64,20 @@ export const DiagramaVenn: React.FC<Props> = ({ data }) => {
       }));
 
       // Nombre conjunto 1
-      const nombre1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      nombre1.setAttribute('x', (centerX1 - 40).toString());
-      nombre1.setAttribute('y', '50');
-      nombre1.setAttribute('font-size', '16');
-      nombre1.setAttribute('font-weight', 'bold');
-      nombre1.setAttribute('font-family', 'Comic Sans MS, cursive');
-      nombre1.setAttribute('fill', color1);
-      nombre1.textContent = elementos[0].nombre;
-      svgRef.current.appendChild(nombre1);
+      const nombre1El = createSVGText({
+        x: centerX1 - 40, y: 50, text: elementos[0].nombre,
+        fontSize: 16, fontWeight: '700', fill: color1,
+        textAnchor: 'start', maxCharsPerLine: 18, lineHeight: 18,
+      });
+      svgRef.current.appendChild(nombre1El);
 
       // Nombre conjunto 2
-      const nombre2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      nombre2.setAttribute('x', (centerX2 + 20).toString());
-      nombre2.setAttribute('y', '50');
-      nombre2.setAttribute('font-size', '16');
-      nombre2.setAttribute('font-weight', 'bold');
-      nombre2.setAttribute('font-family', 'Comic Sans MS, cursive');
-      nombre2.setAttribute('fill', color2);
-      nombre2.textContent = elementos[1].nombre;
-      svgRef.current.appendChild(nombre2);
+      const nombre2El = createSVGText({
+        x: centerX2 + 20, y: 50, text: elementos[1].nombre,
+        fontSize: 16, fontWeight: '700', fill: color2,
+        textAnchor: 'start', maxCharsPerLine: 18, lineHeight: 18,
+      });
+      svgRef.current.appendChild(nombre2El);
 
       // Elementos únicos del conjunto 1
       const unicosSet1 = elementos[0].elementos.filter(e => !interseccion.includes(e));
@@ -202,7 +197,10 @@ export const DiagramaVenn: React.FC<Props> = ({ data }) => {
 
   }, [data]);
 
-  const width = elementos.length === 3 ? 400 : 340;
+  // Ancho dinámico según nombres de conjuntos
+  const maxNameW = Math.max(...elementos.map(e => estimateTextWidth(e.nombre, 16)));
+  const extraW = Math.max(0, maxNameW - 80);
+  const width = (elementos.length === 3 ? 400 : 340) + extraW;
   const height = elementos.length === 3 ? 350 : 300;
 
   return (

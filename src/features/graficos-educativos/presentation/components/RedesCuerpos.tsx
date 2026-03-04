@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoRedesCuerpos } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { estimateTextWidth, createSVGText } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoRedesCuerpos;
@@ -17,23 +18,23 @@ export const RedesCuerpos: React.FC<Props> = ({ data }) => {
     svgRef.current.innerHTML = '';
 
     const margen = 30;
+    // Espaciado dinámico según títulos de cuerpos
+    const titulos = redes.map(r => `Red: ${r.cuerpo}`);
+    const maxTitleW = Math.max(...titulos.map(t => estimateTextWidth(t, 15)));
+    const netSpacing = Math.max(280, maxTitleW + 100);
 
     redes.forEach((red, redIdx) => {
-      const offsetX = margen + redIdx * 280;
+      const offsetX = margen + redIdx * netSpacing;
       const offsetY = 40;
       const color = resolveColor('azul');
 
       // Título del cuerpo
-      const titulo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      titulo.setAttribute('x', (offsetX + 100).toString());
-      titulo.setAttribute('y', '25');
-      titulo.setAttribute('text-anchor', 'middle');
-      titulo.setAttribute('font-size', '15');
-      titulo.setAttribute('font-weight', 'bold');
-      titulo.setAttribute('font-family', 'Comic Sans MS, cursive');
-      titulo.setAttribute('fill', resolveColor('azul'));
-      titulo.textContent = `Red: ${red.cuerpo}`;
-      svgRef.current!.appendChild(titulo);
+      const tituloEl = createSVGText({
+        x: offsetX + 100, y: 25, text: `Red: ${red.cuerpo}`,
+        fontSize: 15, fontWeight: '700', fill: resolveColor('azul'),
+        maxCharsPerLine: 22, lineHeight: 17,
+      });
+      svgRef.current!.appendChild(tituloEl);
 
       // Dibujar red predefinida según tipo de cuerpo
       if (red.cuerpo === 'cubo') {
@@ -92,7 +93,10 @@ export const RedesCuerpos: React.FC<Props> = ({ data }) => {
     });
   }, [data]);
 
-  const width = redes.length * 280 + 60;
+  const titulosRender = redes.map(r => `Red: ${r.cuerpo}`);
+  const maxTitleWR = Math.max(0, ...titulosRender.map(t => estimateTextWidth(t, 15)));
+  const dynNetSpacing = Math.max(280, maxTitleWR + 100);
+  const width = redes.length * dynNetSpacing + 60;
   const height = mostrarCuerpo3D ? 330 : 280;
 
   return (

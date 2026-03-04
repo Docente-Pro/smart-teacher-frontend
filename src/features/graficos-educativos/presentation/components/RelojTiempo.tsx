@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoRelojTiempo } from '../../domain/types';
 import { roughColors, defaultRoughConfig } from '../hooks/useRoughSVG';
+import { calcDynamicSpacing, createSVGText, getWrappedTextExtraHeight } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoRelojTiempo;
@@ -11,14 +12,22 @@ export const RelojTiempo: React.FC<Props> = ({ data }) => {
   const { relojes, formato = '12h', mostrarDigital = true, tipo } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
+  const labels = relojes.map(r => r.etiqueta || '');
+  const { spacing, margin: margen } = calcDynamicSpacing({
+    labels,
+    minSpacing: 200,
+    fontSize: 13,
+    paddingExtra: 50,
+    maxCharsPerLine: 22,
+  });
+  const extraH = getWrappedTextExtraHeight(labels, 22);
+
   useEffect(() => {
     if (!svgRef.current || relojes.length === 0) return;
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
 
     const radio = 70;
-    const spacing = 200;
-    const margen = 100;
 
     relojes.forEach((reloj, idx) => {
       const cx = margen + idx * spacing;
@@ -87,21 +96,17 @@ export const RelojTiempo: React.FC<Props> = ({ data }) => {
 
       // Etiqueta
       if (reloj.etiqueta) {
-        const et = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        et.setAttribute('x', cx.toString());
-        et.setAttribute('y', (cy + radio + 45).toString());
-        et.setAttribute('text-anchor', 'middle');
-        et.setAttribute('font-size', '13');
-        et.setAttribute('font-family', 'Comic Sans MS, cursive');
-        et.setAttribute('fill', '#64748b');
-        et.textContent = reloj.etiqueta;
+        const et = createSVGText({
+          x: cx, y: cy + radio + 45, text: reloj.etiqueta,
+          fontSize: 13, fill: '#64748b', maxCharsPerLine: 22, lineHeight: 15,
+        });
         svgRef.current!.appendChild(et);
       }
     });
-  }, [data]);
+  }, [data, spacing, margen]);
 
-  const width = relojes.length * 200 + 50;
-  const height = tipo ? 275 : 250;
+  const width = relojes.length * spacing + margen;
+  const height = (tipo ? 275 : 250) + extraH;
 
   return (
     <div className="reloj-tiempo-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

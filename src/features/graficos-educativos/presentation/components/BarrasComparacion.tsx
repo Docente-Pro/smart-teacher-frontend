@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoBarrasComparacion } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { calcDynamicSpacing, createSVGText } from '../utils/svgTextUtils';
 import '../styles/BarrasComparacion.css';
 
 interface Props {
@@ -35,8 +36,17 @@ export const BarrasComparacion: React.FC<Props> = ({ data }) => {
 
     const padding = 60;
     const chartHeight = 400;
-    const barWidth = 60;
-    const barSpacing = 40;
+    // Spacing dinámico para barras según etiquetas
+    const barLabels = elementos.map(e => `${e.icono || ''} ${e.etiqueta}`);
+    const { spacing: barTotalSpacing } = calcDynamicSpacing({
+      labels: barLabels,
+      minSpacing: 100,
+      fontSize: 13,
+      paddingExtra: 20,
+      maxCharsPerLine: 14,
+    });
+    const barWidth = Math.max(60, barTotalSpacing * 0.6);
+    const barSpacing = barTotalSpacing - barWidth;
     const chartWidth = elementos.length * (barWidth + barSpacing) + padding * 2;
     const axisX = padding;
     const axisY = chartHeight - padding;
@@ -130,15 +140,13 @@ export const BarrasComparacion: React.FC<Props> = ({ data }) => {
       svgRef.current?.appendChild(valueText);
 
       // Etiqueta debajo del eje X
-      const labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      labelText.setAttribute('x', (barX + barWidth / 2).toString());
-      labelText.setAttribute('y', (axisY + 25).toString());
-      labelText.setAttribute('text-anchor', 'middle');
-      labelText.setAttribute('font-size', '13');
-      labelText.setAttribute('fill', '#2C3E50');
-      labelText.setAttribute('class', 'rough-text');
-      labelText.textContent = `${barra.icono || ''} ${barra.etiqueta}`;
-      svgRef.current?.appendChild(labelText);
+      const labelEl = createSVGText({
+        x: barX + barWidth / 2, y: axisY + 25,
+        text: `${barra.icono || ''} ${barra.etiqueta}`,
+        fontSize: 13, fill: '#2C3E50', maxCharsPerLine: 14, lineHeight: 15,
+      });
+      labelEl.setAttribute('class', 'rough-text');
+      svgRef.current?.appendChild(labelEl);
     });
 
     const svgWidth = chartWidth;

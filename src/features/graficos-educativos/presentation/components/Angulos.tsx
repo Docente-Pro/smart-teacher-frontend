@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoAngulos } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { calcDynamicSpacing, createSVGText, getWrappedTextExtraHeight } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoAngulos;
@@ -11,13 +12,20 @@ export const Angulos: React.FC<Props> = ({ data }) => {
   const { angulos, mostrarTransportador = false, mostrarClasificacion = true } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
+  const labels = angulos.map(a => a.etiqueta || '');
+  const { spacing, margin: margen } = calcDynamicSpacing({
+    labels,
+    minSpacing: 200,
+    fontSize: 12,
+    paddingExtra: 50,
+    maxCharsPerLine: 22,
+  });
+  const extraH = getWrappedTextExtraHeight(labels, 22);
+
   useEffect(() => {
     if (!svgRef.current || angulos.length === 0) return;
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
-
-    const spacing = 200;
-    const margen = 100;
     const armLength = 70;
 
     // Transportador de fondo si está activo
@@ -136,24 +144,21 @@ export const Angulos: React.FC<Props> = ({ data }) => {
 
       // Etiqueta
       if (ang.etiqueta) {
-        const et = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        et.setAttribute('x', cx.toString());
-        et.setAttribute('y', '220');
-        et.setAttribute('text-anchor', 'middle');
-        et.setAttribute('font-size', '12');
-        et.setAttribute('font-family', 'Comic Sans MS, cursive');
-        et.setAttribute('fill', '#64748b');
-        et.textContent = ang.etiqueta;
+        const et = createSVGText({
+          x: cx, y: 220, text: ang.etiqueta,
+          fontSize: 12, fill: '#64748b', maxCharsPerLine: 22, lineHeight: 14,
+        });
         svgRef.current!.appendChild(et);
       }
     });
-  }, [data]);
+  }, [data, spacing, margen]);
 
-  const width = angulos.length * 200 + 60;
+  const width = angulos.length * spacing + margen;
+  const svgHeight = 240 + extraH;
 
   return (
     <div className="angulos-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', justifyContent: 'center' }}>
-      <svg ref={svgRef} viewBox={`0 0 ${width} 240`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${svgHeight}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', maxWidth: `${width}px`, height: 'auto' }} />
     </div>
   );
 };

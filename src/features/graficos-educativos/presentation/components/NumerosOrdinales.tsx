@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoNumerosOrdinales, ColorGrafico } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { calcDynamicSpacing, createSVGText, getWrappedTextExtraHeight } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoNumerosOrdinales;
@@ -163,18 +164,16 @@ export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
 
       // Etiqueta personalizada debajo (solo si el elemento tiene etiqueta)
       if (elemento.etiqueta) {
-        const textoDescriptivo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         const yTexto = orientacion === 'horizontal' ? y + alto + 24 : y + alto / 2;
         const xTexto = orientacion === 'horizontal' ? x + ancho / 2 : x + ancho + 15;
+        const anchor = orientacion === 'horizontal' ? 'middle' : 'start';
         
-        textoDescriptivo.setAttribute('x', xTexto.toString());
-        textoDescriptivo.setAttribute('y', yTexto.toString());
-        textoDescriptivo.setAttribute('text-anchor', orientacion === 'horizontal' ? 'middle' : 'start');
-        textoDescriptivo.setAttribute('font-size', '16');
-        textoDescriptivo.setAttribute('font-weight', '700');
-        textoDescriptivo.setAttribute('font-family', 'Arial, sans-serif');
-        textoDescriptivo.setAttribute('fill', '#1e293b');
-        textoDescriptivo.textContent = elemento.etiqueta;
+        const textoDescriptivo = createSVGText({
+          x: xTexto, y: yTexto, text: elemento.etiqueta,
+          fontSize: 16, fontWeight: '700', fontFamily: 'Arial, sans-serif',
+          fill: '#1e293b', textAnchor: anchor as 'start' | 'middle' | 'end',
+          maxCharsPerLine: 16, lineHeight: 18,
+        });
         svgRef.current!.appendChild(textoDescriptivo);
       }
     });
@@ -191,14 +190,23 @@ export const NumerosOrdinales: React.FC<Props> = ({ data }) => {
     const margen = 30;
     // Espacio para etiquetas personalizadas si existen
     const tieneEtiquetas = elementos.some(e => e.etiqueta);
-    const espacioTexto = tieneEtiquetas ? 45 : 10;
+    const etiquetas = elementos.map(e => e.etiqueta || '');
+    const extraH = getWrappedTextExtraHeight(etiquetas, 16, 18);
+    const espacioTexto = tieneEtiquetas ? 45 + extraH : 10;
     const maxCajasPorFila = 6;
 
     if (orientacion === 'horizontal') {
-      // Horizontal = cajas horizontalmente con múltiples filas si es necesario
-      const numFilas = Math.ceil(elementos.length / maxCajasPorFila);
+      // Horizontal: usar spacing dinámico basado en etiquetas
+      const { spacing: dynamicW } = calcDynamicSpacing({
+        labels: elementos.map(e => e.etiqueta || ''),
+        minSpacing: anchoBase + espacioEntreCajas,
+        fontSize: 16,
+        paddingExtra: 20,
+        maxCharsPerLine: 16,
+      });
       const cajasPorFila = Math.min(elementos.length, maxCajasPorFila);
-      const width = (margen * 2) + (cajasPorFila * anchoBase) + ((cajasPorFila - 1) * espacioEntreCajas) + 20; // +20 extra de seguridad
+      const numFilas = Math.ceil(elementos.length / maxCajasPorFila);
+      const width = (margen * 2) + (cajasPorFila * dynamicW) + 20;
       const height = (margen * 2) + (numFilas * altoBase) + ((numFilas - 1) * espacioEntreCajas) + (numFilas * espacioTexto);
       return { width, height };
     } else {

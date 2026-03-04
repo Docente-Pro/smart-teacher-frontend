@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
 import { GraficoPictograma } from '../../domain/types';
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
+import { estimateTextWidth, createSVGText } from '../utils/svgTextUtils';
 
 interface Props {
   data: GraficoPictograma;
@@ -17,7 +18,10 @@ export const Pictograma: React.FC<Props> = ({ data }) => {
     svgRef.current.innerHTML = '';
 
     const filaHeight = 50;
-    const margenIzq = 120;
+    // Margen izquierdo dinámico según la categoría más larga
+    const allCats = elementos.map(e => e.categoria);
+    const maxCatW = Math.max(...allCats.map(c => estimateTextWidth(c, 14)));
+    const margenIzq = Math.max(120, maxCatW + 20);
     const margenTop = 30;
     const iconoSize = 30;
     const maxIconos = Math.max(...elementos.map(e => Math.ceil(e.cantidad / valorIcono)));
@@ -27,16 +31,12 @@ export const Pictograma: React.FC<Props> = ({ data }) => {
       const color = resolveColor(fila.color) || [roughColors.azul, roughColors.rojo, roughColors.verde, roughColors.naranja][idx % 4];
 
       // Etiqueta de categoría
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      label.setAttribute('x', (margenIzq - 10).toString());
-      label.setAttribute('y', (y + filaHeight / 2 + 5).toString());
-      label.setAttribute('text-anchor', 'end');
-      label.setAttribute('font-size', '14');
-      label.setAttribute('font-weight', 'bold');
-      label.setAttribute('font-family', 'Comic Sans MS, cursive');
-      label.setAttribute('fill', '#1e293b');
-      label.textContent = fila.categoria;
-      svgRef.current!.appendChild(label);
+      const labelEl = createSVGText({
+        x: margenIzq - 10, y: y + filaHeight / 2 + 5, text: fila.categoria,
+        fontSize: 14, fontWeight: '700', fill: '#1e293b',
+        textAnchor: 'end', maxCharsPerLine: 20, lineHeight: 16,
+      });
+      svgRef.current!.appendChild(labelEl);
 
       // Íconos
       const numIconos = Math.floor(fila.cantidad / valorIcono);
@@ -91,7 +91,10 @@ export const Pictograma: React.FC<Props> = ({ data }) => {
     }
   }, [data]);
 
-  const width = 120 + Math.max(...elementos.map(e => Math.ceil(e.cantidad / valorIcono))) * 38 + 80;
+  const allCats = elementos.map(e => e.categoria);
+  const maxCatW = Math.max(...allCats.map(c => estimateTextWidth(c, 14)));
+  const dynMargenIzq = Math.max(120, maxCatW + 20);
+  const width = dynMargenIzq + Math.max(...elementos.map(e => Math.ceil(e.cantidad / valorIcono))) * 38 + 80;
   const height = 30 + elementos.length * 50 + (mostrarLeyenda ? 40 : 10);
 
   return (

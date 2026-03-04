@@ -15,16 +15,28 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
   const { elementos } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // Calcular spacing dinámico según la longitud máxima de etiquetas
+  const maxLabelLength = elementos.reduce((max, e) => {
+    return Math.max(max, (e.etiqueta || '').length);
+  }, 0);
+  // ~7.5px por carácter a font-size 14, Comic Sans
+  const estimatedMaxLabelWidth = maxLabelLength * 7.5;
+  // Máximo de caracteres por línea antes de hacer wrap
+  const maxCharsPerLine = 22;
+  // Spacing: mínimo 180, crece si etiquetas son largas (pero con wrap, usamos menor de los dos)
+  const espacioX = Math.max(200, Math.min(estimatedMaxLabelWidth + 60, maxCharsPerLine * 7.5 + 80));
+  const espacioY = 180 + (maxLabelLength > maxCharsPerLine ? Math.ceil(maxLabelLength / maxCharsPerLine) * 16 : 0);
+  const margen = Math.max(100, espacioX / 2);
+  const figurasPorFila = Math.min(elementos.length, 3);
+
+  const width = Math.min(elementos.length, figurasPorFila) * espacioX + margen + 50;
+  const height = Math.ceil(elementos.length / figurasPorFila) * espacioY + 100;
+
   useEffect(() => {
     if (!svgRef.current) return;
 
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
-
-    const espacioX = 180;
-    const espacioY = 180;
-    const margen = 100;
-    const figurasPorFila = Math.min(elementos.length, 3);
 
     // Función auxiliar para extraer dimensión numérica de string como "3cm"
     const parseDimension = (dim?: string | number): number | undefined => {
@@ -32,6 +44,24 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
       if (!dim) return undefined;
       const parsed = parseInt(dim);
       return isNaN(parsed) ? undefined : parsed * 20; // Convertir cm a pixels (1cm = 20px)
+    };
+
+    // Función para partir texto largo en líneas
+    const wrapText = (str: string, maxLen: number): string[] => {
+      if (str.length <= maxLen) return [str];
+      const words = str.split(/(\s+|,\s*)/);
+      const lines: string[] = [];
+      let current = '';
+      for (const word of words) {
+        if ((current + word).length > maxLen && current.length > 0) {
+          lines.push(current.trim());
+          current = word.trimStart();
+        } else {
+          current += word;
+        }
+      }
+      if (current.trim()) lines.push(current.trim());
+      return lines;
     };
 
     elementos.forEach((figura, idx) => {
@@ -169,25 +199,30 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
         }
       }
 
-      // Etiqueta
+      // Etiqueta con word-wrap
       if (figura.etiqueta) {
+        const lines = wrapText(figura.etiqueta, maxCharsPerLine);
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', centerX.toString());
-        text.setAttribute('y', (centerY + 70).toString());
         text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('font-size', '14');
+        text.setAttribute('font-size', '13');
         text.setAttribute('font-weight', 'bold');
         text.setAttribute('font-family', 'Comic Sans MS, cursive');
         text.setAttribute('fill', '#1e293b');
-        text.textContent = figura.etiqueta;
+
+        lines.forEach((line, lineIdx) => {
+          const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          tspan.setAttribute('x', centerX.toString());
+          tspan.setAttribute('y', (centerY + 70 + lineIdx * 16).toString());
+          tspan.textContent = line;
+          text.appendChild(tspan);
+        });
+
         svgRef.current!.appendChild(text);
       }
     });
 
-  }, [data]);
-
-  const width = Math.min(elementos.length, 3) * 180 + 150;
-  const height = Math.ceil(elementos.length / 3) * 180 + 150;
+  }, [data, espacioX, espacioY, margen, figurasPorFila]);
 
   return (
     <div className="figuras-geometricas-container">
