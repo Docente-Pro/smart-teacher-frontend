@@ -247,8 +247,24 @@ export interface GraficoDiagramaDinero extends ConfiguracionGrafico {
 
 // ============= FIGURAS GEOMÉTRICAS =============
 
+export type SubTipoTriangulo =
+  | 'equilatero'
+  | 'isosceles'
+  | 'escaleno'
+  | 'acutangulo'
+  | 'rectangulo'
+  | 'obtusangulo'
+  | 'isosceles_acutangulo'
+  | 'isosceles_obtusangulo'
+  | 'isosceles_rectangulo'
+  | 'escaleno_acutangulo'
+  | 'escaleno_obtusangulo'
+  | 'escaleno_rectangulo';
+
 export interface Figura {
   tipo: 'cuadrado' | 'rectangulo' | 'circulo' | 'triangulo' | 'trapecio' | 'rombo';
+  /** Solo aplica cuando tipo === 'triangulo'. Define la forma visual del triángulo. */
+  subTipo?: SubTipoTriangulo;
   ancho?: number;
   alto?: number;
   radio?: number;

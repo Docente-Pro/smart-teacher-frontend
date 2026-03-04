@@ -130,28 +130,80 @@ export const FigurasGeometricas: React.FC<Props> = ({ data }) => {
         }
 
         case 'triangulo': {
-          const lado = dimension;
-          const altura = (lado * Math.sqrt(3)) / 2;
-          const x1 = centerX;
-          const y1 = centerY - altura / 2;
-          const x2 = centerX - lado / 2;
-          const y2 = centerY + altura / 2;
-          const x3 = centerX + lado / 2;
-          const y3 = centerY + altura / 2;
+          const ancho = dimension;
+          const alto = figura.alto || (ancho * Math.sqrt(3)) / 2;
+          const halfW = ancho / 2;
+          const halfH = alto / 2;
+          const subTipo = (figura.subTipo || '').toLowerCase();
 
-          const triangulo = rc.polygon([
-            [x1, y1],
-            [x2, y2],
-            [x3, y3]
-          ], {
+          // Calcular vértices según subTipo
+          let points: [number, number][];
+          let rightAngleCorner: [number, number] | null = null;
+
+          if (subTipo === 'rectangulo' || subTipo === 'isosceles_rectangulo') {
+            // Ángulo recto en esquina inferior-izquierda, catetos verticales y horizontales
+            points = [
+              [centerX - halfW, centerY - halfH],  // vértice superior (cateto vertical)
+              [centerX - halfW, centerY + halfH],  // ángulo recto
+              [centerX + halfW, centerY + halfH],  // vértice derecho (cateto horizontal)
+            ];
+            rightAngleCorner = [centerX - halfW, centerY + halfH];
+          } else if (subTipo === 'escaleno_rectangulo') {
+            // Ángulo recto en inferior-izquierda, vértice superior descentrado
+            points = [
+              [centerX + halfW * 0.2, centerY - halfH],
+              [centerX - halfW, centerY + halfH],
+              [centerX + halfW, centerY + halfH],
+            ];
+            rightAngleCorner = [centerX - halfW, centerY + halfH];
+          } else if (subTipo.startsWith('escaleno')) {
+            // Triángulo asimétrico: vértice superior desplazado ~30 % a la izquierda
+            points = [
+              [centerX - halfW * 0.35, centerY - halfH],
+              [centerX - halfW, centerY + halfH],
+              [centerX + halfW, centerY + halfH],
+            ];
+          } else {
+            // equilatero, acutangulo, obtusangulo, isosceles, isosceles_acutangulo,
+            // isosceles_obtusangulo, o sin subTipo → isósceles simétrico.
+            // La diferencia visual viene de las proporciones ancho/alto del backend.
+            points = [
+              [centerX, centerY - halfH],
+              [centerX - halfW, centerY + halfH],
+              [centerX + halfW, centerY + halfH],
+            ];
+          }
+
+          const triangulo = rc.polygon(points, {
             ...defaultRoughConfig,
             stroke: color,
             fill: color,
             fillStyle: 'solid',
             strokeWidth: 3,
-            roughness: 0.8
+            roughness: 0.8,
           });
           svgRef.current!.appendChild(triangulo);
+
+          // Indicador de ángulo recto (cuadradito) para subTipos con "rectangulo"
+          if (rightAngleCorner) {
+            const [rx, ry] = rightAngleCorner;
+            const sz = Math.min(12, ancho * 0.15, alto * 0.15);
+            // El ángulo recto está en la esquina inferior-izquierda;
+            // el cuadradito va hacia la derecha y hacia arriba.
+            const sqPoints: [number, number][] = [
+              [rx, ry],
+              [rx + sz, ry],
+              [rx + sz, ry - sz],
+              [rx, ry - sz],
+            ];
+            const sq = rc.polygon(sqPoints, {
+              stroke: '#1e293b',
+              fill: 'none',
+              strokeWidth: 1.5,
+              roughness: 0.3,
+            });
+            svgRef.current!.appendChild(sq);
+          }
           break;
         }
 
