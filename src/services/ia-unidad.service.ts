@@ -12,6 +12,7 @@ import type {
   IMaterialesResponse,
   IReflexionesResponse,
 } from "@/interfaces/IUnidadIA";
+import type { HorarioEscolar } from "@/interfaces/IHorario";
 
 // ============================================
 // IA — Unidad de Aprendizaje (flujo wizard 8 pasos)
@@ -74,11 +75,16 @@ export async function generarEnfoques(
   return data;
 }
 
-/** Paso 6 — Secuencia de Actividades (requiere pasos 1, 2, 3, 5) */
+/** Paso 6 — Secuencia de Actividades (requiere pasos 1, 2, 3, 5)
+ *  Si se proporciona `horario`, se envía en el body para que
+ *  el backend respete esa distribución de áreas por día/turno.
+ */
 export async function generarSecuencia(
-  unidadId: string
+  unidadId: string,
+  horario?: HorarioEscolar | null
 ): Promise<IPasoUnidadResponse<ISecuenciaResponse>> {
-  const { data } = await instance.post(`${BASE}/${unidadId}/secuencia`);
+  const body = horario?.dias?.length ? { horario } : undefined;
+  const { data } = await instance.post(`${BASE}/${unidadId}/secuencia`, body);
   return data;
 }
 

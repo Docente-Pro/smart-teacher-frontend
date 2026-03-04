@@ -59,7 +59,7 @@ export type {
   ISecuencia,
   ISemanaSecuencia,
   IDiaSecuencia,
-  ITurnoActividad,
+  IHoraActividad,
   ISecuenciaResponse,
   IMaterialesResponse,
   IReflexionPregunta,

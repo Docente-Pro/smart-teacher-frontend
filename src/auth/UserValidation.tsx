@@ -1,5 +1,6 @@
 import { IUsuario } from "@/interfaces/IUsuario";
 import { getUsuarioByEmail } from "@/services/usuarios.service";
+import { useUserStore } from "@/store/user.store";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
@@ -12,7 +13,7 @@ interface Props {
 
 function UserValidation({ children }: Props) {
   const { user } = useAuth0();
-  const [_userFromDB, setuserFromDB] = useState<IUsuario>();
+  const { setUsuario } = useUserStore();
   const [loading, setLoading] = useState<boolean>(true);
   const [redirectToQuestionnaire, setRedirectToQuestionnaire] = useState<boolean>(false);
 
@@ -28,7 +29,7 @@ function UserValidation({ children }: Props) {
 
           // Verificar la estructura de la respuesta
           const userData = response.data.data || response.data[0] || response.data;
-          setuserFromDB(userData);
+          setUsuario(userData);
 
           // Si el usuario no tiene datos institucionales, redirigir al onboarding
           if (!userData.nombreInstitucion || !userData.nivelId || !userData.gradoId) {
@@ -46,7 +47,7 @@ function UserValidation({ children }: Props) {
           setLoading(false);
         });
     }
-  }, [user, navigate]);
+  }, [user, navigate, setUsuario]);
 
   if (loading) {
     return <div>Loading...</div>;

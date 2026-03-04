@@ -47,6 +47,7 @@ const distritos: UbigeoDistrito[] = distritosData.ubigeo_distritos;
 interface OnboardingData {
   nombre: string;
   nombreInstitucion: string;
+  nombreDirectivo: string;
   genero: string;
   nivelId: number;
   gradoId: number;
@@ -64,6 +65,7 @@ function OnboardingPage() {
   const [formData, setFormData] = useState<OnboardingData>({
     nombre: "",
     nombreInstitucion: "",
+    nombreDirectivo: "",
     genero: "",
     nivelId: 0,
     gradoId: 0,
@@ -202,6 +204,7 @@ function OnboardingPage() {
       const response = await instance.patch(`/usuario/${backendUser.id}`, {
         nombre: formData.nombre,
         nombreInstitucion: formData.nombreInstitucion,
+        nombreDirectivo: formData.nombreDirectivo.trim() || undefined,
         genero: formData.genero,
         nivelId: formData.nivelId,
         gradoId: formData.gradoId,
@@ -298,6 +301,25 @@ function OnboardingPage() {
               </div>
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500">El nombre de la institución aparecerá en tus documentos generados.</p>
+
+            {/* Directivo(a) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="directivo" className="text-gray-700 dark:text-gray-300 text-sm">
+                Directivo(a) de la I.E.
+              </Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="directivo"
+                  type="text"
+                  placeholder="Ej: Rosa Mendoza Maldonado"
+                  className="pl-10 py-5 text-sm"
+                  value={formData.nombreDirectivo}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, nombreDirectivo: e.target.value }))}
+                />
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Nombre del director(a) de tu institución. Aparecerá en los documentos.</p>
+            </div>
           </div>
 
           <div className="border-t border-gray-100 dark:border-gray-800" />

@@ -1,4 +1,5 @@
 import type { IEvidencias } from "@/interfaces/IUnidadIA";
+import { parseMarkdown } from "@/utils/parseMarkdown";
 
 interface Props {
   situacionSignificativa: string;
@@ -37,7 +38,7 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias, imagenS
 
         {situacionSignificativa.split("\n").map((paragraph, i) => (
           <p key={i} style={{ fontSize: "9pt", marginBottom: "0.25rem", textAlign: "justify" }}>
-            {paragraph}
+            {parseMarkdown(paragraph)}
           </p>
         ))}
 
@@ -45,7 +46,7 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias, imagenS
         {evidencias?.reto && (
           <p style={{ fontWeight: "bold", fontSize: "9pt", marginTop: "0.3rem", marginBottom: "0" }}>
             Ante esta situación nos planteamos el siguiente reto:{" "}
-            <span style={{ fontWeight: "normal" }}>{evidencias.reto}</span>
+            <span style={{ fontWeight: "normal" }}>{parseMarkdown(evidencias.reto)}</span>
           </p>
         )}
       </div>
@@ -64,7 +65,7 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias, imagenS
             </thead>
             <tbody>
               <tr>
-                <td style={{ fontSize: "9pt" }}>{evidencias.proposito}</td>
+                <td style={{ fontSize: "9pt" }}>{parseMarkdown(evidencias.proposito)}</td>
               </tr>
             </tbody>
           </table>
@@ -77,8 +78,8 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias, imagenS
             </thead>
             <tbody>
               <tr>
-                <td style={{ fontSize: "9pt" }}>{evidencias.productoIntegrador}</td>
-                <td style={{ fontSize: "9pt" }}>{evidencias.instrumentoEvaluacion}</td>
+                <td style={{ fontSize: "9pt" }}>{parseMarkdown(evidencias.productoIntegrador)}</td>
+                <td style={{ fontSize: "9pt" }}>{parseMarkdown(evidencias.instrumentoEvaluacion)}</td>
               </tr>
             </tbody>
           </table>

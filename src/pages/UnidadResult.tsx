@@ -15,7 +15,7 @@ import {
   MessageCircle,
   Home,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useUnidadPDFGeneration } from "@/hooks/useUnidadPDFGeneration";
 import { useUnidadStore } from "@/store/unidad.store";
@@ -32,6 +32,8 @@ import {
 } from "@/components/UnidadDoc";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { updateUsuario } from "@/services/usuarios.service";
+import { handleToaster } from "@/utils/Toasters/handleToasters";
 
 /**
  * Página de resultado / vista previa del documento de Unidad de Aprendizaje.
@@ -43,9 +45,52 @@ function UnidadResult() {
   const navigate = useNavigate();
   const { datosBase, contenido, unidadId } = useUnidadStore();
   const { user } = useAuthStore();
-  const { user: usuario } = useUserStore();
-  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } =
+  const { user: usuario, updateUsuario: updateUsuarioStore, fetchUsuario } = useUserStore();
+  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, guardarEnNube } =
     useUnidadPDFGeneration(documentRef);
+
+  // ── Auto-cargar perfil completo del usuario si el userStore está vacío ──
+  useEffect(() => {
+    const authId = user?.id;
+    if (authId && !usuario?.id) {
+      fetchUsuario(authId);
+    }
+  }, [user?.id, usuario?.id, fetchUsuario]);
+
+  // ── Directivo (editable inline) ──
+  const [showDirectivoInput, setShowDirectivoInput] = useState(false);
+  const [directivoInput, setDirectivoInput] = useState("");
+  const [savingDirectivo, setSavingDirectivo] = useState(false);
+
+  const handleEditDirectivo = useCallback(() => {
+    setDirectivoInput(usuario?.nombreDirectivo || "");
+    setShowDirectivoInput(true);
+  }, [usuario?.nombreDirectivo]);
+
+  const handleSaveDirectivo = useCallback(async () => {
+    const nombre = directivoInput.trim();
+    if (!nombre) {
+      handleToaster("Ingresa el nombre del directivo", "error");
+      return;
+    }
+    const userId = usuario?.id || user?.id;
+    if (!userId) return;
+
+    try {
+      setSavingDirectivo(true);
+      await updateUsuario(userId, { nombreDirectivo: nombre });
+      updateUsuarioStore({ nombreDirectivo: nombre });
+      setShowDirectivoInput(false);
+      handleToaster("Directivo guardado correctamente", "success");
+
+      // Re-generar PDF con el dato actualizado
+      setTimeout(() => guardarEnNube(true).catch(() => {}), 1500);
+    } catch {
+      handleToaster("Error al guardar el directivo", "error");
+    } finally {
+      setSavingDirectivo(false);
+    }
+  }, [directivoInput, usuario?.id, user?.id, updateUsuarioStore, guardarEnNube]);
 
   // ── Código compartido (viene del store, establecido durante pre-solicitar en Step0) ──
   const codigoCompartido = datosBase?.codigoCompartido || null;
@@ -274,12 +319,14 @@ function UnidadResult() {
             {/* I. DATOS GENERALES */}
             <UnidadDocDatosGenerales
               institucion={institucion}
+              directivo={usuario?.nombreDirectivo || ""}
               docente={docenteNombre}
               grado={datosBase.grado}
               nivel={datosBase.nivel}
               fechaInicio={datosBase.fechaInicio}
               fechaFin={datosBase.fechaFin}
               areas={areasNombres}
+              onEditDirectivo={handleEditDirectivo}
             />
 
             {/* PLANTEAMIENTO DE LA SITUACIÓN + EVIDENCIAS */}
@@ -330,6 +377,60 @@ function UnidadResult() {
           </Document>
         </div>
       </div>
+
+      {/* ═══ MODAL EDITAR DIRECTIVO ═══ */}
+      {showDirectivoInput && (
+        <div
+          className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowDirectivoInput(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">
+              Directivo(a) de la I.E.
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Ingresa el nombre completo del directivo de tu institución educativa.
+            </p>
+            <input
+              type="text"
+              value={directivoInput}
+              onChange={(e) => setDirectivoInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveDirectivo()}
+              placeholder="Ej: Juan Pérez López"
+              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 mb-4"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDirectivoInput(false)}
+                disabled={savingDirectivo}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveDirectivo}
+                disabled={savingDirectivo}
+                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+              >
+                {savingDirectivo ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -96,6 +96,11 @@ export function deleteUnidad(id: string) {
   return instance.delete(`/unidad/${id}`);
 }
 
+/** POST /api/unidad/:id/reset — Reinicia contenido IA sin eliminar la unidad ni pagos */
+export function resetUnidadContenido(id: string) {
+  return instance.post(`/unidad/${id}/reset`);
+}
+
 // ============================================
 // Almacenamiento PDF (S3)
 // ============================================

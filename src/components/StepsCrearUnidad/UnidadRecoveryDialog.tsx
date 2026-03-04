@@ -8,7 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BookOpen, ArrowRight, XCircle } from "lucide-react";
+import { BookOpen, ArrowRight, RotateCcw } from "lucide-react";
 import { useUnidadStore } from "@/store/unidad.store";
 
 interface Props {
@@ -86,8 +86,8 @@ export function UnidadRecoveryDialog({ open, onContinue, onStartNew }: Props) {
             onClick={onStartNew}
             className="flex-1 h-11 sm:h-12 gap-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium text-sm sm:text-base transition-all"
           >
-            <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-            Descartar
+            <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+            Empezar de cero
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onContinue}

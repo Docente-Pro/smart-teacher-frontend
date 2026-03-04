@@ -32,7 +32,7 @@ import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useUnidadStore } from "@/store/unidad.store";
 import { useAuthStore } from "@/store/auth.store";
-import { createUnidad, seleccionarAreas } from "@/services/unidad.service";
+import { createUnidad, updateUnidad, seleccionarAreas } from "@/services/unidad.service";
 import { getAllAreas } from "@/services/areas.service";
 import { generarTituloUnidad } from "@/services/ia-unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
@@ -62,7 +62,7 @@ const duracionesUnidad = [
 ];
 
 function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros }: Props) {
-  const { setUnidadId, setDatosBase } = useUnidadStore();
+  const { unidadId: existingUnidadId, setUnidadId, setDatosBase } = useUnidadStore();
   const updateAuthUser = useAuthStore((s) => s.updateUser);
   const { showLoading, hideLoading } = useGlobalLoading();
 
@@ -198,10 +198,9 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     if (areasSeleccionadas.length === 0) return handleToaster("Selecciona al menos un área", "error");
     if (!problematica) return handleToaster("Selecciona una problemática", "error");
 
-    showLoading("Creando unidad de aprendizaje...");
+    showLoading(existingUnidadId ? "Actualizando unidad de aprendizaje..." : "Creando unidad de aprendizaje...");
 
     try {
-      // 1. Crear la unidad (sin áreas — se asignan después)
       const payload = {
         usuarioId: usuario.id,
         titulo,
@@ -216,17 +215,29 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         ...(tipoUnidad === "COMPARTIDA" ? { maxMiembros } : {}),
       };
 
-      const response = await createUnidad(payload);
-      const unidad = response.data.data ?? response.data;
+      let unidadResultId: string;
+      let codigoCompartido: string | undefined;
 
-      // 2. Asignar áreas al miembro
+      if (existingUnidadId) {
+        // Ya existe una unidad (soft reset) → actualizar datos base
+        await updateUnidad(existingUnidadId, payload);
+        unidadResultId = existingUnidadId;
+      } else {
+        // Nueva unidad → crear
+        const response = await createUnidad(payload);
+        const unidad = response.data.data ?? response.data;
+        unidadResultId = unidad.id;
+        codigoCompartido = unidad.codigoCompartido;
+      }
+
+      // Asignar/reasignar áreas al miembro
       const areaIds = areas
         .filter((a) => areasSeleccionadas.includes(a.nombre))
         .map((a) => a.id);
-      await seleccionarAreas(unidad.id, { areaIds });
+      await seleccionarAreas(unidadResultId, { areaIds });
 
       // Guardar en store
-      setUnidadId(unidad.id);
+      setUnidadId(unidadResultId);
       setDatosBase({
         nivel,
         grado,
@@ -240,7 +251,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         areas: areasSeleccionadas.map((n) => ({ nombre: n })),
         tipo: tipoUnidad,
         ...(tipoUnidad === "COMPARTIDA"
-          ? { maxMiembros, codigoCompartido: unidad.codigoCompartido }
+          ? { maxMiembros, codigoCompartido }
           : {}),
       });
 
@@ -248,7 +259,10 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
       // para que el Dashboard no muestre el modal de problemática innecesariamente
       updateAuthUser({ problematicaCompleta: true });
 
-      handleToaster("Unidad creada exitosamente", "success");
+      handleToaster(
+        existingUnidadId ? "Unidad actualizada exitosamente" : "Unidad creada exitosamente",
+        "success"
+      );
       setPagina(pagina + 1);
     } catch (error: any) {
       console.error("Error al crear unidad:", error);

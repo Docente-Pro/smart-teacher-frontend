@@ -1,11 +1,14 @@
 interface Props {
   institucion: string;
+  directivo: string;
   docente: string;
   grado: string;
+  seccion?: string;
   nivel: string;
   fechaInicio: string;
   fechaFin: string;
   areas: string[];
+  onEditDirectivo?: () => void;
 }
 
 /**
@@ -13,20 +16,25 @@ interface Props {
  */
 export function UnidadDocDatosGenerales({
   institucion,
+  directivo,
   docente,
   grado,
+  seccion,
   nivel,
   fechaInicio,
   fechaFin,
   areas,
+  onEditDirectivo,
 }: Props) {
   const periodoTexto =
     fechaInicio && fechaFin
       ? `Del ${formatDate(fechaInicio)} al ${formatDate(fechaFin)}`
       : "";
 
-  /* Determinar ciclo en base al grado */
-  const ciclo = getCiclo(nivel, grado);
+  /* Texto de grado y sección */
+  const gradoSeccionTexto = seccion
+    ? `${grado} de ${nivel} - Sección "${seccion}"`
+    : `${grado} de ${nivel}`;
 
   return (
     <div style={{ marginBottom: "0.4rem" }}>
@@ -36,28 +44,44 @@ export function UnidadDocDatosGenerales({
       <table>
         <tbody>
           <tr>
-            <td style={{ width: "22%", fontWeight: "bold", backgroundColor: "#FEF3C7" }}>I. E. N°</td>
+            <td style={{ width: "22%", fontWeight: "bold", backgroundColor: "#FEF3C7" }}>I. E.</td>
             <td colSpan={3}>{institucion}</td>
           </tr>
           <tr>
             <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Directivo(a) de la I. E.</td>
-            <td colSpan={3}></td>
+            <td colSpan={3}>
+              {directivo || (
+                onEditDirectivo && (
+                  <button
+                    className="no-print"
+                    onClick={onEditDirectivo}
+                    style={{
+                      background: "none",
+                      border: "1px dashed #d97706",
+                      borderRadius: "4px",
+                      padding: "2px 8px",
+                      color: "#d97706",
+                      cursor: "pointer",
+                      fontSize: "8pt",
+                    }}
+                  >
+                    Coloca el nombre de tu Directivo(a) de la I.E.
+                  </button>
+                )
+              )}
+            </td>
           </tr>
           <tr>
             <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Docente</td>
             <td colSpan={3}>{docente}</td>
           </tr>
           <tr>
-            <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Fecha:</td>
-            <td colSpan={3}></td>
-          </tr>
-          <tr>
             <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Periodo de ejecución:</td>
             <td colSpan={3}>{periodoTexto}</td>
           </tr>
           <tr>
-            <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Ciclo y grado:</td>
-            <td colSpan={3}>{ciclo}</td>
+            <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Grado y Sección:</td>
+            <td colSpan={3}>{gradoSeccionTexto}</td>
           </tr>
           <tr>
             <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>ÁREAS</td>
@@ -85,25 +109,4 @@ function formatDate(dateStr: string): string {
   return dateStr;
 }
 
-function getCiclo(nivel: string, grado: string): string {
-  const nivelLower = nivel.toLowerCase();
-  const gradoLower = grado.toLowerCase();
 
-  if (nivelLower.includes("inicial")) {
-    if (gradoLower.includes("3") || gradoLower.includes("4") || gradoLower.includes("5")) return `II ciclo (${grado} de ${nivel})`;
-    return `I ciclo (${grado} de ${nivel})`;
-  }
-
-  if (nivelLower.includes("primaria")) {
-    if (gradoLower.includes("1") || gradoLower.includes("2")) return `III ciclo (${grado} de ${nivel})`;
-    if (gradoLower.includes("3") || gradoLower.includes("4")) return `IV ciclo (${grado} de ${nivel})`;
-    if (gradoLower.includes("5") || gradoLower.includes("6")) return `V ciclo (${grado} de ${nivel})`;
-  }
-
-  if (nivelLower.includes("secundaria")) {
-    if (gradoLower.includes("1") || gradoLower.includes("2")) return `VI ciclo (${grado} de ${nivel})`;
-    if (gradoLower.includes("3") || gradoLower.includes("4") || gradoLower.includes("5")) return `VII ciclo (${grado} de ${nivel})`;
-  }
-
-  return `${grado} de ${nivel}`;
-}

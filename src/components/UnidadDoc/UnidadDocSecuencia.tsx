@@ -9,12 +9,8 @@ interface Props {
 /**
  * IV. SECUENCIA DE ACTIVIDADES
  *
- * Calendario semanal — cada semana es una tabla con:
- * - Fila DIAS: lunes a viernes con número
- * - Fila AREAS (primer bloque): las áreas del primer bloque
- * - Fila ACTIVIDAD (primer bloque)
- * - Fila AREA (segundo bloque)
- * - Fila ACTIVIDAD (segundo bloque)
+ * Calendario semanal — grilla: horas pedagógicas (filas) × días (columnas).
+ * Sigue el formato MINEDU con H1-H6, recreo entre H3 y H4.
  */
 export function UnidadDocSecuencia({ secuencia }: Props) {
   if (!secuencia) return null;
@@ -32,105 +28,88 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
         </p>
       )}
 
-      {secuencia.semanas.map((semana) => (
-        <div key={semana.semana} style={{ marginBottom: "0.5rem" }} className="no-break">
-          {/* Header de semana */}
-          <div className="semana-header">{semana.semana}</div>
+      {secuencia.semanas.map((semana) => {
+        // Calcular cuántas horas tiene el día con más horas
+        const maxHoras = Math.max(...semana.dias.map((d) => d.horas?.length ?? 0), 0);
 
-          <table>
-            <tbody>
-              {/* Fila: DIAS */}
-              <tr>
-                <td style={{ fontWeight: "bold", width: "10%", backgroundColor: "#FDE68A", textAlign: "center" }}>
-                  DIAS
-                </td>
-                {semana.dias.map((dia, i) => {
-                  const dayLabel = dia.dia?.toUpperCase() || "";
-                  const dayNum = extractDayNumber(dia.fecha);
-                  return (
+        return (
+          <div key={semana.semana} style={{ marginBottom: "0.5rem" }} className="no-break">
+            {/* Header de semana */}
+            <div className="semana-header">{semana.semana}</div>
+
+            <table>
+              <tbody>
+                {/* Fila: DIAS */}
+                <tr>
+                  <td style={{ fontWeight: "bold", width: "10%", backgroundColor: "#FDE68A", textAlign: "center" }}>
+                    HORA
+                  </td>
+                  {semana.dias.map((dia, i) => {
+                    const dayLabel = dia.dia?.toUpperCase() || "";
+                    const dayNum = extractDayNumber(dia.fecha);
+                    return (
+                      <td
+                        key={i}
+                        style={{
+                          fontWeight: "bold",
+                          backgroundColor: "#FEF3C7",
+                          textAlign: "center",
+                          fontSize: "8pt",
+                          width: `${90 / Math.max(semana.dias.length, 1)}%`,
+                        }}
+                      >
+                        {dayLabel}{dayNum ? ` ${dayNum}` : ""}
+                      </td>
+                    );
+                  })}
+                </tr>
+
+                {/* Filas: una por cada hora pedagógica */}
+                {Array.from({ length: maxHoras }).map((_, hIdx) => (
+                  <tr key={hIdx}>
                     <td
-                      key={i}
                       style={{
                         fontWeight: "bold",
-                        backgroundColor: "#FEF3C7",
+                        backgroundColor: "#FDE68A",
                         textAlign: "center",
                         fontSize: "8pt",
-                        width: `${90 / Math.max(semana.dias.length, 1)}%`,
                       }}
                     >
-                      {dayLabel}{dayNum ? ` ${dayNum}` : ""}
+                      H{hIdx + 1}
                     </td>
-                  );
-                })}
-              </tr>
-
-              {/* Fila: AREAS (primer bloque) */}
-              <tr>
-                <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
-                  AREAS
-                </td>
-                {semana.dias.map((dia, i) => {
-                  const areaHex = dia.turnoManana?.area ? getAreaColor(dia.turnoManana.area).hex : null;
-                  return (
-                    <td key={i} style={{
-                      textAlign: "center",
-                      fontWeight: "bold",
-                      fontSize: "8pt",
-                      backgroundColor: areaHex?.light || "transparent",
-                    }}>
-                      {dia.turnoManana?.area?.toUpperCase() || ""}
-                    </td>
-                  );
-                })}
-              </tr>
-
-              {/* Fila: ACTIVIDAD (primer bloque) */}
-              <tr>
-                <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
-                  ACTIVIDAD
-                </td>
-                {semana.dias.map((dia, i) => (
-                  <td key={i} style={{ fontSize: "8pt", textAlign: "center" }}>
-                    {parseMarkdown(dia.turnoManana?.actividad || "")}
-                  </td>
+                    {semana.dias.map((dia, dIdx) => {
+                      const hora = dia.horas?.[hIdx];
+                      if (!hora) {
+                        return <td key={dIdx} style={{ fontSize: "8pt", textAlign: "center" }} />;
+                      }
+                      const areaHex = hora.area ? getAreaColor(hora.area).hex : null;
+                      return (
+                        <td
+                          key={dIdx}
+                          style={{
+                            fontSize: "8pt",
+                            textAlign: "center",
+                            backgroundColor: areaHex?.light || "transparent",
+                          }}
+                        >
+                          <div style={{ fontWeight: "bold", fontSize: "7pt" }}>
+                            {hora.area?.toUpperCase() || ""}
+                          </div>
+                          {hora.actividad && (
+                            <div style={{ fontSize: "7pt" }}>
+                              {parseMarkdown(hora.actividad)}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
                 ))}
-              </tr>
-
-              {/* Fila: AREA (segundo bloque) */}
-              <tr>
-                <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
-                  AREA
-                </td>
-                {semana.dias.map((dia, i) => {
-                  const areaHex = dia.turnoTarde?.area ? getAreaColor(dia.turnoTarde.area).hex : null;
-                  return (
-                    <td key={i} style={{
-                      textAlign: "center",
-                      fontWeight: "bold",
-                      fontSize: "8pt",
-                      backgroundColor: areaHex?.light || "transparent",
-                    }}>
-                      {dia.turnoTarde?.area?.toUpperCase() || ""}
-                    </td>
-                  );
-                })}
-              </tr>
-
-              {/* Fila: ACTIVIDAD (segundo bloque) */}
-              <tr>
-                <td style={{ fontWeight: "bold", backgroundColor: "#FDE68A", textAlign: "center", fontSize: "8pt" }}>
-                  ACTIVIDAD
-                </td>
-                {semana.dias.map((dia, i) => (
-                  <td key={i} style={{ fontSize: "8pt", textAlign: "center" }}>
-                    {parseMarkdown(dia.turnoTarde?.actividad || "")}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
     </div>
   );
 }

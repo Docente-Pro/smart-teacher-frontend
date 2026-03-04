@@ -22,6 +22,7 @@ export interface IUsuarioToUpdate {
   nombre?: string;
   email?: string;
   nombreInstitucion?: string;
+  nombreDirectivo?: string;
   genero?: string;
   nivelId?: number;
   gradoId?: number;
@@ -38,6 +39,7 @@ export interface IUsuario {
   nombre: string;
   email: string;
   nombreInstitucion: string;
+  nombreDirectivo?: string;
   genero?: string;
   departamento?: string;
   provincia?: string;

@@ -5,6 +5,7 @@ import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { useUnidadStore } from "@/store/unidad.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { instance } from "@/services/instance";
+import { deleteUnidad, getUnidadesByUsuario, resetUnidadContenido } from "@/services/unidad.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { StepIndicator } from "@/components/StepsCuestionarioCrearSesion/StepIndicator";
 import { UnidadDrawer } from "@/components/StepsCrearUnidad/UnidadDrawer";
@@ -24,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { X, RotateCcw, ArrowRight } from "lucide-react";
+import { X, RotateCcw } from "lucide-react";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { TipoUnidad } from "@/interfaces/IUnidad";
 import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
@@ -56,12 +57,14 @@ function CrearUnidad() {
     wizardPhase,
     tipoUnidad,
     maxMiembros,
+    unidadId,
     hasUnfinishedUnidad,
     setCurrentStep,
     advanceStep,
     setWizardPhase,
     setTipoUnidad,
     resetUnidad,
+    softResetUnidad,
   } = useUnidadStore();
 
   // Scroll al tope cada vez que cambia el paso
@@ -87,17 +90,59 @@ function CrearUnidad() {
     // El estado ya está en el store, solo cerramos el diálogo
   };
 
-  // ── Recuperación: empezar de nuevo ──
-  const handleStartNew = () => {
-    setShowRecoveryDialog(false);
-    resetUnidad();
+  /**
+   * Obtiene el ID de la unidad activa:
+   * 1. Desde el store local (más rápido).
+   * 2. Fallback: consulta unidades del usuario en el backend.
+   */
+  const obtenerUnidadActivaId = async (): Promise<string | null> => {
+    const idLocal = useUnidadStore.getState().unidadId;
+    if (idLocal) return idLocal;
+
+    if (user?.id) {
+      const res = await getUnidadesByUsuario(user.id);
+      const unidades = res.data?.data ?? res.data;
+      if (Array.isArray(unidades) && unidades.length > 0) {
+        return unidades[0].id;
+      }
+    }
+    return null;
   };
 
-  // ── Empezar de cero desde el wizard ──
-  const handleEmpezarDeCero = () => {
+  // ── Recovery dialog: empezar de nuevo (elimina la unidad completa del backend) ──
+  const handleStartNew = async () => {
+    setShowRecoveryDialog(false);
+    try {
+      const id = await obtenerUnidadActivaId();
+      if (id) await deleteUnidad(id);
+      resetUnidad();
+    } catch (err: any) {
+      console.error("No se pudo eliminar la unidad del backend:", err);
+      const msg =
+        err?.response?.data?.message || "No se pudo eliminar la unidad del servidor. Intenta de nuevo.";
+      handleToaster(msg, "error");
+    }
+  };
+
+  // ── Wizard: empezar de cero (resetea contenido IA, conserva la unidad) ──
+  const handleEmpezarDeCero = async () => {
     setShowResetConfirm(false);
-    resetUnidad();
-    handleToaster("Se reinició la unidad correctamente", "success");
+    try {
+      const id = await obtenerUnidadActivaId();
+      if (id) {
+        await resetUnidadContenido(id);
+        softResetUnidad();
+      } else {
+        // No hay unidad en backend, reset local completo
+        resetUnidad();
+      }
+      handleToaster("Se reinició la unidad correctamente", "success");
+    } catch (err: any) {
+      console.error("No se pudo reiniciar la unidad:", err);
+      const msg =
+        err?.response?.data?.message || "No se pudo reiniciar la unidad. Intenta de nuevo.";
+      handleToaster(msg, "error");
+    }
   };
 
   // ── Cargar usuario y verificar unidad pendiente ──
@@ -181,16 +226,11 @@ function CrearUnidad() {
 
               <button
                 onClick={() => setShowResetConfirm(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700 transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-base font-semibold text-white bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/30 transition-all active:scale-95"
               >
-                <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
                 Empezar de cero
               </button>
-
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                Continuar paso {currentStep}
-              </div>
             </div>
           </div>
 

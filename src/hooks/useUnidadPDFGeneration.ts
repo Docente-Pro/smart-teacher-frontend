@@ -48,9 +48,9 @@ export function useUnidadPDFGeneration(documentRef: RefObject<HTMLDivElement>) {
   }, []);
 
   /* ─── Guardar en la nube ─── */
-  const guardarEnNube = useCallback(async () => {
+  const guardarEnNube = useCallback(async (force = false) => {
     if (!documentRef.current || !unidadId || !user?.id) return;
-    if (guardadoIniciado.current) return;
+    if (!force && guardadoIniciado.current) return;
     guardadoIniciado.current = true;
 
     setIsSaving(true);

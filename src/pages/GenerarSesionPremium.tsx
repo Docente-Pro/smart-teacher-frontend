@@ -68,6 +68,63 @@ const DIA_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Agrupa un array de horas-actividad en 2 bloques (mañana / tarde).
+ * La primera mitad de horas se asigna al bloque mañana y la segunda al bloque tarde.
+ * Si ya viene con el formato viejo (turnoManana/turnoTarde), lo devuelve directo.
+ */
+function horasToTurnos(dia: any): IDiaData {
+  // Formato viejo: ya tiene turnoManana/turnoTarde
+  if (dia.turnoManana && dia.turnoTarde) {
+    return dia as IDiaData;
+  }
+
+  // Formato nuevo: horas[]
+  const horas: { area?: string; actividad?: string }[] = dia.horas ?? [];
+  const mid = Math.ceil(horas.length / 2);
+  const primerBloque = horas.slice(0, mid);
+  const segundoBloque = horas.slice(mid);
+
+  // Obtener el área y actividad predominante de cada bloque
+  const pickDominant = (slots: typeof horas): ITurnoData => {
+    if (!slots.length) return { area: "", actividad: "" };
+    // Contar ocurrencias de cada área
+    const counts = new Map<string, number>();
+    for (const s of slots) {
+      const a = s.area ?? "";
+      counts.set(a, (counts.get(a) ?? 0) + 1);
+    }
+    // Elegir la más frecuente
+    let maxArea = "";
+    let maxCount = 0;
+    for (const [a, c] of counts) {
+      if (c > maxCount) { maxArea = a; maxCount = c; }
+    }
+    // Tomar la actividad del primer slot que coincida con el área dominante
+    const match = slots.find((s) => s.area === maxArea);
+    return {
+      area: maxArea,
+      actividad: match?.actividad ?? "",
+    };
+  };
+
+  return {
+    dia: dia.dia ?? "",
+    fecha: dia.fecha ?? "",
+    turnoManana: pickDominant(primerBloque),
+    turnoTarde: pickDominant(segundoBloque),
+  };
+}
+
+/** Transforma semanas del nuevo formato (horas[]) al formato IDiaData con turnos */
+function normalizeSemanas(raw: any[]): ISemanaData[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((s) => ({
+    semana: s.semana,
+    dias: (s.dias ?? []).map(horasToTurnos),
+  }));
+}
+
 function makeSlotKey(semana: number, dia: string, turno: "mañana" | "tarde"): SlotKey {
   return `${semana}-${dia}-${turno}`;
 }
@@ -230,9 +287,8 @@ function GenerarSesionPremium() {
 
   const semanas = useMemo<ISemanaData[]>(() => {
     try {
-      return (
-        (selectedUnidad?.contenido?.secuencia?.semanas as ISemanaData[]) ?? []
-      );
+      const raw = selectedUnidad?.contenido?.secuencia?.semanas;
+      return normalizeSemanas(raw as any[] ?? []);
     } catch {
       return [];
     }

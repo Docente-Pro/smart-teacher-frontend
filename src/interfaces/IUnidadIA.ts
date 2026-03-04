@@ -128,7 +128,10 @@ export interface IEnfoquesResponse {
 
 // ─── Paso 6: Secuencia de Actividades ───
 
-export interface ITurnoActividad {
+export interface IHoraActividad {
+  hora: number;
+  inicio: string;
+  fin: string;
   area: string;
   actividad: string;
 }
@@ -136,8 +139,7 @@ export interface ITurnoActividad {
 export interface IDiaSecuencia {
   dia: string;
   fecha: string;
-  turnoManana: ITurnoActividad;
-  turnoTarde: ITurnoActividad;
+  horas: IHoraActividad[];
 }
 
 export interface ISemanaSecuencia {

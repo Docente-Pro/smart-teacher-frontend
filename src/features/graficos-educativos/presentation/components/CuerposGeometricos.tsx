@@ -11,13 +11,30 @@ export const CuerposGeometricos: React.FC<Props> = ({ data }) => {
   const { cuerpos, mostrarNombres = true, mostrarMedidas = false, vista = 'frontal' } = data;
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // Calcular spacing dinámico según la longitud máxima de etiquetas
+  const maxLabelLength = cuerpos.reduce((max, c) => {
+    const label = c.etiqueta || c.tipo.charAt(0).toUpperCase() + c.tipo.slice(1);
+    return Math.max(max, label.length);
+  }, 0);
+
+  // Estimar ancho máximo de etiqueta (~7.5px por carácter a font-size 14, Comic Sans)
+  const estimatedMaxLabelWidth = maxLabelLength * 7.5;
+  // Spacing mínimo 180, pero crece si las etiquetas son largas
+  const spacing = Math.max(180, estimatedMaxLabelWidth + 50);
+  const margen = Math.max(90, estimatedMaxLabelWidth / 2 + 30);
+
+  // Calcular altura dinámica según la cantidad máxima de medidas
+  const maxMedidasCount = mostrarMedidas
+    ? cuerpos.reduce((max, c) => Math.max(max, c.medidas ? Object.keys(c.medidas).length : 0), 0)
+    : 0;
+
+  const width = cuerpos.length * spacing + margen;
+  const heightSvg = mostrarMedidas ? 230 + maxMedidasCount * 16 + 20 : 240;
+
   useEffect(() => {
     if (!svgRef.current || cuerpos.length === 0) return;
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
-
-    const spacing = 180;
-    const margen = 90;
 
     cuerpos.forEach((cuerpo, idx) => {
       const cx = margen + idx * spacing;
@@ -138,10 +155,7 @@ export const CuerposGeometricos: React.FC<Props> = ({ data }) => {
         });
       }
     });
-  }, [data]);
-
-  const width = cuerpos.length * 180 + 60;
-  const heightSvg = mostrarMedidas ? 280 : 240;
+  }, [data, spacing, margen]);
 
   return (
     <div className="cuerpos-geometricos-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', display: 'flex', justifyContent: 'center' }}>

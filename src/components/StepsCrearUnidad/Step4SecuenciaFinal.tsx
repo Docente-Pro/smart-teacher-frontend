@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownTextarea } from "@/components/ui/markdown-textarea";
+import { parseMarkdown } from "@/utils/parseMarkdown";
 import {
   Sparkles,
   ArrowLeft,
@@ -17,7 +18,7 @@ import {
   ChevronUp,
   Trash2,
   Download,
-  Sun,
+  Clock,
   Users,
   BookOpen,
 } from "lucide-react";
@@ -31,6 +32,8 @@ import {
   generarReflexiones,
   regenerarPasoUnidad,
 } from "@/services/ia-unidad.service";
+import { HorarioPanel } from "./HorarioPanel";
+import { useHorario } from "@/hooks/useHorario";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { IDistribucionMiembro } from "@/interfaces/IUnidad";
 import type {
@@ -60,8 +63,20 @@ const SEMANA_COLORS = [
 
 function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const navigate = useNavigate();
-  const { unidadId, datosBase, contenido, updateContenido, generandoPaso, setGenerandoPaso, markCompleted } =
+  const { unidadId, datosBase, contenido, updateContenido, generandoPaso, setGenerandoPaso, markCompleted,
+    horario: horarioStore, setHorario: setHorarioStore } =
     useUnidadStore();
+
+  // ── Hook de horario (inicializa desde el store si hay uno guardado) ──
+  const {
+    horario, scanning, confianza, notas, error: horarioError,
+    escanearDesdeArchivo, actualizarSlot, limpiarHorario, setHorario,
+  } = useHorario(horarioStore);
+
+  // Sincronizar cambios del hook al store (persistencia)
+  useEffect(() => {
+    setHorarioStore(horario);
+  }, [horario]);
 
   const isCompartida = datosBase?.tipo === "COMPARTIDA";
   const cantidadSuscriptores = isCompartida ? Math.max((datosBase?.maxMiembros ?? 2) - 1, 1) : 0;
@@ -114,10 +129,10 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     if (!unidadId) return handleToaster("Error: unidad no creada", "error");
 
     try {
-      // 6. Secuencia
+      // 6. Secuencia (con horario opcional)
       setStatusSecuencia("generating");
       setGenerandoPaso("Secuencia de Actividades");
-      const resSec = await generarSecuencia(unidadId);
+      const resSec = await generarSecuencia(unidadId, horario);
       const secData = resSec.data as ISecuenciaResponse;
       setSecuencia(secData);
       updateContenido({ secuencia: secData });
@@ -302,6 +317,19 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
           </p>
         </div>
 
+        {/* ── Panel Horario Escolar (antes del botón generar) ── */}
+        <HorarioPanel
+          horario={horario}
+          scanning={scanning}
+          confianza={confianza}
+          notas={notas}
+          error={horarioError}
+          onScan={escanearDesdeArchivo}
+          onSlotChange={actualizarSlot}
+          onClear={limpiarHorario}
+          disabled={isGenerating}
+        />
+
         {/* ── Botón generar ── */}
         {!allDone && (
           <div className="text-center mb-10">
@@ -359,15 +387,16 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                 <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1">
                   Hilo Conductor
                 </p>
-                <Textarea
+                <MarkdownTextarea
                   value={secuencia.hiloConductor}
-                  onChange={(e) => {
-                    const updated = { ...secuencia, hiloConductor: e.target.value };
+                  onChange={(v) => {
+                    const updated = { ...secuencia, hiloConductor: v };
                     setSecuencia(updated);
                     updateContenido({ secuencia: updated });
                   }}
                   rows={5}
-                  className="resize-y text-sm border-indigo-200 dark:border-indigo-800 min-h-[120px]"
+                  className="border-indigo-200 dark:border-indigo-800"
+                  viewClassName="border-indigo-200 dark:border-indigo-800 min-h-[120px]"
                 />
               </div>
 
@@ -415,32 +444,34 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {/* Primer Bloque */}
-                            <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/20 rounded-lg p-3 border border-amber-100 dark:border-amber-900">
-                              <Sun className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                              <div>
-                                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">
-                                  Primer Bloque — {dia.turnoManana?.area}
-                                </p>
-                                <p className="text-sm text-slate-700 dark:text-slate-300">
-                                  {dia.turnoManana?.actividad}
-                                </p>
+                          {/* Grid de horas pedagógicas */}
+                          <div className="space-y-2">
+                            {dia.horas?.map((h, hIdx) => (
+                              <div
+                                key={hIdx}
+                                className="flex items-start gap-2.5 rounded-lg p-3 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50"
+                              >
+                                <div className="flex flex-col items-center shrink-0 w-12">
+                                  <Clock className="h-3.5 w-3.5 text-slate-400 mb-0.5" />
+                                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                    H{h.hora ?? hIdx + 1}
+                                  </span>
+                                  {h.inicio && h.fin && (
+                                    <span className="text-[9px] text-slate-400">
+                                      {h.inicio}–{h.fin}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-0.5">
+                                    {h.area}
+                                  </p>
+                                  <p className="text-sm text-slate-700 dark:text-slate-300">
+                                    {h.actividad ? parseMarkdown(h.actividad) : null}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-
-                            {/* Segundo Bloque */}
-                            <div className="flex items-start gap-2 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg p-3 border border-indigo-100 dark:border-indigo-900">
-                              <BookOpen className="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
-                              <div>
-                                <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-0.5">
-                                  Segundo Bloque — {dia.turnoTarde?.area}
-                                </p>
-                                <p className="text-sm text-slate-700 dark:text-slate-300">
-                                  {dia.turnoTarde?.actividad}
-                                </p>
-                              </div>
-                            </div>
+                            ))}
                           </div>
                         </div>
                       ))}
@@ -471,7 +502,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                   className="group flex items-center gap-2 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-4 py-3 border border-amber-100 dark:border-amber-900 transition-all hover:shadow-md"
                 >
                   <Package className="h-4 w-4 text-amber-500 shrink-0" />
-                  <span className="text-sm flex-1">{mat}</span>
+                  <span className="text-sm flex-1">{parseMarkdown(mat)}</span>
                   <button
                     onClick={() => removeMaterial(i)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500"
@@ -505,7 +536,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                   <span className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold shrink-0 mt-0.5">
                     {i + 1}
                   </span>
-                  <p className="text-sm flex-1 text-slate-700 dark:text-slate-300">{ref.pregunta}</p>
+                  <p className="text-sm flex-1 text-slate-700 dark:text-slate-300">{parseMarkdown(ref.pregunta)}</p>
                   <button
                     onClick={() => removeReflexion(i)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500"

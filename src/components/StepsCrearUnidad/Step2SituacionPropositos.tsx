@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownTextarea } from "@/components/ui/markdown-textarea";
+import { parseMarkdown } from "@/utils/parseMarkdown";
 import {
   Sparkles,
   ArrowRight,
@@ -324,14 +325,15 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
           isGenerating={isGenerating}
         >
           {statusSituacion === "done" && (
-            <Textarea
+            <MarkdownTextarea
               value={situacionTexto}
-              onChange={(e) => {
-                setSituacionTexto(e.target.value);
-                updateContenido({ situacionSignificativa: e.target.value });
+              onChange={(v) => {
+                setSituacionTexto(v);
+                updateContenido({ situacionSignificativa: v });
               }}
               rows={12}
-              className="w-full text-sm leading-relaxed resize-y border-emerald-200 dark:border-emerald-800 focus:ring-emerald-500 min-h-[200px]"
+              className="border-emerald-200 dark:border-emerald-800 focus:ring-emerald-500"
+              viewClassName="border-emerald-200 dark:border-emerald-800 min-h-[200px]"
             />
           )}
         </IASection>
@@ -426,7 +428,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
                               <p className="text-xs text-slate-500 font-medium">Capacidades:</p>
                               <ul className="list-disc list-inside text-xs space-y-0.5 ml-2">
                                 {comp.capacidades.map((cap, i) => (
-                                  <li key={i}>{cap}</li>
+                                  <li key={i}>{parseMarkdown(cap)}</li>
                                 ))}
                               </ul>
                             </div>
@@ -436,7 +438,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
                               <p className="text-xs text-slate-500 font-medium">Criterios:</p>
                               <ul className="list-disc list-inside text-xs space-y-0.5 ml-2">
                                 {comp.criterios.map((cr, i) => (
-                                  <li key={i}>{cr}</li>
+                                  <li key={i}>{parseMarkdown(cr)}</li>
                                 ))}
                               </ul>
                             </div>
@@ -463,7 +465,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
                           {comp.instrumento && (
                             <p className="text-xs mt-1">
                               <span className="text-slate-500 font-medium">Instrumento:</span>{" "}
-                              {comp.instrumento}
+                              {parseMarkdown(comp.instrumento)}
                             </p>
                           )}
                         </div>
@@ -483,7 +485,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
                           {ct.capacidades?.length > 0 && (
                             <ul className="list-disc list-inside text-xs space-y-0.5 ml-2 mt-1">
                               {ct.capacidades.map((c, j) => (
-                                <li key={j}>{c}</li>
+                                <li key={j}>{parseMarkdown(c)}</li>
                               ))}
                             </ul>
                           )}
@@ -621,11 +623,12 @@ function EvidenciaField({
       <label className="text-sm font-semibold text-orange-700 dark:text-orange-400 mb-1 block">
         {label}
       </label>
-      <Textarea
+      <MarkdownTextarea
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
         rows={rows}
-        className="resize-y text-sm border-orange-200 dark:border-orange-800 focus:ring-orange-500"
+        className="border-orange-200 dark:border-orange-800 focus:ring-orange-500"
+        viewClassName="border-orange-200 dark:border-orange-800"
       />
     </div>
   );

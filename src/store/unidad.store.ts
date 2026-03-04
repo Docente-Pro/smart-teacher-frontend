@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { IUnidadContenido } from "@/interfaces/IUnidadIA";
+import type { HorarioEscolar } from "@/interfaces/IHorario";
 
 // ─── Datos base del Paso 1 ───
 
@@ -39,11 +40,15 @@ interface UnidadWizardState {
   tipoUnidad: "PERSONAL" | "COMPARTIDA";
   maxMiembros: number;
 
+  // ─── Horario escolar (opcional, paso 4) ───
+  horario: HorarioEscolar | null;
+
   // Actions
   setUnidadId: (id: string) => void;
   setDatosBase: (datos: UnidadDatosBase) => void;
   updateContenido: (partial: Partial<IUnidadContenido>) => void;
   setGenerandoPaso: (paso: string | null) => void;
+  setHorario: (horario: HorarioEscolar | null) => void;
   
   // Actions del wizard
   setCurrentStep: (step: number) => void;
@@ -55,6 +60,8 @@ interface UnidadWizardState {
   // Utilidades
   hasUnfinishedUnidad: () => boolean;
   resetUnidad: () => void;
+  /** Reset suave: conserva unidadId y tipoUnidad, limpia contenido y vuelve al paso 1 */
+  softResetUnidad: () => void;
 }
 
 const contenidoInicial: IUnidadContenido = {};
@@ -74,6 +81,9 @@ export const useUnidadStore = create<UnidadWizardState>()(
       tipoUnidad: "PERSONAL",
       maxMiembros: 2,
 
+      // Horario escolar
+      horario: null,
+
       setUnidadId: (id) => set({ unidadId: id }),
 
       setDatosBase: (datos) => set({ datosBase: datos }),
@@ -84,6 +94,8 @@ export const useUnidadStore = create<UnidadWizardState>()(
         })),
 
       setGenerandoPaso: (paso) => set({ generandoPaso: paso }),
+
+      setHorario: (horario) => set({ horario }),
 
       // ─── Acciones del wizard ───
       setCurrentStep: (step) => set({ currentStep: step }),
@@ -126,11 +138,24 @@ export const useUnidadStore = create<UnidadWizardState>()(
           wizardPhase: "select-type",
           tipoUnidad: "PERSONAL",
           maxMiembros: 2,
+          horario: null,
         }),
+
+      softResetUnidad: () =>
+        set((state) => ({
+          // Conserva unidadId, tipoUnidad, maxMiembros
+          datosBase: null,
+          contenido: contenidoInicial,
+          generandoPaso: null,
+          currentStep: 1,
+          maxStepReached: 1,
+          wizardPhase: "wizard", // ya tiene unidad, va directo al wizard
+          horario: null,
+        })),
     }),
     {
       name: "unidad-wizard-storage",
-      version: 1, // Incrementar al cambiar la estructura
+      version: 2, // v2: se agregó campo horario
       // Excluir generandoPaso de la persistencia (es estado transitorio)
       partialize: (state) => ({
         unidadId: state.unidadId,
@@ -141,6 +166,7 @@ export const useUnidadStore = create<UnidadWizardState>()(
         wizardPhase: state.wizardPhase,
         tipoUnidad: state.tipoUnidad,
         maxMiembros: state.maxMiembros,
+        horario: state.horario,
         // generandoPaso NO se persiste
       }),
       // Al rehidratar, asegurar que generandoPaso sea null y mergear correctamente

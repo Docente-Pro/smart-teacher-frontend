@@ -1,10 +1,6 @@
 import Step1 from "@/components/StepsCuestionarioCrearSesion/Step1";
-import Step2 from "@/components/StepsCuestionarioCrearSesion/Step2";
-import Step6 from "@/components/StepsCuestionarioCrearSesion/Step6";
-import Step5 from "@/components/StepsCuestionarioCrearSesion/Step5";
-import Step8 from "@/components/StepsCuestionarioCrearSesion/Step8";
-import Step9 from "@/components/StepsCuestionarioCrearSesion/Step9";
-import Step4 from "@/components/StepsCuestionarioCrearSesion/Step4";
+import Step2Free from "@/components/StepsCuestionarioCrearSesion/Step2Free";
+import Step3FreeResult from "@/components/StepsCuestionarioCrearSesion/Step3FreeResult";
 import { StepIndicator } from "@/components/StepsCuestionarioCrearSesion/StepIndicator";
 import { SessionDrawer } from "@/components/StepsCuestionarioCrearSesion/SessionDrawer";
 import { IUsuario } from "@/interfaces/IUsuario";
@@ -19,13 +15,9 @@ import { useNavigate } from "react-router";
 import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
 
 const STEPS = [
-  { number: 1, title: "Datos Generales", description: "Información básica" },
-  { number: 2, title: "Competencias", description: "Tema y capacidades" },
-  { number: 3, title: "Evaluación", description: "Evidencias" },
-  { number: 4, title: "Propósito", description: "De la sesión" },
-  { number: 5, title: "Enfoques", description: "Transversales" },
-  { number: 6, title: "Generar IA", description: "Secuencia" },
-  { number: 7, title: "Finalizar", description: "Revisión" },
+  { number: 1, title: "Datos Generales", description: "Área y duración" },
+  { number: 2, title: "Tema Curricular", description: "Tema y competencia" },
+  { number: 3, title: "Tu Sesión", description: "Resultado editable" },
 ];
 
 function CuestionarioSesion() {
@@ -116,27 +108,11 @@ function CuestionarioSesion() {
         )}
 
         {currentStep === 2 && usuarioFromState && sesion && (
-          <Step2 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
+          <Step2Free pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
         )}
 
         {currentStep === 3 && usuarioFromState && sesion && (
-          <Step4 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
-        )}
-
-        {currentStep === 4 && usuarioFromState && sesion && (
-          <Step6 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
-        )}
-
-        {currentStep === 5 && usuarioFromState && sesion && (
-          <Step5 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
-        )}
-
-        {currentStep === 6 && usuarioFromState && sesion && (
-          <Step8 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
-        )}
-
-        {currentStep === 7 && usuarioFromState && sesion && (
-          <Step9 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
+          <Step3FreeResult pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
         )}
       </div>
     </div>

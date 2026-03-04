@@ -291,7 +291,7 @@ function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
       format: size,
       orientation,
     },
-    pagebreak: { mode: ["avoid-all", "css", "legacy"] as const },
+    pagebreak: { mode: ["css", "legacy"] as const },
   };
 }
 

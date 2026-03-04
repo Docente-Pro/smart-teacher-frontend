@@ -17,6 +17,7 @@ import { useAuthFlow } from "./hooks/useAuthFlow";
 import { useSubscriptionSocket } from "./hooks/useSubscriptionSocket";
 import RenewalModal from "./components/Shared/Modal/RenewalModal";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { WhatsAppPremiumFAB } from "./components/WhatsAppPremiumFAB";
 
 // Componente wrapper - Solo hooks esenciales
 function App() {
@@ -50,6 +51,8 @@ function App() {
       </Routes>
       {/* Modal de renovación — se muestra cuando suscripcion:expirada llega */}
       <RenewalModal isOpen={showRenewalModal} onClose={dismissRenewalModal} />
+      {/* Botón flotante WhatsApp → Premium (solo usuarios no-premium) */}
+      <WhatsAppPremiumFAB />
     </>
   );
 }
