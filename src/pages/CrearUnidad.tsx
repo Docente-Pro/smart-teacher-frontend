@@ -101,7 +101,7 @@ function CrearUnidad() {
 
     if (user?.id) {
       const res = await getUnidadesByUsuario(user.id);
-      const unidades = res.data?.data ?? res.data;
+      const unidades = res.data;
       if (Array.isArray(unidades) && unidades.length > 0) {
         return unidades[0].id;
       }

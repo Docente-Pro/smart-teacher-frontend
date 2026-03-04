@@ -538,6 +538,7 @@ function UnidadSuscriptorResult() {
 
             <UnidadDocDatosGenerales
               institucion={institucion}
+              directivo=""
               docente={docenteNombre}
               grado={gradoLabel}
               nivel={unidad.nivel?.nombre ?? ""}
