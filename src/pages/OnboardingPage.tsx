@@ -312,7 +312,7 @@ function OnboardingPage() {
                 <Input
                   id="directivo"
                   type="text"
-                  placeholder="Ej: Rosa Mendoza Maldonado"
+                  placeholder="Ej: Carmen López Torres"
                   className="pl-10 py-5 text-sm"
                   value={formData.nombreDirectivo}
                   onChange={(e) => setFormData((prev) => ({ ...prev, nombreDirectivo: e.target.value }))}
