@@ -14,6 +14,17 @@ import Step1DatosUnidad from "@/components/StepsCrearUnidad/Step1DatosUnidad";
 import Step2SituacionPropositos from "@/components/StepsCrearUnidad/Step2SituacionPropositos";
 import Step3EnfoquesComplementos from "@/components/StepsCrearUnidad/Step3EnfoquesComplementos";
 import Step4SecuenciaFinal from "@/components/StepsCrearUnidad/Step4SecuenciaFinal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { X, RotateCcw, ArrowRight } from "lucide-react";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { TipoUnidad } from "@/interfaces/IUnidad";
 import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
@@ -58,6 +69,7 @@ function CrearUnidad() {
 
   const [usuarioData, setUsuarioData] = useState<IUsuario | null>(null);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // ── Manejador de paso ──
@@ -79,6 +91,13 @@ function CrearUnidad() {
   const handleStartNew = () => {
     setShowRecoveryDialog(false);
     resetUnidad();
+  };
+
+  // ── Empezar de cero desde el wizard ──
+  const handleEmpezarDeCero = () => {
+    setShowResetConfirm(false);
+    resetUnidad();
+    handleToaster("Se reinició la unidad correctamente", "success");
   };
 
   // ── Cargar usuario y verificar unidad pendiente ──
@@ -148,6 +167,58 @@ function CrearUnidad() {
             onStepClick={handleSetStep}
             onBack={() => navigate("/dashboard")}
           />
+
+          {/* ── Barra de acciones del wizard ── */}
+          <div className="w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 sticky top-[88px] sm:top-[108px] z-30">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-800 transition-all"
+              >
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Cerrar</span>
+              </button>
+
+              <button
+                onClick={() => setShowResetConfirm(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700 transition-all"
+              >
+                <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                Empezar de cero
+              </button>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                Continuar paso {currentStep}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Diálogo de confirmación: Empezar de cero ── */}
+          <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+            <AlertDialogContent className="max-w-sm sm:max-w-md mx-4 sm:mx-auto rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2 text-lg">
+                  <RotateCcw className="w-5 h-5 text-amber-500" />
+                  ¿Empezar de cero?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-sm text-slate-600 dark:text-slate-400">
+                  Se eliminará todo el progreso actual de la unidad (datos, contenido generado por IA, etc.). Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
+                <AlertDialogCancel className="rounded-xl">
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleEmpezarDeCero}
+                  className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  Sí, empezar de cero
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Resumen lateral */}
           <UnidadDrawer />

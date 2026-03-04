@@ -16,6 +16,7 @@ interface Props {
 
 interface EnfoqueConJustificacion {
   nombre: string;
+  valor?: string;
   actitudesObservables: string;
   justificacion?: string;
   enEdicion?: boolean;
@@ -43,6 +44,7 @@ function Step5({ pagina, setPagina }: Props) {
       setEnfoques(
         sesion.enfoquesTransversales.map((e) => ({
           nombre: e.nombre,
+          valor: e.valor,
           actitudesObservables: e.actitudesObservables,
           enEdicion: false,
         })),
@@ -151,6 +153,7 @@ function Step5({ pagina, setPagina }: Props) {
       updateSesion({
         enfoquesTransversales: enfoques.map((e) => ({
           nombre: e.nombre,
+          valor: e.valor,
           actitudesObservables: e.actitudesObservables,
         })),
       });

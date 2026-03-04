@@ -366,6 +366,16 @@ function Step8({ pagina, setPagina }: Props) {
           console.log('📦 Preparación auto-generada desde recursos:', preparacionFinal);
         }
 
+        // Mapear enfoquesTransversales del backend (enfoque/valor/actitudes → nombre/valor/actitudesObservables)
+        const enfoquesRaw = data.data?.enfoquesTransversales;
+        const enfoquesMapeados = Array.isArray(enfoquesRaw) && enfoquesRaw.length > 0
+          ? enfoquesRaw.map((e: any) => ({
+              nombre: e.enfoque || e.nombre || "",
+              valor: e.valor || undefined,
+              actitudesObservables: e.actitudes || e.actitudesObservables || "",
+            }))
+          : undefined;
+
         updateSesion({
           titulo: data.data.titulo || sesion.titulo,
           secuenciaDidactica: {
@@ -374,6 +384,7 @@ function Step8({ pagina, setPagina }: Props) {
             cierre: data.data.cierre || { tiempo: "15 min", procesos: [] },
           },
           preparacion: preparacionFinal,
+          ...(enfoquesMapeados && { enfoquesTransversales: enfoquesMapeados }),
           ...(data.imagenes_disponibles && { imagenes_disponibles: data.imagenes_disponibles }),
         });
 

@@ -39,7 +39,7 @@ function Step4({ pagina, setPagina }: Props) {
       if (sesion.propositoAprendizaje.criteriosEvaluacion && Array.isArray(sesion.propositoAprendizaje.criteriosEvaluacion)) {
         const criteriosGuardados = sesion.propositoAprendizaje.criteriosEvaluacion;
 
-        // Verificar si son objetos con la estructura de 4 pilares
+        // Verificar si son objetos con la estructura de 4 elementos claves
         if (criteriosGuardados.length > 0 && typeof criteriosGuardados[0] === "object") {
           setCriterios(criteriosGuardados as any);
         }
@@ -190,7 +190,7 @@ function Step4({ pagina, setPagina }: Props) {
               <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
                 <Target className="h-6 w-6 text-white" />
               </div>
-              Criterios de Evaluación (4 Pilares Pedagógicos)
+              Criterios de Evaluación (4 Elementos Claves)
             </CardTitle>
             <CardDescription className="text-base">Habilidad + Conocimiento + Condición + Finalidad</CardDescription>
           </CardHeader>
@@ -200,7 +200,7 @@ function Step4({ pagina, setPagina }: Props) {
               {criterios.map((criterio) => (
                 <div key={criterio.id} className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border-2 border-blue-200 dark:border-blue-800">
                   {criterioEnEdicion === criterio.id && criterioEditado ? (
-                    // Modo Edición - 4 Pilares
+                    // Modo Edición - 4 Elementos Claves
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
