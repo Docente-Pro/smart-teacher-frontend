@@ -147,6 +147,11 @@ function CrearUnidad() {
 
   // ── Cargar usuario y verificar unidad pendiente ──
   useEffect(() => {
+    // Si el wizard ya estaba completado, resetear para empezar de nuevo
+    if (useUnidadStore.getState().wizardPhase === "completed") {
+      resetUnidad();
+    }
+
     async function cargarUsuario() {
       if (!user?.id) {
         handleToaster("Error: Usuario no encontrado", "error");
