@@ -7,6 +7,7 @@ import AdminPagosSuscripcion from "@/pages/admin/AdminPagosSuscripcion";
 import AdminPagosUnidad from "@/pages/admin/AdminPagosUnidad";
 import AdminUsuarios from "@/pages/admin/AdminUsuarios";
 import AdminUsuarioDetalle from "@/pages/admin/AdminUsuarioDetalle";
+import AdminRehacerPdf from "@/pages/admin/AdminRehacerPdf";
 
 interface IAdminRoute {
   path: string;
@@ -22,6 +23,14 @@ export const adminRoutes: IAdminRoute[] = [
   {
     path: "/admin/login",
     element: <AdminLogin />,
+  },
+  {
+    path: "/admin/rehacer-pdf/:sesionId",
+    element: (
+      <AdminRoute>
+        <AdminRehacerPdf />
+      </AdminRoute>
+    ),
   },
   {
     path: "/admin",

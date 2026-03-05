@@ -312,6 +312,73 @@ export async function downgradeUsuario(
 }
 
 /**
+ * POST /api/admin/rehacer-sesion/:sesionId
+ * Regenera el contenido de una sesión conservando sus metadatos.
+ * No requiere body — todo se extrae de la sesión en BD.
+ */
+/** Respuesta extendida de rehacerSesion: incluye contenido corregido + URLs presignadas */
+export interface IRehacerSesionResponse {
+  success: boolean;
+  message: string;
+  sesion: {
+    id: string;
+    titulo: string;
+    area: string;
+    grado: string;
+    nivel: string;
+    resumen: string;
+    updatedAt: string;
+    clonesActualizados: number;
+  };
+  /** Contenido pedagógico corregido (JSON objeto o string) */
+  contenido: Record<string, any> | string;
+  /** URL presignada para subir el PDF de la sesión original */
+  upload: {
+    presignedUrl: string;
+    s3Key: string;
+    expiresIn: number;
+    method: string;
+    contentType: string;
+  };
+  /** URLs presignadas para subir el PDF a cada clon */
+  clonesUpload: Array<{
+    sesionId: string;
+    usuarioId: string;
+    presignedUrl: string;
+    s3Key: string;
+  }>;
+}
+
+export async function rehacerSesion(
+  sesionId: string
+): Promise<IRehacerSesionResponse> {
+  const { data } = await instance.post<IRehacerSesionResponse>(
+    `/admin/rehacer-sesion/${sesionId}`,
+    {},
+    { headers: getAdminHeaders() }
+  );
+  return data;
+}
+
+/**
+ * Confirma la subida de un PDF regenerado por el admin.
+ * Llama al mismo endpoint que el docente pero con token admin.
+ */
+export async function adminConfirmarUploadPDF(body: {
+  sesionId: string;
+  usuarioId: string;
+  key: string;
+  contenido: Record<string, any>;
+}): Promise<{ success: boolean }> {
+  const { data } = await instance.post(
+    "/sesion/confirmar-upload",
+    body,
+    { headers: getAdminHeaders() }
+  );
+  return data;
+}
+
+/**
  * 4.4 DELETE /api/admin/usuarios/:usuarioId
  * Eliminar usuario y todos sus datos. Acción irreversible.
  */

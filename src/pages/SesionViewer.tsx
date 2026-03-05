@@ -86,6 +86,20 @@ function SesionViewer() {
         if (cancelled) return;
         setSesion(data);
 
+        // Si la sesión no tiene PDF pero sí tiene contenido JSON (ej: sesión rehecha
+        // por admin), redirigir a la página que renderiza el documento y re-sube el PDF.
+        const raw = data as any;
+        const tieneContenido =
+          raw.contenido &&
+          (typeof raw.contenido === "string"
+            ? raw.contenido.length > 2
+            : Object.keys(raw.contenido).length > 0);
+
+        if (!data.pdfUrl && tieneContenido) {
+          navigate(`/sesion-suscriptor-result/${sesionId}`, { replace: true });
+          return;
+        }
+
         setLoadingPdf(true);
         try {
           // 1) Intentar CloudFront directo si pdfUrl existe

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   getUsuarioDetalle,
@@ -6,6 +6,7 @@ import {
   eliminarUsuario,
   resetUsuario,
   upgradePremium,
+  rehacerSesion,
 } from "@/services/admin.service";
 import type { IUsuarioDetalle } from "@/interfaces/IAdmin";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,8 @@ export default function AdminUsuarioDetalle() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [upgradePlan, setUpgradePlan] = useState<"premium_mensual" | "premium_anual">("premium_mensual");
+  const [rehaciendo, setRehaciendo] = useState<string | null>(null);
+  const [rehacerEstado, setRehacerEstado] = useState("");
 
   useEffect(() => {
     if (id) cargarDetalle();
@@ -557,6 +560,7 @@ export default function AdminUsuarioDetalle() {
                   <th className="px-3 py-2 font-medium">Título</th>
                   <th className="px-3 py-2 font-medium">Fecha</th>
                   <th className="px-3 py-2 font-medium">PDF</th>
+                  <th className="px-3 py-2 font-medium">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -585,6 +589,48 @@ export default function AdminUsuarioDetalle() {
                       ) : (
                         <span className="text-gray-300 text-xs">—</span>
                       )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs h-7 border-amber-300 text-amber-700 hover:bg-amber-50"
+                        disabled={rehaciendo === s.id}
+                        onClick={async () => {
+                          if (!confirm(`¿Rehacer la sesión "${s.titulo || s.id}"? Se regenerará el contenido y un PDF nuevo.`)) return;
+                          setRehaciendo(s.id);
+                          setRehacerEstado("Regenerando contenido…");
+                          try {
+                            // 1️⃣ Llamar al backend: corrige contenido + devuelve URLs presignadas
+                            const res = await rehacerSesion(s.id);
+
+                            // 2️⃣ Navegar a la página dedicada de renderizado PDF
+                            navigate(`/admin/rehacer-pdf/${s.id}`, {
+                              state: {
+                                rehacerResponse: res,
+                                docente: usuario?.nombre ?? "",
+                                institucion: usuario?.nombreInstitucion ?? "",
+                                usuarioId: usuario!.id,
+                              },
+                            });
+                          } catch (err: any) {
+                            console.error("❌ [Admin] Error al rehacer sesión:", err);
+                            toast.error(
+                              err?.response?.data?.message || "Error al rehacer la sesión",
+                            );
+                          } finally {
+                            setRehaciendo(null);
+                            setRehacerEstado("");
+                          }
+                        }}
+                      >
+                        {rehaciendo === s.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-3 h-3" />
+                        )}
+                        {rehaciendo === s.id && rehacerEstado ? rehacerEstado : "Rehacer"}
+                      </Button>
                     </td>
                   </tr>
                 ))}
