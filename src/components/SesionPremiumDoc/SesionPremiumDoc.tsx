@@ -1019,9 +1019,9 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
       )}
 
       {/* RECURSO NARRATIVO (sesiones complementarias: Tutoría / Plan Lector) */}
-      {(sesion as any).recursoNarrativo && (
+      {((sesion as any).recursoNarrativo || (sesion as any).contenido?.recursoNarrativo) && (
         <RecursoNarrativoPremium
-          recurso={(sesion as any).recursoNarrativo}
+          recurso={(sesion as any).recursoNarrativo || (sesion as any).contenido?.recursoNarrativo}
           hex={hex}
         />
       )}

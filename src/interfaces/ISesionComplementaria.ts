@@ -35,6 +35,10 @@ export interface ISesionComplementariaRequest {
   actividadTitulo: string;
   descripcion?: string;
   unidadId?: string;
+  /** Ubicación en el calendario — necesaria para restaurar el slot como generado */
+  semana?: number;
+  dia?: string;
+  turno?: string;
 }
 
 // ─── Respuesta del backend ───────────────────────────────────────────────────

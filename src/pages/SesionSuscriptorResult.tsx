@@ -184,6 +184,11 @@ function SesionSuscriptorResult() {
           imagenesDisponibles: pick<any[]>(
             raw.imagenesDisponibles, contenido.imagenesDisponibles, [],
           ),
+
+          // ── Sesiones complementarias (Tutoría / Plan Lector) ──
+          ...(raw.recursoNarrativo || contenido.recursoNarrativo
+            ? { recursoNarrativo: raw.recursoNarrativo || contenido.recursoNarrativo }
+            : {}),
         };
 
         console.log("🔍 [SesionSuscriptorResult] sesionForDoc.inicio:", sesionForDoc.inicio);

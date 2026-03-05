@@ -567,12 +567,21 @@ function GenerarSesionPremium() {
           tipo: tipoComplementario,
           actividadTitulo: actividad,
           unidadId: selectedUnidadId,
+          semana: currentSemana.semana,
+          dia,
+          turno: turnoKey,
         });
         // Normalizar a la misma forma que generarSesionUnidad
+        // El backend guarda recursoNarrativo dentro de `contenido` pero no
+        // lo flattena al nivel raíz; lo extraemos aquí para que el PDF lo vea.
+        const sesionComp = { ...compResp.sesion } as any;
+        if (!sesionComp.recursoNarrativo && sesionComp.contenido?.recursoNarrativo) {
+          sesionComp.recursoNarrativo = sesionComp.contenido.recursoNarrativo;
+        }
         resp = {
           success: compResp.success,
           message: compResp.message,
-          sesion: compResp.sesion,
+          sesion: sesionComp,
           docente: compResp.docente,
           institucion: compResp.institucion,
         } as any;
