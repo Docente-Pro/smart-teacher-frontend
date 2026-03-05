@@ -26,6 +26,10 @@ import type {
   IDistribucionSesionesRequest,
 } from "@/interfaces/IUnidad";
 import type { IUnidadListResponse, IUnidadListItem } from "@/interfaces/IUnidadList";
+import type {
+  ISesionComplementariaRequest,
+  ISesionComplementariaResponse,
+} from "@/interfaces/ISesionComplementaria";
 
 // ============================================
 // Precios dinámicos (público)
@@ -303,6 +307,32 @@ export async function sincronizarMiembroUnidad(
 ): Promise<ISincronizarMiembroResponse> {
   const { data } = await instance.post<ISincronizarMiembroResponse>(
     `/unidades/${unidadId}/sincronizar-miembro`
+  );
+  return data;
+}
+
+// ============================================
+// Sesión Complementaria (Tutoría / Plan Lector)
+// POST /api/unidad/generar-sesion-complementaria
+// ============================================
+
+/**
+ * Genera una sesión complementaria (Tutoría o Plan Lector).
+ * Diferencias con la sesión curricular:
+ *  - No requiere areaId (es transversal)
+ *  - Duración fija de 45 minutos
+ *  - Solo acepta tipo: "Tutoría" o "Plan Lector"
+ *  - Busca el resumen previo más reciente del mismo tipo para contexto
+ *  - Clona contenido a miembros en unidades compartidas
+ *
+ * POST /api/unidad/generar-sesion-complementaria
+ */
+export async function generarSesionComplementaria(
+  body: ISesionComplementariaRequest
+): Promise<ISesionComplementariaResponse> {
+  const { data } = await instance.post<ISesionComplementariaResponse>(
+    "/unidad/generar-sesion-complementaria",
+    body
   );
   return data;
 }

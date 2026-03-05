@@ -5,8 +5,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { listarUnidadesByUsuario, sincronizarMiembroUnidad } from "@/services/unidad.service";
+import { listarUnidadesByUsuario, sincronizarMiembroUnidad, generarSesionComplementaria } from "@/services/unidad.service";
 import { generarSesionUnidad } from "@/services/sesiones.service";
+import type { TipoSesionComplementaria } from "@/interfaces/ISesionComplementaria";
 import { generarImagenesSesion } from "@/services/ia-sesion.service";
 import { useInstrumentoEvaluacion } from "@/hooks/useInstrumentoEvaluacion";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
@@ -36,16 +37,19 @@ import { AREA_COLORS, DEFAULT_AREA_COLOR, type AreaColorConfig } from "@/constan
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-interface ITurnoData {
+interface IBloqueData {
+  turnoKey: string;
+  label: string;
   area: string;
   actividad: string;
+  horaInicio?: string;
+  horaFin?: string;
 }
 
 interface IDiaData {
   dia: string;
   fecha: string;
-  turnoManana: ITurnoData;
-  turnoTarde: ITurnoData;
+  bloques: IBloqueData[];
 }
 
 interface ISemanaData {
@@ -62,75 +66,119 @@ type SlotState = "generada" | "clonada" | "disponible" | "en_espera" | "bloquead
 
 const DIA_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 
+/** Nombres de área que corresponden a sesiones complementarias (no curriculares) */
+const TIPOS_COMPLEMENTARIOS: Record<string, TipoSesionComplementaria> = {
+  "tutoría": "Tutoría",
+  "tutoria": "Tutoría",
+  "plan lector": "Plan Lector",
+  "planlector": "Plan Lector",
+};
+
+/** Detecta si un nombre de área es en realidad un tipo complementario */
+function getTipoComplementario(areaName: string): TipoSesionComplementaria | null {
+  return TIPOS_COMPLEMENTARIOS[areaName.toLowerCase().trim()] ?? null;
+}
+
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/** Backward-compat: map legacy "mañana"/"tarde" turno keys to the new format */
+function normalizeTurnoKey(turno: string): string {
+  if (turno === "mañana") return "bloque-1";
+  if (turno === "tarde") return "bloque-2";
+  return turno;
+}
+
 /**
- * Agrupa un array de horas-actividad en 2 bloques (mañana / tarde).
- * La primera mitad de horas se asigna al bloque mañana y la segunda al bloque tarde.
- * Si ya viene con el formato viejo (turnoManana/turnoTarde), lo devuelve directo.
+ * Convierte un día (formato nuevo con horas[] o viejo con turnoManana/turnoTarde)
+ * en IDiaData con bloques dinámicos agrupando horas consecutivas de la misma área.
  */
-function horasToTurnos(dia: any): IDiaData {
-  // Formato viejo: ya tiene turnoManana/turnoTarde
+function normalizeDia(dia: any): IDiaData {
+  // Legacy format: turnoManana/turnoTarde → 2 bloques
   if (dia.turnoManana && dia.turnoTarde) {
-    return dia as IDiaData;
+    return {
+      dia: dia.dia ?? "",
+      fecha: dia.fecha ?? "",
+      bloques: [
+        {
+          turnoKey: "bloque-1",
+          label: "Bloque 1",
+          area: dia.turnoManana.area ?? "",
+          actividad: dia.turnoManana.actividad ?? "",
+        },
+        {
+          turnoKey: "bloque-2",
+          label: "Bloque 2",
+          area: dia.turnoTarde.area ?? "",
+          actividad: dia.turnoTarde.actividad ?? "",
+        },
+      ],
+    };
   }
 
-  // Formato nuevo: horas[]
-  const horas: { area?: string; actividad?: string }[] = dia.horas ?? [];
-  const mid = Math.ceil(horas.length / 2);
-  const primerBloque = horas.slice(0, mid);
-  const segundoBloque = horas.slice(mid);
+  // New format: horas[]
+  const horas: { hora?: number; inicio?: string; fin?: string; area?: string; actividad?: string }[] =
+    dia.horas ?? [];
+  if (!horas.length) {
+    return { dia: dia.dia ?? "", fecha: dia.fecha ?? "", bloques: [] };
+  }
 
-  // Obtener el área y actividad predominante de cada bloque
-  const pickDominant = (slots: typeof horas): ITurnoData => {
-    if (!slots.length) return { area: "", actividad: "" };
-    // Contar ocurrencias de cada área
-    const counts = new Map<string, number>();
-    for (const s of slots) {
-      const a = s.area ?? "";
-      counts.set(a, (counts.get(a) ?? 0) + 1);
+  // Group consecutive same-area hours into bloques
+  const bloques: IBloqueData[] = [];
+  let group: typeof horas = [horas[0]];
+
+  for (let i = 1; i < horas.length; i++) {
+    if ((horas[i].area ?? "") === (group[0].area ?? "")) {
+      group.push(horas[i]);
+    } else {
+      const idx = bloques.length + 1;
+      bloques.push({
+        turnoKey: `bloque-${idx}`,
+        label: `Bloque ${idx}`,
+        area: group[0].area ?? "",
+        actividad: group[0].actividad ?? "",
+        horaInicio: group[0].inicio,
+        horaFin: group[group.length - 1].fin,
+      });
+      group = [horas[i]];
     }
-    // Elegir la más frecuente
-    let maxArea = "";
-    let maxCount = 0;
-    for (const [a, c] of counts) {
-      if (c > maxCount) { maxArea = a; maxCount = c; }
-    }
-    // Tomar la actividad del primer slot que coincida con el área dominante
-    const match = slots.find((s) => s.area === maxArea);
-    return {
-      area: maxArea,
-      actividad: match?.actividad ?? "",
-    };
-  };
+  }
+  // Finalize last group
+  const idx = bloques.length + 1;
+  bloques.push({
+    turnoKey: `bloque-${idx}`,
+    label: `Bloque ${idx}`,
+    area: group[0].area ?? "",
+    actividad: group[0].actividad ?? "",
+    horaInicio: group[0].inicio,
+    horaFin: group[group.length - 1].fin,
+  });
 
   return {
     dia: dia.dia ?? "",
     fecha: dia.fecha ?? "",
-    turnoManana: pickDominant(primerBloque),
-    turnoTarde: pickDominant(segundoBloque),
+    bloques,
   };
 }
 
-/** Transforma semanas del nuevo formato (horas[]) al formato IDiaData con turnos */
+/** Transforma semanas al formato normalizado con bloques dinámicos */
 function normalizeSemanas(raw: any[]): ISemanaData[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((s) => ({
     semana: s.semana,
-    dias: (s.dias ?? []).map(horasToTurnos),
+    dias: (s.dias ?? []).map(normalizeDia),
   }));
 }
 
-function makeSlotKey(semana: number, dia: string, turno: "mañana" | "tarde"): SlotKey {
-  return `${semana}-${dia}-${turno}`;
+function makeSlotKey(semana: number, dia: string, turnoKey: string): SlotKey {
+  return `${semana}-${dia}-${turnoKey}`;
 }
 
-function getSlotOrderInWeek(dia: string, turno: "mañana" | "tarde"): number {
-  return DIA_ORDER.indexOf(dia) * 2 + (turno === "tarde" ? 1 : 0);
+function getSlotOrderInWeek(dia: string, bloqueIndex: number): number {
+  return DIA_ORDER.indexOf(dia) * 10 + bloqueIndex;
 }
 
 function calcularSemanaActual(fechaInicio: string, duracion: number): number {
@@ -327,15 +375,12 @@ function GenerarSesionPremium() {
     // Collect all slots in order
     const allSlots: { key: SlotKey; order: number; area: string }[] = [];
     currentSemana.dias.forEach((d) => {
-      allSlots.push({
-        key: makeSlotKey(wk, d.dia, "mañana"),
-        order: getSlotOrderInWeek(d.dia, "mañana"),
-        area: d.turnoManana.area,
-      });
-      allSlots.push({
-        key: makeSlotKey(wk, d.dia, "tarde"),
-        order: getSlotOrderInWeek(d.dia, "tarde"),
-        area: d.turnoTarde.area,
+      d.bloques.forEach((bloque, idx) => {
+        allSlots.push({
+          key: makeSlotKey(wk, d.dia, bloque.turnoKey),
+          order: getSlotOrderInWeek(d.dia, idx),
+          area: bloque.area,
+        });
       });
     });
     allSlots.sort((a, b) => a.order - b.order);
@@ -378,9 +423,9 @@ function GenerarSesionPremium() {
     let total = 0;
     let generated = 0;
     currentSemana.dias.forEach((d) => {
-      for (const turno of ["mañana", "tarde"] as const) {
+      for (const bloque of d.bloques) {
         total++;
-        if (generatedSlots.has(makeSlotKey(wk, d.dia, turno))) generated++;
+        if (generatedSlots.has(makeSlotKey(wk, d.dia, bloque.turnoKey))) generated++;
       }
     });
     return { generated, total };
@@ -460,7 +505,7 @@ function GenerarSesionPremium() {
     if (selectedUnidad.sesiones?.length) {
       for (const ses of selectedUnidad.sesiones as any[]) {
         if (ses.semana && ses.dia && ses.turno) {
-          const key = makeSlotKey(ses.semana, ses.dia, ses.turno);
+          const key = makeSlotKey(ses.semana, ses.dia, normalizeTurnoKey(ses.turno));
           gen.add(key);
           sesMap.set(key, {
             id: ses.id,
@@ -484,37 +529,62 @@ function GenerarSesionPremium() {
 
   const handleGenerar = async (
     dia: string,
-    turno: "mañana" | "tarde",
+    turnoKey: string,
     actividad: string,
     areaName: string,
   ) => {
     if (!selectedUnidadId || !currentSemana) return;
 
-    // Buscar areaId: primero en áreas del miembro, luego en todas las áreas de la unidad
-    const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
-    const areaId = findAreaId(areaName, areasPool);
+    // ─── Detectar si es sesión complementaria (Tutoría / Plan Lector) ───
+    const tipoComplementario = getTipoComplementario(areaName);
 
-    if (!areaId) {
-      handleToaster(
-        `No se pudo identificar el área "${areaName}". Intenta recargar la página.`,
-        "error",
-      );
-      return;
+    let areaId: number | undefined;
+    if (!tipoComplementario) {
+      // Buscar areaId: primero en áreas del miembro, luego en todas las áreas de la unidad
+      const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
+      areaId = findAreaId(areaName, areasPool);
+
+      if (!areaId) {
+        handleToaster(
+          `No se pudo identificar el área "${areaName}". Intenta recargar la página.`,
+          "error",
+        );
+        return;
+      }
     }
 
-    const key = makeSlotKey(currentSemana.semana, dia, turno);
+    const key = makeSlotKey(currentSemana.semana, dia, turnoKey);
     setGeneratingSlot(key);
     try {
       // ═══════════════════════════════════════════════════════════════
       // FASE 1: Generar texto de la sesión (rápido, ~20-30s)
       // ═══════════════════════════════════════════════════════════════
-      const resp = await generarSesionUnidad(selectedUnidadId, {
-        areaId,
-        semana: currentSemana.semana,
-        dia,
-        turno,
-        tituloActividad: actividad,
-      });
+      let resp: any;
+
+      if (tipoComplementario) {
+        // ── Sesión complementaria (Tutoría / Plan Lector) ──
+        const compResp = await generarSesionComplementaria({
+          tipo: tipoComplementario,
+          actividadTitulo: actividad,
+          unidadId: selectedUnidadId,
+        });
+        // Normalizar a la misma forma que generarSesionUnidad
+        resp = {
+          success: compResp.success,
+          message: compResp.message,
+          sesion: compResp.sesion,
+          docente: compResp.docente,
+          institucion: compResp.institucion,
+        } as any;
+      } else {
+        resp = await generarSesionUnidad(selectedUnidadId, {
+          areaId,
+          semana: currentSemana.semana,
+          dia,
+          turno: turnoKey,
+          tituloActividad: actividad,
+        });
+      }
       // Si yaExistia === true, la sesión ya fue generada por otro miembro (clonada)
       if ((resp as any).yaExistia) {
         handleToaster(
@@ -611,22 +681,26 @@ function GenerarSesionPremium() {
 
           // ═══════════════════════════════════════════════════════════
           // FASE 3: Generar instrumento de evaluación en background
+          // (solo para sesiones curriculares — las complementarias
+          //  no tienen propositoAprendizaje con criterios de evaluación)
           // ═══════════════════════════════════════════════════════════
-          generarInstrumento(fullResp.sesion)
-            .then((inst) => {
-              if (inst) {
-                // Almacenar en el Map para pasarlo a la vista de resultado
-                setInstrumentosMap((prev) => new Map(prev).set(key, inst));
-                handleToaster("Instrumento de evaluación generado", "success");
-                // Persistir en S3 en segundo plano (fire-and-forget)
-                guardarInstrumento(fullResp.sesion.id).catch((err) =>
-                  console.warn("⚠️ No se pudo guardar instrumento en S3:", err),
-                );
-              }
-            })
-            .catch((err) => {
-              console.warn("⚠️ No se pudo generar el instrumento:", err);
-            });
+          if (!tipoComplementario) {
+            generarInstrumento(fullResp.sesion)
+              .then((inst) => {
+                if (inst) {
+                  // Almacenar en el Map para pasarlo a la vista de resultado
+                  setInstrumentosMap((prev) => new Map(prev).set(key, inst));
+                  handleToaster("Instrumento de evaluación generado", "success");
+                  // Persistir en S3 en segundo plano (fire-and-forget)
+                  guardarInstrumento(fullResp.sesion.id).catch((err) =>
+                    console.warn("⚠️ No se pudo guardar instrumento en S3:", err),
+                  );
+                }
+              })
+              .catch((err) => {
+                console.warn("⚠️ No se pudo generar el instrumento:", err);
+              });
+          }
 
           return; // No llegar al finally que haría setGeneratingSlot(null) otra vez
         }
@@ -1049,7 +1123,7 @@ function DayColumn({
   generatingImages: Set<SlotKey>;
   onGenerar: (
     dia: string,
-    turno: "mañana" | "tarde",
+    turnoKey: string,
     actividad: string,
     area: string,
   ) => void;
@@ -1090,76 +1164,38 @@ function DayColumn({
         </p>
       </div>
 
-      {/* Turno cards */}
+      {/* Bloque cards */}
       <div className="p-2 space-y-2 bg-white dark:bg-slate-900/30 flex flex-col flex-1">
-        <TurnoCard
-          turno="mañana"
-          data={dia.turnoManana}
-          slotKey={makeSlotKey(semana, dia.dia, "mañana")}
-          state={
-            slotStates.get(makeSlotKey(semana, dia.dia, "mañana")) ??
-            "en_espera"
-          }
-          generatedSesion={generatedSesiones.get(
-            makeSlotKey(semana, dia.dia, "mañana"),
-          )}
-          isGenerating={
-            generatingSlot === makeSlotKey(semana, dia.dia, "mañana")
-          }
-          isGeneratingImages={generatingImages.has(
-            makeSlotKey(semana, dia.dia, "mañana"),
-          )}
-          anyGenerating={generatingSlot !== null}
-          onGenerar={() =>
-            onGenerar(
-              dia.dia,
-              "mañana",
-              dia.turnoManana.actividad,
-              dia.turnoManana.area,
-            )
-          }
-          onVerSesion={onVerSesion}
-        />
-        <TurnoCard
-          turno="tarde"
-          data={dia.turnoTarde}
-          slotKey={makeSlotKey(semana, dia.dia, "tarde")}
-          state={
-            slotStates.get(makeSlotKey(semana, dia.dia, "tarde")) ??
-            "en_espera"
-          }
-          generatedSesion={generatedSesiones.get(
-            makeSlotKey(semana, dia.dia, "tarde"),
-          )}
-          isGenerating={
-            generatingSlot === makeSlotKey(semana, dia.dia, "tarde")
-          }
-          isGeneratingImages={generatingImages.has(
-            makeSlotKey(semana, dia.dia, "tarde"),
-          )}
-          anyGenerating={generatingSlot !== null}
-          onGenerar={() =>
-            onGenerar(
-              dia.dia,
-              "tarde",
-              dia.turnoTarde.actividad,
-              dia.turnoTarde.area,
-            )
-          }
-          onVerSesion={onVerSesion}
-        />
+        {dia.bloques.map((bloque) => {
+          const sk = makeSlotKey(semana, dia.dia, bloque.turnoKey);
+          return (
+            <BloqueCard
+              key={bloque.turnoKey}
+              bloque={bloque}
+              slotKey={sk}
+              state={slotStates.get(sk) ?? "en_espera"}
+              generatedSesion={generatedSesiones.get(sk)}
+              isGenerating={generatingSlot === sk}
+              isGeneratingImages={generatingImages.has(sk)}
+              anyGenerating={generatingSlot !== null}
+              onGenerar={() =>
+                onGenerar(dia.dia, bloque.turnoKey, bloque.actividad, bloque.area)
+              }
+              onVerSesion={onVerSesion}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TURNO CARD
+// BLOQUE CARD
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function TurnoCard({
-  turno,
-  data,
+function BloqueCard({
+  bloque,
   slotKey,
   state,
   generatedSesion,
@@ -1169,8 +1205,7 @@ function TurnoCard({
   onGenerar,
   onVerSesion,
 }: {
-  turno: "mañana" | "tarde";
-  data: ITurnoData;
+  bloque: IBloqueData;
   slotKey: SlotKey;
   state: SlotState;
   generatedSesion?: { id: string; titulo: string };
@@ -1180,8 +1215,7 @@ function TurnoCard({
   onGenerar: () => void;
   onVerSesion: (id: string, slotKey?: SlotKey) => void;
 }) {
-  const theme = getAreaTheme(data.area);
-  const isMañana = turno === "mañana";
+  const theme = getAreaTheme(bloque.area);
 
   const isAvailable = state === "disponible";
   const isGenerated = state === "generada";
@@ -1217,12 +1251,17 @@ function TurnoCard({
           : ""
       }`}
     >
-      {/* Turno label */}
+      {/* Bloque label */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <Sun className={`h-3 w-3 ${isMañana ? "text-amber-500" : "text-orange-400"}`} />
+        <Sun className="h-3 w-3 text-amber-500" />
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-          {isMañana ? "Primer Bloque" : "Segundo Bloque"}
+          {bloque.label}
         </span>
+        {bloque.horaInicio && bloque.horaFin && (
+          <span className="text-[9px] text-slate-400 dark:text-slate-500">
+            {bloque.horaInicio}–{bloque.horaFin}
+          </span>
+        )}
       </div>
 
       {/* Area badge */}
@@ -1230,7 +1269,7 @@ function TurnoCard({
         className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md mb-1.5 ${theme.pill}`}
       >
         <span className={`w-1.5 h-1.5 rounded-full ${theme.dot}`} />
-        {data.area}
+        {bloque.area}
       </span>
 
       {/* Actividad */}
@@ -1241,7 +1280,7 @@ function TurnoCard({
             : "text-slate-700 dark:text-slate-300"
         }`}
       >
-        {data.actividad}
+        {bloque.actividad}
       </p>
 
       {/* ─── Actions ─── */}

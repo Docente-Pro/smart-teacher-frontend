@@ -172,11 +172,10 @@ function DocTest() {
           <Document size="A4" orientation="portrait" margin="0.5in">
             <DocumentStyles thBgColor={areaHex!.light} />
 
-            {/* HEADER — con subtítulo de área coloreado */}
+            {/* HEADER */}
             <DocumentHeader 
               institucion={sesion.datosGenerales.institucion}
               titulo={sesion.titulo}
-              areaSubtitle={`Sesión de Aprendizaje - ${sesion.datosGenerales.area}`}
               accentColor={areaHex!.accent}
             />
 

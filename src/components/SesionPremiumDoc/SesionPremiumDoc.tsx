@@ -883,11 +883,10 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
     <Document size="A4" orientation="portrait" margin="0.5in">
       <DocumentStyles thBgColor={hex.light} />
 
-      {/* HEADER — con subtítulo de área coloreado */}
+      {/* HEADER */}
       <DocumentHeader
         institucion={institucion}
         titulo={sesion.titulo || "Sesión de Aprendizaje"}
-        areaSubtitle={`Sesión de Aprendizaje - Área de ${areaName}`}
         accentColor={hex.accent}
       />
 

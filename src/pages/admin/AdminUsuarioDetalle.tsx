@@ -5,6 +5,7 @@ import {
   downgradeUsuario,
   eliminarUsuario,
   resetUsuario,
+  upgradePremium,
 } from "@/services/admin.service";
 import type { IUsuarioDetalle } from "@/interfaces/IAdmin";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
   XCircle,
   ExternalLink,
   RotateCcw,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,6 +37,7 @@ export default function AdminUsuarioDetalle() {
   const [usuario, setUsuario] = useState<IUsuarioDetalle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [upgradePlan, setUpgradePlan] = useState<"premium_mensual" | "premium_anual">("premium_mensual");
 
   useEffect(() => {
     if (id) cargarDetalle();
@@ -161,6 +164,27 @@ export default function AdminUsuarioDetalle() {
     }
   }
 
+  async function handleUpgradePremium() {
+    if (!id) return;
+    const nombre = usuario?.nombre || id;
+    if (
+      !window.confirm(
+        `¿Subir a ${upgradePlan === "premium_anual" ? "Premium Anual" : "Premium Mensual"} al usuario ${nombre}?`
+      )
+    )
+      return;
+    setActionLoading("upgrade");
+    try {
+      const res = await upgradePremium(id, { plan: upgradePlan });
+      toast.success(res.message || "Usuario actualizado a premium");
+      cargarDetalle();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Error al subir a premium");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   async function handleDowngrade() {
     if (
       !window.confirm(
@@ -238,7 +262,36 @@ export default function AdminUsuarioDetalle() {
             Volver a usuarios
           </Button>
         </Link>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {!isPremium && (
+            <div className="flex items-center gap-2">
+              <select
+                value={upgradePlan}
+                onChange={(e) =>
+                  setUpgradePlan(
+                    e.target.value as "premium_mensual" | "premium_anual"
+                  )
+                }
+                className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md px-2 py-1.5"
+              >
+                <option value="premium_mensual">Mensual</option>
+                <option value="premium_anual">Anual</option>
+              </select>
+              <Button
+                size="sm"
+                onClick={handleUpgradePremium}
+                disabled={!!actionLoading}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              >
+                {actionLoading === "upgrade" ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Crown className="w-4 h-4 mr-2" />
+                )}
+                Upgrade Premium
+              </Button>
+            </div>
+          )}
           {isPremium && (
             <Button
               size="sm"
