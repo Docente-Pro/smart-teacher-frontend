@@ -33,6 +33,7 @@ import type {
   IFuenteMinedu,
 } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
+import type { IRecursoNarrativo } from "@/interfaces/ISesionComplementaria";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Helpers
@@ -771,6 +772,82 @@ function ReflexionesPremium({
 // Resumen y Fuentes MINEDU
 // ═════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Recurso narrativo para sesiones complementarias (Plan Lector / Tutoría).
+ * Muestra el texto completo listo para fotocopiar: título, contenido y fuente.
+ */
+function RecursoNarrativoPremium({
+  recurso,
+  hex,
+}: {
+  recurso: IRecursoNarrativo;
+  hex: AreaHex;
+}) {
+  if (!recurso?.contenido) return null;
+
+  // Capitalizar tipo: "testimonio" → "Testimonio"
+  const tipoLabel = recurso.tipo
+    ? recurso.tipo.charAt(0).toUpperCase() + recurso.tipo.slice(1)
+    : "Recurso";
+
+  return (
+    <table style={{ marginBottom: "0.5rem", width: "100%" }}>
+      <tbody>
+        <tr>
+          <td
+            style={{
+              backgroundColor: hex.light,
+              fontWeight: "bold",
+              textAlign: "center",
+              padding: "0.3rem",
+            }}
+          >
+            RECURSO NARRATIVO — {tipoLabel.toUpperCase()}
+          </td>
+        </tr>
+        <tr>
+          <td style={{ padding: "0.4rem 0.5rem" }}>
+            <p
+              style={{
+                fontWeight: "bold",
+                fontSize: "11pt",
+                textAlign: "center",
+                marginBottom: "0.3rem",
+                color: hex.accent,
+              }}
+            >
+              {recurso.titulo}
+            </p>
+            <div
+              style={{
+                fontSize: "10pt",
+                lineHeight: "1.5",
+                textAlign: "justify",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {recurso.contenido}
+            </div>
+            {recurso.fuente && (
+              <p
+                style={{
+                  fontSize: "8pt",
+                  color: "#666",
+                  textAlign: "right",
+                  marginTop: "0.3rem",
+                  fontStyle: "italic",
+                }}
+              >
+                Fuente: {recurso.fuente}
+              </p>
+            )}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
 /** Resumen de la sesión generado por IA */
 function ResumenPremium({
   resumen,
@@ -939,6 +1016,14 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
       {/* REFLEXIONES */}
       {sesion.reflexiones && (
         <ReflexionesPremium reflexiones={sesion.reflexiones} hex={hex} />
+      )}
+
+      {/* RECURSO NARRATIVO (sesiones complementarias: Tutoría / Plan Lector) */}
+      {(sesion as any).recursoNarrativo && (
+        <RecursoNarrativoPremium
+          recurso={(sesion as any).recursoNarrativo}
+          hex={hex}
+        />
       )}
 
       {/* INSTRUMENTO DE EVALUACIÓN */}

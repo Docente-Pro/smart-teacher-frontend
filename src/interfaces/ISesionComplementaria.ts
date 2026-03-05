@@ -14,6 +14,20 @@
 
 export type TipoSesionComplementaria = "Tutoría" | "Plan Lector";
 
+// ─── Recurso narrativo (obligatorio en la respuesta) ─────────────────────────
+
+/**
+ * Texto completo listo para fotocopiar que acompaña la sesión complementaria.
+ *  - Plan Lector → cuento / poema / leyenda / texto (200-900 palabras según grado)
+ *  - Tutoría    → caso / historia / dinámica con personajes e instrucciones (≥150 palabras)
+ */
+export interface IRecursoNarrativo {
+  titulo: string;
+  tipo: string;            // "cuento" | "poema" | "leyenda" | "testimonio" | "caso" | "dinámica" | etc.
+  contenido: string;       // Texto completo
+  fuente: string;          // Ej: "Texto creado para la sesión"
+}
+
 // ─── Request body ────────────────────────────────────────────────────────────
 
 export interface ISesionComplementariaRequest {
@@ -78,6 +92,7 @@ export interface ISesionComplementariaData {
     sobreAprendizajes: string;
     sobreEnsenanza: string;
   };
+  recursoNarrativo: IRecursoNarrativo;
   resumen?: string;
 }
 
