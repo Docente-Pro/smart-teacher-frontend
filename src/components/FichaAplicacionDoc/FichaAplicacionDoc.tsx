@@ -403,8 +403,6 @@ function BloqueProblema({
             padding: "0.5rem 0.6rem",
             margin: "0.4rem 0.5rem",
             backgroundColor: hex.light,
-            pageBreakInside: "avoid",
-            breakInside: "avoid",
           }}
         >
           <GraficoRenderer grafico={contenido.grafico as any} />
@@ -420,8 +418,6 @@ function BloqueProblema({
             minHeight: "140px",
             padding: "0.4rem 0.5rem",
             margin: "0.4rem 0.5rem",
-            pageBreakInside: "avoid",
-            breakInside: "avoid",
           }}
         >
           <p
@@ -1086,7 +1082,7 @@ function Solucionario({
 }) {
   if (!items.length && !graficos.length) return null;
   return (
-    <div style={{ marginTop: "0.5rem", pageBreakBefore: "always", breakBefore: "page" }}>
+    <div style={{ marginTop: "0.5rem" }}>
       <div
         style={{
           background: `linear-gradient(135deg, ${hex.accent}, ${hex.primary})`,
@@ -1184,8 +1180,6 @@ function Solucionario({
         <div
           key={g.numero}
           style={{
-            pageBreakInside: "avoid",
-            breakInside: "avoid",
             marginBottom: "0.6rem",
           }}
         >
@@ -1254,7 +1248,7 @@ export function FichaAplicacionDoc({
 
       {/* Secciones / bloques renderizables */}
       {ficha.secciones.map((seccion, i) => (
-        <div key={i} style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
+        <div key={i}>
           <SeccionRenderer seccion={seccion} hex={hex} />
         </div>
       ))}

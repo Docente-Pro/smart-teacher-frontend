@@ -70,7 +70,6 @@
 /* ========== IMPRESIÓN ========== */
 @media print {
   .tabla-valores {
-    page-break-inside: avoid;
   }
   
   .tabla-valores tbody tr:hover {

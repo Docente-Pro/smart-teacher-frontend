@@ -13,6 +13,7 @@ import {
   FolderPlus,
   Lock,
   KeyRound,
+  ClipboardList,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
@@ -28,6 +29,9 @@ import { clearUserStorage } from "@/utils/clearUserStorage";
 import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { getUsuarioById } from "@/services/usuarios.service";
+
+// ─── Ficha de Aplicación: solo visible para este usuario ───
+const FICHA_ALLOWED_UID = "fa97b8c9-da76-41d9-8d78-766410d723bb";
 
 function Dashboard() {
   const { logout } = useAuth0();
@@ -228,6 +232,24 @@ function Dashboard() {
       },
       premium: false,
     },
+    // Solo visible para usuario habilitado
+    ...(user?.id === FICHA_ALLOWED_UID
+      ? [
+          {
+            icon: ClipboardList,
+            title: "Mis Fichas",
+            description: "Ver tus fichas de aplicación generadas",
+            color: "from-amber-500 to-orange-600",
+            bgLight: "bg-amber-50 dark:bg-amber-500/10",
+            iconColor: "text-amber-600 dark:text-amber-400",
+            action: () => {
+              showLoading("Cargando fichas...");
+              navigate("/mis-fichas");
+            },
+            premium: false,
+          },
+        ]
+      : []),
   ];
 
   const firstName = user?.name?.split(" ")[0] || "Docente";

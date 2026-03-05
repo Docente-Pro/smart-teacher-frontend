@@ -180,13 +180,30 @@ function SesionViewer() {
   const handleFichaAplicacion = async () => {
     if (!id) return;
 
-    // Si ya existe una ficha con PDF, descargarla directamente
+    // Si ya existe una ficha con PDF, abrirlo directamente
     if (fichaExistente?.pdfUrl) {
       window.open(fichaExistente.pdfUrl, "_blank");
       return;
     }
 
-    // Si existe ficha pero sin PDF, o no existe → generar y navegar al resultado
+    // Si existe ficha (sin PDF aún) → navegar al result con el JSON almacenado
+    if (fichaExistente) {
+      const sesionData = sesion as any;
+      navigate("/ficha-aplicacion-result", {
+        state: {
+          ficha: fichaExistente.fichaJSON,
+          fichaId: fichaExistente.id,
+          docente: sesionData?.usuario?.nombre || "",
+          institucion: sesionData?.usuario?.nombreInstitucion || "",
+          sesionId: id,
+          presignedUrl: null,
+          s3Key: null,
+        },
+      });
+      return;
+    }
+
+    // No existe → generar nueva ficha
     setIsGeneratingFicha(true);
     try {
       const resp = await generarFichaAplicacion(id, {
@@ -339,7 +356,7 @@ function SesionViewer() {
                   ) : (
                     <ClipboardList className="h-4 w-4 mr-2" />
                   )}
-                  {fichaExistente?.pdfUrl
+                  {fichaExistente
                     ? "Ver Ficha"
                     : isGeneratingFicha
                       ? "Generando..."
@@ -475,7 +492,7 @@ function SesionViewer() {
                     ) : (
                       <ClipboardList className="h-4 w-4 mr-2" />
                     )}
-                    {fichaExistente?.pdfUrl ? "Ver Ficha" : isGeneratingFicha ? "Generando..." : "Ficha de Aplicación"}
+                    {fichaExistente ? "Ver Ficha" : isGeneratingFicha ? "Generando..." : "Ficha de Aplicación"}
                   </Button>
                 )}
               </div>
@@ -519,7 +536,7 @@ function SesionViewer() {
                   onClick={handleFichaAplicacion}
                   disabled={isGeneratingFicha}
                   className={`w-full transition-all ${
-                    fichaExistente?.pdfUrl
+                    fichaExistente
                       ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm shadow-amber-500/20"
                       : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm shadow-amber-500/20"
                   }`}
@@ -529,7 +546,7 @@ function SesionViewer() {
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Generando...
                     </>
-                  ) : fichaExistente?.pdfUrl ? (
+                  ) : fichaExistente ? (
                     <>
                       <Download className="h-4 w-4 mr-2" />
                       Ver / Descargar Ficha

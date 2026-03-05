@@ -133,7 +133,6 @@
 /* ========== IMPRESIÓN ========== */
 @media print {
   .ecuacion-cajas {
-    page-break-inside: avoid;
   }
   
   .caja {

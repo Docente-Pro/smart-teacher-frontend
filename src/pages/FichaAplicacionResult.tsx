@@ -79,6 +79,7 @@ function FichaAplicacionResult() {
       const pdfBlob = await generatePDFBlob(documentRef.current, {
         size: "A4",
         orientation: "portrait",
+        preserveGraphicSize: true,
       });
 
       await subirFichaPDFaS3(stateData.presignedUrl, pdfBlob);
@@ -111,6 +112,7 @@ function FichaAplicacionResult() {
         size: "A4",
         orientation: "portrait",
         filename,
+        preserveGraphicSize: true,
       });
       handleToaster("PDF descargado", "success");
     } catch (err) {

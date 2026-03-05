@@ -9,6 +9,12 @@ interface LocalPDFOptions {
   margin?: number | [number, number] | [number, number, number, number];
   filename?: string;
   imageQuality?: number;
+  /**
+   * Si es `true`, NO fuerza maxWidth:100% en SVGs ni overflow:visible
+   * en contenedores gráficos.  Útil para la Ficha de Aplicación donde
+   * los gráficos ya tienen el tamaño correcto en pantalla.
+   */
+  preserveGraphicSize?: boolean;
 }
 
 /**
@@ -182,7 +188,7 @@ async function inlineExternalImages(container: HTMLElement): Promise<() => void>
  * completa, y fuerza SVGs a escalar al ancho disponible.
  * Retorna una función que restaura los estilos originales.
  */
-function disableAnimations(container: HTMLElement): () => void {
+function disableAnimations(container: HTMLElement, preserveGraphicSize = false): () => void {
   const style = document.createElement("style");
   style.id = "__pdf-no-anim";
   style.textContent = `
@@ -209,36 +215,40 @@ function disableAnimations(container: HTMLElement): () => void {
     path.setAttribute("opacity", "1");
   });
 
-  // ── Fix overflow → forzar contenedores scrollables a visible ──
-  const overflowContainers = container.querySelectorAll<HTMLElement>(
-    ".tabla-doble-entrada-container, .recta-numerica-container, " +
-    ".circulos-fraccion-container, .barras-fraccion-container, " +
-    ".diagrama-dinero-container, .figuras-geometricas-container, " +
-    ".patron-visual-container, .patron-geometrico-container, " +
-    ".diagrama-venn-container, .operacion-vertical-container, " +
-    ".medidas-comparacion-container, .balanza-equilibrio-container, " +
-    ".numeros-ordinales-container, .bloques-agrupados, " +
-    ".barras-comparacion, .tabla-valores, .tabla-precios, " +
-    ".ecuacion-cajas, .coordenadas-ejercicios-container, " +
-    ".tabla-frecuencias-container"
-  );
+  // ── Solo si NO se quiere preservar el tamaño de gráficos ──
   const overflowOriginals = new Map<HTMLElement, { ox: string; oy: string }>();
-  overflowContainers.forEach((el) => {
-    overflowOriginals.set(el, {
-      ox: el.style.overflowX,
-      oy: el.style.overflowY,
-    });
-    el.style.overflowX = "visible";
-    el.style.overflowY = "visible";
-  });
-
-  // ── Fix SVGs: forzar max-width:100% para que escalen al contenedor ──
-  const allSvgs = container.querySelectorAll<SVGSVGElement>("svg");
   const svgStyleOriginals = new Map<SVGSVGElement, string>();
-  allSvgs.forEach((svg) => {
-    svgStyleOriginals.set(svg, svg.style.maxWidth);
-    svg.style.maxWidth = "100%";
-  });
+
+  if (!preserveGraphicSize) {
+    // Fix overflow → forzar contenedores scrollables a visible
+    const overflowContainers = container.querySelectorAll<HTMLElement>(
+      ".tabla-doble-entrada-container, .recta-numerica-container, " +
+      ".circulos-fraccion-container, .barras-fraccion-container, " +
+      ".diagrama-dinero-container, .figuras-geometricas-container, " +
+      ".patron-visual-container, .patron-geometrico-container, " +
+      ".diagrama-venn-container, .operacion-vertical-container, " +
+      ".medidas-comparacion-container, .balanza-equilibrio-container, " +
+      ".numeros-ordinales-container, .bloques-agrupados, " +
+      ".barras-comparacion, .tabla-valores, .tabla-precios, " +
+      ".ecuacion-cajas, .coordenadas-ejercicios-container, " +
+      ".tabla-frecuencias-container"
+    );
+    overflowContainers.forEach((el) => {
+      overflowOriginals.set(el, {
+        ox: el.style.overflowX,
+        oy: el.style.overflowY,
+      });
+      el.style.overflowX = "visible";
+      el.style.overflowY = "visible";
+    });
+
+    // Fix SVGs: forzar max-width:100% para que escalen al contenedor
+    const allSvgs = container.querySelectorAll<SVGSVGElement>("svg");
+    allSvgs.forEach((svg) => {
+      svgStyleOriginals.set(svg, svg.style.maxWidth);
+      svg.style.maxWidth = "100%";
+    });
+  }
 
   return () => {
     style.remove();
@@ -253,14 +263,63 @@ function disableAnimations(container: HTMLElement): () => void {
         path.removeAttribute("opacity");
       }
     });
-    overflowContainers.forEach((el) => {
-      const orig = overflowOriginals.get(el);
-      el.style.overflowX = orig?.ox ?? "";
-      el.style.overflowY = orig?.oy ?? "";
+    overflowOriginals.forEach((orig, el) => {
+      el.style.overflowX = orig.ox;
+      el.style.overflowY = orig.oy;
     });
-    allSvgs.forEach((svg) => {
-      svg.style.maxWidth = svgStyleOriginals.get(svg) ?? "";
+    svgStyleOriginals.forEach((orig, svg) => {
+      svg.style.maxWidth = orig;
     });
+  };
+}
+
+/**
+ * Crea un overlay opaco sobre el elemento para ocultar los cambios de DOM
+ * que se realizan antes de la captura (resize de SVGs, overflow, etc.).
+ * Retorna una función para eliminar el overlay.
+ */
+function createCaptureOverlay(element: HTMLElement): () => void {
+  const parent = element.parentElement;
+  if (!parent) return () => {};
+
+  // Asegurar que el padre tenga position relativa para que el overlay se posicione
+  const prevPosition = parent.style.position;
+  if (!prevPosition || prevPosition === "static") {
+    parent.style.position = "relative";
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = "__pdf-capture-overlay";
+  Object.assign(overlay.style, {
+    position: "absolute",
+    inset: "0",
+    zIndex: "9999",
+    backgroundColor: "white",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "inherit",
+    fontSize: "14px",
+    color: "#64748b",
+    fontFamily: "system-ui, sans-serif",
+    gap: "8px",
+  });
+  overlay.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+         style="animation:spin 1s linear infinite">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </svg>
+    Preparando PDF…
+  `;
+  parent.appendChild(overlay);
+
+  return () => {
+    overlay.remove();
+    if (!prevPosition || prevPosition === "static") {
+      parent.style.position = prevPosition;
+    }
   };
 }
 
@@ -298,23 +357,30 @@ function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
 /**
  * Genera y descarga un PDF desde un elemento HTML del DOM
  * @param element Elemento HTML a convertir
- * @param filename Nombre del archivo PDF
- * @param options Opciones adicionales de generación
+ * @param filenameOrOpts Nombre del archivo PDF (string) o las opciones directamente
+ * @param options Opciones adicionales de generación (si el 2do arg es filename)
  */
 export async function generateAndDownloadPDF(
   element: HTMLElement,
-  filename: string = "documento.pdf",
-  options: Partial<LocalPDFOptions> = {}
+  filenameOrOpts?: string | Partial<LocalPDFOptions>,
+  options?: Partial<LocalPDFOptions>,
 ): Promise<void> {
+  // Normalizar argumentos: soporta (el, opts) y (el, filename, opts)
+  const merged: Partial<LocalPDFOptions> =
+    typeof filenameOrOpts === "string"
+      ? { ...options, filename: filenameOrOpts }
+      : { ...filenameOrOpts };
+
+  const { preserveGraphicSize = false, ...rest } = merged;
+
+  // Overlay para ocultar cambios de DOM al usuario
+  const removeOverlay = preserveGraphicSize ? createCaptureOverlay(element) : () => {};
   // Pre-convertir imágenes externas a data URLs para evitar problemas de CORS
   const restoreImages = await inlineExternalImages(element);
   // Desactivar animaciones/transiciones para captura limpia
-  const restoreAnimations = disableAnimations(element);
+  const restoreAnimations = disableAnimations(element, preserveGraphicSize);
   try {
-    const pdfOptions = getHtml2PdfOptions({
-      ...options,
-      filename,
-    });
+    const pdfOptions = getHtml2PdfOptions(rest);
 
     await html2pdf().set(pdfOptions).from(element).save();
   } catch (error) {
@@ -323,6 +389,7 @@ export async function generateAndDownloadPDF(
   } finally {
     restoreAnimations();
     restoreImages();
+    removeOverlay();
   }
 }
 
@@ -336,12 +403,15 @@ export async function generatePDFBlob(
   element: HTMLElement,
   options: Partial<LocalPDFOptions> = {}
 ): Promise<Blob> {
+  const { preserveGraphicSize = false, ...rest } = options;
+
+  const removeOverlay = preserveGraphicSize ? createCaptureOverlay(element) : () => {};
   // Pre-convertir imágenes externas a data URLs para evitar problemas de CORS
   const restoreImages = await inlineExternalImages(element);
   // Desactivar animaciones/transiciones para captura limpia
-  const restoreAnimations = disableAnimations(element);
+  const restoreAnimations = disableAnimations(element, preserveGraphicSize);
   try {
-    const pdfOptions = getHtml2PdfOptions(options);
+    const pdfOptions = getHtml2PdfOptions(rest);
 
     const blob: Blob = await html2pdf()
       .set(pdfOptions)
@@ -355,6 +425,7 @@ export async function generatePDFBlob(
   } finally {
     restoreAnimations();
     restoreImages();
+    removeOverlay();
   }
 }
 

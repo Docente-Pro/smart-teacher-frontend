@@ -33,6 +33,7 @@ import GenerarSesionPremium from "@/pages/GenerarSesionPremium";
 import SesionPremiumResult from "@/pages/SesionPremiumResult";
 import SesionSuscriptorResult from "@/pages/SesionSuscriptorResult";
 import FichaAplicacionResult from "@/pages/FichaAplicacionResult";
+import MisFichas from "@/pages/MisFichas";
 import UnidadDetail from "@/pages/UnidadDetail";
 
 interface IRouteToCreate {
@@ -274,6 +275,14 @@ export const routes: IRouteToCreate[] = [
     element: (
       <ProtectedRoute>
         <FichaAplicacionResult />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/mis-fichas",
+    element: (
+      <ProtectedRoute>
+        <MisFichas />
       </ProtectedRoute>
     ),
   },

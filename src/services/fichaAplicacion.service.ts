@@ -69,14 +69,29 @@ export async function confirmarUploadFicha(
 
 /**
  * Obtiene todas las fichas asociadas a una sesión.
+ *
+ * El backend puede devolver:
+ *  - { success, ficha }   → una sola ficha
+ *  - { success, fichas }  → array de fichas
+ *  - directamente un array
+ * Normalizamos siempre a IFichaAlmacenada[].
  */
 export async function obtenerFichasPorSesion(
   sesionId: string,
 ): Promise<IFichaAlmacenada[]> {
-  const { data } = await instance.get<IFichaAlmacenada[]>(
+  const { data } = await instance.get<unknown>(
     `/fichas/sesion/${sesionId}`,
   );
-  return data;
+
+  // Backend devuelve array directamente
+  if (Array.isArray(data)) return data as IFichaAlmacenada[];
+
+  // Backend devuelve objeto wrapper
+  const obj = data as Record<string, unknown>;
+  if (Array.isArray(obj?.fichas)) return obj.fichas as IFichaAlmacenada[];
+  if (obj?.ficha && typeof obj.ficha === "object") return [obj.ficha as IFichaAlmacenada];
+
+  return [];
 }
 
 // ─── 5. Obtener ficha por ID ────────────────────────────────────────────────

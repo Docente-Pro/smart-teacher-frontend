@@ -152,7 +152,6 @@
 /* ========== IMPRESIÓN ========== */
 @media print {
   .barras-comparacion {
-    page-break-inside: avoid;
   }
   
   .barra:hover {
