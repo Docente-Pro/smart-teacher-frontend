@@ -17,24 +17,56 @@ const CELDA = 30; // px por unidad en el plano
 const PADDING = 40;
 const LABEL_OFFSET = 14;
 
+type LabelPosition = 'top' | 'bottom' | 'left' | 'right';
+
 /**
  * Crea un <text> SVG para la etiqueta de un vértice.
  * - Si vertex.etiqueta existe y mostrarCoordenada !== false → "A(x,y)"
  * - Si vertex.etiqueta existe y mostrarCoordenada === false  → "A"
  * - Si vertex.etiqueta no existe → "(x,y)" (retrocompatible)
+ * - position: controla la dirección del offset para evitar solapamiento
  */
 function crearEtiquetaVertice(
   v: VerticeCartesiano,
   svgX: number,
   svgY: number,
+  position: LabelPosition = 'top',
 ): SVGTextElement {
   const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  label.setAttribute('x', svgX.toString());
-  label.setAttribute('y', (svgY - 8).toString());
-  label.setAttribute('text-anchor', 'middle');
+
+  let offsetX = 0;
+  let offsetY = -10;
+  let anchor = 'middle';
+
+  switch (position) {
+    case 'top':
+      offsetY = -10;
+      break;
+    case 'bottom':
+      offsetY = 20;
+      break;
+    case 'left':
+      offsetX = -10;
+      offsetY = 4;
+      anchor = 'end';
+      break;
+    case 'right':
+      offsetX = 10;
+      offsetY = 4;
+      anchor = 'start';
+      break;
+  }
+
+  label.setAttribute('x', (svgX + offsetX).toString());
+  label.setAttribute('y', (svgY + offsetY).toString());
+  label.setAttribute('text-anchor', anchor);
   label.setAttribute('font-size', '11');
   label.setAttribute('font-family', 'Comic Sans MS, cursive');
   label.setAttribute('fill', '#374151');
+  // Fondo blanco para legibilidad cuando hay solapamiento
+  label.setAttribute('stroke', 'white');
+  label.setAttribute('stroke-width', '3');
+  label.setAttribute('paint-order', 'stroke');
 
   if (v.etiqueta) {
     // mostrarCoordenada defaults to true when undefined
@@ -47,6 +79,51 @@ function crearEtiquetaVertice(
   }
 
   return label;
+}
+
+/**
+ * Resuelve posiciones de etiquetas para evitar superposición.
+ * Si dos puntos están demasiado cerca, asigna posiciones diferentes
+ * (top, bottom, right, left) para que no se solapen.
+ */
+function resolverPosicionesEtiquetas(
+  coords: Array<{ svgX: number; svgY: number }>,
+): LabelPosition[] {
+  const THRESHOLD_X = CELDA * 2.5;
+  const THRESHOLD_Y = CELDA * 2;
+  const opciones: LabelPosition[] = ['top', 'right', 'bottom', 'left'];
+  const labels: LabelPosition[] = coords.map(() => 'top');
+
+  for (let i = 0; i < coords.length; i++) {
+    let needsReposition = false;
+    for (let j = 0; j < i; j++) {
+      const dx = Math.abs(coords[i].svgX - coords[j].svgX);
+      const dy = Math.abs(coords[i].svgY - coords[j].svgY);
+      if (dx < THRESHOLD_X && dy < THRESHOLD_Y && labels[i] === labels[j]) {
+        needsReposition = true;
+        break;
+      }
+    }
+    if (needsReposition) {
+      for (const opcion of opciones) {
+        let ok = true;
+        for (let j = 0; j < i; j++) {
+          const dx = Math.abs(coords[i].svgX - coords[j].svgX);
+          const dy = Math.abs(coords[i].svgY - coords[j].svgY);
+          if (dx < THRESHOLD_X && dy < THRESHOLD_Y && labels[j] === opcion) {
+            ok = false;
+            break;
+          }
+        }
+        if (ok) {
+          labels[i] = opcion;
+          break;
+        }
+      }
+    }
+  }
+
+  return labels;
 }
 
 // ============= SUB-COMPONENTE: PLANO CARTESIANO =============
@@ -73,6 +150,21 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
     // Limpiar sólo los elementos generados por rough (no los nativos)
     const roughElements = svgRef.current.querySelectorAll('.rough-element');
     roughElements.forEach(el => el.remove());
+
+    // Pre-calcular posiciones de etiquetas para puntos (anti-overlap)
+    const puntoCoords: Array<{ figIdx: number; vertIdx: number; svgX: number; svgY: number }> = [];
+    figuras.forEach((fig, fIdx) => {
+      if (fig.tipo === 'punto' && fig.vertices) {
+        fig.vertices.forEach((v, vIdx) => {
+          puntoCoords.push({ figIdx: fIdx, vertIdx: vIdx, svgX: toSvgX(v.x), svgY: toSvgY(v.y) });
+        });
+      }
+    });
+    const puntoPositions = resolverPosicionesEtiquetas(puntoCoords.map(p => ({ svgX: p.svgX, svgY: p.svgY })));
+    const positionMap = new Map<string, LabelPosition>();
+    puntoCoords.forEach((p, i) => {
+      positionMap.set(`${p.figIdx}-${p.vertIdx}`, puntoPositions[i]);
+    });
 
     // Dibujar figuras con RoughJS
     figuras.forEach((fig, idx) => {
@@ -155,7 +247,7 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
 
       // === PUNTO ===
       if (fig.tipo === 'punto' && fig.vertices) {
-        fig.vertices.forEach((v) => {
+        fig.vertices.forEach((v, vi) => {
           const svgX = toSvgX(v.x);
           const svgY = toSvgY(v.y);
           // Dibujar punto relleno
@@ -168,8 +260,9 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
             roughness: 0.5,
           });
           group.appendChild(dot);
-          // Etiqueta del vértice ("A(4,6)")
-          group.appendChild(crearEtiquetaVertice(v, svgX, svgY));
+          // Etiqueta del vértice con posición anti-overlap
+          const pos = positionMap.get(`${idx}-${vi}`) ?? 'top';
+          group.appendChild(crearEtiquetaVertice(v, svgX, svgY, pos));
         });
       }
 
@@ -188,6 +281,10 @@ const PlanoCartesianoSVG: React.FC<PlanoProps> = ({ plano }) => {
         etiqueta.setAttribute('font-weight', 'bold');
         etiqueta.setAttribute('font-family', 'Comic Sans MS, cursive');
         etiqueta.setAttribute('fill', '#1e293b');
+        // Fondo blanco para legibilidad
+        etiqueta.setAttribute('stroke', 'white');
+        etiqueta.setAttribute('stroke-width', '3');
+        etiqueta.setAttribute('paint-order', 'stroke');
         etiqueta.textContent = fig.etiqueta;
         group.appendChild(etiqueta);
       }

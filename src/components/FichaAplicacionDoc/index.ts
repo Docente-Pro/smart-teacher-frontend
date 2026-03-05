@@ -1,0 +1,1 @@
+export { FichaAplicacionDoc } from "./FichaAplicacionDoc";

@@ -1,16 +1,11 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import {
-  FileDown,
-  Printer,
-  Cloud,
-  CloudOff,
-  Loader2,
-  ArrowLeft,
-} from "lucide-react";
+import { FileDown, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles } from "lucide-react";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc";
 import { useSesionPremiumPDF } from "@/hooks/useSesionPremiumPDF";
+import { generarFichaAplicacion } from "@/services/fichaAplicacion.service";
+import { handleToaster } from "@/utils/Toasters/handleToasters";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 
@@ -36,8 +31,44 @@ function SesionPremiumResult() {
   const premiumData = stateData?.premiumData ?? null;
   const instrumento = stateData?.instrumento ?? null;
 
-  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } =
-    useSesionPremiumPDF(documentRef, premiumData);
+  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } = useSesionPremiumPDF(documentRef, premiumData);
+
+  console.log(stateData);
+
+  // ── Generar Ficha de Aplicación ───────────────────────────────────────
+  const [isGeneratingFicha, setIsGeneratingFicha] = useState(false);
+
+  const handleGenerarFicha = async () => {
+    const sesionId = premiumData?.sesion?.id;
+    if (!sesionId) return;
+
+    setIsGeneratingFicha(true);
+    try {
+      const resp = await generarFichaAplicacion(sesionId, {
+        incluirRespuestas: true,
+        dificultad: "media",
+      });
+
+      handleToaster("¡Ficha generada! Abriendo vista previa...", "success");
+
+      navigate("/ficha-aplicacion-result", {
+        state: {
+          ficha: resp.ficha,
+          fichaId: resp.fichaId,
+          docente: premiumData?.docente ?? "",
+          institucion: premiumData?.institucion ?? "",
+          sesionId,
+          presignedUrl: resp.presignedUrl,
+          s3Key: resp.s3Key,
+        },
+      });
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.message || "Error al generar la ficha";
+      handleToaster(msg, "error");
+    } finally {
+      setIsGeneratingFicha(false);
+    }
+  };
 
   // Print styles (ocultar botones al imprimir)
   const printStyles = `
@@ -56,15 +87,9 @@ function SesionPremiumResult() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-300 mb-4">
-            No hay sesión Premium disponible
-          </h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
-            Genera una sesión desde el calendario de tu unidad.
-          </p>
-          <Button onClick={() => navigate("/generar-sesion")}>
-            Ir al Calendario
-          </Button>
+          <h2 className="text-2xl font-bold text-slate-700 dark:text-slate-300 mb-4">No hay sesión Premium disponible</h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-6">Genera una sesión desde el calendario de tu unidad.</p>
+          <Button onClick={() => navigate("/generar-sesion")}>Ir al Calendario</Button>
         </div>
       </div>
     );
@@ -78,12 +103,7 @@ function SesionPremiumResult() {
         {/* Header con botones */}
         <div className="no-print flex flex-col gap-4 mb-6">
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/generar-sesion")}
-              className="flex-shrink-0"
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate("/generar-sesion")} className="flex-shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-lg sm:text-[1.875rem] font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
@@ -92,7 +112,7 @@ function SesionPremiumResult() {
           </div>
           <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
             {/* Indicador de guardado */}
-            <div className="flex items-center gap-1 text-xs" style={{color: isSaved ? "#16a34a" : isSaving ? "#2563eb" : "#94a3b8"}}>
+            <div className="flex items-center gap-1 text-xs" style={{ color: isSaved ? "#16a34a" : isSaving ? "#2563eb" : "#94a3b8" }}>
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -111,13 +131,7 @@ function SesionPremiumResult() {
               )}
             </div>
 
-            <Button
-              onClick={handlePrint}
-              disabled={isGenerating}
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-            >
+            <Button onClick={handlePrint} disabled={isGenerating} variant="outline" size="sm" className="gap-1.5">
               <Printer className="h-4 w-4" />
               <span className="hidden sm:inline">Imprimir</span>
             </Button>
@@ -130,6 +144,17 @@ function SesionPremiumResult() {
               <FileDown className="h-4 w-4" />
               <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
               <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
+            </Button>
+            <Button
+              onClick={handleGenerarFicha}
+              disabled={isGeneratingFicha || !premiumData?.sesion?.id}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950"
+            >
+              {isGeneratingFicha ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
+              <span className="hidden sm:inline">{isGeneratingFicha ? "Generando Ficha..." : "Ficha de Aplicación"}</span>
+              <span className="sm:hidden">{isGeneratingFicha ? "..." : "Ficha"}</span>
             </Button>
           </div>
         </div>

@@ -32,6 +32,7 @@ import UnirseUnidad from "@/pages/UnirseUnidad";
 import GenerarSesionPremium from "@/pages/GenerarSesionPremium";
 import SesionPremiumResult from "@/pages/SesionPremiumResult";
 import SesionSuscriptorResult from "@/pages/SesionSuscriptorResult";
+import FichaAplicacionResult from "@/pages/FichaAplicacionResult";
 import UnidadDetail from "@/pages/UnidadDetail";
 
 interface IRouteToCreate {
@@ -265,6 +266,14 @@ export const routes: IRouteToCreate[] = [
     element: (
       <ProtectedRoute>
         <SesionPremiumResult />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/ficha-aplicacion-result",
+    element: (
+      <ProtectedRoute>
+        <FichaAplicacionResult />
       </ProtectedRoute>
     ),
   },

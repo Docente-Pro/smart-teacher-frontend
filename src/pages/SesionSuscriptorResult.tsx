@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
+  ClipboardList,
   Cloud,
   CloudOff,
   FileDown,
@@ -21,6 +22,7 @@ import {
   confirmarUploadPDF,
 } from "@/services/sesiones.service";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc/SesionPremiumDoc";
+import { generarFichaAplicacion } from "@/services/fichaAplicacion.service";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 
@@ -57,6 +59,9 @@ function SesionSuscriptorResult() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const guardadoIniciado = useRef(false);
+
+  // ── Estado de generación de Ficha de Aplicación ──
+  const [isGeneratingFicha, setIsGeneratingFicha] = useState(false);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Cargar sesión completa del backend
@@ -370,6 +375,41 @@ function SesionSuscriptorResult() {
 
   const handlePrint = () => window.print();
 
+  // ── Generar Ficha de Aplicación ───────────────────────────────────────
+  const handleGenerarFicha = async () => {
+    if (!sesionId) return;
+
+    setIsGeneratingFicha(true);
+    try {
+      const resp = await generarFichaAplicacion(sesionId, {
+        incluirRespuestas: true,
+        dificultad: "media",
+      });
+
+      handleToaster("¡Ficha generada! Abriendo vista previa...", "success");
+
+      navigate("/ficha-aplicacion-result", {
+        state: {
+          ficha: resp.ficha,
+          fichaId: resp.fichaId,
+          docente: premiumData?.docente ?? "",
+          institucion: premiumData?.institucion ?? "",
+          sesionId,
+          presignedUrl: resp.presignedUrl,
+          s3Key: resp.s3Key,
+        },
+      });
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error al generar la ficha";
+      handleToaster(msg, "error");
+    } finally {
+      setIsGeneratingFicha(false);
+    }
+  };
+
   // ── Print styles ──
   const printStyles = `
     @media print {
@@ -499,6 +539,25 @@ function SesionSuscriptorResult() {
               </span>
               <span className="sm:hidden">
                 {isGenerating ? "..." : "PDF"}
+              </span>
+            </Button>
+            <Button
+              onClick={handleGenerarFicha}
+              disabled={isGeneratingFicha || !sesionId}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950"
+            >
+              {isGeneratingFicha ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ClipboardList className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {isGeneratingFicha ? "Generando Ficha..." : "Ficha de Aplicación"}
+              </span>
+              <span className="sm:hidden">
+                {isGeneratingFicha ? "..." : "Ficha"}
               </span>
             </Button>
           </div>

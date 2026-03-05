@@ -4,14 +4,20 @@ import {
   ArrowLeft, Download, ExternalLink, FileText,
   GraduationCap, BookOpen, Clock, Calendar,
   AlertTriangle, RefreshCw, Loader2, Maximize2,
-  CheckCircle2, Share2,
+  CheckCircle2, Share2, ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { obtenerSesionPorId, obtenerUrlDescarga } from "@/services/sesiones.service";
+import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/fichaAplicacion.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { buildCdnPdfUrl } from "@/utils/cdn";
+import { useAuthStore } from "@/store/auth.store";
 import type { ISesion } from "@/interfaces/ISesion";
+import type { IFichaAlmacenada } from "@/interfaces/IFichaAplicacion";
+
+// ─── Ficha de Aplicación: solo visible para este usuario ───
+const FICHA_ALLOWED_UID = "fa97b8c9-da76-41d9-8d78-766410d723bb";
 
 // ─── Helpers ───
 
@@ -47,6 +53,8 @@ function getAreaGradient(nivel?: string): string {
 function SesionViewer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const currentUser = useAuthStore((s) => s.user);
+  const showFicha = currentUser?.id === FICHA_ALLOWED_UID;
 
   const [sesion, setSesion] = useState<ISesion | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -56,6 +64,11 @@ function SesionViewer() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // ─── Estado Ficha de Aplicación ───
+  const [fichaExistente, setFichaExistente] = useState<IFichaAlmacenada | null>(null);
+  const [loadingFicha, setLoadingFicha] = useState(false);
+  const [isGeneratingFicha, setIsGeneratingFicha] = useState(false);
 
   // ─── Cargar sesión y PDF ───
   useEffect(() => {
@@ -114,6 +127,26 @@ function SesionViewer() {
     return () => { cancelled = true; };
   }, [id]);
 
+  // ─── Buscar ficha existente para esta sesión ───
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+
+    async function buscarFicha() {
+      try {
+        const fichas = await obtenerFichasPorSesion(id!);
+        if (!cancelled && fichas && fichas.length > 0) {
+          setFichaExistente(fichas[0]);
+        }
+      } catch {
+        // No hay ficha aún — está bien
+      }
+    }
+
+    buscarFicha();
+    return () => { cancelled = true; };
+  }, [id]);
+
   const handleOpenNewTab = () => {
     if (pdfUrl) window.open(pdfUrl, "_blank");
   };
@@ -142,6 +175,54 @@ function SesionViewer() {
   };
 
   const toggleFullscreen = () => setIsFullscreen((v) => !v);
+
+  // ─── Generar o ver Ficha de Aplicación ───
+  const handleFichaAplicacion = async () => {
+    if (!id) return;
+
+    // Si ya existe una ficha con PDF, descargarla directamente
+    if (fichaExistente?.pdfUrl) {
+      window.open(fichaExistente.pdfUrl, "_blank");
+      return;
+    }
+
+    // Si existe ficha pero sin PDF, o no existe → generar y navegar al resultado
+    setIsGeneratingFicha(true);
+    try {
+      const resp = await generarFichaAplicacion(id, {
+        incluirRespuestas: true,
+        dificultad: "media",
+      });
+
+      handleToaster("¡Ficha generada! Abriendo vista previa...", "success");
+
+      const sesionData = sesion as any;
+      const docente =
+        sesionData?.usuario?.nombre || "";
+      const institucion =
+        sesionData?.usuario?.nombreInstitucion || "";
+
+      navigate("/ficha-aplicacion-result", {
+        state: {
+          ficha: resp.ficha,
+          fichaId: resp.fichaId,
+          docente,
+          institucion,
+          sesionId: id,
+          presignedUrl: resp.presignedUrl,
+          s3Key: resp.s3Key,
+        },
+      });
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error al generar la ficha";
+      handleToaster(msg, "error");
+    } finally {
+      setIsGeneratingFicha(false);
+    }
+  };
 
   // ─── Fullscreen PDF overlay ───
   if (isFullscreen && pdfUrl) {
@@ -245,6 +326,26 @@ function SesionViewer() {
                 <Download className="h-4 w-4 mr-2" />
                 Descargar
               </Button>
+              {showFicha && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleFichaAplicacion}
+                  disabled={isGeneratingFicha}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950 transition-all"
+                >
+                  {isGeneratingFicha ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                  )}
+                  {fichaExistente?.pdfUrl
+                    ? "Ver Ficha"
+                    : isGeneratingFicha
+                      ? "Generando..."
+                      : "Ficha de Aplicación"}
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -362,6 +463,21 @@ function SesionViewer() {
                     {copied ? "Copiado" : "Compartir"}
                   </Button>
                 </div>
+                {showFicha && (
+                  <Button
+                    variant="outline"
+                    onClick={handleFichaAplicacion}
+                    disabled={isGeneratingFicha}
+                    className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950"
+                  >
+                    {isGeneratingFicha ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ClipboardList className="h-4 w-4 mr-2" />
+                    )}
+                    {fichaExistente?.pdfUrl ? "Ver Ficha" : isGeneratingFicha ? "Generando..." : "Ficha de Aplicación"}
+                  </Button>
+                )}
               </div>
             )}
 
@@ -377,6 +493,54 @@ function SesionViewer() {
                     {pdfUrl ? "PDF disponible" : "PDF pendiente de generación"}
                   </span>
                 </div>
+              </div>
+            )}
+
+            {/* Ficha de Aplicación — solo para usuario habilitado */}
+            {!loading && sesion && showFicha && (
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800/30 bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-500/5 dark:to-orange-500/5 p-4">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center">
+                    <ClipboardList className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Ficha de Aplicación
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {fichaExistente
+                        ? "Ficha generada"
+                        : "Ejercicios complementarios"}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleFichaAplicacion}
+                  disabled={isGeneratingFicha}
+                  className={`w-full transition-all ${
+                    fichaExistente?.pdfUrl
+                      ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm shadow-amber-500/20"
+                      : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm shadow-amber-500/20"
+                  }`}
+                >
+                  {isGeneratingFicha ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generando...
+                    </>
+                  ) : fichaExistente?.pdfUrl ? (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Ver / Descargar Ficha
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardList className="h-4 w-4 mr-2" />
+                      Generar Ficha
+                    </>
+                  )}
+                </Button>
               </div>
             )}
           </div>
