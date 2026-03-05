@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import {
   ArrowLeft, Download, ExternalLink, FileText,
   GraduationCap, BookOpen, Clock, Calendar,
@@ -13,11 +13,9 @@ import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/ficha
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { buildCdnPdfUrl } from "@/utils/cdn";
 import { useAuthStore } from "@/store/auth.store";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { ISesion } from "@/interfaces/ISesion";
 import type { IFichaAlmacenada } from "@/interfaces/IFichaAplicacion";
-
-// ─── Ficha de Aplicación: solo visible para este usuario ───
-const FICHA_ALLOWED_UID = "fa97b8c9-da76-41d9-8d78-766410d723bb";
 
 // ─── Helpers ───
 
@@ -53,8 +51,10 @@ function getAreaGradient(nivel?: string): string {
 function SesionViewer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const currentUser = useAuthStore((s) => s.user);
-  const showFicha = currentUser?.id === FICHA_ALLOWED_UID;
+  const { isPremium } = usePermissions();
+  const showFicha = isPremium;
 
   const [sesion, setSesion] = useState<ISesion | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -145,7 +145,7 @@ function SesionViewer() {
 
     buscarFicha();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, location.key]);
 
   const handleOpenNewTab = () => {
     if (pdfUrl) window.open(pdfUrl, "_blank");
@@ -180,13 +180,8 @@ function SesionViewer() {
   const handleFichaAplicacion = async () => {
     if (!id) return;
 
-    // Si ya existe una ficha con PDF, abrirlo directamente
-    if (fichaExistente?.pdfUrl) {
-      window.open(fichaExistente.pdfUrl, "_blank");
-      return;
-    }
-
-    // Si existe ficha (sin PDF aún) → navegar al result con el JSON almacenado
+    // Si ya existe una ficha → navegar al result con el JSON (live render)
+    // Esto permite ver la versión actualizada y re-generar el PDF
     if (fichaExistente) {
       const sesionData = sesion as any;
       navigate("/ficha-aplicacion-result", {

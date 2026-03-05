@@ -30,9 +30,6 @@ import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { getUsuarioById } from "@/services/usuarios.service";
 
-// ─── Ficha de Aplicación: solo visible para este usuario ───
-const FICHA_ALLOWED_UID = "fa97b8c9-da76-41d9-8d78-766410d723bb";
-
 function Dashboard() {
   const { logout } = useAuth0();
   const { user } = useAuthStore();
@@ -232,8 +229,8 @@ function Dashboard() {
       },
       premium: false,
     },
-    // Solo visible para usuario habilitado
-    ...(user?.id === FICHA_ALLOWED_UID
+    // Fichas de Aplicación — solo premium
+    ...(permissions.isPremium
       ? [
           {
             icon: ClipboardList,

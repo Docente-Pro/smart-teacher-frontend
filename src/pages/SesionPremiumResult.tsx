@@ -1,13 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles } from "lucide-react";
+import { FileDown, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles, Eye } from "lucide-react";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc";
 import { useSesionPremiumPDF } from "@/hooks/useSesionPremiumPDF";
-import { generarFichaAplicacion } from "@/services/fichaAplicacion.service";
+import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/fichaAplicacion.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
+import type { IFichaAlmacenada } from "@/interfaces/IFichaAplicacion";
 
 /**
  * SesionPremiumResult
@@ -35,13 +36,51 @@ function SesionPremiumResult() {
 
   console.log(stateData);
 
-  // ── Generar Ficha de Aplicación ───────────────────────────────────────
+  // ── Ficha de Aplicación — buscar existente + generar ─────────────────
+  const [fichaExistente, setFichaExistente] = useState<IFichaAlmacenada | null>(null);
   const [isGeneratingFicha, setIsGeneratingFicha] = useState(false);
 
-  const handleGenerarFicha = async () => {
+  // Buscar ficha existente cada vez que se monta / se regresa a la página
+  useEffect(() => {
+    const sesionId = premiumData?.sesion?.id;
+    if (!sesionId) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const fichas = await obtenerFichasPorSesion(sesionId);
+        if (!cancelled && fichas && fichas.length > 0) {
+          setFichaExistente(fichas[0]);
+        }
+      } catch {
+        // No hay ficha aún — está bien
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [premiumData?.sesion?.id, location.key]);
+
+  const handleFichaAplicacion = async () => {
     const sesionId = premiumData?.sesion?.id;
     if (!sesionId) return;
 
+    // Si ya existe una ficha → navegar al result con el JSON (live render)
+    if (fichaExistente) {
+      navigate("/ficha-aplicacion-result", {
+        state: {
+          ficha: fichaExistente.fichaJSON,
+          fichaId: fichaExistente.id,
+          docente: premiumData?.docente ?? "",
+          institucion: premiumData?.institucion ?? "",
+          sesionId,
+          presignedUrl: null,
+          s3Key: null,
+        },
+      });
+      return;
+    }
+
+    // No existe → generar nueva ficha
     setIsGeneratingFicha(true);
     try {
       const resp = await generarFichaAplicacion(sesionId, {
@@ -146,15 +185,28 @@ function SesionPremiumResult() {
               <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
             </Button>
             <Button
-              onClick={handleGenerarFicha}
+              onClick={handleFichaAplicacion}
               disabled={isGeneratingFicha || !premiumData?.sesion?.id}
               size="sm"
               variant="outline"
-              className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950"
+              className={`gap-1.5 ${
+                fichaExistente
+                  ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                  : "border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950"
+              }`}
             >
-              {isGeneratingFicha ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
-              <span className="hidden sm:inline">{isGeneratingFicha ? "Generando Ficha..." : "Ficha de Aplicación"}</span>
-              <span className="sm:hidden">{isGeneratingFicha ? "..." : "Ficha"}</span>
+              {isGeneratingFicha
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : fichaExistente
+                  ? <Eye className="h-4 w-4" />
+                  : <ClipboardList className="h-4 w-4" />
+              }
+              <span className="hidden sm:inline">
+                {isGeneratingFicha ? "Generando Ficha..." : fichaExistente ? "Ver Ficha" : "Ficha de Aplicación"}
+              </span>
+              <span className="sm:hidden">
+                {isGeneratingFicha ? "..." : fichaExistente ? "Ver" : "Ficha"}
+              </span>
             </Button>
           </div>
         </div>

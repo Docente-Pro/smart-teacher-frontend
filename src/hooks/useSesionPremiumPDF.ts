@@ -26,10 +26,16 @@ export function useSesionPremiumPDF(
   documentRef: RefObject<HTMLDivElement>,
   premiumData: ISesionPremiumResponse | null,
 ) {
+  // ── Detectar si ya se guardó previamente (evita re-subir al volver) ──
+  const sesionId = premiumData?.sesion?.id;
+  const storageKey = sesionId ? `pdf-saved-${sesionId}` : "";
+  const yaSePersistio = storageKey ? sessionStorage.getItem(storageKey) === "1" : false;
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const guardadoIniciado = useRef(false);
+  const [isSaved, setIsSaved] = useState(yaSePersistio);
+  const guardadoIniciado = useRef(yaSePersistio);
+  const mountedRef = useRef(true);
   const { user } = useAuthStore();
 
   // ────────────────────────────────────────────────────────────────────────
@@ -47,6 +53,7 @@ export function useSesionPremiumPDF(
       const pdfBlob = await generatePDFBlob(documentRef.current, {
         size: "A4",
         orientation: "portrait",
+        preserveGraphicSize: true,
       });
 
       const sesionId = premiumData.sesion.id;
@@ -87,6 +94,7 @@ export function useSesionPremiumPDF(
         (respuestaConfirm as any)?.data ?? respuestaConfirm;
 
       setIsSaved(true);
+      if (storageKey) sessionStorage.setItem(storageKey, "1");
       console.log("✅ PDF Premium guardado en la nube:", confirmData.id);
       return confirmData;
     } catch (error) {
@@ -102,6 +110,13 @@ export function useSesionPremiumPDF(
   // Auto-guardar al montar (igual que el flujo FREE)
   // ────────────────────────────────────────────────────────────────────────
   useEffect(() => {
+    mountedRef.current = true;
+
+    // Limpiar cualquier contenedor huérfano de html2pdf.js (evita "doble render")
+    document.querySelectorAll(".html2pdf__container").forEach((el) => {
+      el.parentElement?.remove();
+    });
+
     if (
       !documentRef.current ||
       !premiumData?.sesion?.id ||
@@ -128,16 +143,26 @@ export function useSesionPremiumPDF(
     };
 
     const timer = setTimeout(async () => {
+      if (!mountedRef.current) return;
       try {
         await waitForImages();
+        if (!mountedRef.current) return;
         await new Promise((r) => setTimeout(r, 500));
+        if (!mountedRef.current) return;
         await guardarEnNube();
       } catch (error) {
         console.error("Error al guardar automáticamente:", error);
       }
     }, 3000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(timer);
+      // Limpiar contenedores html2pdf al desmontar
+      document.querySelectorAll(".html2pdf__container").forEach((el) => {
+        el.parentElement?.remove();
+      });
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -166,6 +191,7 @@ export function useSesionPremiumPDF(
       await generateAndDownloadPDF(documentRef.current, nombreArchivo, {
         size: "A4",
         orientation: "portrait",
+        preserveGraphicSize: true,
       });
       handleToaster("PDF descargado exitosamente", "success");
 

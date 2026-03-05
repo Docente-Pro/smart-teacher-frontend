@@ -143,7 +143,7 @@ function MisFichas() {
         fichaId: item.ficha.id,
         sesionId: item.ficha.sesionId,
         docente: user?.name || "",
-        institucion: user?.nombreInstitucion || "",
+        institucion: "",
       },
     });
   };
