@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles, Eye } from "lucide-react";
+import { FileDown, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles, Eye, Pencil } from "lucide-react";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc";
 import { useSesionPremiumPDF } from "@/hooks/useSesionPremiumPDF";
 import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/fichaAplicacion.service";
@@ -184,6 +184,18 @@ function SesionPremiumResult() {
               <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
               <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
             </Button>
+            {premiumData?.sesion?.id && (
+              <Button
+                onClick={() => navigate(`/editar-sesion/${premiumData.sesion.id}`)}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-600 dark:text-violet-400 dark:hover:bg-violet-950"
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="hidden sm:inline">Editar contenido</span>
+                <span className="sm:hidden">Editar</span>
+              </Button>
+            )}
             <Button
               onClick={handleFichaAplicacion}
               disabled={isGeneratingFicha || !premiumData?.sesion?.id}

@@ -8,6 +8,7 @@ import {
   FileDown,
   Home,
   Loader2,
+  Pencil,
   Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -80,7 +81,7 @@ function SesionSuscriptorResult() {
 
         // Extraer nombre del docente e institución
         const sesionUsuario = data.usuario as
-          | { nombre?: string; nombreInstitucion?: string }
+          | { nombre?: string; nombreInstitucion?: string; seccion?: string }
           | undefined;
         const docente =
           sesionUsuario?.nombre ||
@@ -90,6 +91,10 @@ function SesionSuscriptorResult() {
         const institucion =
           sesionUsuario?.nombreInstitucion ||
           usuario?.nombreInstitucion ||
+          "";
+        const seccion =
+          sesionUsuario?.seccion ||
+          usuario?.seccion ||
           "";
 
         // ─── Extraer contenido pedagógico ───────────────────────────────
@@ -203,6 +208,7 @@ function SesionSuscriptorResult() {
           success: true,
           docente,
           institucion,
+          seccion,
           sesion: sesionForDoc as any,
         };
 
@@ -541,6 +547,18 @@ function SesionSuscriptorResult() {
                 {isGenerating ? "..." : "PDF"}
               </span>
             </Button>
+            {sesionId && (
+              <Button
+                onClick={() => navigate(`/editar-sesion/${sesionId}`)}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-600 dark:text-violet-400 dark:hover:bg-violet-950"
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="hidden sm:inline">Editar contenido</span>
+                <span className="sm:hidden">Editar</span>
+              </Button>
+            )}
             <Button
               onClick={handleGenerarFicha}
               disabled={isGeneratingFicha || !sesionId}

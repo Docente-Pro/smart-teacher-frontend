@@ -4,7 +4,7 @@ import {
   ArrowLeft, Download, ExternalLink, FileText,
   GraduationCap, BookOpen, Clock, Calendar,
   AlertTriangle, RefreshCw, Loader2, Maximize2,
-  CheckCircle2, Share2, ClipboardList,
+  CheckCircle2, Share2, ClipboardList, Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -352,6 +352,17 @@ function SesionViewer() {
                 <Download className="h-4 w-4 mr-2" />
                 Descargar
               </Button>
+              {id && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/editar-sesion/${id}`)}
+                  className="border-violet-300 text-violet-700 hover:bg-violet-50 hover:border-violet-400 dark:border-violet-600 dark:text-violet-400 dark:hover:bg-violet-950 transition-all"
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              )}
               {showFicha && (
                 <Button
                   size="sm"

@@ -30,7 +30,7 @@ interface UserState {
   // Actions
   setUsuario: (user: IUsuario) => void;
   updateUsuario: (userData: Partial<IUsuario>) => void;
-  fetchUsuario: (userId: string) => Promise<void>;
+  fetchUsuario: (userId: string, forceRefresh?: boolean) => Promise<void>;
   clearUsuario: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -63,12 +63,14 @@ export const useUserStore = create<UserState>()(
       },
 
       // Cargar usuario desde backend
-      fetchUsuario: async (userId: string) => {
-        // Si ya se cargó recientemente (< 5 minutos), no recargar
-        const { lastFetched } = get();
-        const FIVE_MINUTES = 5 * 60 * 1000;
-        if (lastFetched && Date.now() - lastFetched < FIVE_MINUTES) {
-          return;
+      fetchUsuario: async (userId: string, forceRefresh: boolean = false) => {
+        // Si ya se cargó recientemente (< 5 minutos), no recargar (salvo forceRefresh)
+        if (!forceRefresh) {
+          const { lastFetched } = get();
+          const FIVE_MINUTES = 5 * 60 * 1000;
+          if (lastFetched && Date.now() - lastFetched < FIVE_MINUTES) {
+            return;
+          }
         }
 
         set({ isLoading: true, error: null });

@@ -21,4 +21,8 @@ function updateUsuario(id: string, data: IUsuarioToUpdate) {
   return instance.patch(`/usuario/${id}`, data);
 }
 
-export { getAllUsuarios, createNewUsuario, getUsuarioById, getUsuarioByEmail, updateUsuario };
+function putUsuario(id: string, data: IUsuarioToUpdate) {
+  return instance.put(`/usuario/${id}`, data);
+}
+
+export { getAllUsuarios, createNewUsuario, getUsuarioById, getUsuarioByEmail, updateUsuario, putUsuario };

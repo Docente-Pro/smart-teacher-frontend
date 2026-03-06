@@ -330,6 +330,7 @@ export interface IUsuarioDetalle {
   email: string;
   auth0UserId: string;
   nombreInstitucion: string;
+  seccion?: string;
   departamento: string | null;
   provincia: string | null;
   distrito: string | null;

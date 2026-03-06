@@ -1,6 +1,7 @@
 interface Props {
   institucion: string;
   directivo: string;
+  subdirectora?: string;
   docente: string;
   grado: string;
   seccion?: string;
@@ -17,6 +18,7 @@ interface Props {
 export function UnidadDocDatosGenerales({
   institucion,
   directivo,
+  subdirectora,
   docente,
   grado,
   seccion,
@@ -70,6 +72,10 @@ export function UnidadDocDatosGenerales({
                 )
               )}
             </td>
+          </tr>
+          <tr>
+            <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Subdirector(a) de la I. E.</td>
+            <td colSpan={3}>{subdirectora || ""}</td>
           </tr>
           <tr>
             <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Docente</td>

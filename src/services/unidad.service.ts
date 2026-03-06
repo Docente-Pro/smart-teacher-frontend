@@ -336,3 +336,34 @@ export async function generarSesionComplementaria(
   );
   return data;
 }
+
+// ============================================
+// Editar contenido de unidad
+// PATCH /api/unidades/:id/contenido
+// ============================================
+
+export interface IEditarContenidoUnidadRequest {
+  titulo?: string;
+  contenido?: Record<string, any>;
+}
+
+export interface IEditarContenidoUnidadResponse {
+  success: boolean;
+  message: string;
+  data: Record<string, any>;
+}
+
+/**
+ * Edita parcialmente el contenido de una unidad (merge por clave raíz).
+ * PATCH /api/unidades/:id/contenido
+ */
+export async function editarContenidoUnidad(
+  unidadId: string,
+  body: IEditarContenidoUnidadRequest,
+): Promise<IEditarContenidoUnidadResponse> {
+  const { data } = await instance.patch<IEditarContenidoUnidadResponse>(
+    `/unidades/${unidadId}/contenido`,
+    body,
+  );
+  return data;
+}

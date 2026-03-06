@@ -35,6 +35,8 @@ import SesionSuscriptorResult from "@/pages/SesionSuscriptorResult";
 import FichaAplicacionResult from "@/pages/FichaAplicacionResult";
 import MisFichas from "@/pages/MisFichas";
 import UnidadDetail from "@/pages/UnidadDetail";
+import EditarSesionPremium from "@/pages/EditarSesionPremium";
+import EditarUnidad from "@/pages/EditarUnidad";
 
 interface IRouteToCreate {
   path: string;
@@ -308,6 +310,22 @@ export const routes: IRouteToCreate[] = [
       <DevRoute>
         <GraficosAreasPlayground />
       </DevRoute>
+    ),
+  },
+  {
+    path: "/editar-sesion/:id",
+    element: (
+      <ProtectedRoute>
+        <EditarSesionPremium />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/editar-unidad/:id",
+    element: (
+      <ProtectedRoute>
+        <EditarUnidad />
+      </ProtectedRoute>
     ),
   },
 

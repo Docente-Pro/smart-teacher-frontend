@@ -24,6 +24,7 @@ interface AdminRehacerState {
   rehacerResponse: IRehacerSesionResponse;
   docente: string;
   institucion: string;
+  seccion?: string;
   usuarioId: string;
 }
 
@@ -68,7 +69,7 @@ export default function AdminRehacerPdf() {
   useEffect(() => {
     if (!navState?.rehacerResponse) return;
 
-    const { rehacerResponse, docente, institucion } = navState;
+    const { rehacerResponse, docente, institucion, seccion } = navState;
     const data = buildSesionPremiumData(
       rehacerResponse.contenido,
       {
@@ -80,6 +81,7 @@ export default function AdminRehacerPdf() {
       },
       docente,
       institucion,
+      seccion,
     );
 
     setPremiumData(data);
