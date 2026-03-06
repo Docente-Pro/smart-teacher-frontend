@@ -635,62 +635,97 @@ function EditarUnidad() {
       const nuevoContenido = buildContenido();
 
       toast.info("Guardando cambios...");
-      await editarContenidoUnidad(unidadId, {
+      const patchRes = await editarContenidoUnidad(unidadId, {
         titulo:
           titulo !== rawUnidad?.titulo ? titulo : undefined,
         contenido: nuevoContenido,
       });
       toast.success("Contenido guardado en la base de datos");
 
+      // ── Actualizar estado local con el contenido guardado ──
+      // Así la preview y futuros guardados usan los datos confirmados.
+      setRawContenido(nuevoContenido);
+      if (patchRes?.data && typeof patchRes.data === "object") {
+        // Si el backend devuelve el contenido mergeado, usarlo
+        const mergedContenido = parseContenido(patchRes.data);
+        if (mergedContenido.situacionSignificativa !== undefined) {
+          setRawContenido(mergedContenido);
+        }
+      }
+
+      // ── Generar PDF ──
       setView("preview");
       setPdfUploading(true);
-      await new Promise((r) => setTimeout(r, 2000));
 
-      if (documentRef.current && user?.id) {
-        const images = documentRef.current.querySelectorAll("img");
-        const pending = Array.from(images).filter(
-          (img) => !img.complete,
-        );
-        if (pending.length > 0) {
-          await Promise.all(
-            pending.map(
-              (img) =>
-                new Promise<void>((resolve) => {
-                  img.onload = () => resolve();
-                  img.onerror = () => resolve();
-                }),
-            ),
-          );
-          await new Promise((r) => setTimeout(r, 500));
-        }
-
-        toast.info("Generando PDF actualizado...");
-
-        const { generatePDFBlob } = await import(
-          "@/services/htmldocs.service"
-        );
-        const pdfBlob = await generatePDFBlob(documentRef.current, {
-          size: "A4",
-          orientation: "landscape",
-        });
-
-        const respUpload = await solicitarUploadUrlUnidad({
-          unidadId,
-          usuarioId: user.id,
-        });
-        const uploadData =
-          respUpload?.data ?? (respUpload as any);
-
-        await subirPDFaS3(uploadData.uploadUrl, pdfBlob);
-
-        await confirmarUploadUnidad({
-          unidadId,
-          usuarioId: user.id,
-          key: uploadData.key,
-        });
-
-        toast.success("PDF actualizado y guardado en la nube ☁️");
+      // Esperar a que el preview se renderice con polling
+      // en lugar de un timeout fijo de 2s que puede fallar.
+      let waitMs = 0;
+      const MAX_WAIT = 6000;
+      while (!documentRef.current && waitMs < MAX_WAIT) {
+        await new Promise((r) => setTimeout(r, 200));
+        waitMs += 200;
       }
+
+      if (!documentRef.current) {
+        console.warn("⚠️ documentRef.current sigue null tras", MAX_WAIT, "ms");
+        toast.warning(
+          "El contenido se guardó, pero no se pudo regenerar el PDF. " +
+            "Puedes descargarlo manualmente desde la vista previa.",
+        );
+        setSavedOk(true);
+        return;
+      }
+
+      if (!user?.id) {
+        toast.warning("Contenido guardado, pero no se pudo identificar al usuario para el PDF.");
+        setSavedOk(true);
+        return;
+      }
+
+      // Esperar imágenes del preview
+      const images = documentRef.current.querySelectorAll("img");
+      const pending = Array.from(images).filter(
+        (img) => !img.complete,
+      );
+      if (pending.length > 0) {
+        await Promise.all(
+          pending.map(
+            (img) =>
+              new Promise<void>((resolve) => {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              }),
+          ),
+        );
+        await new Promise((r) => setTimeout(r, 500));
+      }
+
+      toast.info("Generando PDF actualizado...");
+
+      const { generatePDFBlob } = await import(
+        "@/services/htmldocs.service"
+      );
+      const pdfBlob = await generatePDFBlob(documentRef.current, {
+        size: "A4",
+        orientation: "landscape",
+      });
+
+      const respUpload = await solicitarUploadUrlUnidad({
+        unidadId,
+        usuarioId: user.id,
+      });
+      const uploadData =
+        respUpload?.data ?? (respUpload as any);
+
+      await subirPDFaS3(uploadData.uploadUrl, pdfBlob);
+
+      await confirmarUploadUnidad({
+        unidadId,
+        usuarioId: user.id,
+        key: uploadData.key,
+      });
+
+      toast.success("PDF actualizado y guardado en la nube ☁️");
 
       setSavedOk(true);
     } catch (err: any) {
