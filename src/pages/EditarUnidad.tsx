@@ -1018,10 +1018,10 @@ function EditarUnidad() {
                     fontStyle: "italic",
                     textAlign: "center",
                     width: "100%",
-                    fieldSizing: "content" as any,
                     overflow: "hidden",
                     minHeight: "36px",
-                  }}
+                  } as React.CSSProperties & Record<string, string>}
+                  ref={(el) => { if (el) el.style.setProperty("field-sizing", "content"); }}
                   placeholder="Título de la unidad"
                 />
               </div>
