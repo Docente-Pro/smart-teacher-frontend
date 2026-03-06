@@ -236,23 +236,27 @@ function MisUnidades() {
         return;
       }
 
-      // Propietario: intentar CDN directo con pdfUrl
-      const cdnUrl = buildCdnPdfUrl(unidad?.pdfUrl);
-      if (cdnUrl) {
-        window.open(cdnUrl, "_blank");
+      // Propietario: usar URL pre-firmada (siempre apunta al PDF real actual)
+      const resp = await obtenerDownloadUrlUnidad(unidadId);
+      const url = resp?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
+      if (url) {
+        window.open(url, "_blank");
         handleToaster("PDF descargado", "success");
         return;
       }
 
-      // Fallback: URL pre-firmada del backend
-      const resp = await obtenerDownloadUrlUnidad(unidadId);
-      const url = resp?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
-      if (!url) {
-        handleToaster("No se encontró la URL de descarga", "error");
+      // Fallback: CDN con cache-bust
+      const cdnUrl = buildCdnPdfUrl(unidad?.pdfUrl);
+      if (cdnUrl) {
+        const bust = unidad?.pdfGeneradoAt
+          ? new Date(unidad.pdfGeneradoAt).getTime()
+          : Date.now();
+        window.open(`${cdnUrl}${cdnUrl.includes("?") ? "&" : "?"}v=${bust}`, "_blank");
+        handleToaster("PDF descargado", "success");
         return;
       }
-      window.open(url, "_blank");
-      handleToaster("PDF descargado", "success");
+
+      handleToaster("No se encontró la URL de descarga", "error");
     } catch (err: any) {
       console.error("Error al descargar:", err);
       const msg = err?.response?.status === 404

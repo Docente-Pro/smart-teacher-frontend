@@ -11,6 +11,7 @@ import {
   Loader2,
   RotateCcw,
   Crown,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import type {
   IResetUsuarioRequest,
 } from "@/interfaces/IAdmin";
 import { toast } from "sonner";
+import { corregirEstandaresMasivo } from "@/services/unidad.service";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -54,6 +56,9 @@ export default function AdminDashboard() {
   // Revocar
   const [revocarLoading, setRevocarLoading] = useState(false);
   const [revocarMotivo, setRevocarMotivo] = useState("");
+
+  // Corregir estándares masivo
+  const [corrigiendoMasivo, setCorrigiendoMasivo] = useState(false);
 
   // Upgrade premium
   const [upgradeLoading, setUpgradeLoading] = useState(false);
@@ -161,6 +166,30 @@ export default function AdminDashboard() {
       toast.error(err?.response?.data?.message || "Error al subir a premium");
     } finally {
       setUpgradeLoading(false);
+    }
+  }
+
+  async function handleCorregirEstandaresMasivo() {
+    if (
+      !window.confirm(
+        "¿Corregir estándares truncados de TODAS las unidades? Este proceso puede tardar.",
+      )
+    )
+      return;
+
+    setCorrigiendoMasivo(true);
+    try {
+      const res = await corregirEstandaresMasivo();
+      toast.success(
+        `Corrección masiva completada: ${res.corregidas} corregidas, ${res.sinCambios} sin cambios, ${res.errores} errores (total: ${res.total})`,
+      );
+    } catch (err: any) {
+      console.error("❌ [Admin] Error corregir masivo:", err);
+      toast.error(
+        err?.response?.data?.message || "Error al corregir estándares masivo",
+      );
+    } finally {
+      setCorrigiendoMasivo(false);
     }
   }
 
@@ -480,6 +509,30 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+      </div>
+      {/* Corregir Estándares Masivo */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <h3 className="text-gray-900 font-semibold mb-3 flex items-center gap-2">
+          <Wrench className="w-4 h-4 text-amber-600" />
+          Corregir Estándares (Masivo)
+        </h3>
+        <p className="text-gray-500 text-sm mb-4">
+          Corrige estándares truncados en todas las unidades del sistema.
+          El backend actualizará los datos y limpiará los PDFs obsoletos.
+        </p>
+        <Button
+          size="sm"
+          onClick={handleCorregirEstandaresMasivo}
+          disabled={corrigiendoMasivo}
+          className="bg-amber-600 hover:bg-amber-700 text-white"
+        >
+          {corrigiendoMasivo ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Wrench className="w-4 h-4 mr-2" />
+          )}
+          {corrigiendoMasivo ? "Corrigiendo…" : "Corregir todas las unidades"}
+        </Button>
       </div>
     </div>
   );
