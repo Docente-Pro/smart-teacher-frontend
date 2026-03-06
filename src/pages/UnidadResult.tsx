@@ -14,6 +14,7 @@ import {
   Share2,
   MessageCircle,
   Home,
+  Pencil,
 } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
@@ -175,6 +176,7 @@ function UnidadResult() {
   const gradoLabel = datosBase.grado || "";
   const docenteNombre = usuario?.nombre || user?.name || "";
   const institucion = usuario?.nombreInstitucion || "";
+  const seccion = usuario?.seccion || "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-900 dark:to-slate-800 p-4 sm:p-8">
@@ -244,6 +246,18 @@ function UnidadResult() {
               <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
               <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
             </Button>
+            {unidadId && (
+              <Button
+                onClick={() => navigate(`/editar-unidad/${unidadId}`)}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-600 dark:text-violet-400 dark:hover:bg-violet-950"
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="hidden sm:inline">Editar contenido</span>
+                <span className="sm:hidden">Editar</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -314,14 +328,17 @@ function UnidadResult() {
               titulo={datosBase.titulo}
               numeroUnidad={datosBase.numeroUnidad}
               grado={gradoLabel}
+              seccion={seccion}
             />
 
             {/* I. DATOS GENERALES */}
             <UnidadDocDatosGenerales
               institucion={institucion}
               directivo={usuario?.nombreDirectivo || ""}
+              subdirectora={usuario?.nombreSubdirectora || ""}
               docente={docenteNombre}
               grado={datosBase.grado}
+              seccion={seccion}
               nivel={datosBase.nivel}
               fechaInicio={datosBase.fechaInicio}
               fechaFin={datosBase.fechaFin}

@@ -115,6 +115,27 @@ function Step1({ state, usuario, setValuesOfUser, setCurrentStep }: Props) {
         </span>
       </section>
 
+      <section className="my-4 flex flex-col gap-2">
+        <Label htmlFor="seccion">Sección</Label>
+        <Input
+          onChange={(e) => {
+            const value = e.target.value.toUpperCase().slice(0, 1);
+            setValuesOfUser((prevState) => ({
+              ...prevState,
+              seccion: value,
+            }));
+          }}
+          type="text"
+          maxLength={1}
+          placeholder="Ej: A, B, C"
+          className="dark:bg-white dark:text-black w-24 text-center uppercase font-semibold text-lg"
+          value={state.seccion || ""}
+        />
+        <span className="text-sm text-slate-500 dark:text-slate-400">
+          Ingresa la letra de tu sección (A, B, C…). Es opcional.
+        </span>
+      </section>
+
       <section className="w-full flex flex-col gap-2">
         <CustomSelectCI
           array={niveles || []}

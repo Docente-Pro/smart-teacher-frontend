@@ -8,6 +8,7 @@ import {
   Loader2,
   ArrowLeft,
   Home,
+  Pencil,
 } from "lucide-react";
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
@@ -438,6 +439,7 @@ function UnidadSuscriptorResult() {
   const gradoLabel = unidad.grado?.nombre ?? "";
   const docenteNombre = usuario?.nombre || user?.name || "";
   const institucion = usuario?.nombreInstitucion || "";
+  const seccion = usuario?.seccion || "";
 
   const fechaInicio = unidad.fechaInicio?.split("T")[0] ?? "";
   const fechaFin = unidad.fechaFin?.split("T")[0] ?? "";
@@ -522,6 +524,18 @@ function UnidadSuscriptorResult() {
                 {isGenerating ? "..." : "PDF"}
               </span>
             </Button>
+            {unidad?.id && (
+              <Button
+                onClick={() => navigate(`/editar-unidad/${unidad.id}`)}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-600 dark:text-violet-400 dark:hover:bg-violet-950"
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="hidden sm:inline">Editar contenido</span>
+                <span className="sm:hidden">Editar</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -534,13 +548,16 @@ function UnidadSuscriptorResult() {
               titulo={unidad.titulo}
               numeroUnidad={unidad.numeroUnidad}
               grado={gradoLabel}
+              seccion={seccion}
             />
 
             <UnidadDocDatosGenerales
               institucion={institucion}
               directivo=""
+              subdirectora=""
               docente={docenteNombre}
               grado={gradoLabel}
+              seccion={seccion}
               nivel={unidad.nivel?.nombre ?? ""}
               fechaInicio={fechaInicio}
               fechaFin={fechaFin}

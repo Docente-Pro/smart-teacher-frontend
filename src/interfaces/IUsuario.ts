@@ -6,6 +6,7 @@ export interface IUsuarioToCreate {
   nombre: string;
   email: string;
   nombreInstitucion: string;
+  seccion?: string;
   nivelId: number;
   gradoId: number;
   problematicaId: number;
@@ -24,6 +25,7 @@ export interface IUsuarioToUpdate {
   nombreInstitucion?: string;
   nombreDirectivo?: string;
   genero?: string;
+  seccion?: string;
   nivelId?: number;
   gradoId?: number;
   problematicaId?: number;
@@ -31,6 +33,7 @@ export interface IUsuarioToUpdate {
   departamento?: string;
   provincia?: string;
   distrito?: string;
+  nombreSubdirectora?: string;
 }
 
 // Interface completa del usuario (respuesta del backend)
@@ -39,7 +42,9 @@ export interface IUsuario {
   nombre: string;
   email: string;
   nombreInstitucion: string;
+  seccion?: string;
   nombreDirectivo?: string;
+  nombreSubdirectora?: string;
   genero?: string;
   departamento?: string;
   provincia?: string;

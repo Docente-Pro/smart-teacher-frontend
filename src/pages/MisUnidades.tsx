@@ -31,6 +31,7 @@ import {
   Copy,
   Check,
   MessageCircle,
+  Pencil,
 } from "lucide-react";
 
 // ─────────────────── Helpers ───────────────────
@@ -636,6 +637,15 @@ function MisUnidades() {
                       ) : (
                         <Download className="h-3.5 w-3.5" />
                       )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 dark:hover:bg-violet-500/10 dark:hover:text-violet-400 transition-all"
+                      onClick={() => navigate(`/editar-unidad/${unidad.id}`)}
+                      title="Editar contenido"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>

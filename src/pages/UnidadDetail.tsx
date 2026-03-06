@@ -20,6 +20,7 @@ import {
   Hash,
   Copy,
   Check,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -353,6 +354,17 @@ function UnidadDetail() {
                 <Download className="h-4 w-4 mr-2" />
                 Descargar
               </Button>
+              {id && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/editar-unidad/${id}`)}
+                  className="border-violet-300 text-violet-700 hover:bg-violet-50 hover:border-violet-400 dark:border-violet-600 dark:text-violet-400 dark:hover:bg-violet-950 transition-all"
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              )}
             </div>
           )}
         </div>

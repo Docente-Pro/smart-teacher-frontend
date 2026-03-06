@@ -89,6 +89,8 @@ function DatosGeneralesPremium({
   grado,
   nivel,
   duracion,
+  seccion,
+  fecha,
   hex,
 }: {
   area?: unknown;
@@ -96,8 +98,23 @@ function DatosGeneralesPremium({
   grado?: unknown;
   nivel?: unknown;
   duracion?: number;
+  seccion?: string;
+  fecha?: string;
   hex: AreaHex;
 }) {
+  /* Texto de grado + sección */
+  const gradoText = seccion
+    ? `${toLabel(grado)} "${seccion}"`
+    : toLabel(grado);
+
+  /* Formatear fecha */
+  const fechaTexto = (() => {
+    if (!fecha) return "";
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return fecha;
+    return d.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
+  })();
+
   return (
     <>
       <table style={{ marginBottom: "0.5rem" }}>
@@ -127,12 +144,18 @@ function DatosGeneralesPremium({
             <td style={{ fontWeight: "bold" }}>Nivel:</td>
             <td style={{ width: "35%" }}>{toLabel(nivel)}</td>
             <td style={{ width: "10%", fontWeight: "bold" }}>Grado:</td>
-            <td style={{ width: "40%" }}>{toLabel(grado)}</td>
+            <td style={{ width: "40%" }}>{gradoText}</td>
           </tr>
           {duracion && (
             <tr>
               <td style={{ fontWeight: "bold" }}>Duración:</td>
               <td colSpan={3}>{duracion} minutos</td>
+            </tr>
+          )}
+          {fechaTexto && (
+            <tr>
+              <td style={{ fontWeight: "bold" }}>Fecha:</td>
+              <td colSpan={3}>{fechaTexto}</td>
             </tr>
           )}
         </tbody>
@@ -949,7 +972,7 @@ interface SesionPremiumDocProps {
  * de la sesión mediante getAreaColor().
  */
 export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
-  const { sesion, docente, institucion } = data;
+  const { sesion, docente, institucion, seccion } = data;
 
   // ── Derivar colores del área ────────────────────────────────────
   const areaName = toLabel(sesion.area);
@@ -974,6 +997,8 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
         grado={sesion.grado}
         nivel={sesion.nivel}
         duracion={sesion.duracion}
+        seccion={seccion}
+        fecha={(sesion as any).createdAt || (sesion as any).fechaInicio}
         hex={hex}
       />
 

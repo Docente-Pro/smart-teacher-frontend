@@ -32,8 +32,9 @@ function CuestionarioInicial() {
         email: encryptedEmail,
       })
         .then((response) => {
-          setUsuario(response.data);
-          if (response.data.data.respondioCuestionario) {
+          const userData = response.data.data || response.data;
+          setUsuario(userData);
+          if (userData.respondioCuestionario) {
             setRedirectToHome(true);
             navigate("/");
           }

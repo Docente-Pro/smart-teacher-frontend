@@ -299,3 +299,34 @@ export async function generarSesionUnidad(
   );
   return data;
 }
+
+// ============================================
+// Editar contenido de sesión
+// PATCH /api/sesion/:id/contenido
+// ============================================
+
+export interface IEditarContenidoSesionRequest {
+  titulo?: string;
+  contenido?: Record<string, any>;
+}
+
+export interface IEditarContenidoSesionResponse {
+  success: boolean;
+  message: string;
+  data: Record<string, any>;
+}
+
+/**
+ * Edita parcialmente el contenido de una sesión (merge por clave raíz).
+ * PATCH /api/sesion/:id/contenido
+ */
+export async function editarContenidoSesion(
+  sesionId: string,
+  body: IEditarContenidoSesionRequest,
+): Promise<IEditarContenidoSesionResponse> {
+  const { data } = await instance.patch<IEditarContenidoSesionResponse>(
+    `/sesion/${sesionId}/contenido`,
+    body,
+  );
+  return data;
+}
