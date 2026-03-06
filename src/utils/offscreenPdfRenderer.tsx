@@ -67,6 +67,7 @@ export function buildSesionPremiumData(
   },
   docente: string,
   institucion: string,
+  seccion?: string,
 ): ISesionPremiumResponse {
   // ⚠️ El backend puede enviar contenido como JSON string — parsearlo
   const contenido = parseContenido(rawContenido);
@@ -119,6 +120,7 @@ export function buildSesionPremiumData(
     success: true,
     docente,
     institucion,
+    seccion,
     sesion: sesionForDoc as any,
   };
 }

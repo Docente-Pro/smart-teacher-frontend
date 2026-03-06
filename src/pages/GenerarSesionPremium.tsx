@@ -584,6 +584,7 @@ function GenerarSesionPremium() {
           sesion: sesionComp,
           docente: compResp.docente,
           institucion: compResp.institucion,
+          seccion: (compResp as any).seccion,
         } as any;
       } else {
         resp = await generarSesionUnidad(selectedUnidadId, {

@@ -48,6 +48,7 @@ interface OnboardingData {
   nombre: string;
   nombreInstitucion: string;
   nombreDirectivo: string;
+  nombreSubdirectora: string;
   genero: string;
   nivelId: number;
   gradoId: number;
@@ -66,6 +67,7 @@ function OnboardingPage() {
     nombre: "",
     nombreInstitucion: "",
     nombreDirectivo: "",
+    nombreSubdirectora: "",
     genero: "",
     nivelId: 0,
     gradoId: 0,
@@ -205,6 +207,7 @@ function OnboardingPage() {
         nombre: formData.nombre,
         nombreInstitucion: formData.nombreInstitucion,
         nombreDirectivo: formData.nombreDirectivo.trim() || undefined,
+        nombreSubdirectora: formData.nombreSubdirectora.trim() || undefined,
         genero: formData.genero,
         nivelId: formData.nivelId,
         gradoId: formData.gradoId,
@@ -319,6 +322,25 @@ function OnboardingPage() {
                 />
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500">Nombre del director(a) de tu institución. Aparecerá en los documentos.</p>
+            </div>
+
+            {/* Subdirectora */}
+            <div className="space-y-1.5">
+              <Label htmlFor="subdirectora" className="text-gray-700 dark:text-gray-300 text-sm">
+                Subdirector(a) de la I.E.
+              </Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="subdirectora"
+                  type="text"
+                  placeholder="Ej: María García"
+                  className="pl-10 py-5 text-sm"
+                  value={formData.nombreSubdirectora}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, nombreSubdirectora: e.target.value }))}
+                />
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Nombre del subdirector(a). Aparecerá en los documentos.</p>
             </div>
           </div>
 

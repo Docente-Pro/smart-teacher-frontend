@@ -37,6 +37,7 @@ function Step2({ state, userFromAuth0, setValuesOfUser, setCurrentStep }: Props)
         nombre: userFromAuth0.name || "",
         email: userFromAuth0.email || "",
         nombreInstitucion: state.nombreInstitucion,
+        seccion: state.seccion || undefined,
         nivelId: state.nivelId,
         gradoId: state.gradoId,
         problematicaId: state.problematicaId,

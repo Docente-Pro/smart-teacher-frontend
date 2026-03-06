@@ -610,6 +610,7 @@ export default function AdminUsuarioDetalle() {
                                 rehacerResponse: res,
                                 docente: usuario?.nombre ?? "",
                                 institucion: usuario?.nombreInstitucion ?? "",
+                                seccion: usuario?.seccion ?? "",
                                 usuarioId: usuario!.id,
                               },
                             });

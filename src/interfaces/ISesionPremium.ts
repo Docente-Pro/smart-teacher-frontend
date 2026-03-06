@@ -174,5 +174,6 @@ export interface ISesionPremiumResponse {
   message?: string;
   docente: string;
   institucion: string;
+  seccion?: string;
   sesion: ISesionPremiumSesion;
 }
