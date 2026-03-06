@@ -8,6 +8,7 @@ import {
   upgradePremium,
   rehacerSesion,
 } from "@/services/admin.service";
+import { corregirEstandares } from "@/services/unidad.service";
 import type { IUsuarioDetalle } from "@/interfaces/IAdmin";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,7 @@ import {
   ExternalLink,
   RotateCcw,
   Crown,
+  Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +43,7 @@ export default function AdminUsuarioDetalle() {
   const [upgradePlan, setUpgradePlan] = useState<"premium_mensual" | "premium_anual">("premium_mensual");
   const [rehaciendo, setRehaciendo] = useState<string | null>(null);
   const [rehacerEstado, setRehacerEstado] = useState("");
+  const [corrigiendoUnidad, setCorrigiendoUnidad] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) cargarDetalle();
@@ -657,6 +660,7 @@ export default function AdminUsuarioDetalle() {
                   <th className="px-3 py-2 font-medium">Tipo</th>
                   <th className="px-3 py-2 font-medium">Fecha</th>
                   <th className="px-3 py-2 font-medium">PDF</th>
+                  <th className="px-3 py-2 font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -691,6 +695,58 @@ export default function AdminUsuarioDetalle() {
                       ) : (
                         <span className="text-gray-300 text-xs">—</span>
                       )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs h-7 border-amber-300 text-amber-700 hover:bg-amber-50"
+                        disabled={corrigiendoUnidad === u.id}
+                        onClick={async () => {
+                          if (!confirm(`¿Corregir estándares de la unidad "${u.titulo || u.id}"? Se regenerará el PDF.`)) return;
+                          setCorrigiendoUnidad(u.id);
+                          try {
+                            const res = await corregirEstandares(u.id);
+                            if (res.totalCorregidos === 0) {
+                              toast.info("Los estándares ya estaban correctos");
+                              return;
+                            }
+                            // Navegar a la página dedicada de renderizado PDF
+                            navigate(`/admin/corregir-estandares-pdf/${u.id}`, {
+                              state: {
+                                corregirResponse: res,
+                                unidadId: u.id,
+                                titulo: u.titulo || "",
+                                numeroUnidad: u.numeroUnidad,
+                                grado: usuario?.grado?.nombre ?? "",
+                                nivel: usuario?.nivel?.nombre ?? "",
+                                fechaInicio: "",
+                                fechaFin: "",
+                                docente: usuario?.nombre ?? "",
+                                institucion: usuario?.nombreInstitucion ?? "",
+                                seccion: usuario?.seccion ?? "",
+                                nombreDirectivo: "",
+                                nombreSubdirectora: "",
+                                usuarioId: usuario!.id,
+                              },
+                            });
+                          } catch (err: any) {
+                            console.error("❌ [Admin] Error al corregir estándares:", err);
+                            toast.error(
+                              err?.response?.data?.message || "Error al corregir estándares",
+                            );
+                          } finally {
+                            setCorrigiendoUnidad(null);
+                          }
+                        }}
+                      >
+                        {corrigiendoUnidad === u.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Wrench className="w-3 h-3" />
+                        )}
+                        {corrigiendoUnidad === u.id ? "Corrigiendo…" : "Corregir"}
+                      </Button>
                     </td>
                   </tr>
                 ))}

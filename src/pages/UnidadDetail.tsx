@@ -131,17 +131,39 @@ function UnidadDetail() {
               setPdfError("Esta unidad aún no tiene un PDF generado.");
             }
           } else {
-            // Propietario: CDN directo o fallback
-            const cdnUrl = buildCdnPdfUrl(data.pdfUrl);
-            if (cdnUrl) {
-              setPdfUrl(cdnUrl);
-            } else {
+            // Propietario: usar URL pre-firmada (siempre apunta al PDF real en S3).
+            // La CDN puede servir versiones cacheadas si el key no cambia.
+            try {
               const resp = await obtenerDownloadUrlUnidad(unidadId);
               const url = resp?.data?.downloadUrl;
               if (!cancelled && url) {
                 setPdfUrl(url);
               } else if (!cancelled) {
-                setPdfError("Esta unidad aún no tiene un PDF generado.");
+                // Fallback: intentar CDN con cache-bust
+                const cdnUrl = buildCdnPdfUrl(data.pdfUrl);
+                if (cdnUrl) {
+                  const bust = data.pdfGeneradoAt
+                    ? new Date(data.pdfGeneradoAt).getTime()
+                    : data.updatedAt
+                      ? new Date(data.updatedAt).getTime()
+                      : Date.now();
+                  setPdfUrl(`${cdnUrl}${cdnUrl.includes("?") ? "&" : "?"}v=${bust}`);
+                } else {
+                  setPdfError("Esta unidad aún no tiene un PDF generado.");
+                }
+              }
+            } catch {
+              // Fallback final: CDN con cache-bust
+              if (!cancelled) {
+                const cdnUrl = buildCdnPdfUrl(data.pdfUrl);
+                if (cdnUrl) {
+                  const bust = data.pdfGeneradoAt
+                    ? new Date(data.pdfGeneradoAt).getTime()
+                    : Date.now();
+                  setPdfUrl(`${cdnUrl}${cdnUrl.includes("?") ? "&" : "?"}v=${bust}`);
+                } else {
+                  setPdfError("Esta unidad aún no tiene un PDF generado.");
+                }
               }
             }
           }
@@ -365,6 +387,7 @@ function UnidadDetail() {
                   Editar
                 </Button>
               )}
+
             </div>
           )}
         </div>

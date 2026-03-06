@@ -338,6 +338,80 @@ export async function generarSesionComplementaria(
 }
 
 // ============================================
+// Corregir estándares (determinista, sin IA)
+// POST /api/unidades/corregir-estandares
+// POST /api/unidades/corregir-estandares/masivo (admin)
+// ============================================
+
+export interface ICorregirEstandaresUpload {
+  presignedUrl: string;
+  s3Key: string;
+  expiresIn: number;
+  method: string;
+  contentType: string;
+}
+
+export interface ICorregirEstandaresMiembroUpload {
+  miembroId: string;
+  usuarioId: string;
+  presignedUrl: string;
+  s3Key: string;
+}
+
+export interface ICorregirEstandaresResponse {
+  success: boolean;
+  totalCorregidos: number;
+  guardadoEnBD: boolean;
+  correcciones: {
+    area: string;
+    competencia: string;
+    estandarAnterior: string;
+    estandarCorregido: string;
+  }[];
+  unidad: Record<string, any>;
+  upload: ICorregirEstandaresUpload | null;
+  miembrosUpload: ICorregirEstandaresMiembroUpload[];
+}
+
+export interface ICorregirEstandaresMasivoResponse {
+  success: boolean;
+  total: number;
+  corregidas: number;
+  sinCambios: number;
+  errores: number;
+  detalles: {
+    unidadId: string;
+    totalCorregidos: number;
+    error?: string;
+  }[];
+}
+
+/**
+ * Corrige estándares truncados de UNA unidad.
+ * POST /api/unidades/corregir-estandares
+ */
+export async function corregirEstandares(
+  unidadId: string,
+): Promise<ICorregirEstandaresResponse> {
+  const { data } = await instance.post<ICorregirEstandaresResponse>(
+    "/unidades/corregir-estandares",
+    { unidadId },
+  );
+  return data;
+}
+
+/**
+ * Corrige estándares de TODAS las unidades (solo Admin).
+ * POST /api/unidades/corregir-estandares/masivo
+ */
+export async function corregirEstandaresMasivo(): Promise<ICorregirEstandaresMasivoResponse> {
+  const { data } = await instance.post<ICorregirEstandaresMasivoResponse>(
+    "/unidades/corregir-estandares/masivo",
+  );
+  return data;
+}
+
+// ============================================
 // Editar contenido de unidad
 // PATCH /api/unidades/:id/contenido
 // ============================================
