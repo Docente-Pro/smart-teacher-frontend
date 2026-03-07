@@ -57,6 +57,7 @@ function formatFechaLocal(fecha: string): string {
 }
 
 const duracionesUnidad = [
+  { semanas: 2, label: "2 semanas", desc: "Unidad corta", gradient: "from-emerald-500 to-teal-500" },
   { semanas: 4, label: "4 semanas", desc: "Unidad estándar", gradient: "from-blue-500 to-cyan-500" },
   { semanas: 5, label: "5 semanas", desc: "Unidad extendida", gradient: "from-purple-500 to-pink-500" },
 ];
@@ -634,7 +635,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {duracionesUnidad.map((d) => {
                 const isSelected = duracion === d.semanas;
                 return (

@@ -8,7 +8,7 @@ import {
   upgradePremium,
   rehacerSesion,
 } from "@/services/admin.service";
-import { corregirEstandares } from "@/services/unidad.service";
+import { corregirEstandares, arreglarHorario, getUnidadById, editarContenidoUnidad } from "@/services/unidad.service";
 import type { IUsuarioDetalle } from "@/interfaces/IAdmin";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,7 @@ import {
   RotateCcw,
   Crown,
   Wrench,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +45,7 @@ export default function AdminUsuarioDetalle() {
   const [rehaciendo, setRehaciendo] = useState<string | null>(null);
   const [rehacerEstado, setRehacerEstado] = useState("");
   const [corrigiendoUnidad, setCorrigiendoUnidad] = useState<string | null>(null);
+  const [corrigiendoHorario, setCorrigiendoHorario] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) cargarDetalle();
@@ -746,6 +748,107 @@ export default function AdminUsuarioDetalle() {
                           <Wrench className="w-3 h-3" />
                         )}
                         {corrigiendoUnidad === u.id ? "Corrigiendo…" : "Corregir"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50 ml-1"
+                        disabled={corrigiendoHorario === u.id}
+                        onClick={async () => {
+                          if (!confirm(`¿Arreglar horario de la unidad "${u.titulo || u.id}"? Se corregirá la secuencia y se regenerará el PDF.`)) return;
+                          setCorrigiendoHorario(u.id);
+                          try {
+                            // 1. Cargar unidad completa para obtener secuencia
+                            const { data: unidad } = await getUnidadById(u.id);
+                            let contenido = unidad.contenido as any;
+                            if (typeof contenido === "string") {
+                              try { contenido = JSON.parse(contenido); } catch { contenido = {}; }
+                            }
+                            if (typeof contenido === "string") {
+                              try { contenido = JSON.parse(contenido); } catch { contenido = {}; }
+                            }
+                            if (contenido?.contenido && !contenido.secuencia) {
+                              contenido = contenido.contenido;
+                              if (typeof contenido === "string") {
+                                try { contenido = JSON.parse(contenido); } catch { contenido = {}; }
+                              }
+                            }
+
+                            if (!contenido?.secuencia) {
+                              toast.error("La unidad no tiene secuencia de actividades");
+                              return;
+                            }
+
+                            const grado = usuario?.grado?.nombre ?? "";
+
+                            // 2. Llamar al endpoint de arreglar horario
+                            const res = await arreglarHorario({
+                              secuencia: contenido.secuencia,
+                              grado,
+                              turno: "mañana",
+                            });
+
+                            if (!res.success) {
+                              toast.error(res.error || "Error al arreglar horario");
+                              return;
+                            }
+
+                            if (!res.cambios || res.cambios.length === 0) {
+                              toast.info("El horario ya estaba correcto");
+                              return;
+                            }
+
+                            // 3. Guardar la secuencia corregida en BD
+                            await editarContenidoUnidad(u.id, {
+                              contenido: { secuencia: res.secuencia },
+                            });
+
+                            // 4. Navegar a regenerar PDF con el contenido actualizado
+                            const unidadActualizada = { ...contenido, secuencia: res.secuencia };
+                            navigate(`/admin/corregir-estandares-pdf/${u.id}`, {
+                              state: {
+                                corregirResponse: {
+                                  success: true,
+                                  totalCorregidos: res.cambios.length,
+                                  guardadoEnBD: true,
+                                  correcciones: [],
+                                  unidad: unidadActualizada,
+                                  upload: null,
+                                  miembrosUpload: [],
+                                },
+                                unidadId: u.id,
+                                titulo: u.titulo || "",
+                                numeroUnidad: u.numeroUnidad,
+                                grado,
+                                nivel: usuario?.nivel?.nombre ?? "",
+                                fechaInicio: "",
+                                fechaFin: "",
+                                docente: usuario?.nombre ?? "",
+                                institucion: usuario?.nombreInstitucion ?? "",
+                                seccion: usuario?.seccion ?? "",
+                                nombreDirectivo: "",
+                                nombreSubdirectora: "",
+                                usuarioId: usuario!.id,
+                              },
+                            });
+
+                            toast.success(`${res.cambios.length} horario(s) corregido(s)`);
+                          } catch (err: any) {
+                            console.error("❌ [Admin] Error al arreglar horario:", err);
+                            toast.error(
+                              err?.response?.data?.message || "Error al arreglar horario",
+                            );
+                          } finally {
+                            setCorrigiendoHorario(null);
+                          }
+                        }}
+                      >
+                        {corrigiendoHorario === u.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <CalendarClock className="w-3 h-3" />
+                        )}
+                        {corrigiendoHorario === u.id ? "Arreglando…" : "Arreglar Horario"}
                       </Button>
                     </td>
                   </tr>
