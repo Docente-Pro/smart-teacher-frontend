@@ -14,6 +14,7 @@ import {
   Lock,
   KeyRound,
   ClipboardList,
+  FilePlus2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
@@ -190,6 +191,24 @@ function Dashboard() {
       action: handleCrearSesion,
       premium: false,
     },
+    // Sesión Individual — solo premium
+    ...(permissions.isPremium
+      ? [
+          {
+            icon: FilePlus2,
+            title: "Sesión Individual",
+            description: "Crea una sesión suelta, sin necesidad de una unidad",
+            color: "from-rose-500 to-pink-600",
+            bgLight: "bg-rose-50 dark:bg-rose-500/10",
+            iconColor: "text-rose-600 dark:text-rose-400",
+            action: () => {
+              showLoading("Cargando cuestionario...");
+              navigate("/crear-sesion");
+            },
+            premium: false,
+          },
+        ]
+      : []),
     {
       icon: FileText,
       title: "Mis Sesiones",
