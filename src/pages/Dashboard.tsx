@@ -38,6 +38,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useGlobalLoading();
   const [showProblematicaModal, setShowProblematicaModal] = useState(false);
+  const [showProblematicaIndividual, setShowProblematicaIndividual] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAlumnosModal, setShowAlumnosModal] = useState(false);
   const [alumnosSubidos, setAlumnosSubidos] = useState(() => hasUploadedAlumnos());
@@ -202,8 +203,7 @@ function Dashboard() {
             bgLight: "bg-rose-50 dark:bg-rose-500/10",
             iconColor: "text-rose-600 dark:text-rose-400",
             action: () => {
-              showLoading("Cargando cuestionario...");
-              navigate("/crear-sesion");
+              setShowProblematicaIndividual(true);
             },
             premium: false,
           },
@@ -456,6 +456,17 @@ function Dashboard() {
         onClose={() => setShowProblematicaModal(false)}
         onComplete={() => {
           setShowProblematicaModal(false);
+          showLoading("Cargando cuestionario...");
+          navigate("/crear-sesion");
+        }}
+      />
+
+      {/* Modal de Problemática — Sesión Individual (premium) */}
+      <ProblematicaModal
+        isOpen={showProblematicaIndividual}
+        onClose={() => setShowProblematicaIndividual(false)}
+        onComplete={() => {
+          setShowProblematicaIndividual(false);
           showLoading("Cargando cuestionario...");
           navigate("/crear-sesion");
         }}
