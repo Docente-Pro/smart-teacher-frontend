@@ -336,38 +336,57 @@ function EditarSesionPremium() {
           pick<string>(raw.propositoSesion, contenido.propositoSesion, ""),
         );
 
-        // Propósitos de aprendizaje
-        const propArr = pick<any[]>(
+        // Propósitos de aprendizaje (soporta array premium o objeto free)
+        const propRaw = pick<any>(
           raw.propositoAprendizaje,
           contenido.propositoAprendizaje,
           [],
         );
+        // Free envía un solo objeto; premium envía un array
+        const propArr = Array.isArray(propRaw) ? propRaw : (propRaw && typeof propRaw === "object" ? [propRaw] : []);
         setPropositos(
-          propArr.map((p: any) => ({
-            competencia: p.competencia || "",
-            capacidades: Array.isArray(p.capacidades)
-              ? p.capacidades.join("\n")
-              : p.capacidades || "",
-            criterios: Array.isArray(p.criteriosEvaluacion)
-              ? p.criteriosEvaluacion.join("\n")
-              : p.criteriosEvaluacion || "",
-            evidencia: p.evidencia || "",
-            estandar: p.estandar || "",
-            instrumento: p.instrumento || "",
-          })),
+          propArr.map((p: any) => {
+            // capacidades: premium=["str",...], free=[{nombre,descripcion},...]
+            let caps = "";
+            if (Array.isArray(p.capacidades)) {
+              caps = p.capacidades
+                .map((c: any) => (typeof c === "string" ? c : c?.nombre || ""))
+                .join("\n");
+            } else if (typeof p.capacidades === "string") {
+              caps = p.capacidades;
+            }
+            // criterios: premium=["str",...], free=[{criterioCompleto,...},...]
+            let crit = "";
+            if (Array.isArray(p.criteriosEvaluacion)) {
+              crit = p.criteriosEvaluacion
+                .map((c: any) => (typeof c === "string" ? c : c?.criterioCompleto || ""))
+                .join("\n");
+            } else if (typeof p.criteriosEvaluacion === "string") {
+              crit = p.criteriosEvaluacion;
+            }
+            return {
+              competencia: p.competencia || "",
+              capacidades: caps,
+              criterios: crit,
+              evidencia: p.evidencia || p.evidenciaAprendizaje || "",
+              estandar: p.estandar || "",
+              instrumento: p.instrumento || p.instrumentoEvaluacion || "",
+            };
+          }),
         );
 
         // Enfoques
-        const enfArr = pick<any[]>(
+        const enfRaw = pick<any[]>(
           raw.enfoquesTransversales,
           contenido.enfoquesTransversales,
           [],
         );
+        const enfArr = Array.isArray(enfRaw) ? enfRaw : [];
         setEnfoques(
           enfArr.map((e: any) => ({
-            enfoque: e.enfoque || "",
+            enfoque: e.enfoque || e.nombre || "",
             valor: e.valor || "",
-            actitud: e.actitud || e.actitudes || "",
+            actitud: e.actitud || e.actitudes || e.actitudesObservables || "",
           })),
         );
 
@@ -405,8 +424,10 @@ function EditarSesionPremium() {
           desarrollo: { tiempo: "", procesos: [] },
           cierre: { tiempo: "", procesos: [] },
         };
+        // secuenciaDidactica: free anida fases aquí; premium las pone en raíz
+        const secDidactica = contenido.secuenciaDidactica || {};
         for (const fase of ["inicio", "desarrollo", "cierre"] as FaseName[]) {
-          const f = pick<IFasePremium>(raw[fase], contenido[fase], {
+          const f = pick<IFasePremium>(raw[fase], contenido[fase], secDidactica[fase], {
             tiempo: "",
             procesos: [],
           });
@@ -427,8 +448,12 @@ function EditarSesionPremium() {
           sobreAprendizajes: "",
           sobreEnsenanza: "",
         });
-        setReflexionAprendizajes(refl.sobreAprendizajes || "");
-        setReflexionEnsenanza(refl.sobreEnsenanza || "");
+        setReflexionAprendizajes(
+          refl.sobreAprendizajes || refl.avancesEstudiantes || "",
+        );
+        setReflexionEnsenanza(
+          refl.sobreEnsenanza || refl.dificultadesExperimentadas || "",
+        );
       } catch (err: any) {
         if (!cancelled) {
           setError(
@@ -465,7 +490,8 @@ function EditarSesionPremium() {
     }
 
     function rebuildFase(fase: FaseName): IFasePremium {
-      const original = pick<IFasePremium>(raw[fase], contenido[fase], {
+      const secDidactica = contenido.secuenciaDidactica || {};
+      const original = pick<IFasePremium>(raw[fase], contenido[fase], secDidactica[fase], {
         tiempo: "",
         procesos: [],
       });
@@ -488,10 +514,10 @@ function EditarSesionPremium() {
     const sesionForDoc: any = {
       id: raw.id,
       titulo,
-      area: pick(raw.area, contenido.area),
-      nivel: pick(raw.nivel, contenido.nivel),
-      grado: pick(raw.grado, contenido.grado),
-      duracion: raw.duracion ?? contenido.duracion,
+      area: pick(raw.area, contenido.area, contenido.datosGenerales?.area),
+      nivel: pick(raw.nivel, contenido.nivel, contenido.datosGenerales?.nivel),
+      grado: pick(raw.grado, contenido.grado, contenido.datosGenerales?.grado),
+      duracion: raw.duracion ?? contenido.duracion ?? contenido.datosGenerales?.duracion,
       usuario: raw.usuario,
 
       propositoSesion,
@@ -791,7 +817,7 @@ function EditarSesionPremium() {
     /* vacío */
   }
 
-  const areaName = toLabel(raw.area || parsedContenido.area);
+  const areaName = toLabel(raw.area || parsedContenido.area || parsedContenido.datosGenerales?.area);
   const hex = getAreaColor(areaName).hex;
   const premiumData = buildPremiumData();
 
@@ -1622,63 +1648,65 @@ function EditarSesionPremium() {
               </tbody>
             </table>
 
-            {/* ── REFLEXIONES SOBRE EL APRENDIZAJE ── */}
-            <table>
-              <tbody>
-                <tr>
-                  <td
-                    colSpan={2}
-                    style={{
-                      backgroundColor: hex.light,
-                      fontWeight: "bold",
-                      textAlign: "center",
-                    }}
-                  >
-                    REFLEXIONES SOBRE EL APRENDIZAJE
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    style={{
-                      width: "50%",
-                      backgroundColor: hex.light,
-                    }}
-                  >
-                    SOBRE LOS APRENDIZAJES
-                  </th>
-                  <th
-                    style={{
-                      width: "50%",
-                      backgroundColor: hex.light,
-                    }}
-                  >
-                    SOBRE LA ENSEÑANZA
-                  </th>
-                </tr>
-                <tr>
-                  <td className="ec">
-                    <textarea
-                      value={reflexionAprendizajes}
-                      onChange={(e) =>
-                        setReflexionAprendizajes(e.target.value)
-                      }
-                      rows={3}
-                      placeholder="Reflexión sobre aprendizajes"
-                    />
-                  </td>
-                  <td className="ec">
-                    <textarea
-                      value={reflexionEnsenanza}
-                      onChange={(e) =>
-                        setReflexionEnsenanza(e.target.value)
-                      }
-                      rows={3}
-                      placeholder="Reflexión sobre enseñanza"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            {/* ── REFLEXIONES SOBRE EL APRENDIZAJE (solo si hay contenido) ── */}
+            {(reflexionAprendizajes || reflexionEnsenanza) && (
+              <table>
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan={2}
+                      style={{
+                        backgroundColor: hex.light,
+                        fontWeight: "bold",
+                        textAlign: "center",
+                      }}
+                    >
+                      REFLEXIONES SOBRE EL APRENDIZAJE
+                    </td>
+                  </tr>
+                  <tr>
+                    <th
+                      style={{
+                        width: "50%",
+                        backgroundColor: hex.light,
+                      }}
+                    >
+                      SOBRE LOS APRENDIZAJES
+                    </th>
+                    <th
+                      style={{
+                        width: "50%",
+                        backgroundColor: hex.light,
+                      }}
+                    >
+                      SOBRE LA ENSEÑANZA
+                    </th>
+                  </tr>
+                  <tr>
+                    <td className="ec">
+                      <textarea
+                        value={reflexionAprendizajes}
+                        onChange={(e) =>
+                          setReflexionAprendizajes(e.target.value)
+                        }
+                        rows={3}
+                        placeholder="Reflexión sobre aprendizajes"
+                      />
+                    </td>
+                    <td className="ec">
+                      <textarea
+                        value={reflexionEnsenanza}
+                        onChange={(e) =>
+                          setReflexionEnsenanza(e.target.value)
+                        }
+                        rows={3}
+                        placeholder="Reflexión sobre enseñanza"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
 
             {/* ── Botón guardar al final ── */}
             <div className="flex justify-center pt-6">
