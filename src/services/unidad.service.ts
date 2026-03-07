@@ -412,6 +412,46 @@ export async function corregirEstandaresMasivo(): Promise<ICorregirEstandaresMas
 }
 
 // ============================================
+// Arreglar horario de unidad (determinista)
+// POST /api/unidad/arreglar-horario
+// ============================================
+
+export interface IArreglarHorarioRequest {
+  secuencia: Record<string, any>;
+  grado: string;
+  turno?: string; // default "mañana"
+}
+
+export interface IArreglarHorarioCambio {
+  semana: number;
+  dia: string;
+  hora: number;
+  antes: string;
+  despues: string;
+}
+
+export interface IArreglarHorarioResponse {
+  success: boolean;
+  secuencia: Record<string, any>;
+  cambios: IArreglarHorarioCambio[];
+  error?: string;
+}
+
+/**
+ * Arregla el horario de la secuencia de una unidad.
+ * POST /api/unidad/arreglar-horario
+ */
+export async function arreglarHorario(
+  body: IArreglarHorarioRequest,
+): Promise<IArreglarHorarioResponse> {
+  const { data } = await instance.post<IArreglarHorarioResponse>(
+    "/unidad/arreglar-horario",
+    body,
+  );
+  return data;
+}
+
+// ============================================
 // Editar contenido de unidad
 // PATCH /api/unidades/:id/contenido
 // ============================================
