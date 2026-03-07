@@ -1688,8 +1688,7 @@ function EditarUnidad() {
                                       {hora.area?.toUpperCase() ||
                                         ""}
                                     </div>
-                                    <input
-                                      type="text"
+                                    <textarea
                                       value={
                                         hora.actividad
                                       }

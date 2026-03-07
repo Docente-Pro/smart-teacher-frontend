@@ -171,9 +171,6 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
   }
 
   function handleContinuar() {
-    if (!contenido.areasComplementarias?.length) {
-      return handleToaster("Primero genera las áreas complementarias", "error");
-    }
     if (!contenido.enfoques?.length) {
       return handleToaster("Primero genera los enfoques transversales", "error");
     }
