@@ -148,24 +148,13 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     cargar();
   }, []);
 
-  // Calcular fecha fin automáticamente (con gracia de hasta 6 días extra)
-  const DIAS_GRACIA = 6;
-
+  // Calcular fecha fin automáticamente
   const fechaFinCalculada = fechaInicio && duracion > 0
     ? (() => {
         const inicio = new Date(fechaInicio);
         const fin = new Date(inicio);
         fin.setDate(fin.getDate() + duracion * 7);
         return fin.toISOString().split("T")[0];
-      })()
-    : "";
-
-  const fechaFinMax = fechaInicio && duracion > 0
-    ? (() => {
-        const inicio = new Date(fechaInicio);
-        const finMax = new Date(inicio);
-        finMax.setDate(finMax.getDate() + duracion * 7 + DIAS_GRACIA);
-        return finMax.toISOString().split("T")[0];
       })()
     : "";
 
@@ -718,15 +707,12 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
               </div>
               <div>
                 <Label htmlFor="fechaFin" className="text-sm font-medium mb-1.5 block">
-                  Fecha de Fin{" "}
-                  <span className="text-xs text-slate-400">(ajustable hasta {DIAS_GRACIA} días extra)</span>
+                  Fecha de Fin
                 </Label>
                 <Input
                   id="fechaFin"
                   type="date"
                   value={fechaFin}
-                  min={fechaFinCalculada}
-                  max={fechaFinMax}
                   onChange={(e) => setFechaFin(e.target.value)}
                   disabled={!fechaInicio || duracion <= 0}
                   className="h-12 text-base"
