@@ -21,6 +21,7 @@ import {
   Clock,
   Users,
   BookOpen,
+  GripVertical,
 } from "lucide-react";
 import { useUnidadStore } from "@/store/unidad.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -33,6 +34,7 @@ import {
   regenerarPasoUnidad,
 } from "@/services/ia-unidad.service";
 import { HorarioPanel } from "./HorarioPanel";
+import { SortableSlotsList } from "./SortableSlotsList";
 import { useHorario } from "@/hooks/useHorario";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { IDistribucionMiembro } from "@/interfaces/IUnidad";
@@ -42,6 +44,7 @@ import type {
   IMaterialesResponse,
   IReflexionPregunta,
   IReflexionesResponse,
+  IHoraActividad,
 } from "@/interfaces/IUnidadIA";
 
 interface Props {
@@ -283,6 +286,29 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     }
   }
 
+  /* ─── Reordenar horas de un día (drag & drop) ─── */
+  const handleReorderHoras = useCallback(
+    (sIdx: number, dIdx: number, newHoras: IHoraActividad[]) => {
+      if (!secuencia?.semanas) return;
+      const updated: ISecuencia = {
+        ...secuencia,
+        semanas: secuencia.semanas.map((sem, si) =>
+          si !== sIdx
+            ? sem
+            : {
+                ...sem,
+                dias: (sem.dias || []).map((d, di) =>
+                  di !== dIdx ? d : { ...d, horas: newHoras }
+                ),
+              }
+        ),
+      };
+      setSecuencia(updated);
+      updateContenido({ secuencia: updated });
+    },
+    [secuencia, updateContenido]
+  );
+
   /* ─── Finalizar → ir a la vista previa del PDF ─── */
   function handleFinalizar() {
     // Marcar la unidad como completada para que no aparezca el diálogo de recuperación
@@ -444,15 +470,20 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                             </span>
                           </div>
 
-                          {/* Grid de horas pedagógicas */}
-                          <div className="space-y-2">
-                            {dia.horas?.map((h, hIdx) => (
-                              <div
-                                key={hIdx}
-                                className="flex items-start gap-2.5 rounded-lg p-3 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50"
-                              >
-                                <div className="flex flex-col items-center shrink-0 w-12">
-                                  <Clock className="h-3.5 w-3.5 text-slate-400 mb-0.5" />
+                          {/* Grid de horas pedagógicas (reordenable por arrastre) */}
+                          <SortableSlotsList<IHoraActividad>
+                            listKey={`s${sIdx}-d${dIdx}`}
+                            items={dia.horas || []}
+                            onReorder={(newHoras) => handleReorderHoras(sIdx, dIdx, newHoras)}
+                            className="space-y-2"
+                          >
+                            {(h, hIdx) => (
+                              <div className="flex items-start gap-2.5 rounded-lg p-3 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50">
+                                <div
+                                  className="secuencia-drag-handle flex flex-col items-center shrink-0 w-10 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                  title="Arrastrar para reordenar"
+                                >
+                                  <GripVertical className="h-4 w-4 mt-0.5" />
                                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                                     H{h.hora ?? hIdx + 1}
                                   </span>
@@ -471,8 +502,8 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                                   </p>
                                 </div>
                               </div>
-                            ))}
-                          </div>
+                            )}
+                          </SortableSlotsList>
                         </div>
                       ))}
                     </div>

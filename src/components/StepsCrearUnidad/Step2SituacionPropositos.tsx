@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useUnidadStore } from "@/store/unidad.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -81,7 +83,7 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
   const [propositos, setPropositos] = useState<IPropositos | null>(contenido.propositos || null);
 
   // ─── Sincronizar estado local con store (rehidratación o vuelta al paso tras recarga) ───
-  // Cuando el store tiene datos y el estado local aún no, rellenamos y marcamos "done" para poder editar/regenerar.
+  // Solo leemos del store → estado local. No escribimos al store aquí para evitar bucle infinito.
   useEffect(() => {
     if (contenido.situacionSignificativa && !situacionTexto) {
       setSituacionTexto(contenido.situacionSignificativa);
@@ -95,10 +97,8 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
       const normalized = normalizePropositosActividades(contenido.propositos);
       setPropositos(normalized);
       setStatusPropositos("done");
-      // Actualizar store con forma normalizada para que persist/backend tengan actividades como array
-      updateContenido({ propositos: normalized });
     }
-  }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos, updateContenido]);
+  }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos]);
 
   // Secciones colapsadas
   const [expandedPropositos, setExpandedPropositos] = useState(true);
@@ -127,6 +127,56 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
                       actividades: (comp.actividades || []).map((act, actI) =>
                         actI !== actIdx ? act : newValue
                       ),
+                    }
+              ),
+            }
+      ),
+    };
+    setPropositos(updated);
+    updateContenido({ propositos: updated });
+  };
+
+  // Agregar una actividad nueva a una competencia
+  const handleAddActividad = (areaIdx: number, compIdx: number) => {
+    if (!propositos) return;
+    const updated: IPropositos = {
+      ...propositos,
+      areasPropositos: propositos.areasPropositos.map((area, aI) =>
+        aI !== areaIdx
+          ? area
+          : {
+              ...area,
+              competencias: area.competencias.map((comp, cI) =>
+                cI !== compIdx
+                  ? comp
+                  : {
+                      ...comp,
+                      actividades: [...(comp.actividades || []), ""],
+                    }
+              ),
+            }
+      ),
+    };
+    setPropositos(updated);
+    updateContenido({ propositos: updated });
+  };
+
+  // Eliminar una actividad
+  const handleRemoveActividad = (areaIdx: number, compIdx: number, actIdx: number) => {
+    if (!propositos) return;
+    const updated: IPropositos = {
+      ...propositos,
+      areasPropositos: propositos.areasPropositos.map((area, aI) =>
+        aI !== areaIdx
+          ? area
+          : {
+              ...area,
+              competencias: area.competencias.map((comp, cI) =>
+                cI !== compIdx
+                  ? comp
+                  : {
+                      ...comp,
+                      actividades: (comp.actividades || []).filter((_, i) => i !== actIdx),
                     }
               ),
             }
@@ -190,9 +240,12 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
       setEvidencias(evData);
       updateContenido({ evidencias: evData });
       setStatusEvidencias("done");
-      // Asegurar que el backend tenga situación + evidencias antes de generar propósitos
+      // Asegurar que el backend tenga situación (1) y evidencias (2) antes de generar propósitos
       await editarContenidoUnidad(unidadId, {
-        contenido: { evidencias: evData },
+        contenido: {
+          situacionSignificativa: sitTexto,
+          evidencias: evData,
+        },
       });
 
       // 3. Propósitos
@@ -244,6 +297,17 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
     setGenerandoPaso(label);
 
     try {
+      // Si vamos a regenerar propósitos, el backend exige tener (1) situación y (2) evidencias en BD.
+      // Si los tenemos en estado local, los enviamos antes para evitar "Primero debes generar..."
+      if (paso === "propositos" && situacionTexto && evidencias) {
+        await editarContenidoUnidad(unidadId, {
+          contenido: {
+            situacionSignificativa: situacionTexto,
+            evidencias,
+          },
+        });
+      }
+
       const res = await regenerarPasoUnidad(unidadId, paso);
 
       if (paso === "situacion-significativa") {
@@ -489,25 +553,42 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
                               </ul>
                             </div>
                           )}
-                          {(comp.actividades?.length ?? 0) > 0 && (
-                            <div className="mt-1">
-                              <p className="text-xs text-slate-500 font-medium">Actividades:</p>
-                              <div className="space-y-1 ml-2 mt-1">
-                                {(comp.actividades || []).map((act, i) => (
-                                  <div key={i} className="flex items-center gap-1.5">
-                                    <span className="text-xs text-slate-400 shrink-0">{i + 1}.</span>
-                                    <Input
-                                      value={act}
-                                      onChange={(e) =>
-                                        handleActividadChange(aIdx, cIdx, i, e.target.value)
-                                      }
-                                      className="h-7 text-xs border-slate-200 dark:border-slate-700 focus:border-purple-400 dark:focus:border-purple-500"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
+                          <div className="mt-1">
+                            <p className="text-xs text-slate-500 font-medium">Actividades:</p>
+                            <div className="space-y-1 ml-2 mt-1">
+                              {(comp.actividades || []).map((act, i) => (
+                                <div key={i} className="flex items-center gap-1.5 group">
+                                  <span className="text-xs text-slate-400 shrink-0 w-5">{i + 1}.</span>
+                                  <Input
+                                    value={act}
+                                    onChange={(e) =>
+                                      handleActividadChange(aIdx, cIdx, i, e.target.value)
+                                    }
+                                    placeholder="Describe la actividad..."
+                                    className="h-7 text-xs border-slate-200 dark:border-slate-700 focus:border-purple-400 dark:focus:border-purple-500 flex-1"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveActividad(aIdx, cIdx, i)}
+                                    className="p-1 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                    title="Eliminar actividad"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
                             </div>
-                          )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2 ml-2 h-7 px-2 text-xs text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30"
+                              onClick={() => handleAddActividad(aIdx, cIdx)}
+                            >
+                              <Plus className="h-3.5 w-3.5 mr-1" />
+                              Agregar actividad
+                            </Button>
+                          </div>
                           {comp.instrumento && (
                             <p className="text-xs mt-1">
                               <span className="text-slate-500 font-medium">Instrumento:</span>{" "}
