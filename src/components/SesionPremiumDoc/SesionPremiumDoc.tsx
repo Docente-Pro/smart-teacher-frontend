@@ -188,16 +188,16 @@ function PropositosAprendizajePremium({
           </td>
         </tr>
         <tr>
-          <th style={{ width: "25%", backgroundColor: hex.light }}>
+          <th style={{ width: "30%", backgroundColor: hex.light }}>
             COMPETENCIAS Y CAPACIDADES
           </th>
-          <th style={{ width: "25%", backgroundColor: hex.light }}>
+          <th style={{ width: "29%", backgroundColor: hex.light }}>
             CRITERIOS DE EVALUACIÓN
           </th>
-          <th style={{ width: "25%", backgroundColor: hex.light }}>
+          <th style={{ width: "29%", backgroundColor: hex.light }}>
             PRODUCTO O EVIDENCIA
           </th>
-          <th style={{ width: "25%", backgroundColor: hex.light }}>
+          <th style={{ width: "12%", backgroundColor: hex.light }}>
             INSTRUMENTO DE EVALUACIÓN
           </th>
         </tr>
@@ -588,19 +588,20 @@ function ProcesoPremiumRow({
         {/* Gráfico educativo (Math o Área) */}
         {proceso.grafico && (
           <div style={{
-            marginTop: "0.8rem",
-            marginBottom: "0.8rem",
-            padding: "0.8rem",
-            backgroundColor: "#fafafa",
-            borderRadius: "8px",
+            marginTop: "1rem",
+            marginBottom: "1rem",
+            padding: "1rem 1.25rem",
+            background: "linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%)",
+            borderRadius: "12px",
             border: "1px solid #e2e8f0",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
             textAlign: "center",
             overflow: "hidden",
           }}>
-            <div style={{ 
-              maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 420, 
-              width: "100%", 
-              margin: "0 auto" 
+            <div style={{
+              maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 420,
+              width: "100%",
+              margin: "0 auto",
             }}>
               <GraficoRenderer grafico={proceso.grafico as any} />
             </div>

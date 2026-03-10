@@ -28,10 +28,9 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
-  Sun,
   AlertTriangle,
 } from "lucide-react";
-import { AREA_COLORS, DEFAULT_AREA_COLOR, type AreaColorConfig } from "@/constants/areaColors";
+import { getAreaColor } from "@/constants/areaColors";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -218,8 +217,9 @@ function findAreaId(
   return partial?.areaId;
 }
 
-function getAreaTheme(area: string): AreaColorConfig {
-  return AREA_COLORS[area] || DEFAULT_AREA_COLOR;
+/** Usa getAreaColor para que coincidan variantes (con/sin tilde, "Área de X", etc.) */
+function getAreaTheme(area: string) {
+  return getAreaColor(area);
 }
 
 function formatFechaDia(fecha: string): string {
@@ -1225,7 +1225,7 @@ function BloqueCard({
   onGenerar: () => void;
   onVerSesion: (id: string, slotKey?: SlotKey) => void;
 }) {
-  const theme = getAreaTheme(bloque.area);
+  const theme = getAreaTheme(bloque.area || "");
 
   const isAvailable = state === "disponible";
   const isGenerated = state === "generada";
@@ -1249,11 +1249,11 @@ function BloqueCard({
           : ""
       } ${
         isWaiting
-          ? "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200/40 dark:border-slate-700/30 opacity-55"
+          ? `${theme.bg} opacity-70 border-slate-200/40 dark:border-slate-700/30`
           : ""
       } ${
         isBlocked
-          ? "bg-slate-50/40 dark:bg-slate-800/20 border-slate-200/30 dark:border-slate-700/20 opacity-45"
+          ? `${theme.bg} opacity-50 border-slate-200/30 dark:border-slate-700/20`
           : ""
       } ${
         isClonada
@@ -1263,8 +1263,8 @@ function BloqueCard({
     >
       {/* Bloque label */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <Sun className="h-3 w-3 text-amber-500" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        <span className={`h-3 w-3 rounded-full flex-shrink-0 ${theme.dot}`} />
+        <span className={`text-[10px] font-semibold uppercase tracking-wider ${theme.text}`}>
           {bloque.label}
         </span>
         {bloque.horaInicio && bloque.horaFin && (

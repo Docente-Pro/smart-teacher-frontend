@@ -25,10 +25,10 @@ export function PropositoAprendizajeSection({ proposito, sectionColor = "#E8F5E9
             </td>
           </tr>
           <tr>
-            <th style={{width: "25%"}}>COMPETENCIAS Y CAPACIDADES</th>
-            <th style={{width: "25%"}}>CRITERIOS DE EVALUACIÓN</th>
-            <th style={{width: "25%"}}>PRODUCTO O EVIDENCIA</th>
-            <th style={{width: "25%"}}>INSTRUMENTO DE EVALUACIÓN</th>
+            <th style={{width: "30%"}}>COMPETENCIAS Y CAPACIDADES</th>
+            <th style={{width: "29%"}}>CRITERIOS DE EVALUACIÓN</th>
+            <th style={{width: "29%"}}>PRODUCTO O EVIDENCIA</th>
+            <th style={{width: "12%"}}>INSTRUMENTO DE EVALUACIÓN</th>
           </tr>
           <tr>
             <td>
