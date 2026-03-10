@@ -45,6 +45,21 @@ interface Props {
 
 type GenerationStatus = "idle" | "generating" | "done" | "error";
 
+/** Asegura que cada competencia tenga `actividades` como array (por persistencia antigua o API). */
+function normalizePropositosActividades(p: IPropositos): IPropositos {
+  return {
+    ...p,
+    areasPropositos: (p.areasPropositos || []).map((area) => ({
+      ...area,
+      competencias: (area.competencias || []).map((comp) => ({
+        ...comp,
+        actividades: Array.isArray(comp.actividades) ? comp.actividades : [],
+      })),
+    })),
+    competenciasTransversales: p.competenciasTransversales || [],
+  };
+}
+
 function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar }: Props) {
   const { unidadId, datosBase, contenido, updateContenido, setGenerandoPaso, generandoPaso } =
     useUnidadStore();
@@ -65,7 +80,8 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
   const [evidencias, setEvidencias] = useState<IEvidencias | null>(contenido.evidencias || null);
   const [propositos, setPropositos] = useState<IPropositos | null>(contenido.propositos || null);
 
-  // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
+  // ─── Sincronizar estado local con store (rehidratación o vuelta al paso tras recarga) ───
+  // Cuando el store tiene datos y el estado local aún no, rellenamos y marcamos "done" para poder editar/regenerar.
   useEffect(() => {
     if (contenido.situacionSignificativa && !situacionTexto) {
       setSituacionTexto(contenido.situacionSignificativa);
@@ -76,10 +92,13 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
       setStatusEvidencias("done");
     }
     if (contenido.propositos && !propositos) {
-      setPropositos(contenido.propositos);
+      const normalized = normalizePropositosActividades(contenido.propositos);
+      setPropositos(normalized);
       setStatusPropositos("done");
+      // Actualizar store con forma normalizada para que persist/backend tengan actividades como array
+      updateContenido({ propositos: normalized });
     }
-  }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos]);
+  }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos, updateContenido]);
 
   // Secciones colapsadas
   const [expandedPropositos, setExpandedPropositos] = useState(true);
@@ -105,7 +124,7 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
                   ? comp
                   : {
                       ...comp,
-                      actividades: comp.actividades.map((act, actI) =>
+                      actividades: (comp.actividades || []).map((act, actI) =>
                         actI !== actIdx ? act : newValue
                       ),
                     }
@@ -470,11 +489,11 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
                               </ul>
                             </div>
                           )}
-                          {comp.actividades?.length > 0 && (
+                          {(comp.actividades?.length ?? 0) > 0 && (
                             <div className="mt-1">
                               <p className="text-xs text-slate-500 font-medium">Actividades:</p>
                               <div className="space-y-1 ml-2 mt-1">
-                                {comp.actividades.map((act, i) => (
+                                {(comp.actividades || []).map((act, i) => (
                                   <div key={i} className="flex items-center gap-1.5">
                                     <span className="text-xs text-slate-400 shrink-0">{i + 1}.</span>
                                     <Input
