@@ -1325,11 +1325,11 @@ function EditarUnidad() {
                       <th style={{ width: "24%" }}>
                         COMPETENCIAS Y CAPACIDADES
                       </th>
-                      <th style={{ width: "26%" }}>
+                      <th style={{ width: "28%" }}>
                         CRITERIOS DE EVALUACIÓN
                       </th>
-                      <th style={{ width: "22%" }}>ACTIVIDADES</th>
-                      <th style={{ width: "22%" }}>INSTRUMENTOS</th>
+                      <th style={{ width: "28%" }}>ACTIVIDADES</th>
+                      <th style={{ width: "12%" }}>INSTRUMENTOS</th>
                     </tr>
                   </thead>
                   <tbody>
