@@ -129,17 +129,27 @@ export interface IEnfoquesResponse {
 // ─── Paso 6: Secuencia de Actividades ───
 
 export interface IHoraActividad {
-  hora: number;
-  inicio: string;
-  fin: string;
+  hora?: number;
+  inicio?: string;
+  fin?: string;
+  area: string;
+  actividad: string;
+}
+
+/** Bloque mañana o tarde (contrato POST /api/ia-unidad/:id/secuencia) */
+export interface ITurnoDiaSecuencia {
   area: string;
   actividad: string;
 }
 
 export interface IDiaSecuencia {
   dia: string;
-  fecha: string;
-  horas: IHoraActividad[];
+  fecha?: string;
+  /** Formato legacy: bloques por hora pedagógica */
+  horas?: IHoraActividad[];
+  /** Formato contrato: mañana y tarde */
+  turnoManana?: ITurnoDiaSecuencia;
+  turnoTarde?: ITurnoDiaSecuencia;
 }
 
 export interface ISemanaSecuencia {
@@ -147,9 +157,19 @@ export interface ISemanaSecuencia {
   dias: IDiaSecuencia[];
 }
 
+/** Actividad que el backend excluyó para cumplir máx. 3 áreas/día */
+export interface IActividadExcluida {
+  area: string;
+  actividad: string;
+  semana: number;
+  dia: string;
+}
+
 export interface ISecuencia {
   hiloConductor: string;
   semanas: ISemanaSecuencia[];
+  /** Presente solo si Python excluyó bloques por límite de áreas/día */
+  actividadesExcluidas?: IActividadExcluida[];
 }
 
 export interface ISecuenciaRequest extends IUnidadContextoBase {

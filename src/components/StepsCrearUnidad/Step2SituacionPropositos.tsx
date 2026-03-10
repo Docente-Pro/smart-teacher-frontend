@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useUnidadStore } from "@/store/unidad.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -27,7 +29,7 @@ import {
   regenerarPasoUnidad,
   generarImagenSituacion,
 } from "@/services/ia-unidad.service";
-import { editarContenidoUnidad } from "@/services/unidad.service";
+import { patchPropositosActividades } from "@/services/unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type {
   ISituacionSignificativaResponse,
@@ -39,28 +41,11 @@ interface Props {
   pagina: number;
   setPagina: (pagina: number) => void;
   usuario: IUsuario;
-  /** Si se proporciona, se ejecuta antes de avanzar al siguiente paso para asegurar que el backend tenga situación y evidencias guardadas. */
-  flushSaveBeforeContinuar?: () => Promise<void>;
 }
 
 type GenerationStatus = "idle" | "generating" | "done" | "error";
 
-/** Asegura que cada competencia tenga `actividades` como array (por persistencia antigua o API). */
-function normalizePropositosActividades(p: IPropositos): IPropositos {
-  return {
-    ...p,
-    areasPropositos: (p.areasPropositos || []).map((area) => ({
-      ...area,
-      competencias: (area.competencias || []).map((comp) => ({
-        ...comp,
-        actividades: Array.isArray(comp.actividades) ? comp.actividades : [],
-      })),
-    })),
-    competenciasTransversales: p.competenciasTransversales || [],
-  };
-}
-
-function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar }: Props) {
+function Step2SituacionPropositos({ pagina, setPagina }: Props) {
   const { unidadId, datosBase, contenido, updateContenido, setGenerandoPaso, generandoPaso } =
     useUnidadStore();
 
@@ -80,8 +65,7 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
   const [evidencias, setEvidencias] = useState<IEvidencias | null>(contenido.evidencias || null);
   const [propositos, setPropositos] = useState<IPropositos | null>(contenido.propositos || null);
 
-  // ─── Sincronizar estado local con store (rehidratación o vuelta al paso tras recarga) ───
-  // Cuando el store tiene datos y el estado local aún no, rellenamos y marcamos "done" para poder editar/regenerar.
+  // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
   useEffect(() => {
     if (contenido.situacionSignificativa && !situacionTexto) {
       setSituacionTexto(contenido.situacionSignificativa);
@@ -92,17 +76,38 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
       setStatusEvidencias("done");
     }
     if (contenido.propositos && !propositos) {
-      const normalized = normalizePropositosActividades(contenido.propositos);
-      setPropositos(normalized);
+      setPropositos(contenido.propositos);
       setStatusPropositos("done");
-      // Actualizar store con forma normalizada para que persist/backend tengan actividades como array
-      updateContenido({ propositos: normalized });
     }
-  }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos, updateContenido]);
+  }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos]);
 
   // Secciones colapsadas
   const [expandedPropositos, setExpandedPropositos] = useState(true);
-  const [savingBeforeContinue, setSavingBeforeContinue] = useState(false);
+  const syncActividadesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (syncActividadesTimerRef.current) clearTimeout(syncActividadesTimerRef.current);
+  }, []);
+
+  // Sincroniza las actividades de una competencia con el backend (PATCH). Si no se pasa propositos, lee del store.
+  const syncActividadesToBackend = useCallback(
+    (areaIdx: number, compIdx: number, propositosSnapshot?: IPropositos | null) => {
+      if (!unidadId) return;
+      const props = propositosSnapshot ?? useUnidadStore.getState().contenido?.propositos;
+      if (!props?.areasPropositos?.[areaIdx]?.competencias?.[compIdx]) return;
+      const area = props.areasPropositos[areaIdx];
+      const comp = area.competencias[compIdx];
+      const actividades = comp.actividades ?? [];
+      patchPropositosActividades(unidadId, {
+        area: area.area,
+        competencia: comp.nombre,
+        actividades,
+      }).catch((err) => {
+        console.error("Error al sincronizar actividades:", err);
+        handleToaster("No se pudo guardar en el servidor. Revisa la conexión.", "error");
+      });
+    },
+    [unidadId]
+  );
 
   // Handler para editar una actividad in-place
   const handleActividadChange = (
@@ -124,7 +129,7 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
                   ? comp
                   : {
                       ...comp,
-                      actividades: (comp.actividades || []).map((act, actI) =>
+                      actividades: comp.actividades.map((act, actI) =>
                         actI !== actIdx ? act : newValue
                       ),
                     }
@@ -134,6 +139,67 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
     };
     setPropositos(updated);
     updateContenido({ propositos: updated });
+    if (syncActividadesTimerRef.current) clearTimeout(syncActividadesTimerRef.current);
+    syncActividadesTimerRef.current = setTimeout(() => {
+      syncActividadesToBackend(areaIdx, compIdx);
+      syncActividadesTimerRef.current = null;
+    }, 600);
+  };
+
+  // Agregar una nueva actividad a una competencia (se guarda en el store)
+  const handleAddActividad = (areaIdx: number, compIdx: number) => {
+    if (!propositos) return;
+    const area = propositos.areasPropositos[areaIdx];
+    if (!area) return;
+    const comp = area.competencias[compIdx];
+    if (!comp) return;
+    const currentActividades = comp.actividades ?? [];
+    const updated: IPropositos = {
+      ...propositos,
+      areasPropositos: propositos.areasPropositos.map((a, aI) =>
+        aI !== areaIdx
+          ? a
+          : {
+              ...a,
+              competencias: a.competencias.map((c, cI) =>
+                cI !== compIdx
+                  ? c
+                  : { ...c, actividades: [...currentActividades, ""] },
+              ),
+            }
+      ),
+    };
+    setPropositos(updated);
+    updateContenido({ propositos: updated });
+    if (syncActividadesTimerRef.current) clearTimeout(syncActividadesTimerRef.current);
+    syncActividadesToBackend(areaIdx, compIdx, updated);
+  };
+
+  // Eliminar una actividad
+  const handleRemoveActividad = (areaIdx: number, compIdx: number, actIdx: number) => {
+    if (!propositos) return;
+    const updated: IPropositos = {
+      ...propositos,
+      areasPropositos: propositos.areasPropositos.map((area, aI) =>
+        aI !== areaIdx
+          ? area
+          : {
+              ...area,
+              competencias: area.competencias.map((comp, cI) =>
+                cI !== compIdx
+                  ? comp
+                  : {
+                      ...comp,
+                      actividades: comp.actividades.filter((_, i) => i !== actIdx),
+                    }
+              ),
+            }
+      ),
+    };
+    setPropositos(updated);
+    updateContenido({ propositos: updated });
+    if (syncActividadesTimerRef.current) clearTimeout(syncActividadesTimerRef.current);
+    syncActividadesToBackend(areaIdx, compIdx, updated);
   };
 
   const isGenerating = generandoPaso !== null;
@@ -157,13 +223,6 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
         situacionBase: sitData.situacionBase,
       });
       setStatusSituacion("done");
-      // Asegurar que el backend tenga la situación antes de generar evidencias
-      await editarContenidoUnidad(unidadId, {
-        contenido: {
-          situacionSignificativa: sitTexto,
-          situacionBase: sitData.situacionBase,
-        },
-      });
 
       // 2. Evidencias + Imagen de la situación (en paralelo)
       setStatusEvidencias("generating");
@@ -185,20 +244,18 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
           // No es crítico, se continua sin imagen
         });
 
-      const resEv = await generarEvidencias(unidadId);
+      const contenidoActual = useUnidadStore.getState().contenido;
+      const resEv = await generarEvidencias(unidadId, contenidoActual as Record<string, unknown>);
       const evData = resEv.data as IEvidencias;
       setEvidencias(evData);
       updateContenido({ evidencias: evData });
       setStatusEvidencias("done");
-      // Asegurar que el backend tenga situación + evidencias antes de generar propósitos
-      await editarContenidoUnidad(unidadId, {
-        contenido: { evidencias: evData },
-      });
 
       // 3. Propósitos
       setStatusPropositos("generating");
       setGenerandoPaso("Propósitos de Aprendizaje");
-      const resProp = await generarPropositos(unidadId);
+      const contenidoParaProp = useUnidadStore.getState().contenido;
+      const resProp = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>);
       const propData = resProp.data as IPropositos;
       setPropositos(propData);
       updateContenido({ propositos: propData });
@@ -274,7 +331,7 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
   }
 
   /* ─── Continuar ─── */
-  async function handleContinuar() {
+  function handleContinuar() {
     if (!contenido.situacionSignificativa) {
       return handleToaster("Primero genera la situación significativa", "error");
     }
@@ -283,18 +340,6 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
     }
     if (!contenido.propositos) {
       return handleToaster("Primero genera los propósitos", "error");
-    }
-    if (flushSaveBeforeContinuar) {
-      setSavingBeforeContinue(true);
-      try {
-        await flushSaveBeforeContinuar();
-        setPagina(pagina + 1);
-      } catch {
-        handleToaster("Error al guardar. Intenta de nuevo.", "error");
-      } finally {
-        setSavingBeforeContinue(false);
-      }
-      return;
     }
     setPagina(pagina + 1);
   }
@@ -489,25 +534,43 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
                               </ul>
                             </div>
                           )}
-                          {(comp.actividades?.length ?? 0) > 0 && (
-                            <div className="mt-1">
-                              <p className="text-xs text-slate-500 font-medium">Actividades:</p>
-                              <div className="space-y-1 ml-2 mt-1">
-                                {(comp.actividades || []).map((act, i) => (
-                                  <div key={i} className="flex items-center gap-1.5">
-                                    <span className="text-xs text-slate-400 shrink-0">{i + 1}.</span>
-                                    <Input
-                                      value={act}
-                                      onChange={(e) =>
-                                        handleActividadChange(aIdx, cIdx, i, e.target.value)
-                                      }
-                                      className="h-7 text-xs border-slate-200 dark:border-slate-700 focus:border-purple-400 dark:focus:border-purple-500"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
+                          <div className="mt-1">
+                            <p className="text-xs text-slate-500 font-medium">Actividades:</p>
+                            <div className="space-y-1 ml-2 mt-1">
+                              {(comp.actividades ?? []).map((act, i) => (
+                                <div key={i} className="flex items-center gap-1.5">
+                                  <span className="text-xs text-slate-400 shrink-0 w-5">{i + 1}.</span>
+                                  <Input
+                                    value={act}
+                                    onChange={(e) =>
+                                      handleActividadChange(aIdx, cIdx, i, e.target.value)
+                                    }
+                                    className="h-7 text-xs border-slate-200 dark:border-slate-700 focus:border-purple-400 dark:focus:border-purple-500 flex-1"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 shrink-0 text-slate-400 hover:text-red-500"
+                                    onClick={() => handleRemoveActividad(aIdx, cIdx, i)}
+                                    title="Quitar actividad"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              ))}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 h-8 text-xs gap-1.5 border-dashed border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                                onClick={() => handleAddActividad(aIdx, cIdx)}
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Agregar actividad
+                              </Button>
                             </div>
-                          )}
+                          </div>
                           {comp.instrumento && (
                             <p className="text-xs mt-1">
                               <span className="text-slate-500 font-medium">Instrumento:</span>{" "}
@@ -556,21 +619,12 @@ function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar 
             Anterior
           </Button>
           <Button
-            onClick={() => void handleContinuar()}
-            disabled={!allDone || savingBeforeContinue}
+            onClick={handleContinuar}
+            disabled={!allDone}
             className="h-14 px-10 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {savingBeforeContinue ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Guardando...
-              </>
-            ) : (
-              <>
-                Continuar
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </>
-            )}
+            Continuar
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </div>

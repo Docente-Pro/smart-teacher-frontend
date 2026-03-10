@@ -23,7 +23,9 @@ export interface ICompetenciaSugerida {
   capacidadesSugeridas: ICapacidadSugerida[];
   justificacionGeneral: string;
   recomendacionesDidacticas: string[];
-  situacionTexto?: string; // 🆕 Texto de la situación significativa
+  situacionTexto?: string;
+  /** Objeto tema curricular; guardar en sesión y enviar en todos los pasos IA */
+  temaCurricular?: Record<string, unknown>;
 }
 
 /**

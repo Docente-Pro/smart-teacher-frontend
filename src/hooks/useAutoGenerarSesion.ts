@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { instance } from "@/services/instance";
-import { generarImagenesSesion } from "@/services/ia-sesion.service";
+import { generarImagenesSesion, getTemaCurricularPayload } from "@/services/ia-sesion.service";
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 
@@ -61,11 +61,12 @@ export function useAutoGenerarSesion() {
       const cantidadCapacidades = sesion.propositoAprendizaje.capacidades.length || 2;
 
       const criteriosRes = await instance.post("/ia/generar-criterios-evaluacion", {
+        temaCurricular: getTemaCurricularPayload(sesion),
+        area: sesion.datosGenerales.area,
         competencia: sesion.propositoAprendizaje.competencia,
         capacidades: sesion.propositoAprendizaje.capacidades,
         cantidadCriterios: cantidadCapacidades,
         grado: sesion.datosGenerales.grado || "5to",
-        area: sesion.datosGenerales.area,
         temaId: sesion.temaId,
         situacionTexto: sesion.situacionTexto,
       });
@@ -86,6 +87,7 @@ export function useAutoGenerarSesion() {
       setState((s) => ({ ...s, phase: "proposito" }));
 
       const propositoRes = await instance.post("/ia/generar-proposito-sesion", {
+        temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,
@@ -108,6 +110,7 @@ export function useAutoGenerarSesion() {
       setState((s) => ({ ...s, phase: "enfoques" }));
 
       const enfoquesRes = await instance.post("/ia/sugerir-enfoques-transversales", {
+        temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,
@@ -132,6 +135,8 @@ export function useAutoGenerarSesion() {
       const sesionActualizada = useSesionStore.getState().sesion;
 
       const secuenciaRes = await instance.post("/ia/generar-secuencia-didactica", {
+        temaCurricular: getTemaCurricularPayload(sesionActualizada ?? sesion),
+        area: sesionActualizada?.datosGenerales?.area ?? sesion.datosGenerales.area,
         temaId: sesionActualizada?.temaId ?? sesion.temaId,
         datosGenerales: sesionActualizada?.datosGenerales ?? sesion.datosGenerales,
         propositoAprendizaje: sesionActualizada?.propositoAprendizaje ?? sesion.propositoAprendizaje,

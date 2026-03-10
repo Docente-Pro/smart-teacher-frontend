@@ -197,14 +197,14 @@ function Step2({ pagina, setPagina }: Props) {
   // Aplicar automáticamente la sugerencia de la IA
   useEffect(() => {
     if (sugerencia) {
-      // Aplicar siempre que llegue una nueva sugerencia
       console.log('🤖 Aplicando sugerencia automática:', sugerencia.competenciaNombre);
       setCompetenciaSeleccionada(sugerencia.competenciaNombre);
 
-      // 🆕 Guardar situacionTexto en el store para endpoints posteriores
-      if (sugerencia.situacionTexto) {
-        updateSesion({ situacionTexto: sugerencia.situacionTexto });
-      }
+      // Guardar temaCurricular y situacionTexto para propagar a todos los pasos IA
+      updateSesion({
+        ...(sugerencia.situacionTexto && { situacionTexto: sugerencia.situacionTexto }),
+        ...(sugerencia.temaCurricular && { temaCurricularObjeto: sugerencia.temaCurricular }),
+      });
     }
   }, [sugerencia, sesion?.temaId]);
 
