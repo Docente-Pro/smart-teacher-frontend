@@ -324,13 +324,15 @@ function createCaptureOverlay(element: HTMLElement): () => void {
 }
 
 /**
- * Configuración base para html2pdf.js
+ * Configuración base para html2pdf.js.
+ * Best practice: use pagebreak.avoid so elements are not split across pages,
+ * reducing white gaps. Tighter margins and avoid list improve fit.
  */
 function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
   const {
     size = "a4",
     orientation = "portrait",
-    margin = [10, 8, 10, 8], // top, left, bottom, right en mm
+    margin = [8, 6, 8, 6], // top, left, bottom, right en mm — tighter to fit more per page
     filename = "documento.pdf",
     imageQuality = 0.98,
   } = options;
@@ -350,7 +352,13 @@ function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
       format: size,
       orientation,
     },
-    pagebreak: { mode: ["css", "legacy"] as const },
+    // Reduce white gaps: avoid splitting inside these; whole block moves to next page
+    pagebreak: {
+      mode: ["css", "legacy"] as const,
+      before: [],
+      after: [],
+      avoid: ["tr", "table", "img", ".no-break", ".keep-together", "svg", ".grafico-educativo"],
+    },
   };
 }
 
