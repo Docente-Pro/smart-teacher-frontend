@@ -199,21 +199,22 @@ export function UnidadDocStyles() {
             display: none;
           }
 
-          /* ─── Impresión ─── */
+          /* ─── Impresión (evitar huecos entre páginas) ─── */
           @media print {
             body {
               margin: 0;
               padding: 0;
             }
-
+            table, tr, img, .grafico-educativo, svg {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
             .page-break {
               page-break-after: always;
             }
-
             .no-print {
               display: none;
             }
-
             .no-break {
               page-break-inside: avoid;
             }

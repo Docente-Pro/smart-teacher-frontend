@@ -192,17 +192,20 @@ export function DocumentStyles({ thBgColor = "#E8F5E9" }: DocumentStylesProps = 
             page-break-inside: avoid;
           }
           
-          /* Márgenes de impresión */
+          /* Márgenes de impresión y evitar huecos entre páginas */
           @media print {
             body {
               margin: 0;
               padding: 0;
             }
-            
+            /* Evitar cortar tablas/filas/imágenes entre páginas → menos huecos blancos */
+            table, tr, img, .grafico-educativo, svg {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
             .page-break {
               page-break-after: always;
             }
-            
             .no-print {
               display: none;
             }
