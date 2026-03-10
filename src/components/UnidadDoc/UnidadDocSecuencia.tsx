@@ -46,7 +46,7 @@ export function UnidadDocSecuencia({ secuencia }: Props) {
                   </td>
                   {semana.dias.map((dia, i) => {
                     const dayLabel = dia.dia?.toUpperCase() || "";
-                    const dayNum = extractDayNumber(dia.fecha);
+                    const dayNum = extractDayNumber(dia.fecha ?? "");
                     return (
                       <td
                         key={i}
