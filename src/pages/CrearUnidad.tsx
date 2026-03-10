@@ -25,10 +25,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { X, RotateCcw } from "lucide-react";
+import { X, RotateCcw, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { TipoUnidad } from "@/interfaces/IUnidad";
 import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
+import { useAutoSaveContenido } from "@/hooks/useAutoSaveContenido";
 
 const STEPS = [
   { number: 1, title: "Datos Generales", description: "Configuración" },
@@ -69,6 +70,9 @@ function CrearUnidad() {
 
   // Scroll al tope cada vez que cambia el paso
   useScrollTopOnStep(currentStep);
+
+  const { status: contenidoSaveStatus, saveNow: flushSaveContenido } =
+    useAutoSaveContenido(unidadId ?? null);
 
   const [usuarioData, setUsuarioData] = useState<IUsuario | null>(null);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
@@ -229,6 +233,28 @@ function CrearUnidad() {
                 <span className="hidden xs:inline">Cerrar</span>
               </button>
 
+              {unidadId && (
+                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                  {contenidoSaveStatus === "saving" && (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Guardando...
+                    </>
+                  )}
+                  {contenidoSaveStatus === "saved" && (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                      Guardado
+                    </>
+                  )}
+                  {contenidoSaveStatus === "error" && (
+                    <>
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                      Error al guardar
+                    </>
+                  )}
+                </span>
+              )}
               <button
                 onClick={() => setShowResetConfirm(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-base font-semibold text-white bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/30 transition-all active:scale-95"
@@ -285,6 +311,7 @@ function CrearUnidad() {
                 pagina={currentStep}
                 setPagina={handleSetStep}
                 usuario={usuarioData}
+                flushSaveBeforeContinuar={flushSaveContenido}
               />
             )}
 
