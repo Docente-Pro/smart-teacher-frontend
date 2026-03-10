@@ -8,7 +8,7 @@ import { ArrowRight, ArrowLeft, Sparkles, PlayCircle, Circle, CheckCircle, Plus,
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { instance } from "@/services/instance";
-import { generarImagenesSesion } from "@/services/ia-sesion.service";
+import { generarImagenesSesion, getTemaCurricularPayload } from "@/services/ia-sesion.service";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 
 interface Props {
@@ -299,6 +299,8 @@ function Step8({ pagina, setPagina }: Props) {
       // FASE 1: Generar texto de la sesión (rápido, ~20-30s)
       // ═══════════════════════════════════════════════════════════════
       const response = await instance.post("/ia/generar-secuencia-didactica", {
+        temaCurricular: getTemaCurricularPayload(sesion),
+        area: sesion.datosGenerales.area,
         temaId: sesion.temaId,
         datosGenerales: sesion.datosGenerales,
         propositoAprendizaje: sesion.propositoAprendizaje,

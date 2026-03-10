@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { X, RotateCcw, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, RotateCcw, Loader2, Check, AlertCircle } from "lucide-react";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { TipoUnidad } from "@/interfaces/IUnidad";
 import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
@@ -68,11 +68,10 @@ function CrearUnidad() {
     softResetUnidad,
   } = useUnidadStore();
 
+  const contenidoSaveStatus = useAutoSaveContenido(unidadId ?? null);
+
   // Scroll al tope cada vez que cambia el paso
   useScrollTopOnStep(currentStep);
-
-  const { status: contenidoSaveStatus, saveNow: flushSaveContenido } =
-    useAutoSaveContenido(unidadId ?? null);
 
   const [usuarioData, setUsuarioData] = useState<IUsuario | null>(null);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
@@ -225,36 +224,38 @@ function CrearUnidad() {
           {/* ── Barra de acciones del wizard ── */}
           <div className="w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 sticky top-[88px] sm:top-[108px] z-30">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-800 transition-all"
-              >
-                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Cerrar</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-800 transition-all"
+                >
+                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Cerrar</span>
+                </button>
+                {unidadId && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    {contenidoSaveStatus === "saving" && (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Guardando...
+                      </>
+                    )}
+                    {contenidoSaveStatus === "saved" && (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-green-600" />
+                        Guardado
+                      </>
+                    )}
+                    {contenidoSaveStatus === "error" && (
+                      <>
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                        Error al guardar
+                      </>
+                    )}
+                  </span>
+                )}
+              </div>
 
-              {unidadId && (
-                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                  {contenidoSaveStatus === "saving" && (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Guardando...
-                    </>
-                  )}
-                  {contenidoSaveStatus === "saved" && (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                      Guardado
-                    </>
-                  )}
-                  {contenidoSaveStatus === "error" && (
-                    <>
-                      <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-                      Error al guardar
-                    </>
-                  )}
-                </span>
-              )}
               <button
                 onClick={() => setShowResetConfirm(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-base font-semibold text-white bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/30 transition-all active:scale-95"
@@ -311,7 +312,6 @@ function CrearUnidad() {
                 pagina={currentStep}
                 setPagina={handleSetStep}
                 usuario={usuarioData}
-                flushSaveBeforeContinuar={flushSaveContenido}
               />
             )}
 

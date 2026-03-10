@@ -43,36 +43,60 @@ export async function generarSituacionSignificativa(
   return data;
 }
 
+/** Opcional: si viene, el backend guarda primero en BD y luego genera (evita race con auto-save). */
+export type ContenidoEditadoBody = Record<string, unknown>;
+
 /** Paso 2 — Evidencias de Aprendizaje (requiere paso 1) */
 export async function generarEvidencias(
-  unidadId: string
+  unidadId: string,
+  contenidoEditado?: ContenidoEditadoBody
 ): Promise<IPasoUnidadResponse<IEvidenciasResponse>> {
-  const { data } = await instance.post(`${BASE}/${unidadId}/evidencias`);
+  const body = contenidoEditado && Object.keys(contenidoEditado).length > 0 ? { contenidoEditado } : undefined;
+  const { data } = await instance.post(`${BASE}/${unidadId}/evidencias`, body);
   return data;
 }
 
 /** Paso 3 — Propósitos de Aprendizaje (requiere pasos 1, 2) */
 export async function generarPropositos(
-  unidadId: string
+  unidadId: string,
+  contenidoEditado?: ContenidoEditadoBody
 ): Promise<IPasoUnidadResponse<IPropositosResponse>> {
-  const { data } = await instance.post(`${BASE}/${unidadId}/propositos`);
+  const body = contenidoEditado && Object.keys(contenidoEditado).length > 0 ? { contenidoEditado } : undefined;
+  const { data } = await instance.post(`${BASE}/${unidadId}/propositos`, body);
   return data;
 }
 
 /** Paso 4 — Áreas Complementarias (requiere pasos 1, 3) */
 export async function generarAreasComplementarias(
-  unidadId: string
+  unidadId: string,
+  contenidoEditado?: ContenidoEditadoBody
 ): Promise<IPasoUnidadResponse<IAreasComplementariasResponse>> {
-  const { data } = await instance.post(`${BASE}/${unidadId}/areas-complementarias`);
+  const body = contenidoEditado && Object.keys(contenidoEditado).length > 0 ? { contenidoEditado } : undefined;
+  const { data } = await instance.post(`${BASE}/${unidadId}/areas-complementarias`, body);
   return data;
 }
 
 /** Paso 5 — Enfoques Transversales (requiere paso 1) */
 export async function generarEnfoques(
-  unidadId: string
+  unidadId: string,
+  contenidoEditado?: ContenidoEditadoBody
 ): Promise<IPasoUnidadResponse<IEnfoquesResponse>> {
-  const { data } = await instance.post(`${BASE}/${unidadId}/enfoques`);
+  const body = contenidoEditado && Object.keys(contenidoEditado).length > 0 ? { contenidoEditado } : undefined;
+  const { data } = await instance.post(`${BASE}/${unidadId}/enfoques`, body);
   return data;
+}
+
+/** Mapea HorarioEscolar (dias[].horas[]) al formato del contrato: dias[].turnoManana/turnoTarde */
+function horarioToSecuenciaBody(horario: HorarioEscolar): { horario: { dias: Array<{ dia: string; turnoManana: { area: string }; turnoTarde: { area: string } }> } } {
+  return {
+    horario: {
+      dias: horario.dias.map((d) => ({
+        dia: d.dia,
+        turnoManana: { area: d.horas[0]?.area ?? "" },
+        turnoTarde: { area: d.horas[1]?.area ?? "" },
+      })),
+    },
+  };
 }
 
 /** Paso 6 — Secuencia de Actividades (requiere pasos 1, 2, 3, 5)
@@ -81,26 +105,33 @@ export async function generarEnfoques(
  */
 export async function generarSecuencia(
   unidadId: string,
-  horario?: HorarioEscolar | null
+  horario?: HorarioEscolar | null,
+  contenidoEditado?: ContenidoEditadoBody
 ): Promise<IPasoUnidadResponse<ISecuenciaResponse>> {
-  const body = horario?.dias?.length ? { horario } : undefined;
-  const { data } = await instance.post(`${BASE}/${unidadId}/secuencia`, body);
+  const body: Record<string, unknown> = {};
+  if (horario?.dias?.length) Object.assign(body, horarioToSecuenciaBody(horario));
+  if (contenidoEditado && Object.keys(contenidoEditado).length > 0) body.contenidoEditado = contenidoEditado;
+  const { data } = await instance.post(`${BASE}/${unidadId}/secuencia`, Object.keys(body).length ? body : undefined);
   return data;
 }
 
 /** Paso 7 — Materiales y Recursos (requiere pasos 1, 6) */
 export async function generarMateriales(
-  unidadId: string
+  unidadId: string,
+  contenidoEditado?: ContenidoEditadoBody
 ): Promise<IPasoUnidadResponse<IMaterialesResponse>> {
-  const { data } = await instance.post(`${BASE}/${unidadId}/materiales`);
+  const body = contenidoEditado && Object.keys(contenidoEditado).length > 0 ? { contenidoEditado } : undefined;
+  const { data } = await instance.post(`${BASE}/${unidadId}/materiales`, body);
   return data;
 }
 
 /** Paso 8 — Reflexiones sobre el Aprendizaje (sin dependencias) */
 export async function generarReflexiones(
-  unidadId: string
+  unidadId: string,
+  contenidoEditado?: ContenidoEditadoBody
 ): Promise<IPasoUnidadResponse<IReflexionesResponse>> {
-  const { data } = await instance.post(`${BASE}/${unidadId}/reflexiones`);
+  const body = contenidoEditado && Object.keys(contenidoEditado).length > 0 ? { contenidoEditado } : undefined;
+  const { data } = await instance.post(`${BASE}/${unidadId}/reflexiones`, body);
   return data;
 }
 

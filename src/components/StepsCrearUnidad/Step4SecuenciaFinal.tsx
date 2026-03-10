@@ -1,7 +1,9 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { MarkdownTextarea } from "@/components/ui/markdown-textarea";
 import { parseMarkdown } from "@/utils/parseMarkdown";
 import {
@@ -21,6 +23,8 @@ import {
   Clock,
   Users,
   BookOpen,
+  AlertTriangle,
+  Edit3,
   GripVertical,
 } from "lucide-react";
 import { useUnidadStore } from "@/store/unidad.store";
@@ -44,8 +48,45 @@ import type {
   IMaterialesResponse,
   IReflexionPregunta,
   IReflexionesResponse,
+  IActividadExcluida,
+  IDiaSecuencia,
+  ITurnoDiaSecuencia,
   IHoraActividad,
 } from "@/interfaces/IUnidadIA";
+
+/** Bloque de horas consecutivas con la misma área (se muestran en un solo recuadro) */
+interface IBloqueHora {
+  area: string;
+  actividad: string;
+  hours: IHoraActividad[];
+  startIndex: number;
+}
+
+/** Agrupa horas consecutivas con la misma área en un solo bloque (un recuadro por bloque). */
+function groupConsecutiveByArea(horas: IHoraActividad[]): IBloqueHora[] {
+  if (!horas.length) return [];
+  const blocks: IBloqueHora[] = [];
+  let start = 0;
+  let currentArea = horas[0].area ?? "";
+  for (let i = 1; i <= horas.length; i++) {
+    const h = horas[i];
+    const area = h?.area ?? "";
+    if (i === horas.length || area !== currentArea) {
+      const slice = horas.slice(start, i);
+      blocks.push({
+        area: currentArea,
+        actividad: slice[0]?.actividad ?? "",
+        hours: slice,
+        startIndex: start,
+      });
+      if (i < horas.length) {
+        start = i;
+        currentArea = area;
+      }
+    }
+  }
+  return blocks;
+}
 
 interface Props {
   pagina: number;
@@ -63,6 +104,41 @@ const SEMANA_COLORS = [
   "from-indigo-500 to-violet-500",
   "from-rose-500 to-red-500",
 ];
+
+/** Textarea que crece en altura con el contenido para mostrar todo el texto sin scroll */
+function AutoResizeTextarea({
+  value,
+  onChange,
+  className,
+  placeholder,
+  onClick,
+  ...props
+}: React.ComponentProps<typeof Textarea>) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const resize = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(60, el.scrollHeight)}px`;
+  }, []);
+  useEffect(resize, [value]);
+  return (
+    <Textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => {
+        onChange?.(e);
+        resize();
+      }}
+      className={className}
+      placeholder={placeholder}
+      onClick={onClick}
+      rows={2}
+      style={{ overflow: "hidden", resize: "none" }}
+      {...props}
+    />
+  );
+}
 
 function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const navigate = useNavigate();
@@ -132,30 +208,37 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     if (!unidadId) return handleToaster("Error: unidad no creada", "error");
 
     try {
-      // 6. Secuencia (con horario opcional)
+      // 6. Secuencia (con horario opcional y contenidoEditado por si el docente editó pasos previos)
       setStatusSecuencia("generating");
       setGenerandoPaso("Secuencia de Actividades");
-      const resSec = await generarSecuencia(unidadId, horario);
-      const secData = resSec.data as ISecuenciaResponse;
+      const contenidoParaSec = useUnidadStore.getState().contenido;
+      const resSec = await generarSecuencia(unidadId, horario, contenidoParaSec as Record<string, unknown>);
+      const secData: ISecuencia = {
+        hiloConductor: (resSec.data as any).hiloConductor ?? "",
+        semanas: (resSec.data as any).semanas ?? [],
+        actividadesExcluidas: (resSec.data as any).actividadesExcluidas,
+      };
       setSecuencia(secData);
       updateContenido({ secuencia: secData });
       setStatusSecuencia("done");
       // Expandir primera semana
       setExpandedWeeks({ 0: true });
 
-      // 7. Materiales
+      // 7. Materiales (contenidoEditado por si el docente editó)
       setStatusMateriales("generating");
       setGenerandoPaso("Materiales y Recursos");
-      const resMat = await generarMateriales(unidadId);
+      const contenidoParaMat = useUnidadStore.getState().contenido;
+      const resMat = await generarMateriales(unidadId, contenidoParaMat as Record<string, unknown>);
       const matData = (resMat.data as IMaterialesResponse).materiales;
       setMateriales(matData);
       updateContenido({ materiales: matData });
       setStatusMateriales("done");
 
-      // 8. Reflexiones
+      // 8. Reflexiones (contenidoEditado por si el docente editó)
       setStatusReflexiones("generating");
       setGenerandoPaso("Reflexiones");
-      const resRef = await generarReflexiones(unidadId);
+      const contenidoParaRef = useUnidadStore.getState().contenido;
+      const resRef = await generarReflexiones(unidadId, contenidoParaRef as Record<string, unknown>);
       const refData = (resRef.data as IReflexionesResponse).reflexiones;
       setReflexiones(refData);
       updateContenido({ reflexiones: refData });
@@ -264,6 +347,40 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     setExpandedWeeks((prev) => ({ ...prev, [idx]: !prev[idx] }));
   }
 
+  const tieneExcluidas = (secuencia?.actividadesExcluidas?.length ?? 0) > 0;
+
+  /** Actualiza la secuencia al editar un turno o una hora y persiste en el store.
+   * Usa actualizador funcional para que al arrastrar entre días (dos actualizaciones seguidas)
+   * la segunda vea el estado ya actualizado por la primera. */
+  function actualizarDiaSecuencia(
+    semanaIdx: number,
+    diaIdx: number,
+    update: Partial<{
+      turnoManana: ITurnoDiaSecuencia;
+      turnoTarde: ITurnoDiaSecuencia;
+      horas: IDiaSecuencia["horas"];
+    }>
+  ) {
+    setSecuencia((prev) => {
+      if (!prev) return prev;
+      const updated: ISecuencia = {
+        ...prev,
+        semanas: prev.semanas.map((sem, sI) =>
+          sI !== semanaIdx
+            ? sem
+            : {
+                ...sem,
+                dias: sem.dias.map((d, dI) =>
+                  dI !== diaIdx ? d : { ...d, ...update }
+                ),
+              }
+        ),
+      };
+      updateContenido({ secuencia: updated });
+      return updated;
+    });
+  }
+
   /* ─── Recalcular distribución de áreas ─── */
   async function recalcularDistribucion() {
     if (!unidadId || !secuencia) return;
@@ -286,29 +403,6 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     }
   }
 
-  /* ─── Reordenar horas de un día (drag & drop) ─── */
-  const handleReorderHoras = useCallback(
-    (sIdx: number, dIdx: number, newHoras: IHoraActividad[]) => {
-      if (!secuencia?.semanas) return;
-      const updated: ISecuencia = {
-        ...secuencia,
-        semanas: secuencia.semanas.map((sem, si) =>
-          si !== sIdx
-            ? sem
-            : {
-                ...sem,
-                dias: (sem.dias || []).map((d, di) =>
-                  di !== dIdx ? d : { ...d, horas: newHoras }
-                ),
-              }
-        ),
-      };
-      setSecuencia(updated);
-      updateContenido({ secuencia: updated });
-    },
-    [secuencia, updateContenido]
-  );
-
   /* ─── Finalizar → ir a la vista previa del PDF ─── */
   function handleFinalizar() {
     // Marcar la unidad como completada para que no aparezca el diálogo de recuperación
@@ -325,7 +419,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-[90rem] mx-auto w-full px-1">
         {/* ── Header ── */}
         <div className="text-center mb-6 sm:mb-10">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg mb-6 shadow-lg">
@@ -408,23 +502,47 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
         >
           {statusSecuencia === "done" && secuencia && (
             <div className="space-y-4">
-              {/* Hilo conductor */}
+              {/* Hilo conductor — altura limitada con scroll para ver todo el texto */}
               <div className="bg-indigo-50 dark:bg-indigo-950/30 rounded-lg p-4 border border-indigo-100 dark:border-indigo-900">
-                <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1">
+                <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-2">
                   Hilo Conductor
                 </p>
-                <MarkdownTextarea
-                  value={secuencia.hiloConductor}
-                  onChange={(v) => {
-                    const updated = { ...secuencia, hiloConductor: v };
-                    setSecuencia(updated);
-                    updateContenido({ secuencia: updated });
-                  }}
-                  rows={5}
-                  className="border-indigo-200 dark:border-indigo-800"
-                  viewClassName="border-indigo-200 dark:border-indigo-800 min-h-[120px]"
-                />
+                <div className="max-h-[260px] overflow-y-auto pr-1 -mr-1">
+                  <MarkdownTextarea
+                    value={secuencia.hiloConductor}
+                    onChange={(v) => {
+                      const updated = { ...secuencia, hiloConductor: v };
+                      setSecuencia(updated);
+                      updateContenido({ secuencia: updated });
+                    }}
+                    rows={6}
+                    className="border-indigo-200 dark:border-indigo-800"
+                    viewClassName="border-indigo-200 dark:border-indigo-800 min-h-[100px]"
+                  />
+                </div>
               </div>
+
+              {/* Aviso actividades excluidas */}
+              {tieneExcluidas && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 p-4 flex gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                      Se excluyeron {secuencia.actividadesExcluidas!.length} actividades para mantener máximo 3 áreas por día:
+                    </p>
+                    <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1 list-disc list-inside">
+                      {(secuencia.actividadesExcluidas as IActividadExcluida[]).map((a, i) => (
+                        <li key={i}>
+                          <strong>{a.area}</strong>: &quot;{a.actividad}&quot; (Semana {a.semana}, {a.dia})
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                      Puedes editar la secuencia abajo para incluir estas actividades en el día que prefieras.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Semanas */}
               {secuencia.semanas?.map((semana, sIdx) => (
@@ -453,57 +571,149 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                     )}
                   </button>
 
-                  {/* Días */}
+                  {/* Días — altura igual para las 5: la columna con más contenido rige el alto de la fila */}
                   {expandedWeeks[sIdx] && (
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <div className="p-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 items-stretch">
                       {semana.dias?.map((dia, dIdx) => (
                         <div
                           key={dIdx}
-                          className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                          className="h-full min-h-0 rounded-xl border border-slate-200/70 dark:border-slate-700/50 overflow-hidden shadow-sm transition-all duration-200 flex flex-col bg-white dark:bg-slate-900/30"
                         >
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="font-bold text-base text-slate-900 dark:text-white">
+                          {/* Cabecera del día (como en premium) */}
+                          <div className="px-3 py-2.5 text-center border-b bg-gradient-to-b from-slate-50 to-white dark:from-slate-800/80 dark:to-slate-800/40 border-slate-200/50 dark:border-slate-700/40">
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                               {dia.dia}
-                            </span>
-                            <span className="text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                              {dia.fecha}
-                            </span>
+                            </p>
+                            <div className="flex items-center justify-center gap-1.5 mt-1 flex-wrap">
+                              {dia.fecha && (
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                                  {dia.fecha}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-violet-600 dark:text-violet-400 flex items-center gap-0.5">
+                                <Edit3 className="h-2.5 w-2.5" /> Arrastra para reordenar
+                              </span>
+                            </div>
                           </div>
 
-                          {/* Grid de horas pedagógicas (reordenable por arrastre) */}
-                          <SortableSlotsList<IHoraActividad>
-                            listKey={`s${sIdx}-d${dIdx}`}
-                            items={dia.horas || []}
-                            onReorder={(newHoras) => handleReorderHoras(sIdx, dIdx, newHoras)}
-                            className="space-y-2"
-                          >
-                            {(h, hIdx) => (
-                              <div className="flex items-start gap-2.5 rounded-lg p-3 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50">
-                                <div
-                                  className="secuencia-drag-handle flex flex-col items-center shrink-0 w-10 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                  title="Arrastrar para reordenar"
+                          {/* Bloques del día — flex-1 para ocupar el resto y alinear altura con la columna más alta */}
+                          <div className="p-2.5 space-y-2 flex flex-col flex-1 min-h-0">
+                            {(dia.turnoManana || dia.turnoTarde) ? (
+                              <SortableSlotsList<ITurnoDiaSecuencia>
+                                listKey={`s${sIdx}-d${dIdx}-turno`}
+                                items={[dia.turnoManana, dia.turnoTarde].filter(Boolean) as ITurnoDiaSecuencia[]}
+                                onReorder={(ordered) => {
+                                  const [manana, tarde] = ordered;
+                                  actualizarDiaSecuencia(sIdx, dIdx, {
+                                    turnoManana: manana ?? dia.turnoManana,
+                                    turnoTarde: tarde ?? dia.turnoTarde,
+                                  });
+                                }}
+                                className="space-y-2"
+                              >
+                                {(turno, idx) => {
+                                  const label = idx === 0 ? "Mañana" : "Tarde";
+                                  const theme = getAreaColor(turno.area);
+                                  const AreaIcon = getAreaIcon(turno.area);
+                                  return (
+                                    <div className={`flex items-start gap-2 rounded-lg border p-2.5 transition-all duration-300 flex-col flex-1 ${theme.bg} ${theme.border} shadow-sm ring-1 ring-violet-300/20 dark:ring-violet-500/10`}>
+                                      <div className="flex items-start gap-2 w-full">
+                                        <span className="secuencia-drag-handle cursor-grab active:cursor-grabbing touch-none p-0.5 -m-0.5 rounded shrink-0">
+                                          <GripVertical className="h-4 w-4 text-slate-400 mt-0.5" />
+                                        </span>
+                                        <div className="p-1.5 rounded-md bg-white/60 dark:bg-slate-800/50">
+                                          <AreaIcon className={`h-4 w-4 ${theme.text}`} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">{label}</p>
+                                          <p className={`text-xs font-semibold ${theme.text}`}>{turno.area}</p>
+                                        </div>
+                                      </div>
+                                      <AutoResizeTextarea
+                                        value={turno.actividad}
+                                        onChange={(e) => {
+                                          const updated = { ...turno, actividad: e.target.value };
+                                          if (idx === 0) actualizarDiaSecuencia(sIdx, dIdx, { turnoManana: updated });
+                                          else actualizarDiaSecuencia(sIdx, dIdx, { turnoTarde: updated });
+                                        }}
+                                        className="text-sm border-slate-200 dark:border-slate-600 bg-white/80 dark:bg-slate-800/50 mt-3 min-h-[3.5rem]"
+                                        placeholder="Actividad"
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
+                                  );
+                                }}
+                              </SortableSlotsList>
+                            ) : (() => {
+                              const horas = dia.horas ?? [];
+                              const blocks = groupConsecutiveByArea(horas);
+                              return (
+                                <SortableSlotsList<IBloqueHora>
+                                  listKey={`s${sIdx}-d${dIdx}-horas`}
+                                  items={blocks}
+                                  onReorder={(orderedBlocks) => {
+                                    const newHoras = orderedBlocks.flatMap((b) => b.hours);
+                                    actualizarDiaSecuencia(sIdx, dIdx, { horas: newHoras });
+                                  }}
+                                  className="space-y-2"
                                 >
-                                  <GripVertical className="h-4 w-4 mt-0.5" />
-                                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                    H{h.hora ?? hIdx + 1}
-                                  </span>
-                                  {h.inicio && h.fin && (
-                                    <span className="text-[9px] text-slate-400">
-                                      {h.inicio}–{h.fin}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-0.5">
-                                    {h.area}
-                                  </p>
-                                  <p className="text-sm text-slate-700 dark:text-slate-300">
-                                    {h.actividad ? parseMarkdown(h.actividad) : null}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </SortableSlotsList>
+                                  {(bloque, blockIdx) => {
+                                    const theme = getAreaColor(bloque.area);
+                                    const AreaIcon = getAreaIcon(bloque.area);
+                                    const first = bloque.hours[0];
+                                    const last = bloque.hours[bloque.hours.length - 1];
+                                    const label =
+                                      bloque.hours.length === 1
+                                        ? `H${first?.hora ?? bloque.startIndex + 1}`
+                                        : `H${first?.hora ?? bloque.startIndex + 1}–H${last?.hora ?? bloque.startIndex + bloque.hours.length}`;
+                                    const timeRange =
+                                      first?.inicio && last?.fin ? `${first.inicio}–${last.fin}` : null;
+                                    return (
+                                      <div className={`flex items-start gap-2.5 rounded-lg border p-2.5 transition-all duration-300 flex-col flex-1 ${theme.bg} ${theme.border} shadow-sm ring-1 ring-violet-300/20 dark:ring-violet-500/10`}>
+                                        <div className="flex items-start gap-2 w-full">
+                                          <span className="secuencia-drag-handle cursor-grab active:cursor-grabbing touch-none p-0.5 -m-0.5 rounded shrink-0">
+                                            <GripVertical className="h-4 w-4 text-slate-400 mt-0.5" />
+                                          </span>
+                                          <div className="flex flex-col items-center shrink-0 w-11">
+                                            <Clock className="h-3.5 w-3.5 text-slate-400 mb-0.5" />
+                                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                              {label}
+                                            </span>
+                                            {timeRange && (
+                                              <span className="text-[9px] text-slate-400">{timeRange}</span>
+                                            )}
+                                          </div>
+                                          <div className="p-1.5 rounded-md bg-white/60 dark:bg-slate-800/50 shrink-0">
+                                            <AreaIcon className={`h-4 w-4 ${theme.text}`} />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className={`text-xs font-semibold ${theme.text}`}>{bloque.area}</p>
+                                          </div>
+                                        </div>
+                                        <AutoResizeTextarea
+                                          value={bloque.actividad}
+                                          onChange={(e) => {
+                                            const newActividad = e.target.value;
+                                            const nuevasHoras = [...horas];
+                                            for (let i = 0; i < bloque.hours.length; i++) {
+                                              const idx = bloque.startIndex + i;
+                                              if (idx < nuevasHoras.length) {
+                                                nuevasHoras[idx] = { ...nuevasHoras[idx], actividad: newActividad };
+                                              }
+                                            }
+                                            actualizarDiaSecuencia(sIdx, dIdx, { horas: nuevasHoras });
+                                          }}
+                                          className="text-sm border-slate-200 dark:border-slate-600 bg-white/80 dark:bg-slate-800/50 w-full mt-3 min-h-[3.5rem]"
+                                          placeholder="Actividad"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                      </div>
+                                    );
+                                  }}
+                                </SortableSlotsList>
+                              );
+                            })()}
+                          </div>
                         </div>
                       ))}
                     </div>

@@ -183,9 +183,11 @@ export interface IImagenDisponible {
 export interface ISesionAprendizaje {
   datosGenerales: IDatosGenerales;
   titulo: string;
-  temaCurricular?: string; // 🆕 Tema seleccionado o personalizado del currículo
-  temaId?: number; // 🆕 ID del tema del currículo (null si es personalizado)
-  situacionTexto?: string; // 🆕 Texto de la situación significativa devuelto por sugerir-competencia
+  temaCurricular?: string; // Tema en texto (para mostrar o fallback)
+  temaId?: number; // ID del tema del currículo (null si es personalizado)
+  /** Objeto tema curricular devuelto por sugerir-competencia; se envía en todos los pasos IA */
+  temaCurricularObjeto?: Record<string, unknown>;
+  situacionTexto?: string; // Texto de la situación significativa devuelto por sugerir-competencia
   propositoAprendizaje: IPropositoAprendizaje;
   propositoSesion: IPropositoSesion;
   enfoquesTransversales: IEnfoqueTransversal[];

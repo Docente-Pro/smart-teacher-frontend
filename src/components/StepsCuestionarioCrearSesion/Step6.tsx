@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Lightbulb, Wand2 } from "lucide-react"
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { instance } from "@/services/instance";
+import { getTemaCurricularPayload } from "@/services/ia-sesion.service";
 
 interface Props {
   pagina: number;
@@ -40,6 +41,7 @@ function Step6({ pagina, setPagina }: Props) {
     setLoadingIA(true);
     try {
       const response = await instance.post("/ia/generar-proposito-sesion", {
+        temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,

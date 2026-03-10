@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Heart, Trash2, Wand2, Edit, Check, Ale
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { instance } from "@/services/instance";
+import { getTemaCurricularPayload } from "@/services/ia-sesion.service";
 
 interface Props {
   pagina: number;
@@ -81,6 +82,7 @@ function Step5({ pagina, setPagina }: Props) {
     setLoadingIA(true);
     try {
       const response = await instance.post("/ia/sugerir-enfoques-transversales", {
+        temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,

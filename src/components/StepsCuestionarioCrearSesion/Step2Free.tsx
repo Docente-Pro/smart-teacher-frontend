@@ -189,9 +189,10 @@ function Step2Free({ pagina, setPagina }: Props) {
   useEffect(() => {
     if (sugerencia) {
       setCompetenciaSeleccionada(sugerencia.competenciaNombre);
-      if (sugerencia.situacionTexto) {
-        updateSesion({ situacionTexto: sugerencia.situacionTexto });
-      }
+      updateSesion({
+        ...(sugerencia.situacionTexto && { situacionTexto: sugerencia.situacionTexto }),
+        ...(sugerencia.temaCurricular && { temaCurricularObjeto: sugerencia.temaCurricular }),
+      });
     }
   }, [sugerencia, sesion?.temaId]);
 
