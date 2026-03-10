@@ -27,6 +27,7 @@ import {
   regenerarPasoUnidad,
   generarImagenSituacion,
 } from "@/services/ia-unidad.service";
+import { editarContenidoUnidad } from "@/services/unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type {
   ISituacionSignificativaResponse,
@@ -38,11 +39,13 @@ interface Props {
   pagina: number;
   setPagina: (pagina: number) => void;
   usuario: IUsuario;
+  /** Si se proporciona, se ejecuta antes de avanzar al siguiente paso para asegurar que el backend tenga situación y evidencias guardadas. */
+  flushSaveBeforeContinuar?: () => Promise<void>;
 }
 
 type GenerationStatus = "idle" | "generating" | "done" | "error";
 
-function Step2SituacionPropositos({ pagina, setPagina }: Props) {
+function Step2SituacionPropositos({ pagina, setPagina, flushSaveBeforeContinuar }: Props) {
   const { unidadId, datosBase, contenido, updateContenido, setGenerandoPaso, generandoPaso } =
     useUnidadStore();
 
@@ -80,6 +83,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
 
   // Secciones colapsadas
   const [expandedPropositos, setExpandedPropositos] = useState(true);
+  const [savingBeforeContinue, setSavingBeforeContinue] = useState(false);
 
   // Handler para editar una actividad in-place
   const handleActividadChange = (
@@ -134,6 +138,13 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
         situacionBase: sitData.situacionBase,
       });
       setStatusSituacion("done");
+      // Asegurar que el backend tenga la situación antes de generar evidencias
+      await editarContenidoUnidad(unidadId, {
+        contenido: {
+          situacionSignificativa: sitTexto,
+          situacionBase: sitData.situacionBase,
+        },
+      });
 
       // 2. Evidencias + Imagen de la situación (en paralelo)
       setStatusEvidencias("generating");
@@ -160,6 +171,10 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
       setEvidencias(evData);
       updateContenido({ evidencias: evData });
       setStatusEvidencias("done");
+      // Asegurar que el backend tenga situación + evidencias antes de generar propósitos
+      await editarContenidoUnidad(unidadId, {
+        contenido: { evidencias: evData },
+      });
 
       // 3. Propósitos
       setStatusPropositos("generating");
@@ -240,7 +255,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
   }
 
   /* ─── Continuar ─── */
-  function handleContinuar() {
+  async function handleContinuar() {
     if (!contenido.situacionSignificativa) {
       return handleToaster("Primero genera la situación significativa", "error");
     }
@@ -249,6 +264,18 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
     }
     if (!contenido.propositos) {
       return handleToaster("Primero genera los propósitos", "error");
+    }
+    if (flushSaveBeforeContinuar) {
+      setSavingBeforeContinue(true);
+      try {
+        await flushSaveBeforeContinuar();
+        setPagina(pagina + 1);
+      } catch {
+        handleToaster("Error al guardar. Intenta de nuevo.", "error");
+      } finally {
+        setSavingBeforeContinue(false);
+      }
+      return;
     }
     setPagina(pagina + 1);
   }
@@ -510,12 +537,21 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
             Anterior
           </Button>
           <Button
-            onClick={handleContinuar}
-            disabled={!allDone}
+            onClick={() => void handleContinuar()}
+            disabled={!allDone || savingBeforeContinue}
             className="h-14 px-10 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continuar
-            <ArrowRight className="ml-2 h-5 w-5" />
+            {savingBeforeContinue ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                Continuar
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </>
+            )}
           </Button>
         </div>
       </div>
