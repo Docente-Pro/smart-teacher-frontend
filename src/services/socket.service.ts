@@ -1,4 +1,4 @@
-import { io, Socket } from "socket.io-client";
+﻿import { io, Socket } from "socket.io-client";
 import { useAuthStore } from "@/store/auth.store";
 
 // ============================================
@@ -9,8 +9,8 @@ import { useAuthStore } from "@/store/auth.store";
 // Derivar la URL base del socket desde la misma variable que usa la API,
 // quitando el sufijo /api si lo tiene (el socket se conecta a la raíz).
 const SOCKET_URL = (
-  import.meta.env.VITE_PRODUCTION_API_URL ||
-  import.meta.env.VITE_LOCAL_API_URL ||
+  //import.meta.env.VITE_PRODUCTION_API_URL ||
+  //import.meta.env.VITE_LOCAL_API_URL ||
   "http://localhost:3000/api"
 ).replace(/\/api\/?$/, "");
 
