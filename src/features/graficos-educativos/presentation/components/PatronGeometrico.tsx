@@ -64,9 +64,28 @@ export const PatronGeometrico: React.FC<Props> = ({ data }) => {
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
 
-    const figuraSize = 60;
-    const spacing = 30;
-    const margen = 40;
+    const figuraSize = 56;
+    const spacing = 24;
+    const margen = 44;
+
+    // Línea punteada que conecta las figuras (horizontal) — se dibuja primero para quedar detrás
+    if (orientacion === 'horizontal' && secuencia.length > 1) {
+      const lineY = margen + 30 + figuraSize / 2;
+      for (let i = 0; i < secuencia.length - 1; i++) {
+        const x1 = margen + i * (figuraSize + spacing) + figuraSize;
+        const x2 = margen + (i + 1) * (figuraSize + spacing);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1.toString());
+        line.setAttribute('y1', lineY.toString());
+        line.setAttribute('x2', x2.toString());
+        line.setAttribute('y2', lineY.toString());
+        line.setAttribute('stroke', '#60a5fa');
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('stroke-dasharray', '6 4');
+        line.setAttribute('stroke-linecap', 'round');
+        svgRef.current.appendChild(line);
+      }
+    }
 
     secuencia.forEach((elemento, index) => {
       if (!svgRef.current) return;
@@ -194,17 +213,17 @@ export const PatronGeometrico: React.FC<Props> = ({ data }) => {
         svgRef.current.appendChild(cuadrado);
       }
 
-      // Etiqueta
+      // Etiqueta (letra o símbolo dentro de la figura)
       if (elemento.etiqueta) {
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', centerX.toString());
         text.setAttribute('y', centerY.toString());
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('font-size', elemento.forma === 'interrogacion' ? '36' : '20');
+        text.setAttribute('font-size', elemento.forma === 'interrogacion' ? '32' : '18');
         text.setAttribute('font-weight', 'bold');
-        text.setAttribute('font-family', 'Comic Sans MS, cursive');
-        text.setAttribute('fill', elemento.forma === 'interrogacion' ? fillColor : 'white');
+        text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+        text.setAttribute('fill', elemento.forma === 'interrogacion' ? fillColor : '#ffffff');
         text.textContent = elemento.etiqueta;
         svgRef.current.appendChild(text);
       }
@@ -230,37 +249,39 @@ export const PatronGeometrico: React.FC<Props> = ({ data }) => {
       for (let r = 0; r < reps; r++) {
         const startX = margen + r * nucleoPatron * (figuraSize + spacing);
         svgRef.current.appendChild(rc.rectangle(startX - 4, margen + 30 - figuraSize / 2 - 8, nucleoW + 8, figuraSize + 16, {
-          stroke: r === 0 ? '#6366f1' : '#a5b4fc',
-          strokeWidth: r === 0 ? 2.5 : 1.5,
+          stroke: r === 0 ? '#3b82f6' : '#93c5fd',
+          strokeWidth: r === 0 ? 2 : 1.5,
           roughness: 0.5,
           fill: 'none',
           strokeLineDash: [6, 4],
         }));
       }
-      // Etiqueta del núcleo
+      // Etiqueta del núcleo — más legible y centrada
       const nucLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       nucLabel.setAttribute('x', (margen + nucleoW / 2).toString());
-      nucLabel.setAttribute('y', (margen + 30 + figuraSize / 2 + 20).toString());
+      nucLabel.setAttribute('y', (margen + 30 + figuraSize / 2 + 24).toString());
       nucLabel.setAttribute('text-anchor', 'middle');
-      nucLabel.setAttribute('font-size', '11');
-      nucLabel.setAttribute('font-family', 'Comic Sans MS, cursive');
-      nucLabel.setAttribute('fill', '#6366f1');
+      nucLabel.setAttribute('font-size', '12');
+      nucLabel.setAttribute('font-weight', '600');
+      nucLabel.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+      nucLabel.setAttribute('fill', '#475569');
       nucLabel.textContent = `Núcleo (${nucleoPatron})${reps > 1 ? ` × ${reps} rep.` : ''}`;
       svgRef.current.appendChild(nucLabel);
     }
 
   }, [data]);
 
-  // Calcular dimensiones dinámicas del SVG
-  const figuraSize = 60;
-  const spacing = 30;
-  const margen = 40;
-  const svgWidth = orientacion === 'horizontal' 
-    ? margen * 2 + (secuencia.length * (figuraSize + spacing))
+  // Calcular dimensiones dinámicas del SVG (mismos valores que en useEffect)
+  const figuraSize = 56;
+  const spacing = 24;
+  const margen = 44;
+  const extraBottom = nucleoPatron && nucleoPatron > 0 && orientacion === 'horizontal' ? 36 : 24;
+  const svgWidth = orientacion === 'horizontal'
+    ? margen * 2 + (secuencia.length * (figuraSize + spacing)) - spacing
     : margen * 2 + figuraSize;
   const svgHeight = orientacion === 'vertical'
-    ? margen * 2 + (secuencia.length * (figuraSize + spacing))
-    : margen * 2 + figuraSize + 60;
+    ? margen * 2 + (secuencia.length * (figuraSize + spacing)) - spacing
+    : margen * 2 + figuraSize + extraBottom;
 
   return (
     <div className="patron-geometrico-container">
