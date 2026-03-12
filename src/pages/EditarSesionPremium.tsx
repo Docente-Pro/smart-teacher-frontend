@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
@@ -26,6 +27,7 @@ import {
 import { updateUsuario } from "@/services/usuarios.service";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc/SesionPremiumDoc";
 import { getAreaColor } from "@/constants/areaColors";
+import { dateOnlyToInputValue } from "@/utils/dateOnlyPeru";
 import type {
   ISesionPremiumResponse,
   IFasePremium,
@@ -93,6 +95,7 @@ function pick<T>(...candidates: unknown[]): T {
   }
   return candidates[candidates.length - 1] as T;
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Estilos para el modo edición (tablas tipo PDF con celdas editables)
@@ -285,6 +288,8 @@ function EditarSesionPremium() {
 
   const [reflexionAprendizajes, setReflexionAprendizajes] = useState("");
   const [reflexionEnsenanza, setReflexionEnsenanza] = useState("");
+  /** Fecha de la sesión (editable). Se guarda en contenido.fechaSesion y se muestra en el PDF. */
+  const [fechaSesion, setFechaSesion] = useState("");
 
   // ═════════════════════════════════════════════════════════════════════════
   // Cargar sesión del backend
@@ -454,6 +459,11 @@ function EditarSesionPremium() {
         setReflexionEnsenanza(
           refl.sobreEnsenanza || refl.dificultadesExperimentadas || "",
         );
+
+        // Fecha de la sesión (editable, alineada a Perú)
+        const dateStr =
+          contenido.fechaSesion || raw.fechaInicio || raw.createdAt;
+        setFechaSesion(dateOnlyToInputValue(dateStr) || dateStr || "");
       } catch (err: any) {
         if (!cancelled) {
           setError(
@@ -519,6 +529,7 @@ function EditarSesionPremium() {
       grado: pick(raw.grado, contenido.grado, contenido.datosGenerales?.grado),
       duracion: raw.duracion ?? contenido.duracion ?? contenido.datosGenerales?.duracion,
       usuario: raw.usuario,
+      fechaInicio: fechaSesion || raw.fechaInicio || raw.createdAt,
 
       propositoSesion,
       propositoAprendizaje: propositos.map((p) => ({
@@ -598,6 +609,7 @@ function EditarSesionPremium() {
     fases,
     reflexionAprendizajes,
     reflexionEnsenanza,
+    fechaSesion,
     docente,
     institucion,
     seccion,
@@ -632,6 +644,7 @@ function EditarSesionPremium() {
       if (sesion.cierre) contenidoPatch.cierre = sesion.cierre;
       if (sesion.reflexiones)
         contenidoPatch.reflexiones = sesion.reflexiones;
+      if (fechaSesion) contenidoPatch.fechaSesion = fechaSesion;
 
       toast.info("Guardando cambios...");
       await editarContenidoSesion(sesionId, {
@@ -1211,14 +1224,13 @@ function EditarSesionPremium() {
                   >
                     Fecha
                   </td>
-                  <td colSpan={3}>
-                    {(() => {
-                      const dateStr = raw.createdAt || raw.fechaInicio;
-                      if (!dateStr) return "";
-                      const d = new Date(dateStr);
-                      if (isNaN(d.getTime())) return dateStr;
-                      return d.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
-                    })()}
+                  <td colSpan={3} className="ec">
+                    <Input
+                      type="date"
+                      value={fechaSesion}
+                      onChange={(e) => setFechaSesion(e.target.value || "")}
+                      className="h-8 text-sm w-full max-w-[180px]"
+                    />
                   </td>
                 </tr>
               </tbody>
