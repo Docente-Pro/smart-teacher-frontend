@@ -175,5 +175,7 @@ export interface ISesionPremiumResponse {
   docente: string;
   institucion: string;
   seccion?: string;
+  /** Nombre del director(a) de la IE (desde perfil del usuario). */
+  nombreDirectivo?: string;
   sesion: ISesionPremiumSesion;
 }

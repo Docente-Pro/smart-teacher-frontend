@@ -205,11 +205,16 @@ function SesionSuscriptorResult() {
         console.log("🔍 [SesionSuscriptorResult] sesionForDoc.inicio:", sesionForDoc.inicio);
         console.log("🔍 [SesionSuscriptorResult] sesionForDoc.area:", sesionForDoc.area);
 
+        const nombreDirectivo =
+          (raw.usuario as any)?.nombreDirectivo ||
+          (usuario?.nombreDirectivo ?? "");
+
         const response: ISesionPremiumResponse = {
           success: true,
           docente,
           institucion,
           seccion,
+          nombreDirectivo: nombreDirectivo || undefined,
           sesion: sesionForDoc as any,
         };
 
