@@ -53,6 +53,7 @@ import type {
   ITurnoDiaSecuencia,
   IHoraActividad,
 } from "@/interfaces/IUnidadIA";
+import { dateOnlyToInputValue } from "@/utils/dateOnlyPeru";
 
 /** Bloque de horas consecutivas con la misma área (se muestran en un solo recuadro) */
 interface IBloqueHora {
@@ -61,6 +62,7 @@ interface IBloqueHora {
   hours: IHoraActividad[];
   startIndex: number;
 }
+
 
 /** Agrupa horas consecutivas con la misma área en un solo bloque (un recuadro por bloque). */
 function groupConsecutiveByArea(horas: IHoraActividad[]): IBloqueHora[] {
@@ -349,7 +351,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
   const tieneExcluidas = (secuencia?.actividadesExcluidas?.length ?? 0) > 0;
 
-  /** Actualiza la secuencia al editar un turno o una hora y persiste en el store.
+  /** Actualiza la secuencia al editar un turno, una hora o la fecha del día; persiste en el store.
    * Usa actualizador funcional para que al arrastrar entre días (dos actualizaciones seguidas)
    * la segunda vea el estado ya actualizado por la primera. */
   function actualizarDiaSecuencia(
@@ -359,6 +361,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       turnoManana: ITurnoDiaSecuencia;
       turnoTarde: ITurnoDiaSecuencia;
       horas: IDiaSecuencia["horas"];
+      fecha: string;
     }>
   ) {
     setSecuencia((prev) => {
@@ -579,17 +582,22 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                           key={dIdx}
                           className="h-full min-h-0 rounded-xl border border-slate-200/70 dark:border-slate-700/50 overflow-hidden shadow-sm transition-all duration-200 flex flex-col bg-white dark:bg-slate-900/30"
                         >
-                          {/* Cabecera del día (como en premium) */}
+                          {/* Cabecera del día (como en premium): día + fecha editable */}
                           <div className="px-3 py-2.5 text-center border-b bg-gradient-to-b from-slate-50 to-white dark:from-slate-800/80 dark:to-slate-800/40 border-slate-200/50 dark:border-slate-700/40">
                             <p className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                               {dia.dia}
                             </p>
-                            <div className="flex items-center justify-center gap-1.5 mt-1 flex-wrap">
-                              {dia.fecha && (
-                                <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                                  {dia.fecha}
-                                </span>
-                              )}
+                            <div className="flex flex-col items-center gap-1.5 mt-1">
+                              <Input
+                                type="date"
+                                value={dateOnlyToInputValue(dia.fecha)}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  actualizarDiaSecuencia(sIdx, dIdx, { fecha: v || "" });
+                                }}
+                                className="h-7 text-[11px] py-0 px-1.5 border-slate-200 dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-200"
+                                onClick={(e) => e.stopPropagation()}
+                              />
                               <span className="text-[10px] text-violet-600 dark:text-violet-400 flex items-center gap-0.5">
                                 <Edit3 className="h-2.5 w-2.5" /> Arrastra para reordenar
                               </span>

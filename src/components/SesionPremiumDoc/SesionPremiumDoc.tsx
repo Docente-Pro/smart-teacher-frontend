@@ -22,6 +22,7 @@ import { InstrumentoEvaluacionSection } from "./InstrumentoEvaluacionSection";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 import { parseMarkdown } from "@/utils/parseMarkdown";
+import { formatDateOnlyEsPE } from "@/utils/dateOnlyPeru";
 import type {
   ISesionPremiumResponse,
   IPropositoAprendizajePremium,
@@ -107,13 +108,8 @@ function DatosGeneralesPremium({
     ? `${toLabel(grado)} "${seccion}"`
     : toLabel(grado);
 
-  /* Formatear fecha */
-  const fechaTexto = (() => {
-    if (!fecha) return "";
-    const d = new Date(fecha);
-    if (isNaN(d.getTime())) return fecha;
-    return d.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
-  })();
+  /* Formatear fecha (solo día, alineado a Perú para no mostrar 15 en vez de 16) */
+  const fechaTexto = formatDateOnlyEsPE(fecha);
 
   return (
     <>

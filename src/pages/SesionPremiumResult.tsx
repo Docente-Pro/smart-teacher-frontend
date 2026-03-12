@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles, Eye, Pencil } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { FileDown, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles, Eye, Pencil, Calendar } from "lucide-react";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc";
 import { useSesionPremiumPDF } from "@/hooks/useSesionPremiumPDF";
 import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/fichaAplicacion.service";
+import { editarContenidoSesion } from "@/services/sesiones.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
+import { dateOnlyToInputValue } from "@/utils/dateOnlyPeru";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 import type { IFichaAlmacenada } from "@/interfaces/IFichaAplicacion";
@@ -35,6 +38,44 @@ function SesionPremiumResult() {
   const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } = useSesionPremiumPDF(documentRef, premiumData);
 
   console.log(stateData);
+
+  // ── Fecha de la sesión (editable, alineada a Perú) ───────────────────
+  const sesionDateRaw = premiumData?.sesion
+    ? (premiumData.sesion as any).fechaInicio ?? (premiumData.sesion as any).createdAt
+    : "";
+  const [fechaSesion, setFechaSesion] = useState("");
+  const [savingFecha, setSavingFecha] = useState(false);
+
+  useEffect(() => {
+    if (premiumData?.sesion) {
+      setFechaSesion(dateOnlyToInputValue(sesionDateRaw));
+    }
+  }, [premiumData?.sesion, sesionDateRaw]);
+
+  const displayData = useMemo(() => {
+    if (!premiumData) return null;
+    return {
+      ...premiumData,
+      sesion: {
+        ...premiumData.sesion,
+        fechaInicio: fechaSesion || ((premiumData.sesion as any).fechaInicio ?? (premiumData.sesion as any).createdAt),
+      },
+    };
+  }, [premiumData, fechaSesion]);
+
+  const handleGuardarFecha = async () => {
+    const id = premiumData?.sesion?.id;
+    if (!id) return;
+    setSavingFecha(true);
+    try {
+      await editarContenidoSesion(id, { contenido: { fechaSesion: fechaSesion || undefined } });
+      handleToaster("Fecha guardada", "success");
+    } catch {
+      handleToaster("Error al guardar la fecha", "error");
+    } finally {
+      setSavingFecha(false);
+    }
+  };
 
   // ── Ficha de Aplicación — buscar existente + generar ─────────────────
   const [fichaExistente, setFichaExistente] = useState<IFichaAlmacenada | null>(null);
@@ -150,6 +191,25 @@ function SesionPremiumResult() {
             </h1>
           </div>
           <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
+            {/* Fecha de la sesión (editable) */}
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-4 w-4 text-slate-500" />
+              <Input
+                type="date"
+                value={fechaSesion}
+                onChange={(e) => setFechaSesion(e.target.value)}
+                className="h-8 text-sm w-[140px]"
+              />
+              <Button
+                onClick={handleGuardarFecha}
+                disabled={savingFecha || !premiumData?.sesion?.id}
+                variant="outline"
+                size="sm"
+                className="h-8"
+              >
+                {savingFecha ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar fecha"}
+              </Button>
+            </div>
             {/* Indicador de guardado */}
             <div className="flex items-center gap-1 text-xs" style={{ color: isSaved ? "#16a34a" : isSaving ? "#2563eb" : "#94a3b8" }}>
               {isSaving ? (
@@ -225,7 +285,7 @@ function SesionPremiumResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={premiumData} instrumento={instrumento} />
+          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumento} />
         </div>
       </div>
     </div>
