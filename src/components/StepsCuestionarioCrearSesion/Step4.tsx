@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Target, Wand2, Trash2, Edit, Check, X 
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { instance } from "@/services/instance";
+import { getTemaCurricularPayload } from "@/services/ia-sesion.service";
 
 interface Props {
   pagina: number;
@@ -64,11 +65,12 @@ function Step4({ pagina, setPagina }: Props) {
     setLoadingIA(true);
     try {
       const response = await instance.post("/ia/generar-criterios-evaluacion", {
+        temaCurricular: getTemaCurricularPayload(sesion),
+        area: sesion.datosGenerales.area,
         competencia: sesion.propositoAprendizaje.competencia,
         capacidades: sesion.propositoAprendizaje.capacidades,
-        cantidadCriterios: cantidadCapacidades, // Solicitar tantos criterios como capacidades
+        cantidadCriterios: cantidadCapacidades,
         grado: sesion.datosGenerales.grado || "5to",
-        area: sesion.datosGenerales.area,
         temaId: sesion.temaId,
         situacionTexto: sesion.situacionTexto,
       });

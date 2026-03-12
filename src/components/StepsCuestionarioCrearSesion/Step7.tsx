@@ -8,6 +8,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Package, Plus, Trash2, Wand2, BarChart
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { instance } from "@/services/instance";
+import { getTemaCurricularPayload } from "@/services/ia-sesion.service";
 import { TipoGraficoMatematica } from "@/features/graficos-educativos/domain/types";
 
 interface Props {
@@ -62,11 +63,13 @@ function Step7({ pagina, setPagina }: Props) {
     setLoadingIA(true);
     try {
       const response = await instance.post("/ia/generar-recursos-materiales", {
+        temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,
         duracion: sesion.datosGenerales.duracion,
-        propositoSesion: sesion.propositoSesion
+        propositoSesion: sesion.propositoSesion,
+        secuenciaDidactica: sesion.secuenciaDidactica,
       });
 
       const data = response.data;

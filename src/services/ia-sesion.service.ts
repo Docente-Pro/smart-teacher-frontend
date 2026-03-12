@@ -1,8 +1,23 @@
 import { instance } from "./instance";
+import type { ISesionAprendizaje } from "@/interfaces/ISesionAprendizaje";
 
 // ============================================
 // INTERFACES — Respuestas de IA
 // ============================================
+
+/**
+ * Devuelve el objeto temaCurricular para enviar en los bodies de los endpoints IA.
+ * Usar en todos los pasos del flujo free (criterios, propósito, enfoques, secuencia, recursos).
+ */
+export function getTemaCurricularPayload(sesion: ISesionAprendizaje | null): Record<string, unknown> | undefined {
+  if (!sesion) return undefined;
+  const obj = (sesion as { temaCurricularObjeto?: Record<string, unknown> }).temaCurricularObjeto;
+  if (obj && typeof obj === "object" && Object.keys(obj).length > 0) return obj;
+  return {
+    temaId: sesion.temaId,
+    tema: sesion.temaCurricular,
+  };
+}
 
 export interface IAResponse<T = any> {
   success: boolean;

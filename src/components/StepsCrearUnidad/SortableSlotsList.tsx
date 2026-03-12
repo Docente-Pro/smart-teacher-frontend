@@ -50,7 +50,7 @@ export function SortableSlotsList<T>({
 
   return (
     <div ref={parentRef} className={className} data-sortable-list-key={listKey}>
-      {values.map((item: T, index: number) => (
+      {values.map((item, index) => (
         <div key={`${listKey}-${index}`}>{children(item, index)}</div>
       ))}
     </div>

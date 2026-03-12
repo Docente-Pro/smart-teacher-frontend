@@ -92,10 +92,11 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
     if (!unidadId) return handleToaster("Error: unidad no creada", "error");
 
     try {
-      // 4. Áreas Complementarias
+      // 4. Áreas Complementarias (contenidoEditado por si el docente editó pasos previos)
       setStatusAreas("generating");
       setGenerandoPaso("Áreas Complementarias");
-      const resAreas = await generarAreasComplementarias(unidadId);
+      const contenidoActual = useUnidadStore.getState().contenido;
+      const resAreas = await generarAreasComplementarias(unidadId, contenidoActual as Record<string, unknown>);
       const areasData = (resAreas.data as IAreasComplementariasResponse).areasComplementarias;
       setAreasComp(areasData);
       updateContenido({ areasComplementarias: areasData });
@@ -104,7 +105,8 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
       // 5. Enfoques Transversales
       setStatusEnfoques("generating");
       setGenerandoPaso("Enfoques Transversales");
-      const resEnf = await generarEnfoques(unidadId);
+      const contenidoParaEnf = useUnidadStore.getState().contenido;
+      const resEnf = await generarEnfoques(unidadId, contenidoParaEnf as Record<string, unknown>);
       const enfData = (resEnf.data as IEnfoquesResponse).enfoques;
       setEnfoques(enfData);
       updateContenido({ enfoques: enfData });

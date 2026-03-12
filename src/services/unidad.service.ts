@@ -481,3 +481,43 @@ export async function editarContenidoUnidad(
   );
   return data;
 }
+
+// ============================================
+// PATCH /api/unidades/:id/propositos/actividades
+// ============================================
+
+export interface IPatchPropositosActividadesRequest {
+  area: string;
+  competencia: string;
+  actividades: string[];
+}
+
+export interface IPatchPropositosActividadesResponse {
+  success: boolean;
+  message?: string;
+  data?: Record<string, unknown>;
+}
+
+/** Normaliza nombre de área (quita prefijo "Área de") para coincidir con el backend */
+export function normalizarNombreArea(nombre: string): string {
+  return nombre.replace(/^área de\s+/i, "").trim();
+}
+
+/**
+ * Actualiza solo el array de actividades de una competencia dentro de propósitos.
+ * El backend busca area y competencia (con normalización) y reemplaza solo actividades.
+ * PATCH /api/unidades/:id/propositos/actividades
+ */
+export async function patchPropositosActividades(
+  unidadId: string,
+  body: IPatchPropositosActividadesRequest,
+): Promise<IPatchPropositosActividadesResponse> {
+  const { data } = await instance.patch<IPatchPropositosActividadesResponse>(
+    `/unidades/${unidadId}/propositos/actividades`,
+    {
+      ...body,
+      area: normalizarNombreArea(body.area),
+    },
+  );
+  return data;
+}

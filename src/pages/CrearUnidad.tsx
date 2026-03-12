@@ -25,10 +25,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { X, RotateCcw } from "lucide-react";
+import { X, RotateCcw, Loader2, Check, AlertCircle } from "lucide-react";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { TipoUnidad } from "@/interfaces/IUnidad";
 import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
+import { useAutoSaveContenido } from "@/hooks/useAutoSaveContenido";
 
 const STEPS = [
   { number: 1, title: "Datos Generales", description: "Configuración" },
@@ -66,6 +67,8 @@ function CrearUnidad() {
     resetUnidad,
     softResetUnidad,
   } = useUnidadStore();
+
+  const contenidoSaveStatus = useAutoSaveContenido(unidadId ?? null);
 
   // Scroll al tope cada vez que cambia el paso
   useScrollTopOnStep(currentStep);
@@ -221,13 +224,37 @@ function CrearUnidad() {
           {/* ── Barra de acciones del wizard ── */}
           <div className="w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 sticky top-[88px] sm:top-[108px] z-30">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-800 transition-all"
-              >
-                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Cerrar</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-800 transition-all"
+                >
+                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Cerrar</span>
+                </button>
+                {unidadId && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    {contenidoSaveStatus === "saving" && (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Guardando...
+                      </>
+                    )}
+                    {contenidoSaveStatus === "saved" && (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-green-600" />
+                        Guardado
+                      </>
+                    )}
+                    {contenidoSaveStatus === "error" && (
+                      <>
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                        Error al guardar
+                      </>
+                    )}
+                  </span>
+                )}
+              </div>
 
               <button
                 onClick={() => setShowResetConfirm(true)}
