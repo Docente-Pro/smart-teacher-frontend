@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
+import { useUserStore } from "@/store/user.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { listarUnidadesByUsuario, sincronizarMiembroUnidad, generarSesionComplementaria } from "@/services/unidad.service";
@@ -265,6 +266,7 @@ function isHoy(fecha: string): boolean {
 function GenerarSesionPremium() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { user: usuario } = useUserStore();
   const permissions = usePermissions();
   const { generarInstrumento, guardar: guardarInstrumento } = useInstrumentoEvaluacion();
   const userId = user?.id;
@@ -618,7 +620,11 @@ function GenerarSesionPremium() {
         // Store the full backend response for PDF generation
         const fullResp = resp as unknown as ISesionPremiumResponse;
         if (fullResp.sesion && fullResp.docente !== undefined) {
-          setPremiumResponses((prev) => new Map(prev).set(key, fullResp));
+          const withDirector = {
+            ...fullResp,
+            nombreDirectivo: fullResp.nombreDirectivo ?? usuario?.nombreDirectivo ?? "",
+          };
+          setPremiumResponses((prev) => new Map(prev).set(key, withDirector));
 
           // ═══════════════════════════════════════════════════════════
           // FASE 2: Generar imágenes en background (sin bloquear UI)
