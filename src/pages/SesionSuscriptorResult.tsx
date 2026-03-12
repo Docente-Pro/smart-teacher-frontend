@@ -149,6 +149,7 @@ function SesionSuscriptorResult() {
           grado: pick(raw.grado, contenido.grado),
           duracion: raw.duracion ?? contenido.duracion,
           usuario: raw.usuario,
+          fechaInicio: contenido.fechaSesion || raw.fechaInicio || raw.createdAt,
 
           // ── Propósitos ──
           propositoSesion: pick<string>(
