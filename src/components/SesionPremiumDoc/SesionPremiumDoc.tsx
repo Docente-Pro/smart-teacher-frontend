@@ -87,6 +87,7 @@ function toLabel(val: unknown): string {
 function DatosGeneralesPremium({
   area,
   docente,
+  director,
   grado,
   nivel,
   duracion,
@@ -96,6 +97,7 @@ function DatosGeneralesPremium({
 }: {
   area?: unknown;
   docente: string;
+  director?: string;
   grado?: unknown;
   nivel?: unknown;
   duracion?: number;
@@ -136,6 +138,12 @@ function DatosGeneralesPremium({
             <td style={{ width: "15%", fontWeight: "bold" }}>Docente:</td>
             <td colSpan={3}>{docente}</td>
           </tr>
+          {director && (
+            <tr>
+              <td style={{ width: "15%", fontWeight: "bold" }}>Director(a):</td>
+              <td colSpan={3}>{director}</td>
+            </tr>
+          )}
           <tr>
             <td style={{ fontWeight: "bold" }}>Nivel:</td>
             <td style={{ width: "35%" }}>{toLabel(nivel)}</td>
@@ -969,7 +977,7 @@ interface SesionPremiumDocProps {
  * de la sesión mediante getAreaColor().
  */
 export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
-  const { sesion, docente, institucion, seccion } = data;
+  const { sesion, docente, institucion, seccion, nombreDirectivo } = data;
 
   // ── Derivar colores del área ────────────────────────────────────
   const areaName = toLabel(sesion.area);
@@ -991,6 +999,7 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
       <DatosGeneralesPremium
         area={sesion.area}
         docente={docente}
+        director={nombreDirectivo}
         grado={sesion.grado}
         nivel={sesion.nivel}
         duracion={sesion.duracion}

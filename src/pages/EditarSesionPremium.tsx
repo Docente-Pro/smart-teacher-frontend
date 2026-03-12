@@ -596,6 +596,7 @@ function EditarSesionPremium() {
       docente,
       institucion,
       seccion,
+      nombreDirectivo: usuario?.nombreDirectivo ?? "",
       sesion: sesionForDoc,
     };
   }, [
@@ -613,6 +614,7 @@ function EditarSesionPremium() {
     docente,
     institucion,
     seccion,
+    usuario?.nombreDirectivo,
   ]);
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -1162,6 +1164,20 @@ function EditarSesionPremium() {
                   </td>
                   <td colSpan={3}>{docente}</td>
                 </tr>
+                {usuario?.nombreDirectivo && (
+                  <tr>
+                    <td
+                      style={{
+                        fontWeight: "bold",
+                        backgroundColor: hex.light,
+                        width: "18%",
+                      }}
+                    >
+                      Director(a)
+                    </td>
+                    <td colSpan={3}>{usuario.nombreDirectivo}</td>
+                  </tr>
+                )}
                 <tr>
                   <td
                     style={{
