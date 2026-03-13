@@ -1,5 +1,5 @@
 import { useState, RefObject, useEffect, useCallback, useRef } from "react";
-import { generateAndDownloadPDF } from "@/services/htmldocs.service";
+import { generateAndDownloadPDF, generateAndDownloadWord } from "@/services/htmldocs.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
   solicitarUploadPDF,
@@ -217,12 +217,46 @@ export function useSesionPremiumPDF(
     window.print();
   };
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Descargar Word (premium)
+  // ────────────────────────────────────────────────────────────────────────
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
+  const handleDownloadWord = async () => {
+    if (!documentRef.current) {
+      handleToaster("No se pudo acceder al documento", "error");
+      return;
+    }
+    const rawArea = premiumData?.sesion?.area;
+    const area =
+      typeof rawArea === "string"
+        ? rawArea
+        : rawArea && typeof rawArea === "object" && "nombre" in (rawArea as any)
+          ? String((rawArea as any).nombre)
+          : "premium";
+    const areaLimpia = area.toLowerCase().replace(/\s+/g, "-");
+    const timestamp = Date.now().toString().slice(-8);
+    const nombreArchivo = `sesion-${areaLimpia}-${timestamp}.doc`;
+
+    setIsGeneratingWord(true);
+    try {
+      await generateAndDownloadWord(documentRef.current, nombreArchivo);
+      handleToaster("Documento Word descargado", "success");
+    } catch (error) {
+      handleToaster("Error al generar el Word", "error");
+      console.error(error);
+    } finally {
+      setIsGeneratingWord(false);
+    }
+  };
+
   return {
     isGenerating,
     isSaving,
     isSaved,
     handleDownloadPDF,
     handlePrint,
+    handleDownloadWord,
+    isGeneratingWord,
     guardarEnNube,
   };
 }

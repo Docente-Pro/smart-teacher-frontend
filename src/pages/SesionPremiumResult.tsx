@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FileDown, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles, Eye, Pencil, Calendar } from "lucide-react";
+import { FileDown, FileText, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles, Eye, Pencil, Calendar } from "lucide-react";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc";
 import { useSesionPremiumPDF } from "@/hooks/useSesionPremiumPDF";
 import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/fichaAplicacion.service";
@@ -35,7 +35,7 @@ function SesionPremiumResult() {
   const premiumData = stateData?.premiumData ?? null;
   const instrumento = stateData?.instrumento ?? null;
 
-  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } = useSesionPremiumPDF(documentRef, premiumData);
+  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, handleDownloadWord, isGeneratingWord } = useSesionPremiumPDF(documentRef, premiumData);
 
   console.log(stateData);
 
@@ -243,6 +243,17 @@ function SesionPremiumResult() {
               <FileDown className="h-4 w-4" />
               <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
               <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
+            </Button>
+            <Button
+              onClick={handleDownloadWord}
+              disabled={isGeneratingWord}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+            >
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">{isGeneratingWord ? "Generando Word..." : "Descargar Word"}</span>
+              <span className="sm:hidden">{isGeneratingWord ? "..." : "Word"}</span>
             </Button>
             {premiumData?.sesion?.id && (
               <Button

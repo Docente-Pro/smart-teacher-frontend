@@ -6,6 +6,7 @@ import {
   Cloud,
   Eye,
   FileDown,
+  FileText,
   Loader2,
   Pencil,
   Printer,
@@ -832,6 +833,27 @@ function EditarUnidad() {
     }
   };
 
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
+  const handleDownloadWord = async () => {
+    setView("preview");
+    await new Promise((r) => setTimeout(r, 1500));
+    if (!documentRef.current) {
+      toast.error("No se pudo acceder al documento");
+      return;
+    }
+    setIsGeneratingWord(true);
+    try {
+      const timestamp = Date.now().toString().slice(-8);
+      const { generateAndDownloadWord } = await import("@/services/htmldocs.service");
+      await generateAndDownloadWord(documentRef.current, `unidad-editada-${timestamp}.doc`);
+      toast.success("Documento Word descargado");
+    } catch {
+      toast.error("Error al generar Word");
+    } finally {
+      setIsGeneratingWord(false);
+    }
+  };
+
   // ═════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═════════════════════════════════════════════════════════════════════════
@@ -977,6 +999,18 @@ function EditarUnidad() {
                 >
                   <FileDown className="h-4 w-4" />
                   <span className="hidden sm:inline">Descargar PDF</span>
+                </Button>
+                <Button
+                  onClick={handleDownloadWord}
+                  disabled={isGeneratingWord}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {isGeneratingWord ? "Generando Word..." : "Descargar Word"}
+                  </span>
                 </Button>
               </>
             )}
