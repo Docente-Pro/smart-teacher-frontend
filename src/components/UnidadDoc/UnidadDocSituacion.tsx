@@ -19,38 +19,35 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias, imagenS
         PLANTEAMIENTO DE LA SITUACIÓN.
       </h3>
 
-      <div className="situacion-box" style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
-        {/* Texto a la izquierda */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {situacionSignificativa.split("\n").map((paragraph, i) => (
-            <p key={i} style={{ fontSize: "9pt", marginBottom: "0.25rem", textAlign: "justify" }}>
-              {parseMarkdown(paragraph)}
-            </p>
-          ))}
-
-          {/* ─── Reto (dentro del mismo cuadro) ─── */}
-          {evidencias?.reto && (
-            <p style={{ fontWeight: "bold", fontSize: "9pt", marginTop: "0.3rem", marginBottom: "0" }}>
-              Ante esta situación nos planteamos el siguiente reto:{" "}
-              <span style={{ fontWeight: "normal" }}>{parseMarkdown(evidencias.reto)}</span>
-            </p>
-          )}
-        </div>
-
-        {/* ─── Imagen 150×150px a la derecha del texto ─── */}
+      <div className="situacion-box">
+        {/* ─── Imagen ilustrativa (si existe) ─── */}
         {imagenSituacionUrl && (
-          <img
-            src={imagenSituacionUrl}
-            alt="Ilustración de la situación significativa"
-            style={{
-              width: "200px",
-              height: "200px",
-              minWidth: "200px",
-              minHeight: "200px",
-              objectFit: "cover",
-              borderRadius: "4px",
-            }}
-          />
+          <div style={{ textAlign: "center", marginBottom: "0.4rem" }}>
+            <img
+              src={imagenSituacionUrl}
+              alt="Ilustración de la situación significativa"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "350px",
+                objectFit: "contain",
+                borderRadius: "4px",
+              }}
+            />
+          </div>
+        )}
+
+        {situacionSignificativa.split("\n").map((paragraph, i) => (
+          <p key={i} style={{ fontSize: "9pt", marginBottom: "0.25rem", textAlign: "justify" }}>
+            {parseMarkdown(paragraph)}
+          </p>
+        ))}
+
+        {/* ─── Reto (dentro del mismo cuadro) ─── */}
+        {evidencias?.reto && (
+          <p style={{ fontWeight: "bold", fontSize: "9pt", marginTop: "0.3rem", marginBottom: "0" }}>
+            Ante esta situación nos planteamos el siguiente reto:{" "}
+            <span style={{ fontWeight: "normal" }}>{parseMarkdown(evidencias.reto)}</span>
+          </p>
         )}
       </div>
 

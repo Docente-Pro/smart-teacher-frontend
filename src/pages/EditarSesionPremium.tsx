@@ -247,6 +247,8 @@ function EditarSesionPremium() {
   // ═════════════════════════════════════════════════════════════════════════
 
   const [titulo, setTitulo] = useState("");
+  /** Área curricular (cabecera): editable por docentes premium. */
+  const [areaEdit, setAreaEdit] = useState("");
   const [propositoSesion, setPropositoSesion] = useState("");
 
   const [propositos, setPropositos] = useState<
@@ -334,6 +336,13 @@ function EditarSesionPremium() {
         // Título
         setTitulo(
           pick<string>(raw.titulo, contenido.titulo, "Sesión de Aprendizaje"),
+        );
+
+        // Área curricular (cabecera, editable)
+        setAreaEdit(
+          toLabel(
+            pick(raw.area, contenido.area, contenido.datosGenerales?.area),
+          ) || "",
         );
 
         // Propósito de sesión
@@ -524,7 +533,7 @@ function EditarSesionPremium() {
     const sesionForDoc: any = {
       id: raw.id,
       titulo,
-      area: pick(raw.area, contenido.area, contenido.datosGenerales?.area),
+      area: areaEdit.trim() || pick(raw.area, contenido.area, contenido.datosGenerales?.area),
       nivel: pick(raw.nivel, contenido.nivel, contenido.datosGenerales?.nivel),
       grado: pick(raw.grado, contenido.grado, contenido.datosGenerales?.grado),
       duracion: raw.duracion ?? contenido.duracion ?? contenido.datosGenerales?.duracion,
@@ -602,6 +611,7 @@ function EditarSesionPremium() {
   }, [
     rawSesion,
     titulo,
+    areaEdit,
     propositoSesion,
     propositos,
     enfoques,
@@ -647,6 +657,7 @@ function EditarSesionPremium() {
       if (sesion.reflexiones)
         contenidoPatch.reflexiones = sesion.reflexiones;
       if (fechaSesion) contenidoPatch.fechaSesion = fechaSesion;
+      if (sesion.area !== undefined) contenidoPatch.area = sesion.area;
 
       toast.info("Guardando cambios...");
       await editarContenidoSesion(sesionId, {
@@ -832,7 +843,7 @@ function EditarSesionPremium() {
     /* vacío */
   }
 
-  const areaName = toLabel(raw.area || parsedContenido.area || parsedContenido.datosGenerales?.area);
+  const areaName = (areaEdit && areaEdit.trim()) ? areaEdit.trim() : toLabel(raw.area || parsedContenido.area || parsedContenido.datosGenerales?.area);
   const hex = getAreaColor(areaName).hex;
   const premiumData = buildPremiumData();
 
@@ -1124,19 +1135,27 @@ function EditarSesionPremium() {
               </div>
             </div>
 
-            {/* ── DATOS GENERALES ── */}
+            {/* ── DATOS GENERALES (misma estructura que la vista previa: Área: | valor, luego DATOS INFORMATIVOS) ── */}
             <table>
               <tbody>
                 <tr>
-                  <td
-                    colSpan={4}
-                    style={{
-                      backgroundColor: hex.light,
-                      fontWeight: "bold",
-                      textAlign: "center",
-                    }}
-                  >
-                    {areaName || "Área Curricular"}
+                  <td style={{ width: "18%", fontWeight: "bold", backgroundColor: hex.light }}>Área:</td>
+                  <td style={{ width: "82%", backgroundColor: hex.light }}>
+                    <input
+                      type="text"
+                      value={areaEdit || ""}
+                      onChange={(e) => setAreaEdit(e.target.value)}
+                      placeholder="Área Curricular"
+                      className="ec-inline"
+                      style={{
+                        width: "100%",
+                        background: "transparent",
+                        border: "1px dashed transparent",
+                        borderRadius: "4px",
+                        padding: "2px 4px",
+                        fontSize: "inherit",
+                      }}
+                    />
                   </td>
                 </tr>
                 <tr>
@@ -1145,11 +1164,9 @@ function EditarSesionPremium() {
                     style={{
                       backgroundColor: hex.light,
                       fontWeight: "bold",
-                      textAlign: "center",
-                      fontSize: "8pt",
                     }}
                   >
-                    DATOS INFORMATIVOS
+                    DATOS INFORMATIVOS:
                   </td>
                 </tr>
                 <tr>

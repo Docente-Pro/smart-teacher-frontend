@@ -118,8 +118,8 @@ function DatosGeneralesPremium({
       <table style={{ marginBottom: "0.5rem" }}>
         <tbody>
           <tr>
-            <td style={{ width: "15%", fontWeight: "bold" }}>Área:</td>
-            <td style={{ width: "85%" }}>{toLabel(area)}</td>
+            <td style={{ width: "18%", fontWeight: "bold", backgroundColor: hex.light }}>Área:</td>
+            <td style={{ width: "82%", backgroundColor: hex.light }}>{toLabel(area)}</td>
           </tr>
         </tbody>
       </table>
@@ -135,30 +135,30 @@ function DatosGeneralesPremium({
             </td>
           </tr>
           <tr>
-            <td style={{ width: "15%", fontWeight: "bold" }}>Docente:</td>
+            <td style={{ width: "18%", fontWeight: "bold" }}>Docente:</td>
             <td colSpan={3}>{docente}</td>
           </tr>
           {director && (
             <tr>
-              <td style={{ width: "15%", fontWeight: "bold" }}>Director(a):</td>
+              <td style={{ width: "18%", fontWeight: "bold" }}>Director(a):</td>
               <td colSpan={3}>{director}</td>
             </tr>
           )}
           <tr>
-            <td style={{ fontWeight: "bold" }}>Nivel:</td>
-            <td style={{ width: "35%" }}>{toLabel(nivel)}</td>
-            <td style={{ width: "10%", fontWeight: "bold" }}>Grado:</td>
-            <td style={{ width: "40%" }}>{gradoText}</td>
+            <td style={{ width: "18%", fontWeight: "bold" }}>Nivel:</td>
+            <td style={{ width: "32%" }}>{toLabel(nivel)}</td>
+            <td style={{ width: "18%", fontWeight: "bold" }}>Grado:</td>
+            <td>{gradoText}</td>
           </tr>
           {duracion && (
             <tr>
-              <td style={{ fontWeight: "bold" }}>Duración:</td>
+              <td style={{ width: "18%", fontWeight: "bold" }}>Duración:</td>
               <td colSpan={3}>{duracion} minutos</td>
             </tr>
           )}
           {fechaTexto && (
             <tr>
-              <td style={{ fontWeight: "bold" }}>Fecha:</td>
+              <td style={{ width: "18%", fontWeight: "bold" }}>Fecha:</td>
               <td colSpan={3}>{fechaTexto}</td>
             </tr>
           )}

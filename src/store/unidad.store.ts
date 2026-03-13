@@ -27,11 +27,25 @@ export type WizardPhase = "select-type" | "wizard" | "completed";
 
 // ─── State ───
 
+/** Unidad batch: id + nombre del grado para tabs */
+export interface UnidadBatchItem {
+  id: string;
+  gradoId: number;
+  gradoNombre: string;
+}
+
 interface UnidadWizardState {
   unidadId: string | null;
   datosBase: UnidadDatosBase | null;
   contenido: IUnidadContenido;
   generandoPaso: string | null; // nombre del paso que se está generando
+
+  // ─── Batch (Secundaria): múltiples unidades ───
+  unidadBatch: UnidadBatchItem[];
+  /** IDs de unidades que ya tienen paso 2 completo (situación + evidencias + propósitos). No persistido. */
+  batchStep2DoneIds: string[];
+  batchStep3DoneIds: string[];
+  batchStep4DoneIds: string[];
 
   // ─── Estado del wizard (para recuperación) ───
   currentStep: number;
@@ -45,8 +59,17 @@ interface UnidadWizardState {
 
   // Actions
   setUnidadId: (id: string) => void;
+  setUnidadBatch: (items: UnidadBatchItem[]) => void;
+  addBatchStep2DoneId: (id: string) => void;
+  setBatchStep2DoneIds: (ids: string[]) => void;
+  addBatchStep3DoneId: (id: string) => void;
+  setBatchStep3DoneIds: (ids: string[]) => void;
+  addBatchStep4DoneId: (id: string) => void;
+  setBatchStep4DoneIds: (ids: string[]) => void;
+  selectUnidad: (id: string) => void;
   setDatosBase: (datos: UnidadDatosBase) => void;
   updateContenido: (partial: Partial<IUnidadContenido>) => void;
+  setContenido: (contenido: IUnidadContenido) => void;
   setGenerandoPaso: (paso: string | null) => void;
   setHorario: (horario: HorarioEscolar | null) => void;
   
@@ -73,7 +96,11 @@ export const useUnidadStore = create<UnidadWizardState>()(
       datosBase: null,
       contenido: contenidoInicial,
       generandoPaso: null,
-      
+      unidadBatch: [],
+      batchStep2DoneIds: [],
+      batchStep3DoneIds: [],
+      batchStep4DoneIds: [],
+
       // Estado inicial del wizard
       currentStep: 1,
       maxStepReached: 1,
@@ -86,12 +113,46 @@ export const useUnidadStore = create<UnidadWizardState>()(
 
       setUnidadId: (id) => set({ unidadId: id }),
 
+      setUnidadBatch: (items) =>
+        set({
+          unidadBatch: items,
+          unidadId: items.length > 0 ? items[0].id : null,
+        }),
+
+      addBatchStep2DoneId: (id) =>
+        set((s) =>
+          s.batchStep2DoneIds.includes(id)
+            ? s
+            : { batchStep2DoneIds: [...s.batchStep2DoneIds, id] }
+        ),
+      setBatchStep2DoneIds: (ids) => set({ batchStep2DoneIds: ids }),
+
+      addBatchStep3DoneId: (id) =>
+        set((s) =>
+          s.batchStep3DoneIds.includes(id)
+            ? s
+            : { batchStep3DoneIds: [...s.batchStep3DoneIds, id] }
+        ),
+      setBatchStep3DoneIds: (ids) => set({ batchStep3DoneIds: ids }),
+
+      addBatchStep4DoneId: (id) =>
+        set((s) =>
+          s.batchStep4DoneIds.includes(id)
+            ? s
+            : { batchStep4DoneIds: [...s.batchStep4DoneIds, id] }
+        ),
+      setBatchStep4DoneIds: (ids) => set({ batchStep4DoneIds: ids }),
+
+      selectUnidad: (id) => set({ unidadId: id }),
+
       setDatosBase: (datos) => set({ datosBase: datos }),
 
       updateContenido: (partial) =>
         set((state) => ({
           contenido: { ...state.contenido, ...partial },
         })),
+
+      setContenido: (contenido) => set({ contenido: contenido ?? contenidoInicial }),
 
       setGenerandoPaso: (paso) => set({ generandoPaso: paso }),
 
@@ -133,6 +194,10 @@ export const useUnidadStore = create<UnidadWizardState>()(
           datosBase: null,
           contenido: contenidoInicial,
           generandoPaso: null,
+          unidadBatch: [],
+          batchStep2DoneIds: [],
+          batchStep3DoneIds: [],
+          batchStep4DoneIds: [],
           currentStep: 1,
           maxStepReached: 1,
           wizardPhase: "select-type",
@@ -147,6 +212,10 @@ export const useUnidadStore = create<UnidadWizardState>()(
           datosBase: null,
           contenido: contenidoInicial,
           generandoPaso: null,
+          unidadBatch: [],
+          batchStep2DoneIds: [],
+          batchStep3DoneIds: [],
+          batchStep4DoneIds: [],
           currentStep: 1,
           maxStepReached: 1,
           wizardPhase: "wizard", // ya tiene unidad, va directo al wizard
@@ -155,12 +224,13 @@ export const useUnidadStore = create<UnidadWizardState>()(
     }),
     {
       name: "unidad-wizard-storage",
-      version: 2, // v2: se agregó campo horario
+      version: 3, // v3: se agregó unidadBatch + setContenido + selectUnidad
       // Excluir generandoPaso de la persistencia (es estado transitorio)
       partialize: (state) => ({
         unidadId: state.unidadId,
         datosBase: state.datosBase,
         contenido: state.contenido,
+        unidadBatch: state.unidadBatch,
         currentStep: state.currentStep,
         maxStepReached: state.maxStepReached,
         wizardPhase: state.wizardPhase,
