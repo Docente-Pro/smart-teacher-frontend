@@ -6,6 +6,7 @@ import {
   Cloud,
   CloudOff,
   FileDown,
+  FileText,
   Home,
   Loader2,
   Pencil,
@@ -63,6 +64,9 @@ function SesionSuscriptorResult() {
 
   // ── Estado de generación de Ficha de Aplicación ──
   const [isGeneratingFicha, setIsGeneratingFicha] = useState(false);
+
+  // ── Estado de generación Word ──
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Cargar sesión completa del backend
@@ -416,6 +420,36 @@ function SesionSuscriptorResult() {
 
   const handlePrint = () => window.print();
 
+  // ── Descargar Word (premium) ───────────────────────────────────────────
+  const handleDownloadWord = async () => {
+    if (!documentRef.current) {
+      handleToaster("No se pudo acceder al documento", "error");
+      return;
+    }
+    const rawArea = premiumData?.sesion?.area;
+    const area =
+      typeof rawArea === "string"
+        ? rawArea
+        : rawArea && typeof rawArea === "object" && "nombre" in (rawArea as any)
+          ? String((rawArea as any).nombre)
+          : "sesion";
+    const areaLimpia = area.toLowerCase().replace(/\s+/g, "-");
+    const timestamp = Date.now().toString().slice(-8);
+    const nombreArchivo = `sesion-${areaLimpia}-${timestamp}.doc`;
+
+    setIsGeneratingWord(true);
+    try {
+      const { generateAndDownloadWord } = await import("@/services/htmldocs.service");
+      await generateAndDownloadWord(documentRef.current, nombreArchivo);
+      handleToaster("Documento Word descargado", "success");
+    } catch (error) {
+      handleToaster("Error al generar el Word", "error");
+      console.error(error);
+    } finally {
+      setIsGeneratingWord(false);
+    }
+  };
+
   // ── Generar Ficha de Aplicación ───────────────────────────────────────
   const handleGenerarFicha = async () => {
     if (!sesionId) return;
@@ -580,6 +614,21 @@ function SesionSuscriptorResult() {
               </span>
               <span className="sm:hidden">
                 {isGenerating ? "..." : "PDF"}
+              </span>
+            </Button>
+            <Button
+              onClick={handleDownloadWord}
+              disabled={isGeneratingWord}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+            >
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {isGeneratingWord ? "Generando Word..." : "Descargar Word"}
+              </span>
+              <span className="sm:hidden">
+                {isGeneratingWord ? "..." : "Word"}
               </span>
             </Button>
             {sesionId && (

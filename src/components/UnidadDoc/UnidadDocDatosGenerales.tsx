@@ -79,7 +79,7 @@ export function UnidadDocDatosGenerales({
           </tr>
           <tr>
             <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Docente</td>
-            <td colSpan={3}>{docente}</td>
+            <td colSpan={3} data-word-lock="docente">{docente}</td>
           </tr>
           <tr>
             <td style={{ fontWeight: "bold", backgroundColor: "#FEF3C7" }}>Periodo de ejecución:</td>
