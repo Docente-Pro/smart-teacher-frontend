@@ -29,9 +29,10 @@ import {
   regenerarPasoUnidad,
   generarImagenSituacion,
 } from "@/services/ia-unidad.service";
-import { patchPropositosActividades } from "@/services/unidad.service";
+import { getUnidadById, patchPropositosActividades } from "@/services/unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type {
+  IUnidadContenido,
   ISituacionSignificativaResponse,
   IEvidencias,
   IPropositos,
@@ -46,8 +47,21 @@ interface Props {
 type GenerationStatus = "idle" | "generating" | "done" | "error";
 
 function Step2SituacionPropositos({ pagina, setPagina }: Props) {
-  const { unidadId, datosBase, contenido, updateContenido, setGenerandoPaso, generandoPaso } =
-    useUnidadStore();
+  const {
+    unidadId,
+    datosBase,
+    contenido,
+    updateContenido,
+    setContenido,
+    setDatosBase,
+    setGenerandoPaso,
+    generandoPaso,
+    unidadBatch,
+    selectUnidad,
+    batchStep2DoneIds,
+    addBatchStep2DoneId,
+    setBatchStep2DoneIds,
+  } = useUnidadStore();
 
   // Estado de generación por sección
   const [statusSituacion, setStatusSituacion] = useState<GenerationStatus>(
@@ -65,21 +79,24 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
   const [evidencias, setEvidencias] = useState<IEvidencias | null>(contenido.evidencias || null);
   const [propositos, setPropositos] = useState<IPropositos | null>(contenido.propositos || null);
 
-  // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
+  // ─── Sincronizar estado local con store (al cambiar de pestaña o rehidratar) ───
   useEffect(() => {
-    if (contenido.situacionSignificativa && !situacionTexto) {
-      setSituacionTexto(contenido.situacionSignificativa);
-      setStatusSituacion("done");
-    }
-    if (contenido.evidencias && !evidencias) {
-      setEvidencias(contenido.evidencias);
-      setStatusEvidencias("done");
-    }
-    if (contenido.propositos && !propositos) {
-      setPropositos(contenido.propositos);
-      setStatusPropositos("done");
-    }
-  }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos]);
+    const sit =
+      typeof contenido.situacionSignificativa === "string"
+        ? contenido.situacionSignificativa
+        : (contenido.situacionSignificativa as { texto?: string } | null)?.texto ?? "";
+    setSituacionTexto(sit);
+    setStatusSituacion(contenido.situacionSignificativa ? "done" : "idle");
+    setEvidencias(contenido.evidencias || null);
+    setStatusEvidencias(contenido.evidencias ? "done" : "idle");
+    setPropositos(contenido.propositos || null);
+    setStatusPropositos(contenido.propositos ? "done" : "idle");
+  }, [
+    contenido.situacionSignificativa,
+    contenido.evidencias,
+    contenido.propositos,
+    unidadId,
+  ]);
 
   // Secciones colapsadas
   const [expandedPropositos, setExpandedPropositos] = useState(true);
@@ -91,13 +108,14 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
   // Sincroniza las actividades de una competencia con el backend (PATCH). Si no se pasa propositos, lee del store.
   const syncActividadesToBackend = useCallback(
     (areaIdx: number, compIdx: number, propositosSnapshot?: IPropositos | null) => {
-      if (!unidadId) return;
+      const id = useUnidadStore.getState().unidadId;
+      if (!id) return;
       const props = propositosSnapshot ?? useUnidadStore.getState().contenido?.propositos;
       if (!props?.areasPropositos?.[areaIdx]?.competencias?.[compIdx]) return;
       const area = props.areasPropositos[areaIdx];
       const comp = area.competencias[compIdx];
       const actividades = comp.actividades ?? [];
-      patchPropositosActividades(unidadId, {
+      patchPropositosActividades(id, {
         area: area.area,
         competencia: comp.nombre,
         actividades,
@@ -106,7 +124,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
         handleToaster("No se pudo guardar en el servidor. Revisa la conexión.", "error");
       });
     },
-    [unidadId]
+    []
   );
 
   // Handler para editar una actividad in-place
@@ -207,14 +225,15 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
   /* ═══════════════════════════════════════════
      Generar TODO con IA (secuencial: 1→2→3)
      ═══════════════════════════════════════════ */
-  const generarTodo = useCallback(async () => {
-    if (!unidadId) return handleToaster("Error: unidad no creada", "error");
+  const generarTodo = useCallback(async (skipSuccessToaster = false) => {
+    const id = useUnidadStore.getState().unidadId;
+    if (!id) return handleToaster("Error: unidad no creada", "error");
 
     try {
       // 1. Situación Significativa
       setStatusSituacion("generating");
       setGenerandoPaso("Situación Significativa");
-      const resSit = await generarSituacionSignificativa(unidadId);
+      const resSit = await generarSituacionSignificativa(id);
       const sitData = resSit.data as ISituacionSignificativaResponse;
       const sitTexto = sitData.situacionSignificativa;
       setSituacionTexto(sitTexto);
@@ -234,7 +253,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
         problematica: datosBase?.problematicaNombre || "",
         grado: datosBase?.grado || "",
         nivel: datosBase?.nivel || "",
-        unidadId: unidadId ?? undefined,
+        unidadId: id ?? undefined,
       })
         .then((imgRes) => {
           updateContenido({ imagenSituacionUrl: imgRes.url });
@@ -245,7 +264,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
         });
 
       const contenidoActual = useUnidadStore.getState().contenido;
-      const resEv = await generarEvidencias(unidadId, contenidoActual as Record<string, unknown>);
+      const resEv = await generarEvidencias(id, contenidoActual as Record<string, unknown>);
       const evData = resEv.data as IEvidencias;
       setEvidencias(evData);
       updateContenido({ evidencias: evData });
@@ -255,7 +274,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
       setStatusPropositos("generating");
       setGenerandoPaso("Propósitos de Aprendizaje");
       const contenidoParaProp = useUnidadStore.getState().contenido;
-      const resProp = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>);
+      const resProp = await generarPropositos(id, contenidoParaProp as Record<string, unknown>);
       const propData = resProp.data as IPropositos;
       setPropositos(propData);
       updateContenido({ propositos: propData });
@@ -265,7 +284,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
       await imagenPromise;
 
       setGenerandoPaso(null);
-      handleToaster("¡Contenido generado con éxito!", "success");
+      if (!skipSuccessToaster) handleToaster("¡Contenido generado con éxito!", "success");
     } catch (error: any) {
       console.error("Error al generar:", error);
       setGenerandoPaso(null);
@@ -278,11 +297,92 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
         "error"
       );
     }
-  }, [unidadId]);
+  }, []);
+
+  // ─── Progreso de generación en lote (varios grados) ───
+  const [batchProgress, setBatchProgress] = useState<{
+    current: number;
+    total: number;
+    gradoNombre: string;
+  } | null>(null);
+
+  // Al montar, si hay batch, comprobar qué unidades ya tienen paso 2 completo
+  useEffect(() => {
+    if (unidadBatch.length <= 1) return;
+    const check = async () => {
+      const done: string[] = [];
+      for (const u of unidadBatch) {
+        try {
+          const res = await getUnidadById(u.id);
+          const unit = (res as any).data?.data ?? (res as any).data;
+          let cont = unit?.contenido ?? {};
+          if (typeof cont === "string") {
+            try { cont = JSON.parse(cont); } catch { cont = {}; }
+          }
+          const c = cont as IUnidadContenido;
+          if (c.situacionSignificativa && c.evidencias && c.propositos) {
+            done.push(u.id);
+          }
+        } catch {
+          // ignorar error por unidad
+        }
+      }
+      if (done.length > 0) setBatchStep2DoneIds(done);
+    };
+    check();
+  }, [unidadBatch.length, unidadBatch.map((u) => u.id).join(",")]);
+
+  /* ═══════════════════════════════════════════
+     Generar en lote: todos los grados en secuencia (un clic)
+     ═══════════════════════════════════════════ */
+  const generarTodoBatch = useCallback(async () => {
+    if (unidadBatch.length <= 1) {
+      return generarTodo();
+    }
+    setBatchProgress({ current: 1, total: unidadBatch.length, gradoNombre: unidadBatch[0].gradoNombre });
+    const errored: string[] = [];
+    for (let i = 0; i < unidadBatch.length; i++) {
+      const u = unidadBatch[i];
+      setBatchProgress({ current: i + 1, total: unidadBatch.length, gradoNombre: u.gradoNombre });
+      setGenerandoPaso(`${u.gradoNombre} (${i + 1}/${unidadBatch.length})`);
+      try {
+        selectUnidad(u.id);
+        const res = await getUnidadById(u.id);
+        const unit = (res as any).data?.data ?? (res as any).data;
+        let cont = unit?.contenido ?? {};
+        if (typeof cont === "string") {
+          try { cont = JSON.parse(cont); } catch { cont = {}; }
+        }
+        setContenido(cont);
+        const base = useUnidadStore.getState().datosBase;
+        if (base) setDatosBase({ ...base, grado: u.gradoNombre });
+        setSituacionTexto((cont as IUnidadContenido).situacionSignificativa || "");
+        setEvidencias((cont as IUnidadContenido).evidencias || null);
+        setPropositos((cont as IUnidadContenido).propositos || null);
+        setStatusSituacion((cont as IUnidadContenido).situacionSignificativa ? "done" : "idle");
+        setStatusEvidencias((cont as IUnidadContenido).evidencias ? "done" : "idle");
+        setStatusPropositos((cont as IUnidadContenido).propositos ? "done" : "idle");
+
+        await generarTodo(true);
+        addBatchStep2DoneId(u.id);
+      } catch (e) {
+        console.error("Error generando para", u.gradoNombre, e);
+        errored.push(u.gradoNombre);
+      }
+    }
+    setBatchProgress(null);
+    setGenerandoPaso(null);
+    if (errored.length > 0) {
+      handleToaster(`Error en: ${errored.join(", ")}`, "error");
+    } else {
+      handleToaster("Todos los grados generados correctamente.", "success");
+    }
+  }, [unidadBatch, generarTodo, selectUnidad, setContenido, setDatosBase, addBatchStep2DoneId, setGenerandoPaso]);
 
   /* ─── Regenerar paso individual ─── */
   async function regenerar(paso: "situacion-significativa" | "evidencias" | "propositos") {
-    if (!unidadId) return;
+    const id = useUnidadStore.getState().unidadId;
+    if (!id) return;
     const label =
       paso === "situacion-significativa"
         ? "Situación Significativa"
@@ -301,7 +401,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
     setGenerandoPaso(label);
 
     try {
-      const res = await regenerarPasoUnidad(unidadId, paso);
+      const res = await regenerarPasoUnidad(id, paso);
 
       if (paso === "situacion-significativa") {
         const d = res.data as unknown as ISituacionSignificativaResponse;
@@ -332,14 +432,20 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
 
   /* ─── Continuar ─── */
   function handleContinuar() {
-    if (!contenido.situacionSignificativa) {
-      return handleToaster("Primero genera la situación significativa", "error");
-    }
-    if (!contenido.evidencias) {
-      return handleToaster("Primero genera las evidencias", "error");
-    }
-    if (!contenido.propositos) {
-      return handleToaster("Primero genera los propósitos", "error");
+    if (unidadBatch.length > 1) {
+      if (!allBatchStep2Complete) {
+        return handleToaster("Genera el paso 2 para todos los grados antes de continuar", "error");
+      }
+    } else {
+      if (!contenido.situacionSignificativa) {
+        return handleToaster("Primero genera la situación significativa", "error");
+      }
+      if (!contenido.evidencias) {
+        return handleToaster("Primero genera las evidencias", "error");
+      }
+      if (!contenido.propositos) {
+        return handleToaster("Primero genera los propósitos", "error");
+      }
     }
     setPagina(pagina + 1);
   }
@@ -348,6 +454,11 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
     statusSituacion === "done" &&
     statusEvidencias === "done" &&
     statusPropositos === "done";
+
+  const allBatchStep2Complete =
+    unidadBatch.length <= 1 || unidadBatch.every((u) => batchStep2DoneIds.includes(u.id));
+  const canContinue = unidadBatch.length > 1 ? allBatchStep2Complete : allDone;
+  const isBatchGenerating = batchProgress !== null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6">
@@ -369,28 +480,43 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
           </p>
         </div>
 
-        {/* ── Botón generar todo ── */}
-        {!allDone && (
+        {/* ── Progreso de generación en lote (varios grados) ── */}
+        {batchProgress && (
+          <div className="mb-6 p-4 rounded-xl bg-violet-100 dark:bg-violet-950/50 border border-violet-200 dark:border-violet-800 text-center">
+            <p className="text-violet-800 dark:text-violet-200 font-medium">
+              Generando {batchProgress.gradoNombre} ({batchProgress.current}/{batchProgress.total})...
+            </p>
+            <p className="text-sm text-violet-600 dark:text-violet-400 mt-1">
+              No podrás continuar hasta que se complete para todos los grados.
+            </p>
+          </div>
+        )}
+
+        {/* ── Botón generar todo (un grado o todos en secuencia) ── */}
+        {(!allDone || (unidadBatch.length > 1 && !allBatchStep2Complete)) && (
           <div className="text-center mb-10">
             <Button
-              onClick={generarTodo}
-              disabled={isGenerating}
+              onClick={generarTodoBatch}
+              disabled={isGenerating || isBatchGenerating}
               className="h-16 px-10 text-lg font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
             >
-              {isGenerating ? (
+              {(isGenerating || isBatchGenerating) ? (
                 <>
                   <Loader2 className="mr-3 h-6 w-6 animate-spin" />
-                  Generando {generandoPaso}...
+                  {batchProgress
+                    ? `Generando ${batchProgress.gradoNombre} (${batchProgress.current}/${batchProgress.total})...`
+                    : `Generando ${generandoPaso}...`}
                 </>
               ) : (
                 <>
                   <Wand2 className="mr-3 h-6 w-6" />
                   Generar con Inteligencia Artificial
+                  {unidadBatch.length > 1 ? ` (${unidadBatch.length} grados)` : ""}
                 </>
               )}
             </Button>
 
-            {isGenerating && (
+            {(isGenerating || isBatchGenerating) && (
               <div className="mt-4">
                 <ProgressIndicator
                   steps={[
@@ -620,7 +746,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
           </Button>
           <Button
             onClick={handleContinuar}
-            disabled={!allDone}
+            disabled={!canContinue}
             className="h-14 px-10 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continuar
