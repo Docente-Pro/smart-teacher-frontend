@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
@@ -26,6 +26,7 @@ import { SesionPremiumDoc } from "@/components/SesionPremiumDoc/SesionPremiumDoc
 import { generarFichaAplicacion } from "@/services/fichaAplicacion.service";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
+import { buildInstrumentoLocal } from "@/utils/buildInstrumentoFromSesion";
 
 /**
  * Página de vista previa de una Sesión de Aprendizaje para **suscriptores**.
@@ -51,7 +52,6 @@ function SesionSuscriptorResult() {
   const [premiumData, setPremiumData] = useState<ISesionPremiumResponse | null>(
     null,
   );
-  const [instrumento] = useState<IInstrumentoEvaluacion | null>(null);
   const [loadingSesion, setLoadingSesion] = useState(true);
   const [errorSesion, setErrorSesion] = useState<string | null>(null);
 
@@ -238,6 +238,35 @@ function SesionSuscriptorResult() {
       cancelled = true;
     };
   }, [sesionId, usuario, user]);
+
+  // Lista de cotejo / instrumento de evaluación para el PDF (suscriptor ve lo mismo que el propietario)
+  const instrumento = useMemo((): IInstrumentoEvaluacion | null => {
+    if (!premiumData?.sesion) return null;
+    const sesion = premiumData.sesion as any;
+    const propósitos = sesion.propositoAprendizaje ?? [];
+    if (!Array.isArray(propósitos) || propósitos.length === 0) return null;
+    const toLabel = (v: unknown) =>
+      !v ? "" : typeof v === "string" ? v : (v as any)?.nombre ?? (v as any)?.name ?? String(v);
+    const area = toLabel(sesion.area) || "—";
+    const grado = toLabel(sesion.grado) || "—";
+    const first =
+      propósitos.find(
+        (p: any) =>
+          (p.instrumento?.trim() || p.evidencia?.trim() || p.competencia?.trim()),
+      ) ?? propósitos[0];
+    const criteriosRaw = first.criteriosEvaluacion ?? first.criterios;
+    const criteriosList = Array.isArray(criteriosRaw)
+      ? criteriosRaw.map((c: any) => (typeof c === "string" ? c : c?.criterioCompleto ?? "")).filter(Boolean)
+      : (typeof first.criterios === "string" ? first.criterios.split("\n").map((s: string) => s.trim()).filter(Boolean) : []);
+    return buildInstrumentoLocal({
+      area,
+      grado,
+      competencia: first.competencia ?? "—",
+      evidencia: first.evidencia ?? first.evidenciaAprendizaje ?? "—",
+      criterios: criteriosList.length > 0 ? criteriosList : ["—"],
+      instrumento: first.instrumento?.trim() || first.instrumentoEvaluacion?.trim() || "Lista de cotejo",
+    });
+  }, [premiumData]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Flujo de subida a S3: generar blob → upload → confirmar
@@ -589,7 +618,7 @@ function SesionSuscriptorResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={premiumData} instrumento={instrumento} />
+          <SesionPremiumDoc data={premiumData} instrumento={instrumento ?? undefined} />
         </div>
       </div>
     </div>
