@@ -65,12 +65,16 @@ function Dashboard() {
             const plan = freshUser.plan ?? freshUser.suscripcion?.plan;
             const suscActiva = freshUser.suscripcionActiva ?? freshUser.suscripcion?.activa;
             const genero = freshUser.genero;
+            const nivelId = freshUser.nivelId;
+            const gradoId = freshUser.gradoId;
 
             if (sesUsadas !== undefined) updatePayload.sesionesUsadas = sesUsadas;
             if (sesRestantes !== undefined) updatePayload.sesionesRestantes = sesRestantes;
             if (plan !== undefined) updatePayload.plan = plan;
             if (suscActiva !== undefined) updatePayload.suscripcionActiva = suscActiva;
             if (genero) updatePayload.genero = genero;
+            if (nivelId !== undefined) updatePayload.nivelId = nivelId;
+            if (gradoId !== undefined) updatePayload.gradoId = gradoId;
 
             if (Object.keys(updatePayload).length > 0) {
               console.log("📊 DEBUG - updatePayload:", updatePayload);
