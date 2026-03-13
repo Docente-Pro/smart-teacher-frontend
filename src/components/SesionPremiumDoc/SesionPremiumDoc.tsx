@@ -908,7 +908,7 @@ function ResumenPremium({
   );
 }
 
-/** Fuentes del Currículo Nacional consultadas */
+/** Fuentes del Currículo Nacional consultadas — siempre se muestra (con lista vacía si no hay fuentes). */
 function FuentesMineduPremium({
   fuentes,
   hex,
@@ -916,6 +916,7 @@ function FuentesMineduPremium({
   fuentes: IFuenteMinedu[];
   hex: AreaHex;
 }) {
+  const list = Array.isArray(fuentes) ? fuentes : [];
   return (
     <table style={{ marginBottom: "0.5rem" }}>
       <tbody>
@@ -936,24 +937,32 @@ function FuentesMineduPremium({
           <th style={{ width: "10%", backgroundColor: hex.light }}>PÁGINA</th>
           <th style={{ width: "50%", backgroundColor: hex.light }}>REFERENCIA</th>
         </tr>
-        {fuentes.map((f, i) => (
-          <tr key={i}>
-            <td style={{ fontSize: "9pt" }}>
-              {f.filename}
-              {f.nivel && f.area && (
-                <div style={{ fontSize: "7pt", color: "#64748b" }}>
-                  {f.nivel} · {f.area}
-                </div>
-              )}
-            </td>
-            <td style={{ fontSize: "9pt", textAlign: "center" }}>
-              {f.pagina ?? "–"}
-            </td>
-            <td style={{ fontSize: "8pt", fontStyle: "italic", color: "#475569" }}>
-              {f.preview || "–"}
+        {list.length > 0 ? (
+          list.map((f, i) => (
+            <tr key={i}>
+              <td style={{ fontSize: "9pt" }}>
+                {f.filename}
+                {f.nivel && f.area && (
+                  <div style={{ fontSize: "7pt", color: "#64748b" }}>
+                    {f.nivel} · {f.area}
+                  </div>
+                )}
+              </td>
+              <td style={{ fontSize: "9pt", textAlign: "center" }}>
+                {f.pagina ?? "–"}
+              </td>
+              <td style={{ fontSize: "8pt", fontStyle: "italic", color: "#475569" }}>
+                {f.preview || "–"}
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan={3} style={{ fontSize: "9pt", color: "#64748b", fontStyle: "italic", padding: "0.25rem" }}>
+              No se especificaron fuentes.
             </td>
           </tr>
-        ))}
+        )}
       </tbody>
     </table>
   );
@@ -1057,9 +1066,38 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
         />
       )}
 
-      {/* INSTRUMENTO DE EVALUACIÓN */}
-      {instrumento && (
+      {/* INSTRUMENTO DE EVALUACIÓN — siempre en el PDF (con o sin datos; celdas vacías si no hay estudiantes) */}
+      {instrumento ? (
         <InstrumentoEvaluacionSection instrumento={instrumento} hex={hex} alumnos={getSavedAlumnos()} />
+      ) : (
+        <table style={{ marginBottom: "0.5rem", width: "100%", fontSize: "9pt", borderCollapse: "collapse" }}>
+          <tbody>
+            <tr>
+              <td
+                style={{
+                  backgroundColor: hex.light,
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  padding: "0.35rem",
+                }}
+              >
+                INSTRUMENTO DE EVALUACIÓN — Lista de cotejo
+              </td>
+            </tr>
+            <tr>
+              <td
+                style={{
+                  padding: "0.35rem",
+                  fontStyle: "italic",
+                  color: "#64748b",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                No se especificó instrumento de evaluación. Completa los propósitos de aprendizaje con criterios e instrumento.
+              </td>
+            </tr>
+          </tbody>
+        </table>
       )}
 
       {/* RESUMEN DE LA SESIÓN */}
@@ -1067,10 +1105,8 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
         <ResumenPremium resumen={sesion.resumen} hex={hex} />
       )}
 
-      {/* FUENTES MINEDU */}
-      {sesion.fuentesMinedu && sesion.fuentesMinedu.length > 0 && (
-        <FuentesMineduPremium fuentes={sesion.fuentesMinedu} hex={hex} />
-      )}
+      {/* FUENTES MINEDU — siempre incluido en el PDF (lista de citas/referencias) */}
+      <FuentesMineduPremium fuentes={sesion.fuentesMinedu ?? []} hex={hex} />
 
       {/* Footer — con color del área */}
       <Footer position="bottom-center">

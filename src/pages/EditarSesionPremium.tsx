@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   Eye,
   Save,
   Printer,
+  ListChecks,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,13 +27,28 @@ import {
 } from "@/services/sesiones.service";
 import { updateUsuario } from "@/services/usuarios.service";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc/SesionPremiumDoc";
+import { InstrumentoEvaluacionSection } from "@/components/SesionPremiumDoc/InstrumentoEvaluacionSection";
 import { getAreaColor } from "@/constants/areaColors";
+import { getSavedAlumnos } from "@/utils/alumnosStorage";
 import { dateOnlyToInputValue } from "@/utils/dateOnlyPeru";
+import { buildInstrumentoLocal } from "@/utils/buildInstrumentoFromSesion";
+import type { IListaCotejo } from "@/interfaces/IInstrumentoEvaluacion";
 import type {
   ISesionPremiumResponse,
   IFasePremium,
   IProcesoPremium,
 } from "@/interfaces/ISesionPremium";
+
+/** Instrumento mínimo para mostrar siempre la tabla con al menos 30 slots (lista de cotejo vacía). */
+const INSTRUMENTO_LISTA_COTEJO_VACIA: IListaCotejo = {
+  tipo: "lista_cotejo",
+  area: "—",
+  grado: "—",
+  competencia: "—",
+  evidencia: "—",
+  criterios: ["—"],
+  columnas: ["Sí", "No"],
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Tipos locales
@@ -241,6 +257,7 @@ function EditarSesionPremium() {
   const [saving, setSaving] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
   const [pdfUploading, setPdfUploading] = useState(false);
+  const [fillingListaCotejo, setFillingListaCotejo] = useState(false);
 
   // ═════════════════════════════════════════════════════════════════════════
   // Estado editable — campos del contenido
@@ -627,6 +644,44 @@ function EditarSesionPremium() {
     usuario?.nombreDirectivo,
   ]);
 
+  // Instrumento de evaluación (lista de cotejo / escala) para la vista previa PDF
+  const instrumentoPreview = useMemo(() => {
+    if (!propositos?.length) return null;
+    const raw = rawSesion as any;
+    const contenido = raw?.contenido;
+    let parsedContenido: Record<string, any> = {};
+    try {
+      const c = typeof contenido === "string" ? JSON.parse(contenido) : contenido;
+      if (c && typeof c === "object") parsedContenido = c;
+    } catch {
+      /* ignore */
+    }
+    const grado = toLabel(
+      raw?.grado ?? parsedContenido.grado ?? parsedContenido.datosGenerales?.grado,
+    );
+    const area =
+      areaEdit.trim() ||
+      toLabel(raw?.area ?? parsedContenido.area ?? parsedContenido.datosGenerales?.area) ||
+      "—";
+    // Cualquier propósito con instrumento (ej. "Lista de cotejo") o evidencia; si no hay criterios usamos "—"
+    const first =
+      propositos.find(
+        (p) => (p.instrumento?.trim() || p.evidencia?.trim() || p.competencia?.trim()),
+      ) ?? propositos[0];
+    const criteriosList = (first.criterios ?? "")
+      .split("\n")
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    return buildInstrumentoLocal({
+      area,
+      grado: grado || "—",
+      competencia: first.competencia || "—",
+      evidencia: first.evidencia || "—",
+      criterios: criteriosList.length > 0 ? criteriosList : ["—"],
+      instrumento: first.instrumento?.trim() || "Lista de cotejo",
+    });
+  }, [rawSesion, areaEdit, propositos]);
+
   // ═════════════════════════════════════════════════════════════════════════
   // Guardar: PATCH contenido + regenerar PDF + subir a S3
   // ═════════════════════════════════════════════════════════════════════════
@@ -730,6 +785,37 @@ function EditarSesionPremium() {
       setPdfUploading(false);
     }
   }, [sesionId, buildPremiumData, titulo, rawSesion, user?.id]);
+
+  /** Completar lista de cotejo: toma alumnos del storage, guarda en sesión (listaAlumnos) y actualiza PDF */
+  const handleCompletarListaCotejo = useCallback(async () => {
+    const alumnos = getSavedAlumnos();
+    if (!alumnos?.length) {
+      toast.error("No hay lista de alumnos. Sube tu lista desde el dashboard (Modificar lista de alumnos).");
+      return;
+    }
+    if (!sesionId) return;
+    setFillingListaCotejo(true);
+    try {
+      const listaAlumnos = alumnos.map((a) => ({
+        orden: a.orden,
+        apellidos: a.apellidos ?? "",
+        nombres: a.nombres ?? "",
+        nombreCompleto: [a.apellidos, a.nombres].filter(Boolean).join(", ") || "—",
+        ...(a.sexo && { sexo: a.sexo }),
+        ...(a.dni != null && a.dni !== "" && { dni: a.dni }),
+      }));
+      await editarContenidoSesion(sesionId, {
+        contenido: { listaAlumnos },
+      });
+      toast.success(`Lista de ${listaAlumnos.length} alumnos guardada en la sesión. Actualizando PDF...`);
+      await handleGuardar();
+    } catch (err: any) {
+      console.error("Error al completar lista de cotejo:", err);
+      toast.error(err?.response?.data?.message || err?.message || "Error al guardar la lista");
+    } finally {
+      setFillingListaCotejo(false);
+    }
+  }, [sesionId, handleGuardar]);
 
   // ═════════════════════════════════════════════════════════════════════════
   // Helpers de actualización
@@ -1753,6 +1839,67 @@ function EditarSesionPremium() {
               </table>
             )}
 
+            {/* ── LISTA DE COTEJO (siempre visible al editar; actualizable con el botón) ── */}
+            <div
+              style={{
+                marginTop: "1rem",
+                marginBottom: "1rem",
+                border: `2px solid ${hex.accent}`,
+                borderRadius: "8px",
+                overflow: "hidden",
+                backgroundColor: hex.light ? `${hex.light}20` : undefined,
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: hex.light ?? hex.accent,
+                  color: hex.primary ?? "#1e293b",
+                  fontWeight: "bold",
+                  padding: "0.5rem 0.75rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "0.5rem",
+                }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <ListChecks className="w-5 h-5" />
+                  Lista de cotejo
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={fillingListaCotejo || saving}
+                  onClick={handleCompletarListaCotejo}
+                  style={{
+                    backgroundColor: hex.accent,
+                    color: "#fff",
+                    border: "none",
+                  }}
+                >
+                  {fillingListaCotejo ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <ListChecks className="w-4 h-4 mr-1.5" />
+                      Completar lista de cotejo
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div style={{ padding: "0.75rem" }}>
+                <InstrumentoEvaluacionSection
+                  instrumento={instrumentoPreview ?? INSTRUMENTO_LISTA_COTEJO_VACIA}
+                  hex={hex}
+                  alumnos={getSavedAlumnos()}
+                />
+              </div>
+            </div>
+
             {/* ── Botón guardar al final ── */}
             <div className="flex justify-center pt-6">
               <Button
@@ -1781,7 +1928,7 @@ function EditarSesionPremium() {
         ══════════════════════════════════════════════════════════════════ */}
         {view === "preview" && premiumData && (
           <div ref={documentRef}>
-            <SesionPremiumDoc data={premiumData} instrumento={null} />
+            <SesionPremiumDoc data={premiumData} instrumento={instrumentoPreview ?? undefined} />
           </div>
         )}
       </div>
