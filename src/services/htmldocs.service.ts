@@ -452,3 +452,113 @@ export function downloadPDF(blob: Blob, filename: string = "documento.pdf"): voi
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
 }
+
+/**
+ * Genera y descarga un documento Word (.doc) desde un elemento HTML.
+ * Usa HTML envuelto en MIME application/msword para que Word/LibreOffice lo abran.
+ * Pensado para sesiones y unidades premium (mismo contenido que el PDF).
+ *
+ * @param element Contenedor HTML a exportar (ej. el div que envuelve SesionPremiumDoc o UnidadDoc)
+ * @param filename Nombre del archivo sin extensión o con .doc (se fuerza .doc)
+ */
+export async function generateAndDownloadWord(
+  element: HTMLElement,
+  filename: string = "documento.doc",
+): Promise<void> {
+  const baseName = filename.replace(/\.docx?$/i, "") + ".doc";
+
+  await forceLoadAllImages(element);
+  const restoreImages = await inlineExternalImages(element);
+  const restoreAnimations = disableAnimations(element, false);
+
+  try {
+    const clone = element.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll(".no-print").forEach((el) => el.remove());
+
+    // Solo la línea del docente no se puede editar; director y resto sí
+    clone.querySelectorAll<HTMLElement>("[data-word-lock='docente']").forEach((cell) => {
+      cell.setAttribute("contenteditable", "false");
+      cell.setAttribute("contentEditable", "false");
+    });
+
+    // Word no muestra bien SVG/canvas: reemplazar gráficos educativos por texto para evitar icono de advertencia
+    const graphicPlaceholder = document.createElement("p");
+    graphicPlaceholder.style.cssText = "margin:8pt 0; padding:6pt; background:#f5f5f5; color:#555; font-size:9pt; font-style:italic; border:1px solid #ddd;";
+    graphicPlaceholder.textContent = "[Gráfico educativo — ver documento en PDF o en pantalla para el detalle]";
+    clone.querySelectorAll(".grafico-educativo, .grafico-educativo-error, .grafico-educativo-no-soportado").forEach((el) => {
+      const parent = el.parentElement;
+      if (parent) {
+        parent.replaceChild(graphicPlaceholder.cloneNode(true), el);
+      }
+    });
+
+    // Imágenes que no se pudieron convertir a data URL (http/https) no se ven en Word; reemplazar por texto
+    clone.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
+      const src = (img.getAttribute("src") || img.src || "").trim();
+      if (src.startsWith("http://") || src.startsWith("https://")) {
+        const span = document.createElement("span");
+        span.style.cssText = "display:inline-block; padding:4pt 8pt; background:#f0f0f0; color:#666; font-size:9pt; font-style:italic;";
+        span.textContent = "[Imagen — ver PDF para ver la imagen]";
+        img.parentElement?.replaceChild(span, img);
+      }
+    });
+
+    // Cualquier SVG o canvas restante reemplazar por texto (Word no los muestra bien y muestra icono de advertencia)
+    clone.querySelectorAll("svg, canvas").forEach((el) => {
+      const parent = el.parentElement;
+      if (!parent) return;
+      const p = document.createElement("p");
+      p.style.cssText = "margin:4pt 0; color:#888; font-size:9pt; font-style:italic;";
+      p.textContent = "[Elemento gráfico — ver PDF]";
+      parent.replaceChild(p, el);
+    });
+
+    const htmlContent = clone.innerHTML;
+
+    // Nota: director y otros campos editables; solo el nombre del docente va bloqueado
+    const editableNotice = `
+  <div style="margin-bottom:14pt; padding:8pt; background:#E8F4FD; border:1px solid #B6D4E8; font-size:10pt; color:#1a1a1a;">
+    <strong>Este documento puede editarse en Word.</strong> Si Word muestra "Protegido", haga clic en <strong>Habilitar edición</strong>.
+    Puede cambiar el nombre del director(a) y otros datos en las tablas. La línea <strong>Docente</strong> está bloqueada y no se puede editar.
+  </div>`;
+
+    const doc = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="ProgId" content="Word.Document"/>
+  <meta name="Generator" content="DocentePro"/>
+  <title>Documento editable</title>
+  <!--[if gte mso 9]><xml><w:WordDocument><w:DocumentProtection>Unrestricted</w:DocumentProtection></w:WordDocument></xml><![endif]-->
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 1cm; color: #1a1a1a; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #333; padding: 6px 8px; vertical-align: top; }
+    img { max-width: 100%; height: auto; }
+    h1, h2, h3 { margin-top: 12pt; margin-bottom: 6pt; }
+    p { margin: 4pt 0; }
+    ul, ol { margin: 4pt 0; padding-left: 24px; }
+  </style>
+</head>
+<body>
+${editableNotice}
+${htmlContent}
+</body>
+</html>`;
+
+    const blob = new Blob(["\uFEFF" + doc], {
+      type: "application/msword",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = baseName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } finally {
+    restoreAnimations();
+    restoreImages();
+  }
+}

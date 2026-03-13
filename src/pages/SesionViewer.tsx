@@ -30,6 +30,39 @@ function formatFecha(dateStr: string): string {
   });
 }
 
+/** Fecha a mostrar en el resumen: prioriza contenido.fechaSesion (la que edita el usuario), luego fechaInicio, luego createdAt */
+function getSessionDisplayDate(sesion: ISesion | null): string {
+  if (!sesion) return "";
+  const raw = sesion as any;
+  let contenido: Record<string, unknown> = {};
+  try {
+    const c = raw.contenido;
+    if (typeof c === "string") contenido = JSON.parse(c) || {};
+    else if (c && typeof c === "object") contenido = c;
+  } catch {
+    /* ignore */
+  }
+  const fromContenido = (contenido.fechaSesion || contenido.fechaInicio) as string | undefined;
+  if (fromContenido) return fromContenido;
+  if (raw.fechaInicio) return raw.fechaInicio;
+  return raw.createdAt || "";
+}
+
+/** Formato de fecha: si es solo día (YYYY-MM-DD) sin hora, sino con hora */
+function formatSessionDate(dateStr: string): string {
+  if (!dateStr) return "—";
+  const onlyDay = /^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim());
+  if (onlyDay) {
+    return new Date(dateStr + "T12:00:00").toLocaleDateString("es-PE", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+  return formatFecha(dateStr);
+}
+
 function formatDuracion(min: number): string {
   if (min < 60) return `${min} min`;
   const h = Math.floor(min / 60);
@@ -102,27 +135,41 @@ function SesionViewer() {
 
         setLoadingPdf(true);
         try {
-          // 1) Intentar CloudFront directo si pdfUrl existe
-          const cdnUrl = buildCdnPdfUrl(data.pdfUrl);
-          if (cdnUrl) {
-            setPdfUrl(cdnUrl);
-          } else {
-            // 2) Fallback: pedir URL pre-firmada al backend
-            const resp = await obtenerUrlDescarga(sesionId);
-            const url = (resp as any)?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
-            if (!cancelled && url) {
-              setPdfUrl(url);
-            } else if (!cancelled) {
+          // Priorizar URL pre-firmada del backend (no añadir query params: invalidaría la firma S3)
+          const resp = await obtenerUrlDescarga(sesionId);
+          const signedUrl = (resp as any)?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
+          if (!cancelled && signedUrl) {
+            setPdfUrl(signedUrl);
+          } else if (!cancelled && data.pdfUrl) {
+            // Fallback: CDN con cache-bust para evitar caché cuando la sesión se actualizó
+            const cdnUrl = buildCdnPdfUrl(data.pdfUrl);
+            if (cdnUrl) {
+              const bust = (raw.pdfGeneradoAt && new Date(raw.pdfGeneradoAt).getTime()) || (raw.updatedAt && new Date(raw.updatedAt).getTime()) || Date.now();
+              setPdfUrl(`${cdnUrl}${cdnUrl.includes("?") ? "&" : "?"}v=${bust}`);
+            } else {
               setPdfError("Esta sesión aún no tiene un PDF generado.");
             }
+          } else if (!cancelled) {
+            setPdfError("Esta sesión aún no tiene un PDF generado.");
           }
         } catch (pdfErr: any) {
           if (!cancelled) {
-            setPdfError(
-              pdfErr?.response?.status === 404
-                ? "Esta sesión aún no tiene un PDF generado."
-                : "No se pudo cargar el PDF."
-            );
+            // Si falla la URL pre-firmada pero la sesión tiene pdfUrl, intentar CDN con cache-bust
+            if (data.pdfUrl) {
+              const cdnUrl = buildCdnPdfUrl(data.pdfUrl);
+              if (cdnUrl) {
+                const bust = (raw.pdfGeneradoAt && new Date(raw.pdfGeneradoAt).getTime()) || (raw.updatedAt && new Date(raw.updatedAt).getTime()) || Date.now();
+                setPdfUrl(`${cdnUrl}${cdnUrl.includes("?") ? "&" : "?"}v=${bust}`);
+              } else {
+                setPdfError(pdfErr?.response?.status === 404 ? "Esta sesión aún no tiene un PDF generado." : "No se pudo cargar el PDF.");
+              }
+            } else {
+              setPdfError(
+                pdfErr?.response?.status === 404
+                  ? "Esta sesión aún no tiene un PDF generado."
+                  : "No se pudo cargar el PDF."
+              );
+            }
           }
         } finally {
           if (!cancelled) setLoadingPdf(false);
@@ -139,7 +186,7 @@ function SesionViewer() {
 
     load();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, location.key]);
 
   // ─── Buscar ficha existente para esta sesión ───
   useEffect(() => {
@@ -468,11 +515,13 @@ function SesionViewer() {
                       )}
                     </div>
 
-                    {/* Fecha con separador */}
+                    {/* Fecha con separador (prioriza contenido.fechaSesion que es la que edita el usuario) */}
                     <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700/50">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-                        <span className="text-xs text-slate-400 dark:text-slate-500">{formatFecha(sesion.createdAt)}</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500">
+                          {getSessionDisplayDate(sesion) ? formatSessionDate(getSessionDisplayDate(sesion)) : "—"}
+                        </span>
                       </div>
                     </div>
                   </>

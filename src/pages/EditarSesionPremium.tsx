@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
   Cloud,
   FileDown,
+  FileText,
   Loader2,
   Pencil,
   Eye,
@@ -486,9 +488,9 @@ function EditarSesionPremium() {
           refl.sobreEnsenanza || refl.dificultadesExperimentadas || "",
         );
 
-        // Fecha de la sesión (editable, alineada a Perú)
+        // Fecha de la sesión (editable). Backend puede devolver fechaSesion o fechaInicio dentro de contenido
         const dateStr =
-          contenido.fechaSesion || raw.fechaInicio || raw.createdAt;
+          contenido.fechaSesion || contenido.fechaInicio || raw.fechaInicio || raw.createdAt;
         setFechaSesion(dateOnlyToInputValue(dateStr) || dateStr || "");
       } catch (err: any) {
         if (!cancelled) {
@@ -723,9 +725,13 @@ function EditarSesionPremium() {
 
       toast.success("Contenido guardado en la base de datos");
 
-      setView("preview");
       setPdfUploading(true);
-      await new Promise((r) => setTimeout(r, 2000));
+      // Forzar que React monte la vista previa con el estado actual antes de capturar el PDF
+      flushSync(() => {
+        setView("preview");
+      });
+      // Dar tiempo a que el DOM se pinte y las imágenes empiecen a cargar
+      await new Promise((r) => setTimeout(r, 400));
 
       if (documentRef.current && user?.id) {
         const images = documentRef.current.querySelectorAll("img");
@@ -784,7 +790,7 @@ function EditarSesionPremium() {
       setSaving(false);
       setPdfUploading(false);
     }
-  }, [sesionId, buildPremiumData, titulo, rawSesion, user?.id]);
+  }, [sesionId, buildPremiumData, titulo, rawSesion, user?.id, fechaSesion]);
 
   /** Completar lista de cotejo: toma alumnos del storage, guarda en sesión (listaAlumnos) y actualiza PDF */
   const handleCompletarListaCotejo = useCallback(async () => {
@@ -887,6 +893,32 @@ function EditarSesionPremium() {
       toast.success("PDF descargado");
     } catch {
       toast.error("Error al generar PDF");
+    }
+  };
+
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
+  const handleDownloadWord = async () => {
+    const premData = buildPremiumData();
+    if (!premData) return;
+
+    setView("preview");
+    await new Promise((r) => setTimeout(r, 1500));
+
+    if (!documentRef.current) {
+      toast.error("No se pudo acceder al documento");
+      return;
+    }
+
+    setIsGeneratingWord(true);
+    try {
+      const timestamp = Date.now().toString().slice(-8);
+      const { generateAndDownloadWord } = await import("@/services/htmldocs.service");
+      await generateAndDownloadWord(documentRef.current, `sesion-editada-${timestamp}.doc`);
+      toast.success("Documento Word descargado");
+    } catch {
+      toast.error("Error al generar Word");
+    } finally {
+      setIsGeneratingWord(false);
     }
   };
 
@@ -1154,6 +1186,18 @@ function EditarSesionPremium() {
                 >
                   <FileDown className="h-4 w-4" />
                   <span className="hidden sm:inline">Descargar PDF</span>
+                </Button>
+                <Button
+                  onClick={handleDownloadWord}
+                  disabled={isGeneratingWord}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {isGeneratingWord ? "Generando Word..." : "Descargar Word"}
+                  </span>
                 </Button>
               </>
             )}

@@ -136,7 +136,7 @@ function DatosGeneralesPremium({
           </tr>
           <tr>
             <td style={{ width: "18%", fontWeight: "bold" }}>Docente:</td>
-            <td colSpan={3}>{docente}</td>
+            <td colSpan={3} data-word-lock="docente">{docente}</td>
           </tr>
           {director && (
             <tr>
@@ -1013,7 +1013,7 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
         nivel={sesion.nivel}
         duracion={sesion.duracion}
         seccion={seccion}
-        fecha={(sesion as any).createdAt || (sesion as any).fechaInicio}
+        fecha={(sesion as any).fechaInicio || (sesion as any).createdAt}
         hex={hex}
       />
 
