@@ -49,6 +49,9 @@ export interface EnrichedUser extends JWTPayload {
   sesionesUsadas?: number;
   sesionesRestantes?: number;
   problematicaCompleta?: boolean;
+  /** Para crear aula (POST /api/aula) si el usuario ya tiene nivel/grado en su perfil */
+  nivelId?: number;
+  gradoId?: number;
 }
 
 /**
