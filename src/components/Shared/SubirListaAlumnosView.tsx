@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Upload,
@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { useExtraerAlumnos } from "@/hooks/useExtraerAlumnos";
 import type { IAlumno } from "@/interfaces/IAula";
+import { saveAlumnosToAula } from "@/services/aula.service";
+import { useAuthStore } from "@/store/auth.store";
+import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { markAlumnosUploaded, saveAlumnos } from "@/utils/alumnosStorage";
 
 interface SubirListaAlumnosViewProps {
@@ -39,6 +42,8 @@ export function SubirListaAlumnosView({ onContinue, continueLabel = "Continuar a
     addAlumno,
     reset,
   } = useExtraerAlumnos();
+  const { user } = useAuthStore();
+  const [savingToBackend, setSavingToBackend] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -218,15 +223,39 @@ export function SubirListaAlumnosView({ onContinue, continueLabel = "Continuar a
         {/* Botones */}
         <div className="flex flex-col gap-2 w-full">
           <Button
-            onClick={() => {
+            disabled={savingToBackend}
+            onClick={async () => {
+              setSavingToBackend(true);
+              try {
+                if (user?.id) {
+                  await saveAlumnosToAula(user.id, alumnos, {
+                    nombre: "Mi aula",
+                    nivelId: user.nivelId ?? 1,
+                    gradoId: user.gradoId ?? 1,
+                  });
+                }
+              } catch (e) {
+                handleToaster("No se pudo guardar la lista en el servidor. Se guardó solo en este dispositivo.", "error");
+              } finally {
+                setSavingToBackend(false);
+              }
               saveAlumnos(alumnos);
               markAlumnosUploaded();
               onContinue();
             }}
             className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold shadow-lg shadow-emerald-500/25 transition-all"
           >
-            {continueLabel}
-            <ArrowRight className="w-4 h-4 ml-2" />
+            {savingToBackend ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                {continueLabel}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </>
+            )}
           </Button>
           <Button
             onClick={handleRetry}
