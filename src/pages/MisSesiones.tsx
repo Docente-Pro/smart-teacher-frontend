@@ -8,8 +8,11 @@ import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { obtenerSesionesPorUsuario, obtenerUrlDescarga, eliminarSesionPDF } from "@/services/sesiones.service";
+import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { buildCdnPdfUrl } from "@/utils/cdn";
+import { getAreaColor } from "@/constants/areaColors";
 import { ISesion } from "@/interfaces/ISesion";
+import type { IUnidadListItem } from "@/interfaces/IUnidadList";
 import {
   FileText,
   Search,
@@ -29,6 +32,8 @@ import {
   TrendingUp,
   X,
   Pencil,
+  FolderOpen,
+  Folder,
 } from "lucide-react";
 
 // ─────────────────── Helpers ───────────────────
@@ -61,24 +66,188 @@ function formatFechaRelativa(fecha: string) {
   }
 }
 
-function getAreaColor(area?: string) {
-  if (!area) return "from-slate-500 to-slate-600";
-  const a = area.toLowerCase();
-  if (a.includes("matemát")) return "from-blue-500 to-indigo-600";
-  if (a.includes("comunica")) return "from-emerald-500 to-teal-600";
-  if (a.includes("ciencia")) return "from-purple-500 to-violet-600";
-  if (a.includes("personal")) return "from-amber-500 to-orange-600";
-  return "from-dp-blue-500 to-dp-orange-500";
+/** Área curricular de la sesión (para agrupar y mostrar color) */
+function getSessionArea(s: ISesion): string {
+  const raw = s as any;
+  const fromArea = raw.area?.nombre ?? (typeof raw.area === "string" ? raw.area : null);
+  if (fromArea) return fromArea;
+  try {
+    const c = raw.contenido;
+    const contenido = typeof c === "string" ? JSON.parse(c) : c;
+    const area = contenido?.area?.nombre ?? contenido?.area ?? contenido?.datosGenerales?.area?.nombre ?? contenido?.datosGenerales?.area;
+    if (area) return typeof area === "string" ? area : area?.nombre ?? "Otra";
+  } catch {
+    /* ignore */
+  }
+  return raw.problematica?.nombre ?? "Otra";
 }
 
-function getAreaIcon(area?: string) {
-  if (!area) return <BookOpen className="h-5 w-5" />;
-  const a = area.toLowerCase();
-  if (a.includes("matemát")) return <span className="text-lg font-bold">∑</span>;
-  if (a.includes("comunica")) return <BookOpen className="h-5 w-5" />;
-  if (a.includes("ciencia")) return <span className="text-lg">🔬</span>;
-  if (a.includes("personal")) return <span className="text-lg">🤝</span>;
-  return <BookOpen className="h-5 w-5" />;
+/** Si la sesión pertenece a una unidad, devuelve { id, titulo, numeroUnidad }; si no, null */
+function getSessionUnidad(
+  s: ISesion,
+  unidades: IUnidadListItem[],
+): { id: string; titulo: string; numeroUnidad: number } | null {
+  const raw = s as any;
+  const unidadId = raw.unidadId ?? raw.unidad?.id;
+  if (!unidadId) return null;
+  const u = unidades.find((un) => un.id === unidadId);
+  const titulo = raw.unidad?.titulo ?? u?.titulo ?? "Unidad";
+  const numeroUnidad = u?.numeroUnidad ?? 0;
+  return { id: unidadId, titulo, numeroUnidad };
+}
+
+/** Agrupa sesiones en: por unidad (unidadId → por área) e individuales (por área) */
+function groupSessionsByFolder(
+  sessions: ISesion[],
+  unidades: IUnidadListItem[],
+): {
+  porUnidad: Array<{ unidadId: string; titulo: string; numeroUnidad: number; byArea: Array<{ areaName: string; sessions: ISesion[] }> }>;
+  individuales: Array<{ areaName: string; sessions: ISesion[] }>;
+} {
+  const byUnidad = new Map<string, { titulo: string; numeroUnidad: number; byArea: Map<string, ISesion[]> }>();
+  const individualesByArea = new Map<string, ISesion[]>();
+
+  for (const s of sessions) {
+    const areaName = getSessionArea(s);
+    const un = getSessionUnidad(s, unidades);
+
+    if (un) {
+      let folder = byUnidad.get(un.id);
+      if (!folder) {
+        folder = { titulo: un.titulo, numeroUnidad: un.numeroUnidad, byArea: new Map() };
+        byUnidad.set(un.id, folder);
+      }
+      const arr = folder.byArea.get(areaName) ?? [];
+      arr.push(s);
+      folder.byArea.set(areaName, arr);
+    } else {
+      const arr = individualesByArea.get(areaName) ?? [];
+      arr.push(s);
+      individualesByArea.set(areaName, arr);
+    }
+  }
+
+  const porUnidad: Array<{ unidadId: string; titulo: string; numeroUnidad: number; byArea: Array<{ areaName: string; sessions: ISesion[] }> }> = [];
+  byUnidad.forEach((folder, unidadId) => {
+    const byArea: Array<{ areaName: string; sessions: ISesion[] }> = [];
+    folder.byArea.forEach((sessions, areaName) => {
+      sessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      byArea.push({ areaName, sessions });
+    });
+    byArea.sort((a, b) => a.areaName.localeCompare(b.areaName));
+    porUnidad.push({
+      unidadId,
+      titulo: folder.titulo,
+      numeroUnidad: folder.numeroUnidad,
+      byArea,
+    });
+  });
+  porUnidad.sort((a, b) => a.numeroUnidad - b.numeroUnidad);
+
+  const individuales: Array<{ areaName: string; sessions: ISesion[] }> = [];
+  individualesByArea.forEach((sessions, areaName) => {
+    sessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    individuales.push({ areaName, sessions });
+  });
+  individuales.sort((a, b) => a.areaName.localeCompare(b.areaName));
+
+  return { porUnidad, individuales };
+}
+
+// ─── Tarjeta de sesión (área con color del sistema, fecha, acciones) ───
+function SessionCard({
+  sesion,
+  areaName,
+  downloadingId,
+  confirmDeleteId,
+  deletingId,
+  onVer,
+  onDescargar,
+  onWord,
+  onEditar,
+  onConfirmDelete,
+  onCancelDelete,
+  onEliminar,
+  formatFechaRelativa,
+}: {
+  sesion: ISesion;
+  areaName: string;
+  downloadingId: string | null;
+  confirmDeleteId: string | null;
+  deletingId: string | null;
+  onVer: () => void;
+  onDescargar: () => void;
+  onWord: () => void;
+  onEditar: () => void;
+  onConfirmDelete: () => void;
+  onCancelDelete: () => void;
+  onEliminar: () => void;
+  formatFechaRelativa: (f: string) => string;
+}) {
+  const areaTheme = getAreaColor(areaName);
+  const isConfirming = confirmDeleteId === sesion.id;
+
+  return (
+    <div
+      className="group relative rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer"
+      onClick={onVer}
+    >
+      <div
+        className={`h-1 bg-gradient-to-r ${areaTheme.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-300`}
+      />
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h3 className="font-semibold text-slate-900 dark:text-white text-sm leading-snug line-clamp-2 flex-1 min-w-0">
+            {sesion.titulo || "Sin título"}
+          </h3>
+          <span className={`flex-shrink-0 px-2 py-0.5 rounded-md text-xs font-medium ${areaTheme.pill}`}>
+            {areaName}
+          </span>
+        </div>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-1.5">
+          <Calendar className="h-3 w-3" />
+          {formatFechaRelativa(sesion.createdAt)}
+        </p>
+        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-3">
+          {sesion.nivel && <span>{sesion.nivel.nombre}</span>}
+          {sesion.grado && <span> · {sesion.grado.nombre}</span>}
+          <span> · {sesion.duracion} min</span>
+        </div>
+        <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 h-8 text-xs border-slate-200 dark:border-slate-700"
+            onClick={(e) => { e.stopPropagation(); onVer(); }}
+          >
+            <Eye className="h-3 w-3 mr-1" />
+            Ver
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onDescargar(); }} disabled={downloadingId === sesion.id} title="PDF">
+            {downloadingId === sesion.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onWord(); }} title="Word">
+            <FileText className="h-3 w-3" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onEditar(); }} title="Editar">
+            <Pencil className="h-3 w-3" />
+          </Button>
+          {isConfirming ? (
+            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+              <Button size="sm" className="h-8 px-2 text-xs bg-red-100 text-red-700 hover:bg-red-200" onClick={onEliminar} disabled={deletingId === sesion.id}>
+                {deletingId === sesion.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Sí"}
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={onCancelDelete}>No</Button>
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600" onClick={(e) => { e.stopPropagation(); onConfirmDelete(); }}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─────────────────── Componente Principal ───────────────────
@@ -89,6 +258,7 @@ function MisSesiones() {
   const navigate = useNavigate();
 
   const [sesiones, setSesiones] = useState<ISesion[]>([]);
+  const [unidades, setUnidades] = useState<IUnidadListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -98,19 +268,22 @@ function MisSesiones() {
 
   const userId = authUser?.id || usuario?.id;
 
-  // ─── Cargar sesiones ───
+  // ─── Cargar sesiones y unidades ───
   const cargarSesiones = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await obtenerSesionesPorUsuario(userId);
-      const sesionesArray = Array.isArray(data) ? data : [];
-      // Ordenar por fecha más reciente
+      const [sesionesData, unidadesData] = await Promise.all([
+        obtenerSesionesPorUsuario(userId),
+        listarUnidadesByUsuario(userId).catch(() => []),
+      ]);
+      const sesionesArray = Array.isArray(sesionesData) ? sesionesData : [];
       sesionesArray.sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setSesiones(sesionesArray);
+      setUnidades(Array.isArray(unidadesData) ? unidadesData : []);
     } catch (err: any) {
       console.error("Error al cargar sesiones:", err);
       const msg = err?.response?.data?.message || err?.message || "Error desconocido";
@@ -132,9 +305,13 @@ function MisSesiones() {
       s.titulo?.toLowerCase().includes(term) ||
       s.nivel?.nombre?.toLowerCase().includes(term) ||
       s.grado?.nombre?.toLowerCase().includes(term) ||
-      s.problematica?.nombre?.toLowerCase().includes(term)
+      s.problematica?.nombre?.toLowerCase().includes(term) ||
+      getSessionArea(s).toLowerCase().includes(term)
     );
   });
+
+  // ─── Agrupar por carpetas (por unidad + individuales, luego por área) ───
+  const { porUnidad, individuales } = groupSessionsByFolder(filteredSesiones, unidades);
 
   // ─── Descargar PDF ───
   const handleDescargar = async (sesionId: string) => {
@@ -397,143 +574,127 @@ function MisSesiones() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredSesiones.map((sesion) => {
-              const areaName = sesion.nivel?.nombre;
-
-              return (
-                <div
-                  key={sesion.id}
-                  className="group relative rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer"
-                  onClick={() => navigate(`/sesion/${sesion.id}`)}
-                >
-                  {/* Top accent bar */}
-                  <div
-                    className={`h-1 bg-gradient-to-r ${getAreaColor(areaName)} opacity-50 group-hover:opacity-100 transition-opacity duration-300`}
-                  />
-
-                  <div className="p-5">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-slate-900 dark:text-white text-base leading-snug line-clamp-2 group-hover:text-dp-blue-600 dark:group-hover:text-dp-blue-400 transition-colors duration-200">
-                          {sesion.titulo || "Sin título"}
-                        </h3>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5 flex items-center gap-1.5">
-                          <Calendar className="h-3 w-3" />
-                          {formatFechaRelativa(sesion.createdAt)}
-                        </p>
-                      </div>
-                      <div
-                        className={`flex-shrink-0 p-2.5 rounded-xl bg-gradient-to-br ${getAreaColor(areaName)} text-white shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300`}
-                      >
-                        {getAreaIcon(areaName)}
-                      </div>
-                    </div>
-
-                    {/* Details */}
-                    <div className="space-y-2 mb-4">
-                      {sesion.nivel && (
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                          <GraduationCap className="h-3.5 w-3.5 flex-shrink-0 text-blue-500/60 dark:text-blue-400/60" />
-                          <span className="truncate">{sesion.nivel.nombre}</span>
-                        </div>
-                      )}
-                      {sesion.grado && (
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                          <BookOpen className="h-3.5 w-3.5 flex-shrink-0 text-emerald-500/60 dark:text-emerald-400/60" />
-                          <span className="truncate">{sesion.grado.nombre}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                        <Clock className="h-3.5 w-3.5 flex-shrink-0 text-amber-500/60 dark:text-amber-400/60" />
-                        <span>{sesion.duracion} min</span>
-                      </div>
-                    </div>
-
-                    {/* Tags */}
-                    {sesion.problematica && (
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-700/40 text-xs text-slate-600 dark:text-slate-300 font-medium border border-slate-100 dark:border-slate-700/50">
-                          {sesion.problematica.nombre}
+          <div className="space-y-8">
+            {/* ─── Sesiones por unidad ─── */}
+            {porUnidad.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <FolderOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                    Sesiones por unidad
+                  </h2>
+                </div>
+                <div className="space-y-6">
+                  {porUnidad.map((folder) => (
+                    <div
+                      key={folder.unidadId}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 overflow-hidden"
+                    >
+                      <div className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700/50">
+                        <Folder className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                          Unidad {folder.numeroUnidad > 0 ? folder.numeroUnidad : ""}{folder.numeroUnidad > 0 ? ": " : ""}{folder.titulo}
                         </span>
                       </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-700/50">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-sm h-9 border-slate-200 dark:border-slate-700 hover:bg-dp-blue-50 hover:text-dp-blue-600 hover:border-dp-blue-200 dark:hover:bg-dp-blue-500/10 dark:hover:text-dp-blue-400 transition-all"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/sesion/${sesion.id}`); }}
-                      >
-                        <Eye className="h-3.5 w-3.5 mr-1.5" />
-                        Ver
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 transition-all"
-                        onClick={(e) => { e.stopPropagation(); handleDescargar(sesion.id); }}
-                        disabled={downloadingId === sesion.id}
-                      >
-                        {downloadingId === sesion.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Download className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 dark:hover:bg-violet-500/10 dark:hover:text-violet-400 transition-all"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/editar-sesion/${sesion.id}`); }}
-                        title="Editar contenido"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-
-                      {/* Delete with confirmation */}
-                      {confirmDeleteId === sesion.id ? (
-                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9 px-2.5 text-xs border-red-300 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 transition-all"
-                            onClick={() => handleEliminar(sesion.id)}
-                            disabled={deletingId === sesion.id}
-                          >
-                            {deletingId === sesion.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              "Sí"
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9 px-2.5 text-xs transition-all"
-                            onClick={() => setConfirmDeleteId(null)}
-                          >
-                            No
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-all"
-                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(sesion.id); }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
+                      <div className="p-4 space-y-5">
+                        {folder.byArea.map(({ areaName, sessions }) => {
+                          const areaTheme = getAreaColor(areaName);
+                          return (
+                            <div key={areaName}>
+                              <div
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg mb-3 ${areaTheme.bg} ${areaTheme.border} border`}
+                              >
+                                <span className={`w-2 h-2 rounded-full ${areaTheme.dot}`} />
+                                <span className={`text-sm font-medium ${areaTheme.text}`}>
+                                  {areaName}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {sessions.map((sesion) => (
+                                  <SessionCard
+                                    key={sesion.id}
+                                    sesion={sesion}
+                                    areaName={areaName}
+                                    downloadingId={downloadingId}
+                                    confirmDeleteId={confirmDeleteId}
+                                    deletingId={deletingId}
+                                    onVer={() => navigate(`/sesion/${sesion.id}`)}
+                                    onDescargar={() => handleDescargar(sesion.id)}
+                                    onWord={() => navigate(`/sesion-suscriptor-result/${sesion.id}?download=word`)}
+                                    onEditar={() => navigate(`/editar-sesion/${sesion.id}`)}
+                                    onConfirmDelete={() => setConfirmDeleteId(sesion.id)}
+                                    onCancelDelete={() => setConfirmDeleteId(null)}
+                                    onEliminar={() => handleEliminar(sesion.id)}
+                                    formatFechaRelativa={formatFechaRelativa}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ─── Sesiones individuales (free) ─── */}
+            {individuales.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <Folder className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                    Sesiones individuales
+                  </h2>
+                </div>
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 overflow-hidden">
+                  <div className="p-4 space-y-5">
+                    {individuales.map(({ areaName, sessions }) => {
+                      const areaTheme = getAreaColor(areaName);
+                      return (
+                        <div key={areaName}>
+                          <div
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg mb-3 ${areaTheme.bg} ${areaTheme.border} border`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${areaTheme.dot}`} />
+                            <span className={`text-sm font-medium ${areaTheme.text}`}>
+                              {areaName}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {sessions.map((sesion) => (
+                              <SessionCard
+                                key={sesion.id}
+                                sesion={sesion}
+                                areaName={areaName}
+                                downloadingId={downloadingId}
+                                confirmDeleteId={confirmDeleteId}
+                                deletingId={deletingId}
+                                onVer={() => navigate(`/sesion/${sesion.id}`)}
+                                onDescargar={() => handleDescargar(sesion.id)}
+                                onWord={() => navigate(`/sesion-suscriptor-result/${sesion.id}?download=word`)}
+                                onEditar={() => navigate(`/editar-sesion/${sesion.id}`)}
+                                onConfirmDelete={() => setConfirmDeleteId(sesion.id)}
+                                onCancelDelete={() => setConfirmDeleteId(null)}
+                                onEliminar={() => handleEliminar(sesion.id)}
+                                formatFechaRelativa={formatFechaRelativa}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })}
+              </section>
+            )}
+
+            {porUnidad.length === 0 && individuales.length === 0 && (
+              <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
+                No hay sesiones que coincidan con la búsqueda.
+              </p>
+            )}
           </div>
         )}
       </div>
