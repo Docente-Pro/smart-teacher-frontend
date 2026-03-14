@@ -7,7 +7,7 @@
   padding: var(--spacing-md);
   background: var(--color-fondo);
   border-radius: var(--border-radius);
-  overflow-x: auto;
+  overflow: visible;
 }
 
 .tabla-valores table {

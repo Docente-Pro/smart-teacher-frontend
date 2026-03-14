@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { FileDown, FileText, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles, Eye, Pencil, Calendar } from "lucide-react";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc";
 import { useSesionPremiumPDF } from "@/hooks/useSesionPremiumPDF";
+import { useAuthStore } from "@/store/auth.store";
 import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/fichaAplicacion.service";
 import { editarContenidoSesion } from "@/services/sesiones.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -26,6 +27,7 @@ function SesionPremiumResult() {
   const location = useLocation();
   const navigate = useNavigate();
   const documentRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuthStore();
 
   // Obtener data del state de navegación
   const stateData = location.state as {
@@ -294,7 +296,7 @@ function SesionPremiumResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumento} />
+          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumento} insigniaUrl={user?.insigniaUrl} />
         </div>
       </div>
     </div>

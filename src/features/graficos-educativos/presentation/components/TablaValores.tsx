@@ -58,8 +58,8 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
     let elementos: { celdas: (string | number)[] }[] = [];
     const mostrarBordes = data.mostrarBordes ?? true;
 
-    if (encabezados.length > 0 && data.elementos?.length > 0 && 'celdas' in (data.elementos[0] || {})) {
-      // Formato original: encabezados[] + elementos[].celdas[]
+    if (data.elementos?.length > 0 && 'celdas' in (data.elementos[0] || {})) {
+      // Formato con elementos[].celdas[] (con o sin encabezados)
       elementos = data.elementos as any;
     } else if (Array.isArray(data.elementos) && data.elementos.length > 0) {
       // Formato backend nuevo: array 2D de objetos {tipo, contenido, esEncabezado}
@@ -263,6 +263,7 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
     svgRef.current.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     svgRef.current.style.width = '100%';
     svgRef.current.style.maxWidth = `${svgWidth}px`;
+    svgRef.current.style.minWidth = '0';
     svgRef.current.style.height = 'auto';
   }, [encabezados, elementos, mostrarBordes]);
 

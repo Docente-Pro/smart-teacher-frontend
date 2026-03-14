@@ -329,6 +329,7 @@ function UnidadResult() {
               numeroUnidad={datosBase.numeroUnidad}
               grado={gradoLabel}
               seccion={seccion}
+              insigniaUrl={user?.insigniaUrl}
             />
 
             {/* I. DATOS GENERALES */}
