@@ -734,13 +734,13 @@ function SecuenciaDidacticaPremium({
           <ProcesoPremiumRow key={`d-${i}`} proceso={p} idx={i} />
         ))}
 
-        {/* CIERRE */}
+        {/* CIERRE / DESENLACE */}
         <tr>
           <td
             colSpan={2}
             style={{ backgroundColor: hex.light, fontWeight: "bold" }}
           >
-            CIERRE - Tiempo aproximado: {cierre.tiempo || "15 minutos"}
+            CIERRE / DESENLACE - Tiempo aproximado: {cierre.tiempo || "15 minutos"}
           </td>
         </tr>
         {cierre.procesos?.map((p, i) => (
@@ -1043,15 +1043,13 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
         <PreparacionPremium preparacion={sesion.preparacion} hex={hex} />
       )}
 
-      {/* MOMENTOS Y TIEMPOS */}
-      {(sesion.inicio || sesion.desarrollo || sesion.cierre) && (
-        <SecuenciaDidacticaPremium
-          inicio={sesion.inicio || { tiempo: "", procesos: [] }}
-          desarrollo={sesion.desarrollo || { tiempo: "", procesos: [] }}
-          cierre={sesion.cierre || { tiempo: "", procesos: [] }}
-          hex={hex}
-        />
-      )}
+      {/* MOMENTOS Y TIEMPOS — siempre visible para PDF/Word (Inicio, Desarrollo, Cierre/Desenlace) */}
+      <SecuenciaDidacticaPremium
+        inicio={sesion.inicio || { tiempo: "", procesos: [] }}
+        desarrollo={sesion.desarrollo || { tiempo: "", procesos: [] }}
+        cierre={sesion.cierre || { tiempo: "", procesos: [] }}
+        hex={hex}
+      />
 
       {/* REFLEXIONES */}
       {sesion.reflexiones && (
