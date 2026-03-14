@@ -33,8 +33,8 @@ export function DocumentHeader({ institucion, titulo, areaSubtitle, accentColor,
           src={insigniaUrl}
           alt="Insignia"
           style={{
-            width: "165px",
-            height: "165px",
+            width: "100px",
+            height: "100px",
             objectFit: "contain",
             flexShrink: 0,
           }}
@@ -53,7 +53,7 @@ export function DocumentHeader({ institucion, titulo, areaSubtitle, accentColor,
           {titulo}
         </h2>
       </div>
-      {insigniaUrl && <div style={{ width: "165px", flexShrink: 0 }} />}
+      {insigniaUrl && <div style={{ width: "100px", flexShrink: 0 }} />}
     </div>
   );
 }

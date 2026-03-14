@@ -69,7 +69,7 @@ function FichaHeader({
           <img
             src={insigniaUrl}
             alt="Insignia"
-            style={{ width: "165px", height: "165px", objectFit: "contain", flexShrink: 0 }}
+            style={{ width: "100px", height: "100px", objectFit: "contain", flexShrink: 0 }}
           />
         )}
         <div style={{ flex: 1, textAlign: "center" }}>
@@ -96,7 +96,7 @@ function FichaHeader({
             {ficha.titulo}
           </h1>
         </div>
-        {insigniaUrl && <div style={{ width: "165px", flexShrink: 0 }} />}
+        {insigniaUrl && <div style={{ width: "100px", flexShrink: 0 }} />}
       </div>
 
       {/* Datos curriculares */}
