@@ -52,7 +52,7 @@ export function useCriterios({
           
           // Solo mostrar error si no se obtuvieron criterios
           if (!criteriosData || criteriosData.length === 0) {
-            console.warn("No se generaron criterios");
+            // No se generaron criterios
           }
         } catch (error) {
           console.error("Error al cargar criterios:", error);

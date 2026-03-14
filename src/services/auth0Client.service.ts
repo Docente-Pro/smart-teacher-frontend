@@ -38,7 +38,6 @@ export const injectTokensIntoAuth0 = async (tokens: TokenResponse): Promise<void
     throw new Error('Tokens inválidos: access_token e id_token son requeridos');
   }
 
-  console.log('💉 Inyectando tokens en Auth0 SDK...');
   
   try {
     // Guardar tokens en localStorage con el formato que Auth0 espera
@@ -63,7 +62,6 @@ export const injectTokensIntoAuth0 = async (tokens: TokenResponse): Promise<void
     // Guardar en localStorage (Auth0 lo leerá de ahí)
     localStorage.setItem(auth0Key, JSON.stringify(cacheEntry));
     
-    console.log('✅ Tokens guardados en cache de Auth0');
     
     // Forzar recarga del cliente para que lea el nuevo cache
     window.location.reload();

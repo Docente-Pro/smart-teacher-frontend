@@ -54,7 +54,6 @@ function Dashboard() {
         if (user.id) {
           const res = await getUsuarioById(user.id);
           const freshUser = res.data?.data || res.data;
-          console.log("📊 DEBUG - freshUser del backend:", JSON.stringify(freshUser, null, 2));
           if (freshUser) {
             // El endpoint GET /usuario/:id puede devolver los campos en la raíz
             // O anidados dentro de "suscripcion". Intentamos ambos.
@@ -77,10 +76,8 @@ function Dashboard() {
             if (gradoId !== undefined) updatePayload.gradoId = gradoId;
 
             if (Object.keys(updatePayload).length > 0) {
-              console.log("📊 DEBUG - updatePayload:", updatePayload);
               useAuthStore.getState().updateUser(updatePayload);
             } else {
-              console.log("📊 DEBUG - No se encontraron campos para actualizar");
             }
           }
         }
@@ -95,7 +92,7 @@ function Dashboard() {
             });
             setHasSuscripcionUnidad(tieneSuscripcion);
           } catch (e) {
-            console.warn("No se pudieron cargar unidades:", e);
+            // No se pudieron cargar unidades
           }
         }
       } catch (error: any) {
@@ -109,7 +106,6 @@ function Dashboard() {
         const currentUser = useAuthStore.getState().user;
         const totalUsadas = Number(currentUser?.sesionesUsadas ?? 0);
         const esFree = !currentUser?.plan || currentUser.plan === "free";
-        console.log("📊 WelcomeGuide check:", { esFree, totalUsadas, seen: hasSeenWelcomeGuide() });
         if (esFree && totalUsadas === 0 && !hasSeenWelcomeGuide()) {
           setShowWelcomeGuide(true);
         }

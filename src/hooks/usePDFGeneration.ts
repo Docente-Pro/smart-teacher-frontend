@@ -43,11 +43,6 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
       const duracionNum = parseInt(duracionStr, 10) || 90;
 
       // PASO 0 — Crear la sesión en la BD
-      console.log("📤 Paso 0: Creando sesión en la BD...", { 
-        titulo: sesion.titulo, usuarioId, 
-        nivelId: usuario.nivelId, gradoId: usuario.gradoId, 
-        problematicaId: usuario.problematicaId, duracion: duracionNum 
-      });
       const respuestaCrear = await crearSesion({
         titulo: sesion.titulo || "Sesión de aprendizaje",
         usuarioId,
@@ -57,8 +52,6 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
         duracion: duracionNum,
       });
 
-      console.log("📦 Respuesta crearSesion:", JSON.stringify(respuestaCrear));
-
       // El backend puede devolver { id } o { data: { id } } o { success, data: { id } }
       const sesionId = (respuestaCrear as any)?.data?.id 
         ?? (respuestaCrear as any)?.id 
@@ -67,26 +60,19 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
       if (!sesionId) {
         throw new Error("No se obtuvo el ID de la sesión creada. Respuesta: " + JSON.stringify(respuestaCrear));
       }
-      console.log("✅ Sesión creada con id:", sesionId);
-
       // PASO 1 — Pedir URL de subida
-      console.log("📤 Paso 1: Solicitando URL de subida...", { sesionId, usuarioId });
       const respuestaUpload = await solicitarUploadPDF({
         sesionId,
         usuarioId,
       });
 
-      console.log("📦 Respuesta upload-url:", JSON.stringify(respuestaUpload));
-
       // El backend puede devolver { data: { uploadUrl } } o { uploadUrl } directamente
       const uploadData = (respuestaUpload as any)?.data ?? respuestaUpload;
 
       // PASO 2 — Subir PDF directo a S3
-      console.log("📤 Paso 2: Subiendo PDF a S3...");
       await subirPDFaS3(uploadData.uploadUrl, pdfBlob);
 
       // PASO 3 — Confirmar subida y guardar JSON
-      console.log("📤 Paso 3: Confirmando subida y guardando sesión...");
       const respuestaConfirm = await confirmarUploadPDF({
         sesionId,
         usuarioId,
@@ -97,7 +83,6 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
       const confirmData = (respuestaConfirm as any)?.data ?? respuestaConfirm;
 
       setIsSaved(true);
-      console.log("✅ Sesión guardada en la nube:", confirmData.id);
       return confirmData;
     } catch (error) {
       console.error("❌ Error al guardar en la nube:", error);
@@ -183,7 +168,7 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
           handleToaster("Sesión guardada en la nube", "success");
         } catch {
           // No bloquear la descarga si falla el guardado
-          console.warn("No se pudo guardar en la nube, pero el PDF fue descargado");
+          // No se pudo guardar en la nube
         }
       }
     } catch (error) {

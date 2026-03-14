@@ -128,7 +128,7 @@ function SesionSuscriptorResult() {
             contenido = c;
           }
         } catch {
-          console.warn("⚠️ No se pudo parsear contenido:", raw.contenido);
+          /* no se pudo parsear contenido */
         }
 
         // Si la sesión no tiene lista de alumnos pero el docente tiene en localStorage, actualizar en silencio y recargar
@@ -156,15 +156,10 @@ function SesionSuscriptorResult() {
                 /* ignore */
               }
             }
-          } catch (err) {
-            console.warn("No se pudo actualizar lista de alumnos en la sesión:", err);
+          } catch {
+            /* no se pudo actualizar lista de alumnos */
           }
         }
-
-        console.log("🔍 [SesionSuscriptorResult] raw keys:", Object.keys(raw));
-        console.log("🔍 [SesionSuscriptorResult] contenido keys:", Object.keys(contenido));
-        console.log("🔍 [SesionSuscriptorResult] raw.inicio?", !!raw.inicio, "contenido.inicio?", !!contenido.inicio);
-        console.log("🔍 [SesionSuscriptorResult] raw.area:", raw.area);
 
         // Devuelve el primer valor "con datos reales" — ignora null, undefined,
         // objetos vacíos ({}) y arrays vacíos ([]).
@@ -239,9 +234,6 @@ function SesionSuscriptorResult() {
             ? { recursoNarrativo: raw.recursoNarrativo || contenido.recursoNarrativo }
             : {}),
         };
-
-        console.log("🔍 [SesionSuscriptorResult] sesionForDoc.inicio:", sesionForDoc.inicio);
-        console.log("🔍 [SesionSuscriptorResult] sesionForDoc.area:", sesionForDoc.area);
 
         const nombreDirectivo =
           (raw.usuario as any)?.nombreDirectivo ||
@@ -326,10 +318,6 @@ function SesionSuscriptorResult() {
       const usuarioId = user.id;
 
       // Paso 1 — URL presigned
-      console.log("📤 Paso 1 (suscriptor): Solicitando URL de subida...", {
-        sesionId: idSesion,
-        usuarioId,
-      });
       const respuestaUpload = await solicitarUploadPDF({
         sesionId: idSesion,
         usuarioId,
@@ -339,11 +327,9 @@ function SesionSuscriptorResult() {
         (respuestaUpload as any)?.data ?? respuestaUpload;
 
       // Paso 2 — Subir PDF a S3
-      console.log("📤 Paso 2 (suscriptor): Subiendo PDF a S3...");
       await subirPDFaS3(uploadData.uploadUrl, pdfBlob);
 
       // Paso 3 — Confirmar subida
-      console.log("📤 Paso 3 (suscriptor): Confirmando subida...");
       await confirmarUploadPDF({
         sesionId: idSesion,
         usuarioId,
@@ -352,7 +338,6 @@ function SesionSuscriptorResult() {
       });
 
       setIsSaved(true);
-      console.log("✅ PDF de sesión (suscriptor) guardado en la nube");
     } catch (error) {
       console.error("❌ Error al guardar PDF del suscriptor:", error);
       guardadoIniciado.current = false; // Permitir reintentar
@@ -441,7 +426,7 @@ function SesionSuscriptorResult() {
           await guardarEnNube();
           handleToaster("Sesión guardada en la nube", "success");
         } catch {
-          console.warn("PDF descargado, pero no se pudo guardar en la nube");
+          // PDF descargado pero no se pudo guardar en la nube
         }
       }
     } catch (error) {

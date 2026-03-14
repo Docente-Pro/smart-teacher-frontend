@@ -33,7 +33,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       error.message?.includes("insertBefore");
 
     if (isDomMutation) {
-      console.warn(
+      if (typeof console !== "undefined" && console.warn) console.warn(
         "[ErrorBoundary] Error de DOM externo detectado, re-montando…",
         error.message,
       );

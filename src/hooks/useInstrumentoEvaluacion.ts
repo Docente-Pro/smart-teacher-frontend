@@ -164,9 +164,6 @@ export function useInstrumentoEvaluacion(): UseInstrumentoEvaluacionReturn {
         }
 
         // Tipo no reconocido — fallback a lista de cotejo
-        console.warn(
-          `[useInstrumentoEvaluacion] Tipo desconocido: "${campos.instrumento}". Usando lista de cotejo como fallback.`,
-        );
         const fallback = buildListaCotejo(sesion);
         setInstrumento(fallback);
         return fallback;

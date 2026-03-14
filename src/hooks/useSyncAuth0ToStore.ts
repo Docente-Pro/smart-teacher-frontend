@@ -31,7 +31,6 @@ export function useSyncAuth0ToStore() {
             user: user as any
           });
           
-          console.log('✅ Tokens sincronizados de Auth0 a Zustand store');
         } catch (error) {
           console.error('❌ Error sincronizando tokens:', error);
         }
@@ -40,7 +39,6 @@ export function useSyncAuth0ToStore() {
       // Si Auth0 dice que NO está autenticado pero el store tiene datos, limpiar
       if (!isAuthenticated && !isLoading && storeUser) {
         clearAuth();
-        console.log('🧹 Store limpiado porque Auth0 no está autenticado');
       }
     };
 

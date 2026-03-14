@@ -60,29 +60,18 @@ export function useSesionPremiumPDF(
       const usuarioId = user.id;
 
       // PASO 1 — Pedir URL de subida
-      console.log("📤 Paso 1: Solicitando URL de subida...", {
-        sesionId,
-        usuarioId,
-      });
       const respuestaUpload = await solicitarUploadPDF({
         sesionId,
         usuarioId,
       });
 
-      console.log(
-        "📦 Respuesta upload-url:",
-        JSON.stringify(respuestaUpload),
-      );
-
       const uploadData =
         (respuestaUpload as any)?.data ?? respuestaUpload;
 
       // PASO 2 — Subir PDF directo a S3
-      console.log("📤 Paso 2: Subiendo PDF a S3...");
       await subirPDFaS3(uploadData.uploadUrl, pdfBlob);
 
       // PASO 3 — Confirmar subida y guardar JSON
-      console.log("📤 Paso 3: Confirmando subida...");
       const respuestaConfirm = await confirmarUploadPDF({
         sesionId,
         usuarioId,
@@ -95,7 +84,6 @@ export function useSesionPremiumPDF(
 
       setIsSaved(true);
       if (storageKey) sessionStorage.setItem(storageKey, "1");
-      console.log("✅ PDF Premium guardado en la nube:", confirmData.id);
       return confirmData;
     } catch (error) {
       console.error("❌ Error al guardar PDF Premium en la nube:", error);
@@ -200,9 +188,7 @@ export function useSesionPremiumPDF(
           await guardarEnNube();
           handleToaster("Sesión guardada en la nube", "success");
         } catch {
-          console.warn(
-            "PDF descargado, pero no se pudo guardar en la nube",
-          );
+          // PDF descargado pero no se pudo guardar en la nube
         }
       }
     } catch (error) {

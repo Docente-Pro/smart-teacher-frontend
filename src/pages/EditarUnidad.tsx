@@ -668,7 +668,6 @@ function EditarUnidad() {
       }
 
       if (!documentRef.current) {
-        console.warn("⚠️ documentRef.current sigue null tras", MAX_WAIT, "ms");
         toast.warning(
           "El contenido se guardó, pero no se pudo regenerar el PDF. " +
             "Puedes descargarlo manualmente desde la vista previa.",

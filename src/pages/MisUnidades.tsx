@@ -161,7 +161,7 @@ function MisUnidades() {
               try {
                 await sincronizarMiembroUnidad(u.id);
               } catch (syncErr) {
-                console.warn(`⚠️ Error sincronizando ${u.titulo}:`, syncErr);
+                // Error sincronizando unidad
               }
             }),
           );

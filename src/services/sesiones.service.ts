@@ -124,8 +124,6 @@ export async function solicitarUploadPDF(data: SolicitarUploadRequest): Promise<
  * La URL presignada ya contiene todas las credenciales y firma necesarias.
  */
 export async function subirPDFaS3(uploadUrl: string, pdfFile: Blob): Promise<void> {
-  console.log("📤 PUT a S3:", uploadUrl.substring(0, 120) + "...");
-  console.log("📦 Tamaño del PDF:", pdfFile.size, "bytes");
 
   // Validar que la URL presignada tenga credenciales válidas
   const credMatch = uploadUrl.match(/X-Amz-Credential=([^&/]+)/);
@@ -149,7 +147,6 @@ export async function subirPDFaS3(uploadUrl: string, pdfFile: Blob): Promise<voi
     throw new Error(`Error al subir archivo a S3: ${response.status} ${response.statusText}`);
   }
 
-  console.log("✅ PDF subido a S3 exitosamente");
 }
 
 // ============================================

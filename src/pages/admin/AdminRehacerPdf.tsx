@@ -106,7 +106,6 @@ export default function AdminRehacerPdf() {
         size: "A4",
         orientation: "portrait",
       });
-      console.log("✅ [AdminRehacerPdf] PDF generado:", pdfBlob.size, "bytes");
 
       // ── Subir PDF original ──
       setEstado("Subiendo PDF…");
@@ -123,7 +122,6 @@ export default function AdminRehacerPdf() {
             ? JSON.parse(rehacerResponse.contenido)
             : rehacerResponse.contenido,
       });
-      console.log("✅ [AdminRehacerPdf] PDF original subido y confirmado");
 
       // ── Subir + confirmar cada clon ──
       if (rehacerResponse.clonesUpload?.length) {
@@ -142,7 +140,6 @@ export default function AdminRehacerPdf() {
                   ? JSON.parse(rehacerResponse.contenido)
                   : rehacerResponse.contenido,
             });
-            console.log(`✅ [AdminRehacerPdf] Clon ${clon.sesionId} subido`);
           } catch (clonErr) {
             console.error(
               `❌ [AdminRehacerPdf] Error subiendo clon ${clon.sesionId}:`,

@@ -36,9 +36,7 @@ export function SessionRestorer({ children }: { children: React.ReactNode }) {
       
       if (refreshToken) {
         try {
-          console.log('🔄 Restaurando sesión con refresh token...');
           await refreshSession(refreshToken);
-          console.log('✅ Sesión restaurada exitosamente');
         } catch (error: any) {
           console.error('❌ Error al restaurar sesión:', error);
           

@@ -1,4 +1,4 @@
-﻿import { io, Socket } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import { useAuthStore } from "@/store/auth.store";
 
 // ============================================
@@ -116,11 +116,9 @@ export function conectarSocket(): Socket {
   });
 
   socket.on("connect", () => {
-    console.log("🔌 Socket.IO conectado:", socket?.id);
     // Al conectar/reconectar, unirse automáticamente a la sala del usuario
     if (pendingUserId) {
       socket?.emit("join-user", pendingUserId);
-      console.log("🔌 Emitido join-user para:", pendingUserId);
     }
   });
 
@@ -129,7 +127,7 @@ export function conectarSocket(): Socket {
   });
 
   socket.on("disconnect", (reason) => {
-    console.warn("🔌 Socket.IO desconectado:", reason);
+    // Socket.IO desconectado
   });
 
   return socket;
@@ -144,9 +142,7 @@ export function joinUserRoom(userId: string): void {
   const s = getSocket();
   if (s?.connected) {
     s.emit("join-user", userId);
-    console.log("🔌 Emitido join-user para:", userId);
   } else {
-    console.log("🔌 join-user pendiente (socket no conectado aún), userId:", userId);
   }
 }
 
@@ -188,6 +184,5 @@ export function desconectarSocket(): void {
     socket.disconnect();
     socket = null;
     pendingUserId = null;
-    console.log("🔌 Socket.IO desconectado manualmente");
   }
 }

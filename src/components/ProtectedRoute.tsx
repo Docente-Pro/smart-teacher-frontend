@@ -95,7 +95,6 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     if (lastRedirectRef.current === target) return;
     lastRedirectRef.current = target;
 
-    console.log(`🔒 ProtectedRoute: ${validationResult.reason} → ${target}`);
     navigate(target, { 
       replace: true, 
       ...(validationResult.state ? { state: validationResult.state } : {})

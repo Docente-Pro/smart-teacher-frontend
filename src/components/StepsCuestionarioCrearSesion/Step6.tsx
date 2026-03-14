@@ -20,7 +20,6 @@ function Step6({ pagina, setPagina }: Props) {
   const [propositoSesionText, setPropositoSesionText] = useState("");
   const [loadingIA, setLoadingIA] = useState(false);
 
-  console.log(sesion);
 
   // Inicializar desde el store si ya hay datos
   useEffect(() => {
@@ -54,8 +53,6 @@ function Step6({ pagina, setPagina }: Props) {
       const data = response.data;
 
       if (data.success && data.data) {
-        console.log(data.data);
-
         // El endpoint ahora puede devolver un único string `propositoSesion`.
         const proposito =
           data.data.propositoSesion ||
@@ -90,8 +87,6 @@ function Step6({ pagina, setPagina }: Props) {
   }
 
   if (!sesion) return null;
-
-  console.log(propositoSesionText);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6">

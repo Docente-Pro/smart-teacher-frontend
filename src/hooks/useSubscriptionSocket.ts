@@ -66,8 +66,6 @@ export function useSubscriptionSocket(): UseSubscriptionSocketReturn {
     // ─── 1. pago:confirmado → Plan activado ───
     cleanups.push(
       onSocketEvent("pago:confirmado", (payload) => {
-        console.log("✅ [SubscriptionSocket] Pago confirmado:", payload);
-
         updateUser({
           plan: (payload.plan as import("@/interfaces/IAuth").PlanType) || "premium_mensual",
           suscripcionActiva: true,
@@ -87,8 +85,6 @@ export function useSubscriptionSocket(): UseSubscriptionSocketReturn {
         if (forceLogoutRef.current) return;
         forceLogoutRef.current = true;
 
-        console.warn("⚠️ [SubscriptionSocket] Suscripción revocada:", payload);
-
         toast.error(payload.message || "Tu suscripción ha sido revocada.", {
           duration: 6000,
         });
@@ -105,8 +101,6 @@ export function useSubscriptionSocket(): UseSubscriptionSocketReturn {
     // ─── 3. suscripcion:expirada → Mostrar modal de renovación ───
     cleanups.push(
       onSocketEvent("suscripcion:expirada", (payload) => {
-        console.info("ℹ️ [SubscriptionSocket] Suscripción expirada:", payload);
-
         // Actualizar store: ya no es premium
         updateUser({
           suscripcionActiva: false,
@@ -119,8 +113,6 @@ export function useSubscriptionSocket(): UseSubscriptionSocketReturn {
     // ─── 4. pago:rechazado → Notificar al usuario ───
     cleanups.push(
       onSocketEvent("pago:rechazado", (payload) => {
-        console.warn("❌ [SubscriptionSocket] Pago rechazado:", payload);
-
         toast.error("Tu pago fue rechazado", {
           description: payload.motivoRechazo || "Contacta al administrador para más detalles.",
           duration: 8000,
@@ -134,8 +126,6 @@ export function useSubscriptionSocket(): UseSubscriptionSocketReturn {
         // Guard: ignorar si ya hay un force-logout en progreso
         if (forceLogoutRef.current) return;
         forceLogoutRef.current = true;
-
-        console.warn("🔄 [SubscriptionSocket] Usuario reseteado:", payload);
 
         toast.error(payload.message || "Tu cuenta ha sido reseteada por un administrador.", {
           duration: 6000,

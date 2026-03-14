@@ -37,8 +37,6 @@ function SesionPremiumResult() {
 
   const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, handleDownloadWord, isGeneratingWord } = useSesionPremiumPDF(documentRef, premiumData);
 
-  console.log(stateData);
-
   // ── Fecha de la sesión (editable, alineada a Perú) ───────────────────
   const sesionDateRaw = premiumData?.sesion
     ? (premiumData.sesion as any).fechaInicio ?? (premiumData.sesion as any).createdAt

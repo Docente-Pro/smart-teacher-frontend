@@ -361,6 +361,34 @@ export async function rehacerSesion(
 }
 
 /**
+ * POST /api/admin/sesion/:sesionId/rellenar-lista-alumnos
+ * Rellena contenido.listaAlumnos desde Aulas del docente u otra sesión del mismo usuario.
+ * Si la sesión tenía PDF, se invalida para que el docente lo regenere.
+ */
+export interface IRellenarListaAlumnosSesionResponse {
+  success: boolean;
+  message: string;
+  data: {
+    sesionId: string;
+    titulo: string;
+    yaTeníaLista: boolean;
+    cantidadAlumnos: number;
+    pdfInvalidado?: boolean;
+  };
+}
+
+export async function rellenarListaAlumnosSesion(
+  sesionId: string
+): Promise<IRellenarListaAlumnosSesionResponse> {
+  const { data } = await instance.post<IRellenarListaAlumnosSesionResponse>(
+    `/admin/sesion/${sesionId}/rellenar-lista-alumnos`,
+    {},
+    { headers: getAdminHeaders() }
+  );
+  return data;
+}
+
+/**
  * Confirma la subida de un PDF regenerado por el admin.
  * Llama al mismo endpoint que el docente pero con token admin.
  */

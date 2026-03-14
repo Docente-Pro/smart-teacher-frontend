@@ -22,7 +22,6 @@ export const useSessionRestore = () => {
       const hasExpired = expiresAt && expiresAt < now;
 
       if (hasExpired && refreshToken) {
-        console.log('🔄 Token expirado, intentando refrescar...');
         
         try {
           // Intentar refrescar el token
@@ -36,7 +35,6 @@ export const useSessionRestore = () => {
             refresh_token: refreshToken,
             user: {} as any // Usuario ya existe en el store
           });
-          console.log('✅ Sesión restaurada correctamente');
         } catch (error: any) {
           console.error('❌ Error al refrescar token:', error);
           
