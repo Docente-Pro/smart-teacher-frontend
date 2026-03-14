@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import {
   ArrowLeft,
   ClipboardList,
@@ -22,12 +22,14 @@ import {
   solicitarUploadPDF,
   subirPDFaS3,
   confirmarUploadPDF,
+  editarContenidoSesion,
 } from "@/services/sesiones.service";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc/SesionPremiumDoc";
 import { generarFichaAplicacion } from "@/services/fichaAplicacion.service";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 import { buildInstrumentoLocal } from "@/utils/buildInstrumentoFromSesion";
+import { getSavedAlumnos } from "@/utils/alumnosStorage";
 
 /**
  * Página de vista previa de una Sesión de Aprendizaje para **suscriptores**.
@@ -44,8 +46,10 @@ import { buildInstrumentoLocal } from "@/utils/buildInstrumentoFromSesion";
  */
 function SesionSuscriptorResult() {
   const { id: sesionId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const documentRef = useRef<HTMLDivElement>(null);
+  const wordAutoDownloadDone = useRef(false);
   const { user } = useAuthStore();
   const { user: usuario } = useUserStore();
 
@@ -112,7 +116,7 @@ function SesionSuscriptorResult() {
         //
         // Usamos una función pick() que devuelve el primer valor "con datos"
         // (no null, no undefined, no objeto vacío, no array vacío).
-        const raw = data as any;
+        let raw = data as any;
 
         // Parsear contenido si es string
         let contenido: Record<string, any> = {};
@@ -125,6 +129,36 @@ function SesionSuscriptorResult() {
           }
         } catch {
           console.warn("⚠️ No se pudo parsear contenido:", raw.contenido);
+        }
+
+        // Si la sesión no tiene lista de alumnos pero el docente tiene en localStorage, actualizar en silencio y recargar
+        const tieneListaAlumnos = Array.isArray(contenido.listaAlumnos) && contenido.listaAlumnos.length > 0;
+        const alumnosStorage = getSavedAlumnos();
+        if (!tieneListaAlumnos && alumnosStorage.length > 0) {
+          try {
+            const listaAlumnos = alumnosStorage.map((a) => ({
+              orden: a.orden,
+              apellidos: a.apellidos ?? "",
+              nombres: a.nombres ?? "",
+              nombreCompleto: [a.apellidos, a.nombres].filter(Boolean).join(", ") || "—",
+              ...(a.sexo && { sexo: a.sexo }),
+              ...(a.dni != null && a.dni !== "" && { dni: a.dni }),
+            }));
+            await editarContenidoSesion(sesionId!, { contenido: { listaAlumnos } });
+            if (!cancelled) {
+              const updated = await obtenerSesionPorId(sesionId!);
+              raw = updated as any;
+              try {
+                const c = raw.contenido;
+                if (typeof c === "string") contenido = JSON.parse(c) || {};
+                else if (c && typeof c === "object") contenido = c;
+              } catch {
+                /* ignore */
+              }
+            }
+          } catch (err) {
+            console.warn("No se pudo actualizar lista de alumnos en la sesión:", err);
+          }
         }
 
         console.log("🔍 [SesionSuscriptorResult] raw keys:", Object.keys(raw));
@@ -449,6 +483,39 @@ function SesionSuscriptorResult() {
       setIsGeneratingWord(false);
     }
   };
+
+  // ── Auto-descargar Word cuando se llega con ?download=word (ej. desde Mis Sesiones)
+  useEffect(() => {
+    if (
+      searchParams.get("download") !== "word" ||
+      !premiumData ||
+      loadingSesion ||
+      wordAutoDownloadDone.current
+    )
+      return;
+    wordAutoDownloadDone.current = true;
+    const t = setTimeout(async () => {
+      if (!documentRef.current) return;
+      try {
+        const { generateAndDownloadWord } = await import("@/services/htmldocs.service");
+        const rawArea = premiumData?.sesion?.area;
+        const area =
+          typeof rawArea === "string"
+            ? rawArea
+            : rawArea && typeof rawArea === "object" && "nombre" in (rawArea as any)
+              ? String((rawArea as any).nombre)
+              : "sesion";
+        const areaLimpia = area.toLowerCase().replace(/\s+/g, "-");
+        const nombreArchivo = `sesion-${areaLimpia}-${Date.now().toString().slice(-8)}.doc`;
+        await generateAndDownloadWord(documentRef.current, nombreArchivo);
+        handleToaster("Documento Word descargado", "success");
+      } catch (err) {
+        handleToaster("Error al generar el Word", "error");
+        console.error(err);
+      }
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [premiumData, loadingSesion, searchParams]);
 
   // ── Generar Ficha de Aplicación ───────────────────────────────────────
   const handleGenerarFicha = async () => {

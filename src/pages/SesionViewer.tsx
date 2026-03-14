@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { obtenerSesionPorId, obtenerUrlDescarga } from "@/services/sesiones.service";
+import { obtenerSesionPorId, obtenerUrlDescarga, editarContenidoSesion } from "@/services/sesiones.service";
 import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/fichaAplicacion.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { buildCdnPdfUrl } from "@/utils/cdn";
@@ -16,6 +16,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { ISesion } from "@/interfaces/ISesion";
 import type { IFichaAlmacenada } from "@/interfaces/IFichaAplicacion";
+import { getSavedAlumnos } from "@/utils/alumnosStorage";
 
 // ─── Helpers ───
 
@@ -119,9 +120,41 @@ function SesionViewer() {
         if (cancelled) return;
         setSesion(data);
 
+        // Si la sesión no tiene lista de alumnos en contenido pero el docente sí tiene en localStorage,
+        // actualizar la sesión en silencio con listaAlumnos y recargar.
+        const raw = data as any;
+        let contenido: Record<string, unknown> = {};
+        try {
+          const c = raw.contenido;
+          if (typeof c === "string") contenido = JSON.parse(c) || {};
+          else if (c && typeof c === "object") contenido = c;
+        } catch {
+          /* ignore */
+        }
+        const tieneListaAlumnos = Array.isArray(contenido.listaAlumnos) && contenido.listaAlumnos.length > 0;
+        const alumnosStorage = getSavedAlumnos();
+        if (!tieneListaAlumnos && alumnosStorage.length > 0) {
+          try {
+            const listaAlumnos = alumnosStorage.map((a) => ({
+              orden: a.orden,
+              apellidos: a.apellidos ?? "",
+              nombres: a.nombres ?? "",
+              nombreCompleto: [a.apellidos, a.nombres].filter(Boolean).join(", ") || "—",
+              ...(a.sexo && { sexo: a.sexo }),
+              ...(a.dni != null && a.dni !== "" && { dni: a.dni }),
+            }));
+            await editarContenidoSesion(sesionId, { contenido: { listaAlumnos } });
+            if (!cancelled) {
+              const updated = await obtenerSesionPorId(sesionId);
+              setSesion(updated);
+            }
+          } catch (err) {
+            console.warn("No se pudo actualizar lista de alumnos en la sesión:", err);
+          }
+        }
+
         // Si la sesión no tiene PDF pero sí tiene contenido JSON (ej: sesión rehecha
         // por admin), redirigir a la página que renderiza el documento y re-sube el PDF.
-        const raw = data as any;
         const tieneContenido =
           raw.contenido &&
           (typeof raw.contenido === "string"
@@ -626,6 +659,34 @@ function SesionViewer() {
                       Generar Ficha
                     </>
                   )}
+                </Button>
+              </div>
+            )}
+
+            {/* Descargar Word — debajo de Ficha de Aplicación */}
+            {!loading && id && (
+              <div className="rounded-xl border border-blue-200 dark:border-blue-800/30 bg-gradient-to-br from-blue-50/80 to-cyan-50/50 dark:from-blue-500/5 dark:to-cyan-500/5 p-4">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Descargar en Word
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Documento editable (.doc)
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => window.open(`/sesion-suscriptor-result/${id}?download=word`, "_blank")}
+                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Descargar Word
                 </Button>
               </div>
             )}
