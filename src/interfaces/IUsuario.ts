@@ -69,6 +69,7 @@ export interface IUsuario {
     nombre: string;
     descripcion: string;
   };
+  insigniaUrl?: string | null;
   suscripcion?: ISuscripcion;
   sesiones?: ISesion[];
 }

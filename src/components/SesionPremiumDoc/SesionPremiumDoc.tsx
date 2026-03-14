@@ -205,7 +205,7 @@ function PropositosAprendizajePremium({
             INSTRUMENTO DE EVALUACIÓN
           </th>
         </tr>
-        {propositos.map((p, i) => (
+        {propositos.slice(0, 1).map((p, i) => (
           <tr key={i}>
             <td>
               <p style={{ fontWeight: "bold", marginBottom: "0.3rem" }}>
@@ -229,18 +229,6 @@ function PropositosAprendizajePremium({
                   }}
                 >
                   –
-                </p>
-              )}
-              {p.estandar && (
-                <p
-                  style={{
-                    fontSize: "8pt",
-                    color: "#475569",
-                    marginTop: "0.3rem",
-                    fontStyle: "italic",
-                  }}
-                >
-                  Estándar: {p.estandar}
                 </p>
               )}
             </td>
@@ -600,12 +588,13 @@ function ProcesoPremiumRow({
             border: "1px solid #e2e8f0",
             boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
             textAlign: "center",
-            overflow: "hidden",
+            overflow: "visible",
           }}>
             <div style={{
               maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 420,
               width: "100%",
               margin: "0 auto",
+              minWidth: 0,
             }}>
               <GraficoRenderer grafico={proceso.grafico as any} />
             </div>
@@ -621,15 +610,16 @@ function ProcesoPremiumRow({
             padding: "1rem",
             borderRadius: "8px",
             border: "2px solid #d8b4fe",
-            overflow: "hidden",
+            overflow: "visible",
           }}>
             <p style={{ fontSize: "9pt", fontWeight: "bold", color: "#7c3aed", marginBottom: "0.5rem", margin: 0 }}>
               🔢 Operación / Recurso:
             </p>
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem", minWidth: 0 }}>
               <div style={{ 
                 maxWidth: esGraficoAnchoCompleto((proceso as any).graficoOperacion) ? "100%" : 420, 
-                width: "100%" 
+                width: "100%",
+                minWidth: 0,
               }}>
                 <GraficoRenderer grafico={(proceso as any).graficoOperacion} />
               </div>
@@ -976,6 +966,8 @@ interface SesionPremiumDocProps {
   data: ISesionPremiumResponse;
   /** Instrumento de evaluación generado (opcional) */
   instrumento?: IInstrumentoEvaluacion | null;
+  /** URL de la insignia del colegio (se muestra en el header del documento) */
+  insigniaUrl?: string | null;
 }
 
 /**
@@ -985,7 +977,7 @@ interface SesionPremiumDocProps {
  * El color de las cabeceras se obtiene automáticamente del área
  * de la sesión mediante getAreaColor().
  */
-export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
+export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremiumDocProps) {
   const { sesion, docente, institucion, seccion, nombreDirectivo } = data;
 
   // ── Derivar colores del área ────────────────────────────────────
@@ -1002,6 +994,7 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
         institucion={institucion}
         titulo={sesion.titulo || "Sesión de Aprendizaje"}
         accentColor={hex.accent}
+        insigniaUrl={insigniaUrl}
       />
 
       {/* DATOS GENERALES */}
@@ -1103,8 +1096,7 @@ export function SesionPremiumDoc({ data, instrumento }: SesionPremiumDocProps) {
         <ResumenPremium resumen={sesion.resumen} hex={hex} />
       )}
 
-      {/* FUENTES MINEDU — siempre incluido en el PDF (lista de citas/referencias) */}
-      <FuentesMineduPremium fuentes={sesion.fuentesMinedu ?? []} hex={hex} />
+      {/* FUENTES MINEDU — deshabilitado, no se renderiza en el PDF */}
 
       {/* Footer — con color del área */}
       <Footer position="bottom-center">

@@ -43,46 +43,60 @@ function FichaHeader({
   institucion,
   docente,
   hex,
+  insigniaUrl,
 }: {
   ficha: IFichaAplicacionData;
   institucion: string;
   docente: string;
   hex: Hex;
+  insigniaUrl?: string | null;
 }) {
   return (
     <>
       {/* Barra superior de color */}
       <div
         style={{
+          display: "flex",
+          alignItems: "center",
           background: `linear-gradient(135deg, ${hex.accent}, ${hex.primary})`,
           color: "#fff",
           padding: "0.6rem 0.8rem",
-          textAlign: "center",
           marginBottom: "0.4rem",
+          gap: "0.6rem",
         }}
       >
-        <p
-          style={{
-            fontSize: "9pt",
-            marginBottom: "0.15rem",
-            opacity: 0.9,
-            textShadow: "0 1px 2px rgba(0,0,0,0.2)",
-          }}
-        >
-          {institucion}
-        </p>
-        <h1
-          style={{
-            fontSize: "15pt",
-            fontWeight: 800,
-            margin: 0,
-            lineHeight: 1.3,
-            textShadow: "0 1px 3px rgba(0,0,0,0.3)",
-            letterSpacing: "0.3px",
-          }}
-        >
-          {ficha.titulo}
-        </h1>
+        {insigniaUrl && (
+          <img
+            src={insigniaUrl}
+            alt="Insignia"
+            style={{ width: "165px", height: "165px", objectFit: "contain", flexShrink: 0 }}
+          />
+        )}
+        <div style={{ flex: 1, textAlign: "center" }}>
+          <p
+            style={{
+              fontSize: "9pt",
+              marginBottom: "0.15rem",
+              opacity: 0.9,
+              textShadow: "0 1px 2px rgba(0,0,0,0.2)",
+            }}
+          >
+            {institucion}
+          </p>
+          <h1
+            style={{
+              fontSize: "15pt",
+              fontWeight: 800,
+              margin: 0,
+              lineHeight: 1.3,
+              textShadow: "0 1px 3px rgba(0,0,0,0.3)",
+              letterSpacing: "0.3px",
+            }}
+          >
+            {ficha.titulo}
+          </h1>
+        </div>
+        {insigniaUrl && <div style={{ width: "165px", flexShrink: 0 }} />}
       </div>
 
       {/* Datos curriculares */}
@@ -1221,6 +1235,7 @@ interface FichaAplicacionDocProps {
   institucion: string;
   /** Mostrar solucionario (default: false — es para el docente) */
   mostrarSolucionario?: boolean;
+  insigniaUrl?: string | null;
 }
 
 export function FichaAplicacionDoc({
@@ -1228,6 +1243,7 @@ export function FichaAplicacionDoc({
   docente,
   institucion,
   mostrarSolucionario = false,
+  insigniaUrl,
 }: FichaAplicacionDocProps) {
   const areaConfig = getAreaColor(ficha.area);
   const hex = areaConfig.hex;
@@ -1244,6 +1260,7 @@ export function FichaAplicacionDoc({
         institucion={institucion}
         docente={docente}
         hex={hex}
+        insigniaUrl={insigniaUrl}
       />
 
       {/* Secciones / bloques renderizables */}

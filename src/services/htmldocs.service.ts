@@ -295,12 +295,13 @@ function disableAnimations(container: HTMLElement, preserveGraphicSize = false):
     path.setAttribute("opacity", "1");
   });
 
-  // ── Solo si NO se quiere preservar el tamaño de gráficos ──
+  // ── Fix overflow y SVG scaling (siempre, incluso con preserveGraphicSize) ──
   const overflowOriginals = new Map<HTMLElement, { ox: string; oy: string }>();
-  const svgStyleOriginals = new Map<SVGSVGElement, string>();
+  const svgStyleOriginals = new Map<SVGSVGElement, { maxWidth: string; minWidth: string }>();
 
-  if (!preserveGraphicSize) {
-    // Fix overflow → forzar contenedores scrollables a visible
+  {
+    // Fix overflow → forzar contenedores scrollables a visible para que html2canvas
+    // capture el contenido completo (sin recorte por overflow-x:auto)
     const overflowContainers = container.querySelectorAll<HTMLElement>(
       ".tabla-doble-entrada-container, .recta-numerica-container, " +
       ".circulos-fraccion-container, .barras-fraccion-container, " +
@@ -322,11 +323,15 @@ function disableAnimations(container: HTMLElement, preserveGraphicSize = false):
       el.style.overflowY = "visible";
     });
 
-    // Fix SVGs: forzar max-width:100% para que escalen al contenedor
+    // Fix SVGs: forzar max-width:100% y min-width:0 para que escalen al contenedor
     const allSvgs = container.querySelectorAll<SVGSVGElement>("svg");
     allSvgs.forEach((svg) => {
-      svgStyleOriginals.set(svg, svg.style.maxWidth);
+      svgStyleOriginals.set(svg, {
+        maxWidth: svg.style.maxWidth,
+        minWidth: svg.style.minWidth,
+      });
       svg.style.maxWidth = "100%";
+      svg.style.minWidth = "0";
     });
   }
 
@@ -348,7 +353,8 @@ function disableAnimations(container: HTMLElement, preserveGraphicSize = false):
       el.style.overflowY = orig.oy;
     });
     svgStyleOriginals.forEach((orig, svg) => {
-      svg.style.maxWidth = orig;
+      svg.style.maxWidth = orig.maxWidth;
+      svg.style.minWidth = orig.minWidth;
     });
   };
 }

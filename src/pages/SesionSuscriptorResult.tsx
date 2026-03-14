@@ -719,7 +719,7 @@ function SesionSuscriptorResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={premiumData} instrumento={instrumento ?? undefined} />
+          <SesionPremiumDoc data={premiumData} instrumento={instrumento ?? undefined} insigniaUrl={user?.insigniaUrl} />
         </div>
       </div>
     </div>

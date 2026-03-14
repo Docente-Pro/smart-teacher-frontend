@@ -1901,6 +1901,7 @@ function EditarUnidad() {
                 numeroUnidad={rawUnidad.numeroUnidad}
                 grado={gradoLabel}
                 seccion={seccionLabel}
+                insigniaUrl={user?.insigniaUrl}
               />
               <UnidadDocDatosGenerales
                 institucion={institucionLabel}

@@ -52,6 +52,8 @@ export interface EnrichedUser extends JWTPayload {
   /** Para crear aula (POST /api/aula) si el usuario ya tiene nivel/grado en su perfil */
   nivelId?: number;
   gradoId?: number;
+  /** URL de la insignia del colegio (S3) */
+  insigniaUrl?: string | null;
 }
 
 /**

@@ -539,6 +539,7 @@ function UnidadSuscriptorResult() {
               numeroUnidad={unidad.numeroUnidad}
               grado={gradoLabel}
               seccion={seccion}
+              insigniaUrl={user?.insigniaUrl}
             />
 
             <UnidadDocDatosGenerales

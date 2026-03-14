@@ -15,6 +15,10 @@ import {
   KeyRound,
   ClipboardList,
   FilePlus2,
+  Shield,
+  GraduationCap,
+  CalendarDays,
+  Layers,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
@@ -24,12 +28,69 @@ import { useAuthStore } from "@/store/auth.store";
 import ProblematicaModal from "@/components/Shared/Modal/ProblematicaModal";
 import UpgradePremiumModal from "@/components/Shared/Modal/UpgradePremiumModal";
 import SubirAlumnosModal from "@/components/Shared/Modal/SubirAlumnosModal";
+import SubirInsigniaModal from "@/components/Shared/Modal/SubirInsigniaModal";
 import WelcomeGuideModal, { hasSeenWelcomeGuide } from "@/components/Shared/Modal/WelcomeGuideModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { clearUserStorage } from "@/utils/clearUserStorage";
 import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { getUsuarioById } from "@/services/usuarios.service";
+
+/** Ilustración flat estilo dashboard: docente con libro (tonos indigo/violeta) */
+function WelcomeIllustration({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 200 140"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      {/* Cabeza */}
+      <circle cx="100" cy="42" r="24" fill="#C7D2FE" />
+      <circle cx="100" cy="40" r="14" fill="#E0E7FF" />
+      {/* Torso */}
+      <path d="M68 62 L68 108 Q68 118 100 118 Q132 118 132 108 L132 62 Z" fill="#818CF8" />
+      <path d="M72 66 L72 104 Q72 112 100 112 Q128 112 128 104 L128 66 Z" fill="#6366F1" />
+      {/* Libro */}
+      <rect x="82" y="78" width="36" height="28" rx="3" fill="#C7D2FE" stroke="#A5B4FC" strokeWidth="1.5" />
+      <line x1="100" y1="78" x2="100" y2="106" stroke="#A5B4FC" strokeWidth="1.2" />
+      <circle cx="94" cy="90" r="2" fill="#818CF8" />
+      <circle cx="94" cy="98" r="2" fill="#818CF8" />
+      {/* Bombilla (idea) */}
+      <circle cx="148" cy="38" r="16" fill="#FDE68A" />
+      <path d="M142 38 L148 32 L154 38 L148 44 Z" fill="#FCD34D" />
+      <path d="M148 50 L148 54 M144 52 L152 52" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Formas decorativas */}
+      <circle cx="42" cy="85" r="12" fill="#A5B4FC" opacity="0.6" />
+      <circle cx="158" cy="75" r="10" fill="#C7D2FE" opacity="0.6" />
+    </svg>
+  );
+}
+
+/** Ilustración pequeña para bloque premium: escudo y estrellas */
+function PremiumBlockIllustration({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 120 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M60 18 L75 28 L75 48 L60 58 L45 48 L45 28 Z"
+        fill="#FDE68A"
+        stroke="#F59E0B"
+        strokeWidth="2"
+      />
+      <path d="M60 35 L63 42 L70 43 L64 48 L66 55 L60 51 L54 55 L56 48 L50 43 L57 42 Z" fill="#F59E0B" />
+      <circle cx="25" cy="70" r="8" fill="#FBCFE8" opacity="0.9" />
+      <circle cx="95" cy="75" r="6" fill="#C4B5FD" opacity="0.9" />
+      <circle cx="60" cy="88" r="5" fill="#A5B4FC" opacity="0.7" />
+    </svg>
+  );
+}
 
 function Dashboard() {
   const { logout } = useAuth0();
@@ -42,8 +103,15 @@ function Dashboard() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAlumnosModal, setShowAlumnosModal] = useState(false);
   const [alumnosSubidos, setAlumnosSubidos] = useState(() => hasUploadedAlumnos());
+  const [showInsigniaModal, setShowInsigniaModal] = useState(false);
+  const [insigniaUrl, setInsigniaUrl] = useState<string | null>(null);
   const [hasSuscripcionUnidad, setHasSuscripcionUnidad] = useState(false);
   const [showWelcomeGuide, setShowWelcomeGuide] = useState(false);
+  const [totalUnidades, setTotalUnidades] = useState(0);
+  const [totalSesiones, setTotalSesiones] = useState(0);
+  const [gradoNombre, setGradoNombre] = useState<string | null>(null);
+  const [nivelNombre, setNivelNombre] = useState<string | null>(null);
+  const [unidadActiva, setUnidadActiva] = useState<{ titulo: string; numero: number } | null>(null);
 
   useEffect(() => {
     async function cargarDashboard() {
@@ -75,23 +143,38 @@ function Dashboard() {
             if (nivelId !== undefined) updatePayload.nivelId = nivelId;
             if (gradoId !== undefined) updatePayload.gradoId = gradoId;
 
+            if (freshUser.insigniaUrl) {
+              setInsigniaUrl(freshUser.insigniaUrl);
+              updatePayload.insigniaUrl = freshUser.insigniaUrl;
+            }
+            if (freshUser.grado?.nombre) setGradoNombre(freshUser.grado.nombre);
+            if (freshUser.nivel?.nombre) setNivelNombre(freshUser.nivel.nombre);
+
             if (Object.keys(updatePayload).length > 0) {
               useAuthStore.getState().updateUser(updatePayload);
-            } else {
             }
           }
         }
 
-        // Verificar si el usuario es suscriptor de alguna unidad con pago confirmado
+        // Cargar unidades y datos derivados
         if (user.id) {
           try {
             const items = await listarUnidadesByUsuario(user.id);
+            setTotalUnidades(items.length);
             const tieneSuscripcion = items.some((u) => {
               const miembro = u.miembros?.find((m) => m.usuarioId === user.id);
               return miembro?.rol === "SUSCRIPTOR" && miembro?.estadoPago === "CONFIRMADO";
             });
             setHasSuscripcionUnidad(tieneSuscripcion);
-          } catch (e) {
+            const sesTotal = items.reduce((sum, u) => sum + (u.sesiones?.length ?? 0), 0);
+            setTotalSesiones(sesTotal);
+            if (items.length > 0) {
+              const sorted = [...items].sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+              setUnidadActiva({ titulo: sorted[0].titulo, numero: sorted[0].numeroUnidad });
+              if (!gradoNombre && sorted[0].grado?.nombre) setGradoNombre(sorted[0].grado.nombre);
+              if (!nivelNombre && sorted[0].nivel?.nombre) setNivelNombre(sorted[0].nivel.nombre);
+            }
+          } catch {
             // No se pudieron cargar unidades
           }
         }
@@ -313,75 +396,145 @@ function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        {/* Welcome Section */}
-        <div className="mb-8 sm:mb-12">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm text-slate-500 dark:text-slate-400">¡Hola de nuevo!</span>
-          </div>
-          <h2 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
-            <span className="bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">¡{saludo}, {firstName}!</span>{" "}
-            <span className="inline-block animate-[wave_1.5s_ease-in-out_1]">👋</span>
-          </h2>
-          <p className="text-sm sm:text-lg text-slate-500 dark:text-slate-400">¿Qué te gustaría hacer hoy?</p>
-        </div>
-
-        {/* Stats row (mobile-friendly) */}
-        <div className={`grid gap-3 sm:gap-4 mb-8 sm:mb-10 ${isPremium ? 'grid-cols-1 max-w-xs' : 'grid-cols-2 sm:grid-cols-3'}`}>
-          {/* Usadas y Restantes solo se muestran para usuarios FREE (premium no tiene límite) */}
-          {!isPremium && (
-            <>
-              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
-                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-500/10">
-                  <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium">Usadas</p>
-                  <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">{user?.sesionesUsadas ?? 0}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
-                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
-                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium">Restantes</p>
-                  <p className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">{user?.sesionesRestantes ?? 0}</p>
-                </div>
-              </div>
-            </>
-          )}
-          <div className={`${!isPremium ? 'col-span-2 sm:col-span-1' : ''} flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm`}>
-            <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10">
-              <User className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium">Plan</p>
-              <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">{planLabel}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Banner: Subir / modificar lista de alumnos (premium) */}
-        {isPremium && (
-          <button
-            onClick={() => setShowAlumnosModal(true)}
-            className="w-full mb-6 sm:mb-8 flex items-center gap-4 p-4 sm:p-5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 border border-blue-200 dark:border-blue-700/50 hover:border-blue-300 dark:hover:border-blue-600 shadow-sm hover:shadow-md transition-all text-left group"
-          >
-            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20 flex-shrink-0 group-hover:scale-105 transition-transform">
-              <Users className="w-6 h-6 text-white" />
-            </div>
+        {/* Welcome Hero */}
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-purple-50/80 dark:from-indigo-950/40 dark:via-slate-900 dark:to-purple-950/30 border border-indigo-100/80 dark:border-indigo-800/40 shadow-lg shadow-indigo-100/50 dark:shadow-indigo-950/30 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 sm:p-8 md:p-10">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
-                {alumnosSubidos ? "Modificar lista de alumnos" : "Sube tu lista de alumnos"}
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                {alumnosSubidos
-                  ? "Actualiza o reemplaza tu nómina para los instrumentos de evaluación"
-                  : "Sube una foto de tu nómina y la extraeremos con IA para tus instrumentos de evaluación"}
+              <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mb-1">¡Hola de nuevo!</p>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1.5">
+                <span className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 dark:from-white dark:via-indigo-100 dark:to-slate-300 bg-clip-text text-transparent">
+                  ¡{saludo}, {firstName}!
+                </span>{" "}
+                <span className="inline-block animate-[wave_1.5s_ease-in-out_1]">👋</span>
+              </h2>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">¿Qué te gustaría hacer hoy?</p>
+              {unidadActiva && (
+                <p className="text-xs sm:text-sm text-indigo-500/80 dark:text-indigo-400/60 mt-2 font-medium">
+                  Trabajando en: <span className="text-indigo-700 dark:text-indigo-300">Unidad {unidadActiva.numero} — {unidadActiva.titulo}</span>
+                </p>
+              )}
+            </div>
+            <div className="flex-shrink-0 w-36 sm:w-44 md:w-52 h-28 sm:h-32 md:h-36 mx-auto sm:mx-0">
+              <WelcomeIllustration className="w-full h-full text-indigo-200 dark:text-indigo-900/50" />
+            </div>
+          </div>
+        </div>
+
+        {/* Summary Cards — compact row */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
+          <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border shadow-sm ${
+            isPremium
+              ? "bg-gradient-to-r from-amber-50 to-orange-50/80 dark:from-amber-950/40 dark:to-orange-950/20 border-amber-200/80 dark:border-amber-600/30"
+              : "bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50"
+          }`}>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              isPremium ? "bg-gradient-to-br from-amber-400 to-orange-500" : "bg-amber-50 dark:bg-amber-500/10"
+            }`}>
+              {isPremium ? <Crown className="w-4 h-4 text-white" /> : <User className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Plan</p>
+              <p className={`text-sm font-bold truncate leading-tight ${
+                isPremium ? "text-amber-700 dark:text-amber-300" : "text-slate-900 dark:text-white"
+              }`}>{planLabel}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center flex-shrink-0">
+              <GraduationCap className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Grado</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">{gradoNombre || "—"}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+              <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Unidades</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{totalUnidades}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+              <CalendarDays className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">
+                {isPremium ? "Sesiones" : "Restantes"}
+              </p>
+              <p className={`text-sm font-bold leading-tight ${isPremium ? "text-slate-900 dark:text-white" : "text-emerald-600 dark:text-emerald-400"}`}>
+                {isPremium ? totalSesiones : (user?.sesionesRestantes ?? 0)}
               </p>
             </div>
-            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all flex-shrink-0" />
-          </button>
+          </div>
+        </div>
+
+        {/* Premium Tools */}
+        {isPremium && (
+          <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-50/90 via-orange-50/50 to-amber-50/90 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-amber-950/30 border border-amber-200/80 dark:border-amber-700/40 shadow-lg shadow-amber-200/30 dark:shadow-amber-950/30 mb-6 sm:mb-8">
+            <div className="absolute top-0 right-0 w-28 sm:w-36 h-24 sm:h-28 opacity-90 pointer-events-none">
+              <PremiumBlockIllustration className="w-full h-full" />
+            </div>
+            <div className="relative p-5 sm:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300">
+                  <Crown className="w-3.5 h-3.5" />
+                  Herramientas premium
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => setShowAlumnosModal(true)}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/80 dark:bg-slate-800/50 border border-blue-200/80 dark:border-blue-600/30 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/50 transition-all duration-200 text-left group"
+                >
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
+                      {alumnosSubidos ? "Modificar lista de alumnos" : "Subir lista de alumnos"}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                      {alumnosSubidos
+                        ? "Actualiza o reemplaza tu nómina"
+                        : "Sube tu nómina para los instrumentos de evaluación"}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                </button>
+
+                <button
+                  onClick={() => setShowInsigniaModal(true)}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/80 dark:bg-slate-800/50 border border-purple-200/80 dark:border-purple-600/30 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500/50 transition-all duration-200 text-left group"
+                >
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 shadow-lg shadow-purple-500/25 flex-shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
+                    {insigniaUrl ? (
+                      <img src={insigniaUrl} alt="Insignia" className="w-5 h-5 object-contain rounded" />
+                    ) : (
+                      <Shield className="w-5 h-5 text-white" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
+                      {insigniaUrl ? "Cambiar insignia" : "Subir insignia del colegio"}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                      {insigniaUrl
+                        ? "Actualiza la insignia de tu institución"
+                        : "Se mostrará en tus documentos generados"}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-purple-400 group-hover:text-purple-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Features Grid */}
@@ -485,6 +638,15 @@ function Dashboard() {
           setShowAlumnosModal(false);
           setAlumnosSubidos(hasUploadedAlumnos());
         }}
+      />
+
+      {/* Modal de Subir Insignia */}
+      <SubirInsigniaModal
+        isOpen={showInsigniaModal}
+        onClose={() => setShowInsigniaModal(false)}
+        currentInsigniaUrl={insigniaUrl}
+        onUploaded={(url) => setInsigniaUrl(url)}
+        onRemoved={() => setInsigniaUrl(null)}
       />
 
       {/* Modal guía de bienvenida (una sola vez para usuarios free) */}

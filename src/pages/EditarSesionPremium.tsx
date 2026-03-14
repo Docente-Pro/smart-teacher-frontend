@@ -1972,7 +1972,7 @@ function EditarSesionPremium() {
         ══════════════════════════════════════════════════════════════════ */}
         {view === "preview" && premiumData && (
           <div ref={documentRef}>
-            <SesionPremiumDoc data={premiumData} instrumento={instrumentoPreview ?? undefined} />
+            <SesionPremiumDoc data={premiumData} instrumento={instrumentoPreview ?? undefined} insigniaUrl={user?.insigniaUrl} />
           </div>
         )}
       </div>
