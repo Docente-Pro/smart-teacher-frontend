@@ -648,7 +648,6 @@ function EditarSesionPremium() {
 
   // Instrumento de evaluación (lista de cotejo / escala) para la vista previa PDF
   const instrumentoPreview = useMemo(() => {
-    if (!propositos?.length) return null;
     const raw = rawSesion as any;
     const contenido = raw?.contenido;
     let parsedContenido: Record<string, any> = {};
@@ -665,23 +664,44 @@ function EditarSesionPremium() {
       areaEdit.trim() ||
       toLabel(raw?.area ?? parsedContenido.area ?? parsedContenido.datosGenerales?.area) ||
       "—";
-    // Cualquier propósito con instrumento (ej. "Lista de cotejo") o evidencia; si no hay criterios usamos "—"
-    const first =
-      propositos.find(
-        (p) => (p.instrumento?.trim() || p.evidencia?.trim() || p.competencia?.trim()),
-      ) ?? propositos[0];
-    const criteriosList = (first.criterios ?? "")
-      .split("\n")
-      .map((s: string) => s.trim())
-      .filter(Boolean);
-    return buildInstrumentoLocal({
-      area,
-      grado: grado || "—",
-      competencia: first.competencia || "—",
-      evidencia: first.evidencia || "—",
-      criterios: criteriosList.length > 0 ? criteriosList : ["—"],
-      instrumento: first.instrumento?.trim() || "Lista de cotejo",
-    });
+    const esPlanLectorOTutoria =
+      /plan\s*lector|tutor[ií]a/i.test(area) ||
+      !!(raw?.recursoNarrativo || parsedContenido?.recursoNarrativo);
+
+    if (propositos?.length) {
+      const first =
+        propositos.find(
+          (p) => (p.instrumento?.trim() || p.evidencia?.trim() || p.competencia?.trim()),
+        ) ?? propositos[0];
+      const criteriosList = (first.criterios ?? "")
+        .split("\n")
+        .map((s: string) => s.trim())
+        .filter(Boolean);
+      return buildInstrumentoLocal({
+        area,
+        grado: grado || "—",
+        competencia: first.competencia || "—",
+        evidencia: first.evidencia || "—",
+        criterios: criteriosList.length > 0 ? criteriosList : ["—"],
+        instrumento: first.instrumento?.trim() || "Lista de cotejo",
+      });
+    }
+
+    // Sesiones complementarias (Plan Lector / Tutoría) sin propositoAprendizaje: instrumento por defecto
+    if (esPlanLectorOTutoria) {
+      const propositoSesion =
+        raw?.propositoSesion ?? parsedContenido?.propositoSesion ?? "";
+      return buildInstrumentoLocal({
+        area,
+        grado: grado || "—",
+        competencia: propositoSesion || "—",
+        evidencia: "—",
+        criterios: ["—"],
+        instrumento: "Lista de cotejo",
+      });
+    }
+
+    return null;
   }, [rawSesion, areaEdit, propositos]);
 
   // ═════════════════════════════════════════════════════════════════════════

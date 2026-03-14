@@ -273,29 +273,57 @@ function SesionSuscriptorResult() {
   const instrumento = useMemo((): IInstrumentoEvaluacion | null => {
     if (!premiumData?.sesion) return null;
     const sesion = premiumData.sesion as any;
-    const propósitos = sesion.propositoAprendizaje ?? [];
-    if (!Array.isArray(propósitos) || propósitos.length === 0) return null;
+    const contenido = sesion.contenido;
+    let parsedContenido: Record<string, any> = {};
+    try {
+      const c = typeof contenido === "string" ? JSON.parse(contenido) : contenido;
+      if (c && typeof c === "object") parsedContenido = c;
+    } catch {
+      /* ignore */
+    }
     const toLabel = (v: unknown) =>
       !v ? "" : typeof v === "string" ? v : (v as any)?.nombre ?? (v as any)?.name ?? String(v);
     const area = toLabel(sesion.area) || "—";
     const grado = toLabel(sesion.grado) || "—";
-    const first =
-      propósitos.find(
-        (p: any) =>
-          (p.instrumento?.trim() || p.evidencia?.trim() || p.competencia?.trim()),
-      ) ?? propósitos[0];
-    const criteriosRaw = first.criteriosEvaluacion ?? first.criterios;
-    const criteriosList = Array.isArray(criteriosRaw)
-      ? criteriosRaw.map((c: any) => (typeof c === "string" ? c : c?.criterioCompleto ?? "")).filter(Boolean)
-      : (typeof first.criterios === "string" ? first.criterios.split("\n").map((s: string) => s.trim()).filter(Boolean) : []);
-    return buildInstrumentoLocal({
-      area,
-      grado,
-      competencia: first.competencia ?? "—",
-      evidencia: first.evidencia ?? first.evidenciaAprendizaje ?? "—",
-      criterios: criteriosList.length > 0 ? criteriosList : ["—"],
-      instrumento: first.instrumento?.trim() || first.instrumentoEvaluacion?.trim() || "Lista de cotejo",
-    });
+    const propósitos = sesion.propositoAprendizaje ?? [];
+    const esPlanLectorOTutoria =
+      /plan\s*lector|tutor[ií]a/i.test(area) ||
+      !!(sesion.recursoNarrativo || parsedContenido?.recursoNarrativo);
+
+    if (Array.isArray(propósitos) && propósitos.length > 0) {
+      const first =
+        propósitos.find(
+          (p: any) =>
+            (p.instrumento?.trim() || p.evidencia?.trim() || p.competencia?.trim()),
+        ) ?? propósitos[0];
+      const criteriosRaw = first.criteriosEvaluacion ?? first.criterios;
+      const criteriosList = Array.isArray(criteriosRaw)
+        ? criteriosRaw.map((c: any) => (typeof c === "string" ? c : c?.criterioCompleto ?? "")).filter(Boolean)
+        : (typeof first.criterios === "string" ? first.criterios.split("\n").map((s: string) => s.trim()).filter(Boolean) : []);
+      return buildInstrumentoLocal({
+        area,
+        grado,
+        competencia: first.competencia ?? "—",
+        evidencia: first.evidencia ?? first.evidenciaAprendizaje ?? "—",
+        criterios: criteriosList.length > 0 ? criteriosList : ["—"],
+        instrumento: first.instrumento?.trim() || first.instrumentoEvaluacion?.trim() || "Lista de cotejo",
+      });
+    }
+
+    // Sesiones complementarias (Plan Lector / Tutoría) sin propositoAprendizaje: instrumento por defecto
+    if (esPlanLectorOTutoria) {
+      const propositoSesion = sesion.propositoSesion ?? parsedContenido?.propositoSesion ?? "";
+      return buildInstrumentoLocal({
+        area,
+        grado,
+        competencia: propositoSesion || "—",
+        evidencia: "—",
+        criterios: ["—"],
+        instrumento: "Lista de cotejo",
+      });
+    }
+
+    return null;
   }, [premiumData]);
 
   // ═══════════════════════════════════════════════════════════════════════════
