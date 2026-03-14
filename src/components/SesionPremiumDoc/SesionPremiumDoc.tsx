@@ -66,6 +66,20 @@ function esGraficoAnchoCompleto(grafico: Record<string, unknown> | null | undefi
   return GRAFICOS_TABLA.includes(grafico.tipoGrafico as string);
 }
 
+/** Verifica que un gráfico tenga datos mínimos para renderizar (no solo tipo + título) */
+function esGraficoRenderable(grafico: unknown): boolean {
+  if (!grafico || typeof grafico !== "object") return false;
+  const g = grafico as Record<string, unknown>;
+  if (!g.tipoGrafico) return false;
+  const keys = Object.keys(g).filter(
+    (k) => !["tipoGrafico", "titulo", "descripcion", "leyenda", "subtitulo"].includes(k)
+  );
+  return keys.some((k) => {
+    const v = g[k];
+    return Array.isArray(v) ? v.length > 0 : v != null && v !== "";
+  });
+}
+
 /**
  * El backend puede devolver area/nivel/grado como string O como objeto
  * { id, nombre, ... }. Esta función extrae el nombre en ambos casos.
@@ -578,7 +592,7 @@ function ProcesoPremiumRow({
         )}
 
         {/* Gráfico educativo (Math o Área) */}
-        {proceso.grafico && (
+        {proceso.grafico && esGraficoRenderable(proceso.grafico) && (
           <div style={{
             marginTop: "1rem",
             marginBottom: "1rem",
@@ -596,13 +610,13 @@ function ProcesoPremiumRow({
               margin: "0 auto",
               minWidth: 0,
             }}>
-              <GraficoRenderer grafico={proceso.grafico as any} />
+              <GraficoRenderer grafico={proceso.grafico as any} mostrarErrores={false} />
             </div>
           </div>
         )}
 
         {/* Gráfico de operación */}
-        {(proceso as any).graficoOperacion && (
+        {(proceso as any).graficoOperacion && esGraficoRenderable((proceso as any).graficoOperacion) && (
           <div style={{
             marginTop: "0.8rem",
             marginBottom: "0.8rem",
@@ -621,7 +635,7 @@ function ProcesoPremiumRow({
                 width: "100%",
                 minWidth: 0,
               }}>
-                <GraficoRenderer grafico={(proceso as any).graficoOperacion} />
+                <GraficoRenderer grafico={(proceso as any).graficoOperacion} mostrarErrores={false} />
               </div>
             </div>
           </div>
