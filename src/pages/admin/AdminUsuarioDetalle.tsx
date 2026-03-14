@@ -7,6 +7,7 @@ import {
   resetUsuario,
   upgradePremium,
   rehacerSesion,
+  rellenarListaAlumnosSesion,
 } from "@/services/admin.service";
 import { corregirEstandares, arreglarHorario, getUnidadById, editarContenidoUnidad } from "@/services/unidad.service";
 import type { IUsuarioDetalle } from "@/interfaces/IAdmin";
@@ -32,6 +33,7 @@ import {
   Crown,
   Wrench,
   CalendarClock,
+  ListChecks,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,8 +44,9 @@ export default function AdminUsuarioDetalle() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [upgradePlan, setUpgradePlan] = useState<"premium_mensual" | "premium_anual">("premium_mensual");
-  const [rehaciendo, setRehaciendo] = useState<string | null>(null);
+  const   [rehaciendo, setRehaciendo] = useState<string | null>(null);
   const [rehacerEstado, setRehacerEstado] = useState("");
+  const [rellenandoLista, setRellenandoLista] = useState<string | null>(null);
   const [corrigiendoUnidad, setCorrigiendoUnidad] = useState<string | null>(null);
   const [corrigiendoHorario, setCorrigiendoHorario] = useState<string | null>(null);
 
@@ -596,47 +599,79 @@ export default function AdminUsuarioDetalle() {
                       )}
                     </td>
                     <td className="px-3 py-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1 text-xs h-7 border-amber-300 text-amber-700 hover:bg-amber-50"
-                        disabled={rehaciendo === s.id}
-                        onClick={async () => {
-                          if (!confirm(`¿Rehacer la sesión "${s.titulo || s.id}"? Se regenerará el contenido y un PDF nuevo.`)) return;
-                          setRehaciendo(s.id);
-                          setRehacerEstado("Regenerando contenido…");
-                          try {
-                            // 1️⃣ Llamar al backend: corrige contenido + devuelve URLs presignadas
-                            const res = await rehacerSesion(s.id);
-
-                            // 2️⃣ Navegar a la página dedicada de renderizado PDF
-                            navigate(`/admin/rehacer-pdf/${s.id}`, {
-                              state: {
-                                rehacerResponse: res,
-                                docente: usuario?.nombre ?? "",
-                                institucion: usuario?.nombreInstitucion ?? "",
-                                seccion: usuario?.seccion ?? "",
-                                usuarioId: usuario!.id,
-                              },
-                            });
-                          } catch (err: any) {
-                            console.error("❌ [Admin] Error al rehacer sesión:", err);
-                            toast.error(
-                              err?.response?.data?.message || "Error al rehacer la sesión",
-                            );
-                          } finally {
-                            setRehaciendo(null);
-                            setRehacerEstado("");
-                          }
-                        }}
-                      >
-                        {rehaciendo === s.id ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <RotateCcw className="w-3 h-3" />
-                        )}
-                        {rehaciendo === s.id && rehacerEstado ? rehacerEstado : "Rehacer"}
-                      </Button>
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-amber-300 text-amber-700 hover:bg-amber-50"
+                          disabled={rehaciendo === s.id || rellenandoLista === s.id}
+                          onClick={async () => {
+                            if (!confirm(`¿Rehacer la sesión "${s.titulo || s.id}"? Se regenerará el contenido y un PDF nuevo.`)) return;
+                            setRehaciendo(s.id);
+                            setRehacerEstado("Regenerando contenido…");
+                            try {
+                              const res = await rehacerSesion(s.id);
+                              navigate(`/admin/rehacer-pdf/${s.id}`, {
+                                state: {
+                                  rehacerResponse: res,
+                                  docente: usuario?.nombre ?? "",
+                                  institucion: usuario?.nombreInstitucion ?? "",
+                                  seccion: usuario?.seccion ?? "",
+                                  usuarioId: usuario!.id,
+                                },
+                              });
+                            } catch (err: any) {
+                              console.error("❌ [Admin] Error al rehacer sesión:", err);
+                              toast.error(
+                                err?.response?.data?.message || "Error al rehacer la sesión",
+                              );
+                            } finally {
+                              setRehaciendo(null);
+                              setRehacerEstado("");
+                            }
+                          }}
+                        >
+                          {rehaciendo === s.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-3 h-3" />
+                          )}
+                          {rehaciendo === s.id && rehacerEstado ? rehacerEstado : "Rehacer"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                          disabled={rehaciendo === s.id || rellenandoLista === s.id}
+                          onClick={async () => {
+                            if (!confirm(`¿Rellenar lista de alumnos en "${s.titulo || s.id}"? Se usará la lista del aula u otra sesión del docente. Si había PDF, se invalidará para regenerarlo.`)) return;
+                            setRellenandoLista(s.id);
+                            try {
+                              const res = await rellenarListaAlumnosSesion(s.id);
+                              const d = res.data;
+                              if (d.yaTeníaLista) {
+                                toast.success(`Ya tenía lista (${d.cantidadAlumnos} alumnos). ${res.message}`);
+                              } else {
+                                toast.success(`${res.message} (${d.cantidadAlumnos} alumnos${d.pdfInvalidado ? "; PDF invalidado" : ""})`);
+                              }
+                              cargarDetalle();
+                            } catch (err: any) {
+                              toast.error(
+                                err?.response?.data?.message || "Error al rellenar lista de alumnos",
+                              );
+                            } finally {
+                              setRellenandoLista(null);
+                            }
+                          }}
+                        >
+                          {rellenandoLista === s.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <ListChecks className="w-3 h-3" />
+                          )}
+                          {rellenandoLista === s.id ? "…" : "Rellenar lista"}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

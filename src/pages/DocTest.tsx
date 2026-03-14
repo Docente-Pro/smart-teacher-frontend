@@ -47,7 +47,6 @@ function DocTest() {
       instrumento: p.instrumentoEvaluacion,
     });
   }, [sesion]);
-  console.log(sesion);
   
   // Estilos para ocultar elementos del navegador al imprimir
   const printStyles = `

@@ -79,7 +79,6 @@ function Step1({ state, usuario, setValuesOfUser, setCurrentStep }: Props) {
     }
   }
 
-  console.log(state);
 
   return (
     <div>

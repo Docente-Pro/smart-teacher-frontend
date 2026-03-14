@@ -25,8 +25,6 @@ function UserValidation({ children }: Props) {
         email: user.email,
       })
         .then((response) => {
-          console.log(response);
-
           // Verificar la estructura de la respuesta
           const userData = response.data.data || response.data[0] || response.data;
           setUsuario(userData);

@@ -212,7 +212,6 @@ export default function AdminCorregirEstandaresPdf() {
         size: "A4",
         orientation: "landscape",
       });
-      console.log("✅ [AdminCorregirEstandares] PDF generado:", pdfBlob.size, "bytes");
 
       // ── Subir PDF del propietario ──
       if (corregirResponse.upload?.presignedUrl) {
@@ -226,7 +225,6 @@ export default function AdminCorregirEstandaresPdf() {
           usuarioId,
           key: corregirResponse.upload.s3Key,
         });
-        console.log("✅ [AdminCorregirEstandares] PDF propietario subido y confirmado");
       }
 
       // ── Subir PDFs de miembros/suscriptores ──
@@ -241,7 +239,6 @@ export default function AdminCorregirEstandaresPdf() {
               usuarioId: miembro.usuarioId,
               key: miembro.s3Key,
             });
-            console.log(`✅ [AdminCorregirEstandares] Miembro ${miembro.miembroId} PDF subido`);
           } catch (miembroErr) {
             console.error(
               `❌ [AdminCorregirEstandares] Error subiendo miembro ${miembro.miembroId}:`,

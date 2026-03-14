@@ -39,7 +39,6 @@ function Step2({ pagina, setPagina }: Props) {
 
   // 🎯 Callback cuando se selecciona/guarda un tema - fuerza nueva sugerencia
   const handleTemaSeleccionado = (tema: string) => {
-    console.log("📚 Tema confirmado, activando sugerencia de competencia:", tema);
     // Limpiar selecciones para permitir nueva sugerencia
     setCompetenciaSeleccionada("");
     setCapacidadesSeleccionadas([]);
@@ -100,11 +99,6 @@ function Step2({ pagina, setPagina }: Props) {
 
     // Si el tema realmente cambió (incluye pasar de vacío a personalizado)
     if (temaActual && temaActual !== temaPrevioRef.current) {
-      console.log("🔄 Tema curricular cambió, limpiando selecciones para nueva sugerencia", {
-        anterior: temaPrevioRef.current,
-        actual: temaActual,
-      });
-
       setCompetenciaSeleccionada("");
       setCapacidadesSeleccionadas([]);
       clearSugerencia();
@@ -197,7 +191,6 @@ function Step2({ pagina, setPagina }: Props) {
   // Aplicar automáticamente la sugerencia de la IA
   useEffect(() => {
     if (sugerencia) {
-      console.log('🤖 Aplicando sugerencia automática:', sugerencia.competenciaNombre);
       setCompetenciaSeleccionada(sugerencia.competenciaNombre);
 
       // Guardar temaCurricular y situacionTexto para propagar a todos los pasos IA

@@ -189,7 +189,6 @@ export const useAuthStore = create<AuthState>()(
             _integrity: computeIntegrityHash(updatedUser),
           };
         });
-        console.log("🔄 Usuario actualizado:", userData);
       },
 
       clearAuth: () => {
@@ -203,7 +202,6 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
         });
         localStorage.removeItem("refresh_token");
-        console.log("🧹 Auth state limpiado");
       },
 
       setLoading: (loading) => {
@@ -230,7 +228,7 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         if (state.user && !verifyIntegrity(state.user, state._integrity)) {
-          console.warn("⚠️ [Auth] Integridad comprometida — se detectó manipulación del localStorage. Cerrando sesión.");
+          // Integridad comprometida — cerrar sesión
           state.clearAuth();
         }
       },

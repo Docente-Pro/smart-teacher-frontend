@@ -106,8 +106,6 @@ function OnboardingPage() {
   // Debug solo en desarrollo, dentro de useEffect para no loguear en cada render
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log('Usuario Auth0:', auth0User);
-      console.log('Usuario Backend:', backendUser);
     }
   }, [auth0User?.sub, backendUser?.id]);
 

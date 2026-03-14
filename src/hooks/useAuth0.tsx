@@ -91,7 +91,7 @@ export function useAuth0() {
    * Handle redirect callback (no implementado en este flujo)
    */
   const handleRedirectCallback = async () => {
-    console.warn('handleRedirectCallback no está disponible en este flujo');
+    // handleRedirectCallback no disponible en este flujo
   };
 
   return {

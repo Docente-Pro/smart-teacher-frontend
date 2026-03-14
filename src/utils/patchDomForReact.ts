@@ -31,7 +31,7 @@ if (typeof Node !== "undefined" && Node.prototype) {
       // Google Translate u otra herramienta externa). Intentar remover
       // desde su padre real; si no tiene padre, simplemente retornar.
       if (child.parentNode) {
-        console.warn(
+        if (typeof console !== "undefined" && console.warn) console.warn(
           "[patchDomForReact] removeChild: nodo movido externamente, redirigiendo a parentNode real.",
         );
         return originalRemoveChild.call(child.parentNode, child) as T;

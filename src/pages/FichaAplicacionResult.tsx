@@ -86,7 +86,6 @@ function FichaAplicacionResult() {
       await confirmarUploadFicha(stateData.fichaId, { s3Key: stateData.s3Key });
 
       setIsUploaded(true);
-      console.log("✅ Ficha PDF subida a S3:", stateData.fichaId);
     } catch (err) {
       console.error("❌ Error al subir ficha PDF:", err);
       uploadStarted.current = false; // permitir reintento

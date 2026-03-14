@@ -77,7 +77,6 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
     async function fetchPrecios() {
       try {
         const res = await getUnidadPrecios();
-        console.log("📦 Precios response:", JSON.stringify(res));
         if (!cancelled && res?.data) {
           setPrecios({
             propietario:
@@ -91,7 +90,7 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
           });
         }
       } catch (err) {
-        console.warn("No se pudieron cargar precios, usando valores por defecto:", err);
+        // No se pudieron cargar precios, usar valores por defecto
       }
     }
     fetchPrecios();
@@ -110,7 +109,6 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
     if (user?.id) joinUserRoom(user.id);
 
     const cleanup = onSocketEvent("pago:confirmado", (payload) => {
-      console.log("✅ Pago confirmado via WebSocket:", payload);
 
       // Actualizar usuario a premium
       const planActualizado = (payload.planActualizado as string) || payload.plan || "premium_mensual";

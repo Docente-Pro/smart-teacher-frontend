@@ -15,7 +15,6 @@ import { clearUserStorage } from "./clearUserStorage";
  * - Se detecta que el usuario necesita volver a autenticarse
  */
 export function handleSessionExpiration() {
-  console.log('🔐 Sesión expirada - Limpiando y redirigiendo al login');
   
   // 1. Limpiar selectivamente el localStorage del usuario (preserva admin)
   clearUserStorage();

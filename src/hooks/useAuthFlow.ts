@@ -81,7 +81,6 @@ export function useAuthFlow() {
           try {
             accessToken = await getAccessTokenSilently();
           } catch {
-            console.warn('⚠️ getAccessTokenSilently falló en ambos intentos');
           }
         }
 
@@ -98,12 +97,6 @@ export function useAuthFlow() {
         // 4. Guardar en store (misma estructura que login tradicional)
         setTokens(loginResponse);
 
-        console.log('✅ useAuthFlow: Social login completado:', {
-          email: loginResponse.user.email,
-          nombre: loginResponse.user.nombre,
-          plan: loginResponse.user.plan,
-          perfilCompleto: loginResponse.user.perfilCompleto,
-        });
       } catch (error) {
         console.error('❌ Error en social login flow:', error);
         // Limpiar auth store para evitar estado inconsistente

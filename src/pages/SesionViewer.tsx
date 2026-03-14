@@ -149,7 +149,7 @@ function SesionViewer() {
               setSesion(updated);
             }
           } catch (err) {
-            console.warn("No se pudo actualizar lista de alumnos en la sesión:", err);
+            // No se pudo actualizar lista de alumnos
           }
         }
 

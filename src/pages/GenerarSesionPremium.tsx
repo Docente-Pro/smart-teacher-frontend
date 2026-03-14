@@ -457,9 +457,8 @@ function GenerarSesionPremium() {
             unidadesNecesitanSync.map(async (u) => {
               try {
                 const result = await sincronizarMiembroUnidad(u.id);
-                console.log(`✅ Sincronizado: ${u.titulo} - ${result.sesionesClonadas} sesiones clonadas`);
               } catch (syncErr) {
-                console.warn(`⚠️ Error sincronizando ${u.titulo}:`, syncErr);
+                // Error sincronizando unidad
               }
             })
           );
@@ -681,7 +680,7 @@ function GenerarSesionPremium() {
               }
             })
             .catch((imgErr) => {
-              console.warn("⚠️ No se pudieron generar imágenes premium:", imgErr);
+              // No se pudieron generar imágenes premium
               handleToaster(
                 "La sesión se generó correctamente, pero no se pudieron crear las imágenes",
                 "warning",
@@ -709,12 +708,12 @@ function GenerarSesionPremium() {
                   handleToaster("Instrumento de evaluación generado", "success");
                   // Persistir en S3 en segundo plano (fire-and-forget)
                   guardarInstrumento(fullResp.sesion.id).catch((err) =>
-                    console.warn("⚠️ No se pudo guardar instrumento en S3:", err),
+                    undefined,
                   );
                 }
               })
               .catch((err) => {
-                console.warn("⚠️ No se pudo generar el instrumento:", err);
+                // No se pudo generar el instrumento
               });
           }
 

@@ -41,8 +41,6 @@ function SignupForm() {
       password: formData.password,
     })
       .then((response) => {
-        console.log(response);
-
         handleToaster("¡Cuenta creada exitosamente! Inicia sesión para continuar.", "success");
         setLoading(false);
         navigate("/login");
