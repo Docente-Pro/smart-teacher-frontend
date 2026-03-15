@@ -26,8 +26,6 @@ export function useUnidadPDFGeneration(documentRef: RefObject<HTMLDivElement>) {
 
   /* ─── Subir PDF a S3 usando fetch (misma lógica que sesiones) ─── */
   const subirPDFaS3 = useCallback(async (uploadUrl: string, pdfBlob: Blob): Promise<void> => {
-    console.log("📤 PUT a S3:", uploadUrl.substring(0, 120) + "...");
-    console.log("📦 Tamaño del PDF:", pdfBlob.size, "bytes");
 
     const response = await fetch(uploadUrl, {
       method: "PUT",
@@ -44,7 +42,6 @@ export function useUnidadPDFGeneration(documentRef: RefObject<HTMLDivElement>) {
       throw new Error(`Error al subir archivo a S3: ${response.status} ${response.statusText}`);
     }
 
-    console.log("✅ PDF subido a S3 exitosamente");
   }, []);
 
   /* ─── Guardar en la nube ─── */
@@ -65,20 +62,15 @@ export function useUnidadPDFGeneration(documentRef: RefObject<HTMLDivElement>) {
       const usuarioId = user.id;
 
       // PASO 1 — Pedir URL de subida
-      console.log("📤 Paso 1: Solicitando URL de subida para unidad...", { unidadId, usuarioId });
       const respuestaUpload = await solicitarUploadUrlUnidad({ unidadId, usuarioId });
-
-      console.log("📦 Respuesta upload-url:", JSON.stringify(respuestaUpload));
 
       // El backend puede devolver { data: { uploadUrl } } o { uploadUrl } directamente
       const uploadData = (respuestaUpload as any)?.data ?? respuestaUpload;
 
       // PASO 2 — Subir PDF directo a S3
-      console.log("📤 Paso 2: Subiendo PDF a S3...");
       await subirPDFaS3(uploadData.uploadUrl, pdfBlob);
 
       // PASO 3 — Confirmar subida
-      console.log("📤 Paso 3: Confirmando subida...");
       const respuestaConfirm = await confirmarUploadUnidad({
         unidadId,
         usuarioId,
@@ -88,7 +80,6 @@ export function useUnidadPDFGeneration(documentRef: RefObject<HTMLDivElement>) {
       const confirmData = (respuestaConfirm as any)?.data ?? respuestaConfirm;
 
       setIsSaved(true);
-      console.log("✅ Unidad guardada en la nube:", confirmData);
       return confirmData;
     } catch (error) {
       console.error("❌ Error al guardar unidad en la nube:", error);
@@ -160,7 +151,7 @@ export function useUnidadPDFGeneration(documentRef: RefObject<HTMLDivElement>) {
           await guardarEnNube();
           handleToaster("Unidad guardada en la nube", "success");
         } catch {
-          console.warn("No se pudo guardar en la nube, pero el PDF fue descargado");
+          // No se pudo guardar en la nube
         }
       }
     } catch (error) {

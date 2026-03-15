@@ -14,6 +14,7 @@ import { flushSync } from "react-dom";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc/SesionPremiumDoc";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import { generatePDFBlob } from "@/services/htmldocs.service";
+import { useAuthStore } from "@/store/auth.store";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ function parseContenido(raw: unknown): Record<string, any> {
     if (typeof raw === "string") return JSON.parse(raw);
     if (raw && typeof raw === "object") return raw as Record<string, any>;
   } catch {
-    console.warn("⚠️ [offscreen] No se pudo parsear contenido:", raw);
+    /* no se pudo parsear */
   }
   return {};
 }
@@ -71,10 +72,6 @@ export function buildSesionPremiumData(
 ): ISesionPremiumResponse {
   // ⚠️ El backend puede enviar contenido como JSON string — parsearlo
   const contenido = parseContenido(rawContenido);
-
-  console.log("🔍 [buildSesionPremiumData] contenido keys:", Object.keys(contenido));
-  console.log("🔍 [buildSesionPremiumData] contenido.inicio?", !!contenido.inicio);
-  console.log("🔍 [buildSesionPremiumData] contenido.area:", contenido.area);
 
   const sesionForDoc = {
     // ── Identificadores / metadatos ──
@@ -179,15 +176,6 @@ function neutralizeExternalImages(container: HTMLElement): number {
     }
   }
 
-  if (inlined > 0) {
-    console.log(`✅ [offscreen] ${inlined} imagen(es) inlineada(s) como data URL`);
-  }
-  if (stripped > 0) {
-    console.warn(
-      `⚠️ [offscreen] ${stripped} imagen(es) neutralizada(s) (CORS bloqueado). ` +
-        `Configura CORS en el bucket S3 para incluirlas en el PDF.`,
-    );
-  }
   return inlined + stripped;
 }
 
@@ -223,8 +211,9 @@ export async function renderPdfOffscreen(
   const root = createRoot(container);
   try {
     // 2. Montar componente con flushSync para render síncrono inmediato
+    const insigniaUrl = useAuthStore.getState().user?.insigniaUrl;
     flushSync(() => {
-      root.render(<SesionPremiumDoc data={data} />);
+      root.render(<SesionPremiumDoc data={data} insigniaUrl={insigniaUrl} />);
     });
 
     // Espera adicional para layout + estilos
@@ -257,18 +246,10 @@ export async function renderPdfOffscreen(
     //    Si CORS está bloqueado (localhost) → se usa pixel transparente (solo texto)
     neutralizeExternalImages(container);
 
-    // Log de diagnóstico
-    const childCount = container.children.length;
     const innerH = container.scrollHeight;
-    const innerText = container.innerText?.substring(0, 200);
-    console.log(
-      `📄 [offscreen] Contenedor: ${childCount} hijos, ${innerH}px alto, ${images.length} imgs`,
-    );
-    console.log(`📄 [offscreen] Texto preview: "${innerText}"`);
-
     if (innerH < 10) {
       console.error(
-        "❌ [offscreen] El contenedor tiene altura ~0 — el componente no renderizó contenido",
+        "[offscreen] El contenedor tiene altura ~0 — el componente no renderizó contenido",
       );
     }
 
@@ -278,7 +259,6 @@ export async function renderPdfOffscreen(
       orientation: "portrait",
     });
 
-    console.log(`📄 [offscreen] PDF generado: ${blob.size} bytes`);
     return blob;
   } finally {
     // 6. Limpiar

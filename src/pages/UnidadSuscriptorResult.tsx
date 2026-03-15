@@ -113,7 +113,6 @@ function UnidadSuscriptorResult() {
           `Error al subir archivo a S3: ${response.status} ${response.statusText}`,
         );
       }
-      console.log("✅ PDF subido a S3 exitosamente");
     },
     [],
   );
@@ -136,10 +135,6 @@ function UnidadSuscriptorResult() {
       const unidadId = unidad.id;
 
       // Paso 1 — URL presigned
-      console.log("📤 Paso 1: Solicitando URL de subida (suscriptor)...", {
-        unidadId,
-        usuarioId,
-      });
       const respuestaUpload = await solicitarUploadUrlUnidad({
         unidadId,
         usuarioId,
@@ -148,11 +143,9 @@ function UnidadSuscriptorResult() {
         (respuestaUpload as any)?.data ?? respuestaUpload;
 
       // Paso 2 — Subir PDF a S3
-      console.log("📤 Paso 2: Subiendo PDF a S3...");
       await subirPDFaS3(uploadData.uploadUrl, pdfBlob);
 
       // Paso 3 — Confirmar subida
-      console.log("📤 Paso 3: Confirmando subida...");
       await confirmarUploadUnidad({
         unidadId,
         usuarioId,
@@ -160,7 +153,6 @@ function UnidadSuscriptorResult() {
       });
 
       setIsSaved(true);
-      console.log("✅ PDF de unidad (suscriptor) guardado en la nube");
     } catch (error) {
       console.error("❌ Error al guardar PDF del suscriptor:", error);
       guardadoIniciado.current = false;
@@ -244,9 +236,7 @@ function UnidadSuscriptorResult() {
           await guardarEnNube();
           handleToaster("Unidad guardada en la nube", "success");
         } catch {
-          console.warn(
-            "No se pudo guardar en la nube, pero el PDF fue descargado",
-          );
+          // No se pudo guardar en la nube
         }
       }
     } catch (error) {
@@ -549,6 +539,7 @@ function UnidadSuscriptorResult() {
               numeroUnidad={unidad.numeroUnidad}
               grado={gradoLabel}
               seccion={seccion}
+              insigniaUrl={user?.insigniaUrl}
             />
 
             <UnidadDocDatosGenerales

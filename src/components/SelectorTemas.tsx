@@ -74,10 +74,7 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
         const gradoId = GRADO_MAP[sesion.datosGenerales.grado];
         const cicloId = getCicloIdPorGrado(sesion.datosGenerales.grado);
 
-        if (!gradoId || !cicloId) {
-          console.warn("[SelectorTemas] Grado no reconocido:", sesion.datosGenerales.grado);
-          return;
-        }
+        if (!gradoId || !cicloId) return;
 
         // Llamar al endpoint con filtros
         const response = await getTemasPorCiclo({

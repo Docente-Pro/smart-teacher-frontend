@@ -112,7 +112,7 @@ export class GraficoBackendAdapter {
 
     // Validar que ahora tenga la estructura mínima
     if (!this.esFormatoCorrecto(datos)) {
-      console.warn('No se pudo normalizar la estructura del gráfico:', datos);
+      // No se pudo normalizar la estructura del gráfico
       return null;
     }
 

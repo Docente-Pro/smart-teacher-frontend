@@ -79,22 +79,38 @@ function TablaListaCotejo({
   alumnos?: IAlumno[];
 }) {
   const { criterios, columnas } = data;
+  const numColsCriterios = criterios.length * columnas.length;
+  const pctCriterios = numColsCriterios > 0 ? 77 / numColsCriterios : 0;
 
   return (
-    <table style={{ width: "100%", fontSize: "8pt", borderCollapse: "collapse" }}>
+    <table
+      style={{
+        width: "100%",
+        fontSize: "8pt",
+        borderCollapse: "collapse",
+        tableLayout: "fixed",
+      }}
+    >
+      <colgroup>
+        <col style={{ width: "3%" }} />
+        <col style={{ width: "20%" }} />
+        {criterios.map((_, ci) =>
+          columnas.map((_, coli) => (
+            <col key={`${ci}-${coli}`} style={{ width: `${pctCriterios}%` }} />
+          )),
+        )}
+      </colgroup>
       <thead>
-        {/* Fila de cabecera: N° | Estudiante | (criterio + sub-cols Sí/No) … */}
         <tr>
           <th
             rowSpan={2}
             style={{
               backgroundColor: hex.light,
-              width: "1%",
               whiteSpace: "nowrap",
               textAlign: "center",
               verticalAlign: "middle",
               fontSize: "7pt",
-              padding: "0.1rem 0.3rem",
+              padding: "0.2rem 0.25rem",
             }}
           >
             N°
@@ -105,6 +121,9 @@ function TablaListaCotejo({
               backgroundColor: hex.light,
               textAlign: "center",
               verticalAlign: "middle",
+              fontSize: "7pt",
+              padding: "0.2rem 0.25rem",
+              whiteSpace: "nowrap",
             }}
           >
             APELLIDOS Y NOMBRES
@@ -117,7 +136,8 @@ function TablaListaCotejo({
                 backgroundColor: hex.light,
                 textAlign: "center",
                 fontSize: "7pt",
-                padding: "0.2rem",
+                padding: "0.2rem 0.15rem",
+                wordBreak: "break-word",
               }}
             >
               {criterio}
@@ -133,7 +153,6 @@ function TablaListaCotejo({
                   backgroundColor: hex.light,
                   textAlign: "center",
                   fontSize: "7pt",
-                  width: `${75 / (criterios.length * columnas.length)}%`,
                   padding: "0.15rem",
                 }}
               >
@@ -148,17 +167,24 @@ function TablaListaCotejo({
           const alumno = alumnos[rowIdx];
           return (
             <tr key={rowIdx}>
-              <td style={{ textAlign: "center", padding: "0.1rem 0.5rem", fontSize: "7pt", whiteSpace: "nowrap" }}>
+              <td style={{ textAlign: "center", padding: "0.15rem 0.25rem", fontSize: "7pt", whiteSpace: "nowrap" }}>
                 {rowIdx + 1}
               </td>
-              <td style={{ padding: "0.15rem 0.25rem", fontSize: "8pt" }}>
+              <td
+                style={{
+                  padding: "0.15rem 0.25rem",
+                  fontSize: "7pt",
+                  wordBreak: "break-word",
+                  verticalAlign: "middle",
+                }}
+              >
                 {alumno ? `${alumno.apellidos} ${alumno.nombres}`.trim() : "\u00A0"}
               </td>
               {criterios.map((_criterio, ci) =>
                 columnas.map((_col, colIdx) => (
                   <td
                     key={`${ci}-${colIdx}`}
-                    style={{ textAlign: "center", padding: "0.1rem" }}
+                    style={{ textAlign: "center", padding: "0.1rem", verticalAlign: "middle" }}
                   >
                     &nbsp;
                   </td>
@@ -184,21 +210,38 @@ function TablaEscalaValoracion({
   alumnos?: IAlumno[];
 }) {
   const { criterios, columnas } = data;
+  const numColsCriterios = criterios.length * columnas.length;
+  const pctCriterios = numColsCriterios > 0 ? 77 / numColsCriterios : 0;
 
   return (
-    <table style={{ width: "100%", fontSize: "8pt", borderCollapse: "collapse" }}>
+    <table
+      style={{
+        width: "100%",
+        fontSize: "8pt",
+        borderCollapse: "collapse",
+        tableLayout: "fixed",
+      }}
+    >
+      <colgroup>
+        <col style={{ width: "3%" }} />
+        <col style={{ width: "20%" }} />
+        {criterios.map((_, ci) =>
+          columnas.map((_, coli) => (
+            <col key={`${ci}-${coli}`} style={{ width: `${pctCriterios}%` }} />
+          )),
+        )}
+      </colgroup>
       <thead>
         <tr>
           <th
             rowSpan={2}
             style={{
               backgroundColor: hex.light,
-              width: "1%",
               whiteSpace: "nowrap",
               textAlign: "center",
               verticalAlign: "middle",
               fontSize: "7pt",
-              padding: "0.1rem 0.5rem",
+              padding: "0.2rem 0.25rem",
             }}
           >
             N°
@@ -209,6 +252,9 @@ function TablaEscalaValoracion({
               backgroundColor: hex.light,
               textAlign: "center",
               verticalAlign: "middle",
+              fontSize: "7pt",
+              padding: "0.2rem 0.25rem",
+              whiteSpace: "nowrap",
             }}
           >
             APELLIDOS Y NOMBRES
@@ -221,7 +267,8 @@ function TablaEscalaValoracion({
                 backgroundColor: hex.light,
                 textAlign: "center",
                 fontSize: "7pt",
-                padding: "0.2rem",
+                padding: "0.2rem 0.15rem",
+                wordBreak: "break-word",
               }}
             >
               {criterio}
@@ -237,7 +284,7 @@ function TablaEscalaValoracion({
                   backgroundColor: hex.light,
                   textAlign: "center",
                   fontSize: "7pt",
-                  padding: "0.1rem",
+                  padding: "0.15rem",
                 }}
               >
                 {col}
@@ -251,17 +298,24 @@ function TablaEscalaValoracion({
           const alumno = alumnos[rowIdx];
           return (
             <tr key={rowIdx}>
-              <td style={{ textAlign: "center", padding: "0.1rem 0.5rem", fontSize: "7pt", whiteSpace: "nowrap" }}>
+              <td style={{ textAlign: "center", padding: "0.15rem 0.25rem", fontSize: "7pt", whiteSpace: "nowrap" }}>
                 {rowIdx + 1}
               </td>
-              <td style={{ padding: "0.15rem 0.25rem", fontSize: "8pt" }}>
+              <td
+                style={{
+                  padding: "0.15rem 0.25rem",
+                  fontSize: "7pt",
+                  wordBreak: "break-word",
+                  verticalAlign: "middle",
+                }}
+              >
                 {alumno ? `${alumno.apellidos} ${alumno.nombres}`.trim() : "\u00A0"}
               </td>
               {criterios.map((_criterio, ci) =>
                 columnas.map((_col, colIdx) => (
                   <td
                     key={`${ci}-${colIdx}`}
-                    style={{ textAlign: "center", padding: "0.1rem" }}
+                    style={{ textAlign: "center", padding: "0.1rem", verticalAlign: "middle" }}
                   >
                     &nbsp;
                   </td>

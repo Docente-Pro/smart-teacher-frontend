@@ -41,11 +41,9 @@ function LandingPage() {
       try {
         const res = await getUsuarioByEmail({ email: user.email! });
         usuarioId = res.data.data?.id ?? res.data.id;
-        console.log("Usuario encontrado:", res.data);
       } catch (error: any) {
         // Si no existe (404), crear el usuario
         if (error.response?.status === 404) {
-          console.log("Usuario no encontrado, creando nuevo usuario...");
 
           const today = new Date().toISOString().split("T")[0];
 
@@ -64,20 +62,17 @@ function LandingPage() {
 
           const createdRes = await createNewUsuario(newUserData);
           usuarioId = createdRes.data.data?.id ?? createdRes.data.id;
-          console.log("Usuario creado:", createdRes.data);
         } else {
           throw error;
         }
       }
 
       // 2. Crear preferencia de pago
-      console.log("Creando preferencia de pago...");
       const preference = await crearPreferenciaPago({
         usuarioId,
         planId: "premium_mensual",
       });
 
-      console.log("Preferencia creada:", preference);
 
       // 3. Redirigir a Mercado Pago
       if (preference.data?.checkoutUrl) {

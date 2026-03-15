@@ -92,7 +92,7 @@ export function useFichaAplicacion({
   // ─── Paso 2: Renderizar PDF y subir a S3 ──────────────────────────────
   const subirPDF = useCallback(async () => {
     if (!documentRef.current || !fichaId || !uploadInfoRef.current) {
-      console.warn("⚠️ useFichaAplicacion.subirPDF: faltan datos");
+      // useFichaAplicacion.subirPDF: faltan datos
       return;
     }
 
@@ -113,7 +113,6 @@ export function useFichaAplicacion({
       await confirmarUploadFicha(fichaId, { s3Key });
 
       setIsComplete(true);
-      console.log("✅ Ficha PDF subida y confirmada:", fichaId);
     } catch (err: any) {
       console.error("❌ Error al subir ficha PDF:", err);
       // No bloquear la UI — el usuario puede descargar manualmente

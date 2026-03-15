@@ -240,7 +240,7 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
           updateContenido({ imagenSituacionUrl: imgRes.url });
         })
         .catch((err) => {
-          console.warn("No se pudo generar la imagen de situación:", err);
+          // No se pudo generar la imagen de situación
           // No es crítico, se continua sin imagen
         });
 

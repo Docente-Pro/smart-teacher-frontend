@@ -10,9 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@formkit/drag-and-drop": "^0.5.3",
     "@auth0/auth0-react": "^2.3.0",
     "@auth0/auth0-spa-js": "^2.10.0",
+    "@formkit/drag-and-drop": "^0.5.3",
     "@hookform/resolvers": "^3.10.0",
     "@htmldocs/react": "^0.2.30",
     "@htmldocs/render": "^0.2.30",

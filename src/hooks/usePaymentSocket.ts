@@ -63,7 +63,6 @@ export function usePaymentSocket(): UsePaymentSocketReturn {
     }
 
     const cleanup = onSocketEvent("pago:confirmado", (payload) => {
-      console.log("✅ Pago confirmado via WebSocket:", payload);
 
       // Activar plan Premium en el store con datos del payload
       updateUser({

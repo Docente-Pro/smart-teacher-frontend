@@ -127,11 +127,15 @@ export class ValidarGraficoUseCase {
       }
     }
 
-    // Validación especial para tabla_valores con encabezados
+    // Validación especial para tabla_valores (con encabezados o con elementos[].celdas)
     const esTablaValores = grafico.tipoGrafico === 'tabla_valores';
     if (esTablaValores) {
       const graficoTabla = grafico as any;
-      if (graficoTabla.encabezados && Array.isArray(graficoTabla.encabezados)) {
+      const tieneEncabezados = graficoTabla.encabezados && Array.isArray(graficoTabla.encabezados);
+      const tieneElementosConCeldas = Array.isArray(graficoTabla.elementos) &&
+        graficoTabla.elementos.length > 0 &&
+        graficoTabla.elementos[0]?.celdas;
+      if (tieneEncabezados || tieneElementosConCeldas) {
         if (!grafico.elementos) {
           graficoTabla.elementos = [];
         }

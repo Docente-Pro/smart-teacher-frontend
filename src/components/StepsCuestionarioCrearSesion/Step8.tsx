@@ -283,7 +283,7 @@ function Step8({ pagina, setPagina }: Props) {
         }
       })
       .catch((imgErr) => {
-        console.warn("⚠️ Reintento de imágenes falló:", imgErr);
+        // Reintento de imágenes falló
         handleToaster("No se pudieron generar las imágenes. Intente de nuevo.", "warning");
         setImagenesError(true);
       })
@@ -338,8 +338,6 @@ function Step8({ pagina, setPagina }: Props) {
 
         // Buscar preparacion en múltiples ubicaciones posibles de la respuesta
         const preparacionRaw = data.data?.preparacion || data.preparacion || null;
-        console.log('📦 Preparación - data.data.preparacion:', data.data?.preparacion);
-        console.log('📦 Preparación - data.preparacion:', data.preparacion);
 
         // Si el backend no envía preparacion (o viene vacía), extraerla de la secuencia didáctica
         let preparacionFinal: { quehacerAntes: string[]; recursosMateriales: string[] } | null = null;
@@ -365,7 +363,6 @@ function Step8({ pagina, setPagina }: Props) {
           const recursosUnicos = Array.from(recursosSet);
           const quehacerAntes = recursosUnicos.map((r) => `Preparar ${r.charAt(0).toLowerCase() + r.slice(1)}`);
           preparacionFinal = { quehacerAntes, recursosMateriales: recursosUnicos };
-          console.log('📦 Preparación auto-generada desde recursos:', preparacionFinal);
         }
 
         // Mapear enfoquesTransversales del backend (enfoque/valor/actitudes → nombre/valor/actitudesObservables)
@@ -416,7 +413,7 @@ function Step8({ pagina, setPagina }: Props) {
             }
           })
           .catch((imgErr) => {
-            console.warn("⚠️ No se pudieron generar imágenes (la sesión sigue funcional):", imgErr);
+            // No se pudieron generar imágenes
             handleToaster("La sesión se generó correctamente, pero no se pudieron crear las imágenes", "warning");
             setImagenesError(true);
           })

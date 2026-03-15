@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { FileDown, FileText, Printer, Cloud, CloudOff, Loader2, ArrowLeft, ClipboardList, Sparkles, Eye, Pencil, Calendar } from "lucide-react";
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc";
 import { useSesionPremiumPDF } from "@/hooks/useSesionPremiumPDF";
+import { useAuthStore } from "@/store/auth.store";
 import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/fichaAplicacion.service";
 import { editarContenidoSesion } from "@/services/sesiones.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -26,6 +27,7 @@ function SesionPremiumResult() {
   const location = useLocation();
   const navigate = useNavigate();
   const documentRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuthStore();
 
   // Obtener data del state de navegación
   const stateData = location.state as {
@@ -35,9 +37,7 @@ function SesionPremiumResult() {
   const premiumData = stateData?.premiumData ?? null;
   const instrumento = stateData?.instrumento ?? null;
 
-  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, handleDownloadWord, isGeneratingWord } = useSesionPremiumPDF(documentRef, premiumData);
-
-  console.log(stateData);
+  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, handleGenerateWord, handleVerWord, isGeneratingWord, wordUrl } = useSesionPremiumPDF(documentRef, premiumData);
 
   // ── Fecha de la sesión (editable, alineada a Perú) ───────────────────
   const sesionDateRaw = premiumData?.sesion
@@ -244,17 +244,30 @@ function SesionPremiumResult() {
               <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
               <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
             </Button>
-            <Button
-              onClick={handleDownloadWord}
-              disabled={isGeneratingWord}
-              size="sm"
-              variant="outline"
-              className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
-            >
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">{isGeneratingWord ? "Generando Word..." : "Descargar Word"}</span>
-              <span className="sm:hidden">{isGeneratingWord ? "..." : "Word"}</span>
-            </Button>
+            {wordUrl ? (
+              <Button
+                onClick={handleVerWord}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Ver Word</span>
+                <span className="sm:hidden">Word</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerateWord}
+                disabled={isGeneratingWord}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">{isGeneratingWord ? "Generando Word..." : "Descargar Word"}</span>
+                <span className="sm:hidden">{isGeneratingWord ? "..." : "Word"}</span>
+              </Button>
+            )}
             {premiumData?.sesion?.id && (
               <Button
                 onClick={() => navigate(`/editar-sesion/${premiumData.sesion.id}`)}
@@ -296,7 +309,7 @@ function SesionPremiumResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumento} />
+          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumento} insigniaUrl={user?.insigniaUrl} />
         </div>
       </div>
     </div>

@@ -132,7 +132,6 @@ function UnirseUnidad() {
 
     try {
       const res = await unirseAUnidad({ codigo: codigo.trim() });
-      console.log("📋 [UnirseUnidad] Respuesta unirse:", res.data);
 
       const { unidadId: _unidadId, estadoPago, montoPendiente, unidadTitulo: _titulo } = res.data;
 
@@ -173,7 +172,6 @@ function UnirseUnidad() {
     if (user?.id) joinUserRoom(user.id);
 
     const cleanup = onSocketEvent("pago:confirmado", (payload) => {
-      console.log("✅ Pago suscriptor confirmado:", payload);
       updateUser({
         plan: (payload.plan as PlanType) || "premium_mensual",
         suscripcionActiva: true,
@@ -196,7 +194,6 @@ function UnirseUnidad() {
     try {
       const res = await solicitarPagoSuscriptor({ unidadId });
       const { whatsappLink } = res.data;
-      console.log("📲 [UnirseUnidad] Respuesta pago suscriptor:", res.data);
 
       if (!whatsappLink) {
         throw new Error("No se recibió el enlace de WhatsApp del servidor.");

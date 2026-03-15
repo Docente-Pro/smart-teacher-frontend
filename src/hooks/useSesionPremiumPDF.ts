@@ -1,5 +1,5 @@
 import { useState, RefObject, useEffect, useCallback, useRef } from "react";
-import { generateAndDownloadPDF, generateAndDownloadWord } from "@/services/htmldocs.service";
+import { generateAndDownloadPDF } from "@/services/htmldocs.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
   solicitarUploadPDF,
@@ -60,29 +60,18 @@ export function useSesionPremiumPDF(
       const usuarioId = user.id;
 
       // PASO 1 — Pedir URL de subida
-      console.log("📤 Paso 1: Solicitando URL de subida...", {
-        sesionId,
-        usuarioId,
-      });
       const respuestaUpload = await solicitarUploadPDF({
         sesionId,
         usuarioId,
       });
 
-      console.log(
-        "📦 Respuesta upload-url:",
-        JSON.stringify(respuestaUpload),
-      );
-
       const uploadData =
         (respuestaUpload as any)?.data ?? respuestaUpload;
 
       // PASO 2 — Subir PDF directo a S3
-      console.log("📤 Paso 2: Subiendo PDF a S3...");
       await subirPDFaS3(uploadData.uploadUrl, pdfBlob);
 
       // PASO 3 — Confirmar subida y guardar JSON
-      console.log("📤 Paso 3: Confirmando subida...");
       const respuestaConfirm = await confirmarUploadPDF({
         sesionId,
         usuarioId,
@@ -95,7 +84,6 @@ export function useSesionPremiumPDF(
 
       setIsSaved(true);
       if (storageKey) sessionStorage.setItem(storageKey, "1");
-      console.log("✅ PDF Premium guardado en la nube:", confirmData.id);
       return confirmData;
     } catch (error) {
       console.error("❌ Error al guardar PDF Premium en la nube:", error);
@@ -200,9 +188,7 @@ export function useSesionPremiumPDF(
           await guardarEnNube();
           handleToaster("Sesión guardada en la nube", "success");
         } catch {
-          console.warn(
-            "PDF descargado, pero no se pudo guardar en la nube",
-          );
+          // PDF descargado pero no se pudo guardar en la nube
         }
       }
     } catch (error) {
@@ -218,34 +204,41 @@ export function useSesionPremiumPDF(
   };
 
   // ────────────────────────────────────────────────────────────────────────
-  // Descargar Word (premium)
+  // Word: generar → S3 / ver desde S3
   // ────────────────────────────────────────────────────────────────────────
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
-  const handleDownloadWord = async () => {
-    if (!documentRef.current) {
+  const [wordUrl, setWordUrl] = useState<string | null>(
+    (premiumData?.sesion as any)?.wordUrl ?? null,
+  );
+
+  const handleGenerateWord = async () => {
+    if (!documentRef.current || !sesionId) {
       handleToaster("No se pudo acceder al documento", "error");
       return;
     }
-    const rawArea = premiumData?.sesion?.area;
-    const area =
-      typeof rawArea === "string"
-        ? rawArea
-        : rawArea && typeof rawArea === "object" && "nombre" in (rawArea as any)
-          ? String((rawArea as any).nombre)
-          : "premium";
-    const areaLimpia = area.toLowerCase().replace(/\s+/g, "-");
-    const timestamp = Date.now().toString().slice(-8);
-    const nombreArchivo = `sesion-${areaLimpia}-${timestamp}.doc`;
 
     setIsGeneratingWord(true);
     try {
-      await generateAndDownloadWord(documentRef.current, nombreArchivo);
-      handleToaster("Documento Word descargado", "success");
+      const { generateAndUploadWord } = await import("@/services/htmldocs.service");
+      const url = await generateAndUploadWord(documentRef.current, sesionId);
+      setWordUrl(url);
+      handleToaster("Word generado y guardado", "success");
     } catch (error) {
       handleToaster("Error al generar el Word", "error");
       console.error(error);
     } finally {
       setIsGeneratingWord(false);
+    }
+  };
+
+  const handleVerWord = async () => {
+    if (!sesionId) return;
+    try {
+      const { obtenerDownloadUrlWord } = await import("@/services/pdfToWord.service");
+      const downloadUrl = await obtenerDownloadUrlWord(sesionId);
+      window.open(downloadUrl, "_blank");
+    } catch {
+      handleToaster("Error al obtener el Word", "error");
     }
   };
 
@@ -255,8 +248,10 @@ export function useSesionPremiumPDF(
     isSaved,
     handleDownloadPDF,
     handlePrint,
-    handleDownloadWord,
+    handleGenerateWord,
+    handleVerWord,
     isGeneratingWord,
+    wordUrl,
     guardarEnNube,
   };
 }

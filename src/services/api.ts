@@ -29,7 +29,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.warn("⚠️ [api] Token expirado o inválido");
+      // Token expirado o inválido
       const now = Date.now();
       if (now - lastClearAuthTime > CLEAR_AUTH_DEBOUNCE_MS) {
         lastClearAuthTime = now;

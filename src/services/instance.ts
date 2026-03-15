@@ -2,8 +2,8 @@
 import { useAuthStore } from "@/store/auth.store";
 
 const API_BASE_URL =
-  import.meta.env.VITE_PRODUCTION_API_URL ||
-  import.meta.env.VITE_LOCAL_API_URL ||
+  //import.meta.env.VITE_PRODUCTION_API_URL ||
+  //import.meta.env.VITE_LOCAL_API_URL ||
   "http://localhost:3000/api";
 
 export const instance = axios.create({
@@ -75,11 +75,11 @@ instance.interceptors.response.use(
 
       // Las rutas admin manejan sus propios errores de auth — no tocar sesión docente
       if (url.startsWith("/admin/") || url.startsWith("admin/")) {
-        console.warn("⚠️ 401 en ruta admin — no se afecta la sesión docente");
+        // 401 en ruta admin — no se afecta la sesión docente
         return Promise.reject(error);
       }
 
-      console.warn("⚠️ Token expirado o inválido — cerrando sesión");
+      // Token expirado o inválido — cerrando sesión
       // Evitar bucle infinito si ya estamos en /auth/refresh
       if (!error.config?.url?.includes("/auth/refresh")) {
         const now = Date.now();

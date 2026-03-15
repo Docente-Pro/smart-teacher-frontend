@@ -11,6 +11,8 @@ export interface ISesion {
   respondioCuestionario: boolean;
   pdfUrl?: string;
   pdfGeneradoAt?: string;
+  wordUrl?: string;
+  wordGeneradoAt?: string;
   createdAt: string;
   updatedAt: string;
   usuario?: {

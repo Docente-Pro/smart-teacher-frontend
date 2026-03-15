@@ -1,5 +1,3 @@
-import { Head } from "@htmldocs/react";
-
 interface DocumentStylesProps {
   /** Background color for <th> and .section-title elements. Defaults to green (#E8F5E9) */
   thBgColor?: string;
@@ -7,8 +5,7 @@ interface DocumentStylesProps {
 
 export function DocumentStyles({ thBgColor = "#E8F5E9" }: DocumentStylesProps = {}) {
   return (
-    <Head>
-      <link href="https://fonts.googleapis.com/css2?family=Arial&display=swap" rel="stylesheet" />
+    <>
       <style>
         {`
           * {
@@ -212,6 +209,6 @@ export function DocumentStyles({ thBgColor = "#E8F5E9" }: DocumentStylesProps = 
           }
         `}
       </style>
-    </Head>
+    </>
   );
 }

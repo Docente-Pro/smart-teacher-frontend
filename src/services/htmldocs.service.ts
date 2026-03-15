@@ -30,6 +30,61 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 /**
+ * Convierte un elemento SVG a PNG (data URL) dibujándolo en un canvas.
+ * Word no muestra bien SVG en HTML .doc; con PNG sí lo muestra.
+ */
+function svgToPngDataUrl(svg: SVGElement): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      const rect = svg.getBoundingClientRect();
+      const w = Math.max(rect.width || 400, 1);
+      const h = Math.max(rect.height || 300, 1);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(null);
+        return;
+      }
+      const svgString = new XMLSerializer().serializeToString(svg);
+      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/png"));
+        } catch {
+          resolve(null);
+        } finally {
+          URL.revokeObjectURL(url);
+        };
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+      img.src = url;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Obtiene data URL PNG de un canvas (ya dibujado).
+ */
+function canvasToPngDataUrl(canvas: HTMLCanvasElement): string | null {
+  try {
+    if (canvas.width === 0 || canvas.height === 0) return null;
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Intenta convertir una imagen ya cargada en el DOM a data URL usando canvas.
  * Funciona para imágenes que ya se renderizaron exitosamente en el navegador.
  */
@@ -78,13 +133,31 @@ async function forceLoadAllImages(container: HTMLElement): Promise<void> {
   }
 }
 
+/** Data URL de una imagen 1x1 transparente; evita CORS cuando no se puede inlinear una imagen externa */
+const PLACEHOLDER_IMAGE_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+export interface InlineExternalImagesOptions {
+  /**
+   * Si es true, no se hace fetch de imágenes externas (evita CORS).
+   * Se reemplaza el src por un placeholder y se guarda el original para restaurar.
+   * Útil para export Word cuando el bucket S3 no permite CORS desde el origen de la app.
+   */
+  replaceExternalWithoutFetch?: boolean;
+}
+
 /**
  * Pre-convierte todas las imágenes externas (<img> con src http/https)
  * a data URLs inline (base64) para evitar problemas de CORS con html2canvas.
  *
  * Retorna una función para restaurar los src originales después de generar el PDF.
  */
-async function inlineExternalImages(container: HTMLElement): Promise<() => void> {
+async function inlineExternalImages(
+  container: HTMLElement,
+  options: InlineExternalImagesOptions = {},
+): Promise<() => void> {
+  const { replaceExternalWithoutFetch = false } = options;
+
   // Paso 0: forzar carga de imágenes lazy
   await forceLoadAllImages(container);
 
@@ -97,36 +170,28 @@ async function inlineExternalImages(container: HTMLElement): Promise<() => void>
 
     originals.set(img, { src, crossOrigin: img.getAttribute("crossorigin") });
 
-    // Intento 1: Si la imagen ya tiene crossOrigin, intentar canvas directo
-    if (img.crossOrigin) {
+    if (replaceExternalWithoutFetch) {
+      img.src = PLACEHOLDER_IMAGE_DATA_URL;
+      return;
+    }
+
+    // Intento 1: Si la imagen ya se cargó con crossOrigin, extraer via canvas
+    if (img.crossOrigin && img.complete && img.naturalWidth > 0) {
       try {
         const dataUrl = imgToDataUrlViaCanvas(img);
-        if (dataUrl) {
-          img.src = dataUrl;
-          return;
-        }
+        if (dataUrl) { img.src = dataUrl; return; }
       } catch { /* tainted canvas, continue */ }
     }
 
-    // Intento 2: fetch con CORS → blob → data URL
-    try {
-      const response = await fetch(src, { mode: "cors", credentials: "omit" });
-      if (response.ok) {
-        const blob = await response.blob();
-        const dataUrl = await blobToDataUrl(blob);
-        img.src = dataUrl;
-        return;
-      }
-    } catch {
-      // CORS bloqueado, intentar fallback
-    }
-
-    // Intento 3: re-cargar con crossOrigin y dibujar en canvas
+    // Intento 2: Recargar con crossOrigin + cache-bust (evita caché sin CORS)
+    // Este es el método que funciona consistentemente con S3.
     try {
       const dataUrl = await new Promise<string | null>((resolve) => {
         const tempImg = new Image();
         tempImg.crossOrigin = "anonymous";
+        const timeout = setTimeout(() => resolve(null), 15000);
         tempImg.onload = () => {
+          clearTimeout(timeout);
           try {
             const canvas = document.createElement("canvas");
             canvas.width = tempImg.naturalWidth;
@@ -135,37 +200,28 @@ async function inlineExternalImages(container: HTMLElement): Promise<() => void>
             if (ctx) {
               ctx.drawImage(tempImg, 0, 0);
               resolve(canvas.toDataURL("image/png"));
-            } else {
-              resolve(null);
-            }
-          } catch {
-            resolve(null);
-          }
+            } else { resolve(null); }
+          } catch { resolve(null); }
         };
-        tempImg.onerror = () => resolve(null);
-        // Añadir cache-bust para evitar que el navegador reuse la versión sin CORS
-        tempImg.src = src + (src.includes("?") ? "&" : "?") + "_cb=" + Date.now();
+        tempImg.onerror = () => { clearTimeout(timeout); resolve(null); };
+        tempImg.src = src + (src.includes("?") ? "&" : "?") + "_cors=" + Date.now();
       });
-      if (dataUrl) {
-        img.src = dataUrl;
-        return;
-      }
-    } catch {
-      // Continuar al siguiente intento
-    }
+      if (dataUrl) { img.src = dataUrl; return; }
+    } catch { /* continue */ }
 
-    // Intento 4: canvas desde la imagen DOM (sin crossOrigin, puede fallar por taint)
+    // Intento 3: fetch con CORS (funciona si el servidor responde sin cache issues)
     try {
-      const dataUrl = imgToDataUrlViaCanvas(img);
-      if (dataUrl) {
+      const response = await fetch(src, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        const dataUrl = await blobToDataUrl(blob);
         img.src = dataUrl;
         return;
       }
-    } catch {
-      console.warn("No se pudo convertir imagen a data URL:", src);
-    }
+    } catch { /* CORS blocked, continue */ }
 
-    console.warn("Todos los intentos de inline fallaron para:", src);
+    // No se pudo inlinear: dejar data URL placeholder
+    img.src = PLACEHOLDER_IMAGE_DATA_URL;
   });
 
   await Promise.allSettled(promises);
@@ -215,12 +271,13 @@ function disableAnimations(container: HTMLElement, preserveGraphicSize = false):
     path.setAttribute("opacity", "1");
   });
 
-  // ── Solo si NO se quiere preservar el tamaño de gráficos ──
+  // ── Fix overflow y SVG scaling (siempre, incluso con preserveGraphicSize) ──
   const overflowOriginals = new Map<HTMLElement, { ox: string; oy: string }>();
-  const svgStyleOriginals = new Map<SVGSVGElement, string>();
+  const svgStyleOriginals = new Map<SVGSVGElement, { maxWidth: string; minWidth: string }>();
 
-  if (!preserveGraphicSize) {
-    // Fix overflow → forzar contenedores scrollables a visible
+  {
+    // Fix overflow → forzar contenedores scrollables a visible para que html2canvas
+    // capture el contenido completo (sin recorte por overflow-x:auto)
     const overflowContainers = container.querySelectorAll<HTMLElement>(
       ".tabla-doble-entrada-container, .recta-numerica-container, " +
       ".circulos-fraccion-container, .barras-fraccion-container, " +
@@ -242,11 +299,15 @@ function disableAnimations(container: HTMLElement, preserveGraphicSize = false):
       el.style.overflowY = "visible";
     });
 
-    // Fix SVGs: forzar max-width:100% para que escalen al contenedor
+    // Fix SVGs: forzar max-width:100% y min-width:0 para que escalen al contenedor
     const allSvgs = container.querySelectorAll<SVGSVGElement>("svg");
     allSvgs.forEach((svg) => {
-      svgStyleOriginals.set(svg, svg.style.maxWidth);
+      svgStyleOriginals.set(svg, {
+        maxWidth: svg.style.maxWidth,
+        minWidth: svg.style.minWidth,
+      });
       svg.style.maxWidth = "100%";
+      svg.style.minWidth = "0";
     });
   }
 
@@ -268,7 +329,8 @@ function disableAnimations(container: HTMLElement, preserveGraphicSize = false):
       el.style.overflowY = orig.oy;
     });
     svgStyleOriginals.forEach((orig, svg) => {
-      svg.style.maxWidth = orig;
+      svg.style.maxWidth = orig.maxWidth;
+      svg.style.minWidth = orig.minWidth;
     });
   };
 }
@@ -453,112 +515,33 @@ export function downloadPDF(blob: Blob, filename: string = "documento.pdf"): voi
   window.URL.revokeObjectURL(url);
 }
 
+/** Placeholder de texto para gráficos/imágenes cuando no se puede exportar con imagen */
+function createGraphicPlaceholder(text: string): HTMLElement {
+  const span = document.createElement("span");
+  span.style.cssText =
+    "display:inline-block; margin:2pt 0; padding:2pt 6pt; background:#f0f0f0; color:#666; font-size:8pt; font-style:italic; line-height:1.2; border:1px solid #ddd;";
+  span.textContent = text;
+  return span;
+}
+
 /**
- * Genera y descarga un documento Word (.doc) desde un elemento HTML.
- * Usa HTML envuelto en MIME application/msword para que Word/LibreOffice lo abran.
- * Pensado para sesiones y unidades premium (mismo contenido que el PDF).
+ * Genera un Word (.docx) vía backend (SayPDF) y lo sube a S3.
  *
- * @param element Contenedor HTML a exportar (ej. el div que envuelve SesionPremiumDoc o UnidadDoc)
- * @param filename Nombre del archivo sin extensión o con .doc (se fuerza .doc)
+ * Flujo: genera el PDF con el mismo motor de siempre (html2canvas + jsPDF)
+ * → envía el PDF blob + sesionId al backend → backend convierte con SayPDF
+ * → sube .docx a S3 → guarda wordUrl en la sesión → notifica vía Socket.IO.
+ *
+ * @param element Contenedor HTML a exportar
+ * @param sesionId ID de la sesión (para guardar wordUrl en la BD)
+ * @param pdfOptions Opciones opcionales para la generación del PDF intermedio
+ * @returns La wordUrl guardada en S3
  */
-export async function generateAndDownloadWord(
+export async function generateAndUploadWord(
   element: HTMLElement,
-  filename: string = "documento.doc",
-): Promise<void> {
-  const baseName = filename.replace(/\.docx?$/i, "") + ".doc";
-
-  await forceLoadAllImages(element);
-  const restoreImages = await inlineExternalImages(element);
-  const restoreAnimations = disableAnimations(element, false);
-
-  try {
-    const clone = element.cloneNode(true) as HTMLElement;
-    clone.querySelectorAll(".no-print").forEach((el) => el.remove());
-
-    // Solo la línea del docente no se puede editar; director y resto sí
-    clone.querySelectorAll<HTMLElement>("[data-word-lock='docente']").forEach((cell) => {
-      cell.setAttribute("contenteditable", "false");
-      cell.setAttribute("contentEditable", "false");
-    });
-
-    // Word no muestra bien SVG/canvas: reemplazar gráficos educativos por texto para evitar icono de advertencia
-    const graphicPlaceholder = document.createElement("p");
-    graphicPlaceholder.style.cssText = "margin:8pt 0; padding:6pt; background:#f5f5f5; color:#555; font-size:9pt; font-style:italic; border:1px solid #ddd;";
-    graphicPlaceholder.textContent = "[Gráfico educativo — ver documento en PDF o en pantalla para el detalle]";
-    clone.querySelectorAll(".grafico-educativo, .grafico-educativo-error, .grafico-educativo-no-soportado").forEach((el) => {
-      const parent = el.parentElement;
-      if (parent) {
-        parent.replaceChild(graphicPlaceholder.cloneNode(true), el);
-      }
-    });
-
-    // Imágenes que no se pudieron convertir a data URL (http/https) no se ven en Word; reemplazar por texto
-    clone.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
-      const src = (img.getAttribute("src") || img.src || "").trim();
-      if (src.startsWith("http://") || src.startsWith("https://")) {
-        const span = document.createElement("span");
-        span.style.cssText = "display:inline-block; padding:4pt 8pt; background:#f0f0f0; color:#666; font-size:9pt; font-style:italic;";
-        span.textContent = "[Imagen — ver PDF para ver la imagen]";
-        img.parentElement?.replaceChild(span, img);
-      }
-    });
-
-    // Cualquier SVG o canvas restante reemplazar por texto (Word no los muestra bien y muestra icono de advertencia)
-    clone.querySelectorAll("svg, canvas").forEach((el) => {
-      const parent = el.parentElement;
-      if (!parent) return;
-      const p = document.createElement("p");
-      p.style.cssText = "margin:4pt 0; color:#888; font-size:9pt; font-style:italic;";
-      p.textContent = "[Elemento gráfico — ver PDF]";
-      parent.replaceChild(p, el);
-    });
-
-    const htmlContent = clone.innerHTML;
-
-    // Nota: director y otros campos editables; solo el nombre del docente va bloqueado
-    const editableNotice = `
-  <div style="margin-bottom:14pt; padding:8pt; background:#E8F4FD; border:1px solid #B6D4E8; font-size:10pt; color:#1a1a1a;">
-    <strong>Este documento puede editarse en Word.</strong> Si Word muestra "Protegido", haga clic en <strong>Habilitar edición</strong>.
-    Puede cambiar el nombre del director(a) y otros datos en las tablas. La línea <strong>Docente</strong> está bloqueada y no se puede editar.
-  </div>`;
-
-    const doc = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="ProgId" content="Word.Document"/>
-  <meta name="Generator" content="DocentePro"/>
-  <title>Documento editable</title>
-  <!--[if gte mso 9]><xml><w:WordDocument><w:DocumentProtection>Unrestricted</w:DocumentProtection></w:WordDocument></xml><![endif]-->
-  <style>
-    body { font-family: Arial, Helvetica, sans-serif; margin: 1cm; color: #1a1a1a; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #333; padding: 6px 8px; vertical-align: top; }
-    img { max-width: 100%; height: auto; }
-    h1, h2, h3 { margin-top: 12pt; margin-bottom: 6pt; }
-    p { margin: 4pt 0; }
-    ul, ol { margin: 4pt 0; padding-left: 24px; }
-  </style>
-</head>
-<body>
-${editableNotice}
-${htmlContent}
-</body>
-</html>`;
-
-    const blob = new Blob(["\uFEFF" + doc], {
-      type: "application/msword",
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = baseName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } finally {
-    restoreAnimations();
-    restoreImages();
-  }
+  sesionId: string,
+  pdfOptions: Partial<LocalPDFOptions> = {},
+): Promise<string> {
+  const { convertPdfToWordViaApi } = await import("@/services/pdfToWord.service");
+  const pdfBlob = await generatePDFBlob(element, pdfOptions);
+  return convertPdfToWordViaApi(pdfBlob, sesionId);
 }

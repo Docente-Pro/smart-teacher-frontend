@@ -32,6 +32,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { FichaAplicacionDoc } from "@/components/FichaAplicacionDoc";
+import { useAuthStore } from "@/store/auth.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
   subirFichaPDFaS3,
@@ -55,6 +56,7 @@ function FichaAplicacionResult() {
   const location = useLocation();
   const navigate = useNavigate();
   const documentRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuthStore();
 
   const stateData = location.state as FichaResultState | null;
 
@@ -86,7 +88,6 @@ function FichaAplicacionResult() {
       await confirmarUploadFicha(stateData.fichaId, { s3Key: stateData.s3Key });
 
       setIsUploaded(true);
-      console.log("✅ Ficha PDF subida a S3:", stateData.fichaId);
     } catch (err) {
       console.error("❌ Error al subir ficha PDF:", err);
       uploadStarted.current = false; // permitir reintento
@@ -323,6 +324,7 @@ function FichaAplicacionResult() {
             docente={docente}
             institucion={institucion}
             mostrarSolucionario={mostrarSolucionario}
+            insigniaUrl={user?.insigniaUrl}
           />
         </div>
       </div>
