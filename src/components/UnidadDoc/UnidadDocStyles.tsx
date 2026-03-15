@@ -1,13 +1,10 @@
-import { Head } from "@htmldocs/react";
-
 /**
  * Estilos CSS para el documento de Unidad de Aprendizaje.
  * Tema naranja/amber siguiendo formato MINEDU.
  */
 export function UnidadDocStyles() {
   return (
-    <Head>
-      <link href="https://fonts.googleapis.com/css2?family=Arial&display=swap" rel="stylesheet" />
+    <>
       <style>
         {`
           * {
@@ -232,6 +229,6 @@ export function UnidadDocStyles() {
           }
         `}
       </style>
-    </Head>
+    </>
   );
 }

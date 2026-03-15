@@ -69,8 +69,9 @@ function SesionSuscriptorResult() {
   // ── Estado de generación de Ficha de Aplicación ──
   const [isGeneratingFicha, setIsGeneratingFicha] = useState(false);
 
-  // ── Estado de generación Word ──
+  // ── Estado de Word ──
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
+  const [wordUrl, setWordUrl] = useState<string | null>(null);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Cargar sesión completa del backend
@@ -249,6 +250,7 @@ function SesionSuscriptorResult() {
         };
 
         setPremiumData(response);
+        if (raw.wordUrl) setWordUrl(raw.wordUrl);
       } catch (err: any) {
         if (!cancelled) {
           console.error("Error al cargar sesión:", err);
@@ -467,28 +469,19 @@ function SesionSuscriptorResult() {
 
   const handlePrint = () => window.print();
 
-  // ── Descargar Word (premium) ───────────────────────────────────────────
-  const handleDownloadWord = async () => {
-    if (!documentRef.current) {
+  // ── Generar Word → S3 (primera vez) ─────────────────────────────────────
+  const handleGenerateWord = async () => {
+    if (!documentRef.current || !sesionId) {
       handleToaster("No se pudo acceder al documento", "error");
       return;
     }
-    const rawArea = premiumData?.sesion?.area;
-    const area =
-      typeof rawArea === "string"
-        ? rawArea
-        : rawArea && typeof rawArea === "object" && "nombre" in (rawArea as any)
-          ? String((rawArea as any).nombre)
-          : "sesion";
-    const areaLimpia = area.toLowerCase().replace(/\s+/g, "-");
-    const timestamp = Date.now().toString().slice(-8);
-    const nombreArchivo = `sesion-${areaLimpia}-${timestamp}.doc`;
 
     setIsGeneratingWord(true);
     try {
-      const { generateAndDownloadWord } = await import("@/services/htmldocs.service");
-      await generateAndDownloadWord(documentRef.current, nombreArchivo);
-      handleToaster("Documento Word descargado", "success");
+      const { generateAndUploadWord } = await import("@/services/htmldocs.service");
+      const url = await generateAndUploadWord(documentRef.current, sesionId);
+      setWordUrl(url);
+      handleToaster("Word generado y guardado", "success");
     } catch (error) {
       handleToaster("Error al generar el Word", "error");
       console.error(error);
@@ -497,7 +490,19 @@ function SesionSuscriptorResult() {
     }
   };
 
-  // ── Auto-descargar Word cuando se llega con ?download=word (ej. desde Mis Sesiones)
+  // ── Ver Word (ya guardado en S3) ───────────────────────────────────────
+  const handleVerWord = async () => {
+    if (!sesionId) return;
+    try {
+      const { obtenerDownloadUrlWord } = await import("@/services/pdfToWord.service");
+      const downloadUrl = await obtenerDownloadUrlWord(sesionId);
+      window.open(downloadUrl, "_blank");
+    } catch {
+      handleToaster("Error al obtener el Word", "error");
+    }
+  };
+
+  // ── Auto-generar Word cuando se llega con ?download=word ───────────────
   useEffect(() => {
     if (
       searchParams.get("download") !== "word" ||
@@ -507,28 +512,17 @@ function SesionSuscriptorResult() {
     )
       return;
     wordAutoDownloadDone.current = true;
-    const t = setTimeout(async () => {
-      if (!documentRef.current) return;
-      try {
-        const { generateAndDownloadWord } = await import("@/services/htmldocs.service");
-        const rawArea = premiumData?.sesion?.area;
-        const area =
-          typeof rawArea === "string"
-            ? rawArea
-            : rawArea && typeof rawArea === "object" && "nombre" in (rawArea as any)
-              ? String((rawArea as any).nombre)
-              : "sesion";
-        const areaLimpia = area.toLowerCase().replace(/\s+/g, "-");
-        const nombreArchivo = `sesion-${areaLimpia}-${Date.now().toString().slice(-8)}.doc`;
-        await generateAndDownloadWord(documentRef.current, nombreArchivo);
-        handleToaster("Documento Word descargado", "success");
-      } catch (err) {
-        handleToaster("Error al generar el Word", "error");
-        console.error(err);
-      }
+
+    if (wordUrl) {
+      handleVerWord();
+      return;
+    }
+
+    const t = setTimeout(() => {
+      if (documentRef.current && sesionId) handleGenerateWord();
     }, 2000);
     return () => clearTimeout(t);
-  }, [premiumData, loadingSesion, searchParams]);
+  }, [premiumData, loadingSesion, searchParams, wordUrl]);
 
   // ── Generar Ficha de Aplicación ───────────────────────────────────────
   const handleGenerarFicha = async () => {
@@ -696,21 +690,34 @@ function SesionSuscriptorResult() {
                 {isGenerating ? "..." : "PDF"}
               </span>
             </Button>
-            <Button
-              onClick={handleDownloadWord}
-              disabled={isGeneratingWord}
-              size="sm"
-              variant="outline"
-              className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
-            >
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {isGeneratingWord ? "Generando Word..." : "Descargar Word"}
-              </span>
-              <span className="sm:hidden">
-                {isGeneratingWord ? "..." : "Word"}
-              </span>
-            </Button>
+            {wordUrl ? (
+              <Button
+                onClick={handleVerWord}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Ver Word</span>
+                <span className="sm:hidden">Word</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerateWord}
+                disabled={isGeneratingWord}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {isGeneratingWord ? "Generando Word..." : "Descargar Word"}
+                </span>
+                <span className="sm:hidden">
+                  {isGeneratingWord ? "..." : "Word"}
+                </span>
+              </Button>
+            )}
             {sesionId && (
               <Button
                 onClick={() => navigate(`/editar-sesion/${sesionId}`)}

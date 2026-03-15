@@ -9,8 +9,8 @@ import { useAuthStore } from "@/store/auth.store";
 // Derivar la URL base del socket desde la misma variable que usa la API,
 // quitando el sufijo /api si lo tiene (el socket se conecta a la raíz).
 const SOCKET_URL = (
-  import.meta.env.VITE_PRODUCTION_API_URL ||
-  import.meta.env.VITE_LOCAL_API_URL ||
+  //import.meta.env.VITE_PRODUCTION_API_URL ||
+  //import.meta.env.VITE_LOCAL_API_URL ||
   "http://localhost:3000/api"
 ).replace(/\/api\/?$/, "");
 
@@ -76,6 +76,16 @@ export interface UsuarioReseteadoPayload {
   [key: string]: unknown;
 }
 
+export interface WordListoPayload {
+  jobId: string;
+  wordUrl: string;
+}
+
+export interface WordErrorPayload {
+  jobId: string;
+  message: string;
+}
+
 export type SocketEventMap = {
   "pago:confirmado": PagoConfirmadoPayload;
   "pago:rechazado": PagoRechazadoPayload;
@@ -84,6 +94,8 @@ export type SocketEventMap = {
   "suscripcion:revocada": SuscripcionRevocadaPayload;
   "suscripcion:expirada": SuscripcionExpiradaPayload;
   "usuario:reseteado": UsuarioReseteadoPayload;
+  "word:listo": WordListoPayload;
+  "word:error": WordErrorPayload;
 };
 
 // ─── Conexión ───

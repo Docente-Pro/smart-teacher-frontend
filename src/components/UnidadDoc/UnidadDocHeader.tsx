@@ -29,6 +29,7 @@ export function UnidadDocHeader({ titulo, numeroUnidad, grado, seccion, insignia
         <img
           src={insigniaUrl}
           alt="Insignia"
+          crossOrigin="anonymous"
           style={{
             width: "100px",
             height: "100px",

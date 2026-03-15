@@ -1,5 +1,5 @@
 import { useState, RefObject, useEffect, useCallback, useRef } from "react";
-import { generateAndDownloadPDF, generateAndDownloadWord } from "@/services/htmldocs.service";
+import { generateAndDownloadPDF } from "@/services/htmldocs.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
   solicitarUploadPDF,
@@ -204,34 +204,41 @@ export function useSesionPremiumPDF(
   };
 
   // ────────────────────────────────────────────────────────────────────────
-  // Descargar Word (premium)
+  // Word: generar → S3 / ver desde S3
   // ────────────────────────────────────────────────────────────────────────
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
-  const handleDownloadWord = async () => {
-    if (!documentRef.current) {
+  const [wordUrl, setWordUrl] = useState<string | null>(
+    (premiumData?.sesion as any)?.wordUrl ?? null,
+  );
+
+  const handleGenerateWord = async () => {
+    if (!documentRef.current || !sesionId) {
       handleToaster("No se pudo acceder al documento", "error");
       return;
     }
-    const rawArea = premiumData?.sesion?.area;
-    const area =
-      typeof rawArea === "string"
-        ? rawArea
-        : rawArea && typeof rawArea === "object" && "nombre" in (rawArea as any)
-          ? String((rawArea as any).nombre)
-          : "premium";
-    const areaLimpia = area.toLowerCase().replace(/\s+/g, "-");
-    const timestamp = Date.now().toString().slice(-8);
-    const nombreArchivo = `sesion-${areaLimpia}-${timestamp}.doc`;
 
     setIsGeneratingWord(true);
     try {
-      await generateAndDownloadWord(documentRef.current, nombreArchivo);
-      handleToaster("Documento Word descargado", "success");
+      const { generateAndUploadWord } = await import("@/services/htmldocs.service");
+      const url = await generateAndUploadWord(documentRef.current, sesionId);
+      setWordUrl(url);
+      handleToaster("Word generado y guardado", "success");
     } catch (error) {
       handleToaster("Error al generar el Word", "error");
       console.error(error);
     } finally {
       setIsGeneratingWord(false);
+    }
+  };
+
+  const handleVerWord = async () => {
+    if (!sesionId) return;
+    try {
+      const { obtenerDownloadUrlWord } = await import("@/services/pdfToWord.service");
+      const downloadUrl = await obtenerDownloadUrlWord(sesionId);
+      window.open(downloadUrl, "_blank");
+    } catch {
+      handleToaster("Error al obtener el Word", "error");
     }
   };
 
@@ -241,8 +248,10 @@ export function useSesionPremiumPDF(
     isSaved,
     handleDownloadPDF,
     handlePrint,
-    handleDownloadWord,
+    handleGenerateWord,
+    handleVerWord,
     isGeneratingWord,
+    wordUrl,
     guardarEnNube,
   };
 }

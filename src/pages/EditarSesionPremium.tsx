@@ -929,12 +929,16 @@ function EditarSesionPremium() {
       return;
     }
 
+    if (!sesionId) {
+      toast.error("No se encontró el ID de la sesión");
+      return;
+    }
+
     setIsGeneratingWord(true);
     try {
-      const timestamp = Date.now().toString().slice(-8);
-      const { generateAndDownloadWord } = await import("@/services/htmldocs.service");
-      await generateAndDownloadWord(documentRef.current, `sesion-editada-${timestamp}.doc`);
-      toast.success("Documento Word descargado");
+      const { generateAndUploadWord } = await import("@/services/htmldocs.service");
+      await generateAndUploadWord(documentRef.current, sesionId);
+      toast.success("Word generado y guardado");
     } catch {
       toast.error("Error al generar Word");
     } finally {
