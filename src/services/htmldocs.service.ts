@@ -170,42 +170,28 @@ async function inlineExternalImages(
 
     originals.set(img, { src, crossOrigin: img.getAttribute("crossorigin") });
 
-    // Opción: no hacer fetch (evitar CORS en export Word)
     if (replaceExternalWithoutFetch) {
       img.src = PLACEHOLDER_IMAGE_DATA_URL;
       return;
     }
 
-    // Intento 1: Si la imagen ya tiene crossOrigin, intentar canvas directo
-    if (img.crossOrigin) {
+    // Intento 1: Si la imagen ya se cargó con crossOrigin, extraer via canvas
+    if (img.crossOrigin && img.complete && img.naturalWidth > 0) {
       try {
         const dataUrl = imgToDataUrlViaCanvas(img);
-        if (dataUrl) {
-          img.src = dataUrl;
-          return;
-        }
+        if (dataUrl) { img.src = dataUrl; return; }
       } catch { /* tainted canvas, continue */ }
     }
 
-    // Intento 2: fetch con CORS → blob → data URL
-    try {
-      const response = await fetch(src, { mode: "cors", credentials: "omit" });
-      if (response.ok) {
-        const blob = await response.blob();
-        const dataUrl = await blobToDataUrl(blob);
-        img.src = dataUrl;
-        return;
-      }
-    } catch {
-      // CORS bloqueado, intentar fallback
-    }
-
-    // Intento 3: re-cargar con crossOrigin y dibujar en canvas
+    // Intento 2: Recargar con crossOrigin + cache-bust (evita caché sin CORS)
+    // Este es el método que funciona consistentemente con S3.
     try {
       const dataUrl = await new Promise<string | null>((resolve) => {
         const tempImg = new Image();
         tempImg.crossOrigin = "anonymous";
+        const timeout = setTimeout(() => resolve(null), 15000);
         tempImg.onload = () => {
+          clearTimeout(timeout);
           try {
             const canvas = document.createElement("canvas");
             canvas.width = tempImg.naturalWidth;
@@ -214,37 +200,27 @@ async function inlineExternalImages(
             if (ctx) {
               ctx.drawImage(tempImg, 0, 0);
               resolve(canvas.toDataURL("image/png"));
-            } else {
-              resolve(null);
-            }
-          } catch {
-            resolve(null);
-          }
+            } else { resolve(null); }
+          } catch { resolve(null); }
         };
-        tempImg.onerror = () => resolve(null);
-        // Añadir cache-bust para evitar que el navegador reuse la versión sin CORS
-        tempImg.src = src + (src.includes("?") ? "&" : "?") + "_cb=" + Date.now();
+        tempImg.onerror = () => { clearTimeout(timeout); resolve(null); };
+        tempImg.src = src + (src.includes("?") ? "&" : "?") + "_cors=" + Date.now();
       });
-      if (dataUrl) {
-        img.src = dataUrl;
-        return;
-      }
-    } catch {
-      // Continuar al siguiente intento
-    }
+      if (dataUrl) { img.src = dataUrl; return; }
+    } catch { /* continue */ }
 
-    // Intento 4: canvas desde la imagen DOM (sin crossOrigin, puede fallar por taint)
+    // Intento 3: fetch con CORS (funciona si el servidor responde sin cache issues)
     try {
-      const dataUrl = imgToDataUrlViaCanvas(img);
-      if (dataUrl) {
+      const response = await fetch(src, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        const dataUrl = await blobToDataUrl(blob);
         img.src = dataUrl;
         return;
       }
-    } catch {
-      // Continuar
-    }
+    } catch { /* CORS blocked, continue */ }
 
-    // No se pudo inlinear (p. ej. CORS): usar placeholder para no dejar URL externa en el DOM
+    // No se pudo inlinear: dejar data URL placeholder
     img.src = PLACEHOLDER_IMAGE_DATA_URL;
   });
 
@@ -548,145 +524,24 @@ function createGraphicPlaceholder(text: string): HTMLElement {
   return span;
 }
 
-/** Nota editable para Word (compatible con .doc y .docx) */
-const EDITABLE_NOTICE_HTML = `
-  <div style="margin-bottom:14pt; padding:8pt; background:#E8F4FD; border:1px solid #B6D4E8; font-size:10pt; color:#1a1a1a;">
-    <strong>Este documento puede editarse en Word.</strong> Si Word muestra "Protegido", haga clic en <strong>Habilitar edición</strong>.
-    Puede cambiar el nombre del director(a) y otros datos en las tablas. La línea <strong>Docente</strong> está bloqueada y no se puede editar.
-  </div>`;
-
 /**
- * Genera y descarga un documento Word desde un elemento HTML.
- * Intenta generar .docx con imágenes embebidas usando @turbodocx/html-to-docx;
- * si la librería no está disponible o falla, descarga .doc (HTML) con placeholders de texto.
+ * Genera un Word (.docx) vía backend (SayPDF) y lo sube a S3.
  *
- * @param element Contenedor HTML a exportar (ej. el div que envuelve SesionPremiumDoc o UnidadDoc)
- * @param filename Nombre del archivo sin extensión o con .doc/.docx (se normaliza)
+ * Flujo: genera el PDF con el mismo motor de siempre (html2canvas + jsPDF)
+ * → envía el PDF blob + sesionId al backend → backend convierte con SayPDF
+ * → sube .docx a S3 → guarda wordUrl en la sesión → notifica vía Socket.IO.
+ *
+ * @param element Contenedor HTML a exportar
+ * @param sesionId ID de la sesión (para guardar wordUrl en la BD)
+ * @param pdfOptions Opciones opcionales para la generación del PDF intermedio
+ * @returns La wordUrl guardada en S3
  */
-export async function generateAndDownloadWord(
+export async function generateAndUploadWord(
   element: HTMLElement,
-  filename: string = "documento.doc",
-): Promise<void> {
-  const baseNameNoExt = filename.replace(/\.docx?$/i, "");
-  const docxName = baseNameNoExt + ".docx";
-  const docName = baseNameNoExt + ".doc";
-
-  await forceLoadAllImages(element);
-  // No hacer fetch de imágenes externas (S3 sin CORS): usar placeholder y evitar errores CORS
-  const restoreImages = await inlineExternalImages(element, { replaceExternalWithoutFetch: true });
-  const restoreAnimations = disableAnimations(element, false);
-
-  try {
-    // Convertir SVG/canvas del original a PNG (data URL) para que el DOCX pueda embeder imágenes
-    const svgAndCanvas = Array.from(element.querySelectorAll("svg, canvas")) as (SVGElement | HTMLCanvasElement)[];
-    const dataUrls: (string | null)[] = [];
-    const dimensions: { w: number; h: number }[] = [];
-    for (const el of svgAndCanvas) {
-      if (el.tagName === "CANVAS") {
-        const c = el as HTMLCanvasElement;
-        dataUrls.push(canvasToPngDataUrl(c));
-        dimensions.push({ w: c.width, h: c.height });
-      } else {
-        const dataUrl = await svgToPngDataUrl(el as SVGElement);
-        dataUrls.push(dataUrl);
-        const rect = el.getBoundingClientRect();
-        dimensions.push({ w: Math.round(rect.width) || 400, h: Math.round(rect.height) || 300 });
-      }
-    }
-
-    const clone = element.cloneNode(true) as HTMLElement;
-    clone.querySelectorAll(".no-print").forEach((el) => el.remove());
-
-    clone.querySelectorAll<HTMLElement>("[data-word-lock='docente']").forEach((cell) => {
-      cell.setAttribute("contenteditable", "false");
-      cell.setAttribute("contentEditable", "false");
-    });
-
-    // Reemplazar SVG/canvas por <img> con PNG (o placeholder si falló la conversión)
-    const cloneSvgCanvas = Array.from(clone.querySelectorAll("svg, canvas"));
-    cloneSvgCanvas.forEach((el, idx) => {
-      const dataUrl = dataUrls[idx];
-      const dim = dimensions[idx];
-      const parent = el.parentElement;
-      if (!parent || !dim) return;
-      if (dataUrl) {
-        const img = document.createElement("img");
-        img.alt = "Gráfico educativo";
-        img.src = dataUrl;
-        img.style.maxWidth = "100%";
-        img.style.height = "auto";
-        const maxW = 450;
-        if (dim.w > maxW) {
-          img.setAttribute("width", String(maxW));
-          img.setAttribute("height", String(Math.round((dim.h * maxW) / dim.w)));
-        } else if (dim.w > 0 && dim.h > 0) {
-          img.setAttribute("width", String(dim.w));
-          img.setAttribute("height", String(dim.h));
-        }
-        parent.replaceChild(img, el);
-      } else {
-        parent.replaceChild(createGraphicPlaceholder("[Gráfico — ver PDF]"), el);
-      }
-    });
-
-    const fullHtml = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>Documento</title>
-  <style>body{font-family:Arial,Helvetica,sans-serif;margin:1cm;color:#1a1a1a;} table{border-collapse:collapse;width:100%;} th,td{border:1px solid #333;padding:6px 8px;vertical-align:top;} img{max-width:100%;height:auto;} h1,h2,h3{margin-top:12pt;margin-bottom:6pt;} p{margin:4pt 0;} ul,ol{margin:4pt 0;padding-left:24px;}</style></head><body>${EDITABLE_NOTICE_HTML}${clone.innerHTML}</body></html>`;
-
-    // Intentar generar .docx con imágenes usando @turbodocx/html-to-docx
-    const docxMime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    let docxBlob: Blob | null = null;
-    try {
-      const { default: HtmlToDocx } = await import("@turbodocx/html-to-docx");
-      if (typeof HtmlToDocx !== "function")
-        throw new Error("Función de conversión no disponible");
-      const result = await HtmlToDocx(fullHtml, null, {
-        title: "DocentePro",
-        creator: "DocentePro",
-        table: { row: { cantSplit: true } },
-        preprocessing: { skipHTMLMinify: true },
-      });
-      if (result instanceof Blob) docxBlob = result;
-      else if (result instanceof ArrayBuffer || result instanceof Uint8Array)
-        docxBlob = new Blob([result], { type: docxMime });
-      else if (result && typeof (result as ArrayBuffer).byteLength !== "undefined")
-        docxBlob = new Blob([result as ArrayBuffer], { type: docxMime });
-    } catch (err) {
-      console.warn("[Word] No se pudo generar .docx, usando .doc:", err);
-    }
-
-    if (docxBlob) {
-      const url = window.URL.createObjectURL(docxBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = docxName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      return;
-    }
-
-    // Fallback: .doc (HTML) sin imágenes embebidas — reemplazar todas las imágenes por texto para evitar icono roto
-    clone.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
-      const span = createGraphicPlaceholder("[Imagen — ver versión PDF]");
-      img.parentElement?.replaceChild(span, img);
-    });
-    const docHtml = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
-<head><meta charset="UTF-8"/><meta name="ProgId" content="Word.Document"/><title>Documento</title>
-<style>body{font-family:Arial,sans-serif;margin:1cm;} table{border-collapse:collapse;} th,td{border:1px solid #333;padding:6px 8px;} img{max-width:100%;}</style></head>
-<body>${EDITABLE_NOTICE_HTML}${clone.innerHTML}</body></html>`;
-    const blob = new Blob(["\uFEFF" + docHtml], { type: "application/msword" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = docName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } finally {
-    restoreAnimations();
-    restoreImages();
-  }
+  sesionId: string,
+  pdfOptions: Partial<LocalPDFOptions> = {},
+): Promise<string> {
+  const { convertPdfToWordViaApi } = await import("@/services/pdfToWord.service");
+  const pdfBlob = await generatePDFBlob(element, pdfOptions);
+  return convertPdfToWordViaApi(pdfBlob, sesionId);
 }

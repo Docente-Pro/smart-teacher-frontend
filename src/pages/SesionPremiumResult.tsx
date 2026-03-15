@@ -37,7 +37,7 @@ function SesionPremiumResult() {
   const premiumData = stateData?.premiumData ?? null;
   const instrumento = stateData?.instrumento ?? null;
 
-  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, handleDownloadWord, isGeneratingWord } = useSesionPremiumPDF(documentRef, premiumData);
+  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, handleGenerateWord, handleVerWord, isGeneratingWord, wordUrl } = useSesionPremiumPDF(documentRef, premiumData);
 
   // ── Fecha de la sesión (editable, alineada a Perú) ───────────────────
   const sesionDateRaw = premiumData?.sesion
@@ -244,17 +244,30 @@ function SesionPremiumResult() {
               <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
               <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
             </Button>
-            <Button
-              onClick={handleDownloadWord}
-              disabled={isGeneratingWord}
-              size="sm"
-              variant="outline"
-              className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
-            >
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">{isGeneratingWord ? "Generando Word..." : "Descargar Word"}</span>
-              <span className="sm:hidden">{isGeneratingWord ? "..." : "Word"}</span>
-            </Button>
+            {wordUrl ? (
+              <Button
+                onClick={handleVerWord}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Ver Word</span>
+                <span className="sm:hidden">Word</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerateWord}
+                disabled={isGeneratingWord}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">{isGeneratingWord ? "Generando Word..." : "Descargar Word"}</span>
+                <span className="sm:hidden">{isGeneratingWord ? "..." : "Word"}</span>
+              </Button>
+            )}
             {premiumData?.sesion?.id && (
               <Button
                 onClick={() => navigate(`/editar-sesion/${premiumData.sesion.id}`)}

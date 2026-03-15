@@ -488,6 +488,7 @@ function ProcesoPremiumRow({
                 <img
                   src={img.url}
                   alt={img.descripcion || ""}
+                  crossOrigin="anonymous"
                   style={{ maxWidth: "350px", maxHeight: "300px" }}
                 />
                 {(img as any).texto_overlay && (
@@ -526,6 +527,7 @@ function ProcesoPremiumRow({
                   <img
                     src={img.url}
                     alt={img.descripcion || ""}
+                    crossOrigin="anonymous"
                     style={{ maxWidth: "350px", maxHeight: "300px" }}
                   />
                   {(img as any).texto_overlay && (
@@ -574,6 +576,7 @@ function ProcesoPremiumRow({
                 <img
                   src={img.url}
                   alt={img.descripcion || ""}
+                  crossOrigin="anonymous"
                   style={{ maxWidth: "350px", maxHeight: "300px" }}
                 />
                 {(img as any).texto_overlay && (
