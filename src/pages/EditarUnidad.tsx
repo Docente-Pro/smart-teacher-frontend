@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import {
   getUnidadDetalleSuscriptor,
   getUnidadById,
@@ -1892,7 +1893,7 @@ function EditarUnidad() {
                 numeroUnidad={rawUnidad.numeroUnidad}
                 grado={gradoLabel}
                 seccion={seccionLabel}
-                insigniaUrl={user?.insigniaUrl}
+                insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)}
               />
               <UnidadDocDatosGenerales
                 institucion={institucionLabel}

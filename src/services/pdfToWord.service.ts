@@ -5,14 +5,19 @@ import type { WordListoPayload, WordErrorPayload } from "@/services/socket.servi
 /**
  * Non-blocking PDF→Word conversion via backend + SayPDF + S3.
  *
- * Flow:
- *  1. POST PDF blob + sesionId → backend returns { jobId } immediately
+ * Flow (from-session — preferred):
+ *  1. POST { sesionId } → backend fetches PDF from S3 internally, returns { jobId }
  *  2. Backend: SayPDF converts → uploads .docx to S3 → saves wordUrl in DB
  *  3. Backend emits "word:listo" via Socket.IO with { jobId, wordUrl }
  *  4. Frontend receives event → resolves with wordUrl
+ *
+ * Flow (with file — fallback for SesionSuscriptorResult first-time PDF):
+ *  1. POST multipart { file, sesionId } → backend returns { jobId }
+ *  2–4. Same as above
  */
 
 const ENDPOINT = "/pdf-to-word";
+const ENDPOINT_FROM_SESSION = "/pdf-to-word/from-session";
 const TIMEOUT_MS = 150_000;
 
 interface StartConversionResponse {
@@ -21,8 +26,8 @@ interface StartConversionResponse {
 }
 
 /**
- * Sends PDF to backend for conversion + S3 upload.
- * Resolves with the wordUrl once the .docx is saved in S3.
+ * Sends a PDF blob to the backend for Word conversion.
+ * Used by SesionSuscriptorResult when generating Word from a freshly-rendered PDF.
  */
 export async function convertPdfToWordViaApi(
   pdfBlob: Blob,
@@ -53,6 +58,27 @@ export async function obtenerDownloadUrlWord(sesionId: string): Promise<string> 
     data: { downloadUrl: string; expiresIn: number };
   }>(`/sesion/${sesionId}/download-url-word`);
   return data.data.downloadUrl;
+}
+
+/**
+ * Triggers Word generation from the session's existing S3 PDF.
+ * The backend fetches the PDF from S3 directly — no file upload needed.
+ * Avoids 413 errors and CORS issues.
+ */
+export async function generarWordDesdePDFExistente(
+  sesionId: string,
+): Promise<string> {
+  const { data } = await instance.post<StartConversionResponse>(
+    ENDPOINT_FROM_SESSION,
+    { sesionId },
+    { timeout: 30_000 },
+  );
+
+  if (!data.success || !data.jobId) {
+    throw new Error("El servidor no pudo iniciar la conversión.");
+  }
+
+  return waitForWordReady(data.jobId);
 }
 
 function waitForWordReady(jobId: string): Promise<string> {

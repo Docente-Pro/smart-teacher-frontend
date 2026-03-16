@@ -6,6 +6,7 @@ import { FileDown, FileText, Printer, Cloud, CloudOff, Loader2, ArrowLeft, Clipb
 import { SesionPremiumDoc } from "@/components/SesionPremiumDoc";
 import { useSesionPremiumPDF } from "@/hooks/useSesionPremiumPDF";
 import { useAuthStore } from "@/store/auth.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/fichaAplicacion.service";
 import { editarContenidoSesion } from "@/services/sesiones.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -309,7 +310,7 @@ function SesionPremiumResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumento} insigniaUrl={user?.insigniaUrl} />
+          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumento} insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)} />
         </div>
       </div>
     </div>

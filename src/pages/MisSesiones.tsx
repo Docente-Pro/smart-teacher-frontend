@@ -159,6 +159,7 @@ function SessionCard({
   sesion,
   areaName,
   downloadingId,
+  generatingWordId,
   confirmDeleteId,
   deletingId,
   onVer,
@@ -173,6 +174,7 @@ function SessionCard({
   sesion: ISesion;
   areaName: string;
   downloadingId: string | null;
+  generatingWordId: string | null;
   confirmDeleteId: string | null;
   deletingId: string | null;
   onVer: () => void;
@@ -226,8 +228,15 @@ function SessionCard({
           <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onDescargar(); }} disabled={downloadingId === sesion.id} title="PDF">
             {downloadingId === sesion.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
           </Button>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onWord(); }} title="Word">
-            <FileText className="h-3 w-3" />
+          <Button
+            variant="outline"
+            size="sm"
+            className={`h-8 w-8 p-0 ${(sesion as any).wordUrl ? "border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400" : ""}`}
+            onClick={(e) => { e.stopPropagation(); onWord(); }}
+            disabled={generatingWordId === sesion.id}
+            title={(sesion as any).wordUrl ? "Ver Word" : "Generar Word"}
+          >
+            {generatingWordId === sesion.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
           </Button>
           <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onEditar(); }} title="Editar">
             <Pencil className="h-3 w-3" />
@@ -263,6 +272,7 @@ function MisSesiones() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [generatingWordId, setGeneratingWordId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -359,6 +369,39 @@ function MisSesiones() {
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);
+    }
+  };
+
+  // ─── Word: generar o ver, sin salir de la página ───
+  const handleWord = async (sesion: ISesion) => {
+    if ((sesion as any).wordUrl) {
+      try {
+        const { obtenerDownloadUrlWord } = await import("@/services/pdfToWord.service");
+        const url = await obtenerDownloadUrlWord(sesion.id);
+        window.open(url, "_blank");
+      } catch {
+        handleToaster("Error al obtener el Word", "error");
+      }
+      return;
+    }
+
+    if (!sesion.pdfUrl) {
+      handleToaster("Esta sesión aún no tiene PDF. Ábrela primero para generarlo.", "warning");
+      return;
+    }
+
+    setGeneratingWordId(sesion.id);
+    try {
+      const { generarWordDesdePDFExistente } = await import("@/services/pdfToWord.service");
+      const wordUrl = await generarWordDesdePDFExistente(sesion.id);
+      setSesiones((prev) =>
+        prev.map((s) => (s.id === sesion.id ? { ...s, wordUrl } as ISesion : s)),
+      );
+      handleToaster("Word generado y guardado", "success");
+    } catch (err: any) {
+      handleToaster(err?.message || "Error al generar Word", "error");
+    } finally {
+      setGeneratingWordId(null);
     }
   };
 
@@ -616,11 +659,12 @@ function MisSesiones() {
                                     sesion={sesion}
                                     areaName={areaName}
                                     downloadingId={downloadingId}
+                                    generatingWordId={generatingWordId}
                                     confirmDeleteId={confirmDeleteId}
                                     deletingId={deletingId}
                                     onVer={() => navigate(`/sesion/${sesion.id}`)}
                                     onDescargar={() => handleDescargar(sesion.id)}
-                                    onWord={() => navigate(`/sesion-suscriptor-result/${sesion.id}?download=word`)}
+                                    onWord={() => handleWord(sesion)}
                                     onEditar={() => navigate(`/editar-sesion/${sesion.id}`)}
                                     onConfirmDelete={() => setConfirmDeleteId(sesion.id)}
                                     onCancelDelete={() => setConfirmDeleteId(null)}
@@ -669,11 +713,12 @@ function MisSesiones() {
                                 sesion={sesion}
                                 areaName={areaName}
                                 downloadingId={downloadingId}
+                                generatingWordId={generatingWordId}
                                 confirmDeleteId={confirmDeleteId}
                                 deletingId={deletingId}
                                 onVer={() => navigate(`/sesion/${sesion.id}`)}
                                 onDescargar={() => handleDescargar(sesion.id)}
-                                onWord={() => navigate(`/sesion-suscriptor-result/${sesion.id}?download=word`)}
+                                onWord={() => handleWord(sesion)}
                                 onEditar={() => navigate(`/editar-sesion/${sesion.id}`)}
                                 onConfirmDelete={() => setConfirmDeleteId(sesion.id)}
                                 onCancelDelete={() => setConfirmDeleteId(null)}

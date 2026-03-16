@@ -33,6 +33,7 @@ import {
 } from "@/components/UnidadDoc";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import { updateUsuario } from "@/services/usuarios.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 
@@ -329,7 +330,7 @@ function UnidadResult() {
               numeroUnidad={datosBase.numeroUnidad}
               grado={gradoLabel}
               seccion={seccion}
-              insigniaUrl={user?.insigniaUrl}
+              insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)}
             />
 
             {/* I. DATOS GENERALES */}
