@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
   obtenerSesionPorId,
@@ -754,7 +755,7 @@ function SesionSuscriptorResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={premiumData} instrumento={instrumento ?? undefined} insigniaUrl={user?.insigniaUrl} />
+          <SesionPremiumDoc data={premiumData} instrumento={instrumento ?? undefined} insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)} />
         </div>
       </div>
     </div>

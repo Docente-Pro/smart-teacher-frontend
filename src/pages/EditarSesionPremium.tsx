@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import {
   obtenerSesionPorId,
   solicitarUploadPDF,
@@ -1996,7 +1997,7 @@ function EditarSesionPremium() {
         ══════════════════════════════════════════════════════════════════ */}
         {view === "preview" && premiumData && (
           <div ref={documentRef}>
-            <SesionPremiumDoc data={premiumData} instrumento={instrumentoPreview ?? undefined} insigniaUrl={user?.insigniaUrl} />
+            <SesionPremiumDoc data={premiumData} instrumento={instrumentoPreview ?? undefined} insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)} />
           </div>
         )}
       </div>

@@ -15,6 +15,7 @@ import { SesionPremiumDoc } from "@/components/SesionPremiumDoc/SesionPremiumDoc
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import { generatePDFBlob } from "@/services/htmldocs.service";
 import { useAuthStore } from "@/store/auth.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -211,7 +212,7 @@ export async function renderPdfOffscreen(
   const root = createRoot(container);
   try {
     // 2. Montar componente con flushSync para render síncrono inmediato
-    const insigniaUrl = useAuthStore.getState().user?.insigniaUrl;
+    const insigniaUrl = getInsigniaDataUrl(useAuthStore.getState().user?.insigniaUrl);
     flushSync(() => {
       root.render(<SesionPremiumDoc data={data} insigniaUrl={insigniaUrl} />);
     });

@@ -14,6 +14,7 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
   solicitarUploadUrlUnidad,
@@ -539,7 +540,7 @@ function UnidadSuscriptorResult() {
               numeroUnidad={unidad.numeroUnidad}
               grado={gradoLabel}
               seccion={seccion}
-              insigniaUrl={user?.insigniaUrl}
+              insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)}
             />
 
             <UnidadDocDatosGenerales

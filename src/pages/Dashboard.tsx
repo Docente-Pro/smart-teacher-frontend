@@ -35,6 +35,30 @@ import { clearUserStorage } from "@/utils/clearUserStorage";
 import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { getUsuarioById } from "@/services/usuarios.service";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
+
+/**
+ * Tries to load an image URL via img+canvas and cache as base64 in localStorage.
+ * Fails silently if CORS blocks the operation.
+ */
+function convertUrlToBase64(url: string) {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL("image/png");
+      localStorage.setItem("insignia_base64", dataUrl);
+    } catch { /* CORS tainted canvas — ignore */ }
+  };
+  img.onerror = () => { /* CORS blocked load — ignore */ };
+  img.src = url;
+}
 
 /** Ilustración flat estilo dashboard: docente con libro (tonos indigo/violeta) */
 function WelcomeIllustration({ className }: { className?: string }) {
@@ -144,8 +168,14 @@ function Dashboard() {
             if (gradoId !== undefined) updatePayload.gradoId = gradoId;
 
             if (freshUser.insigniaUrl) {
-              setInsigniaUrl(freshUser.insigniaUrl);
-              updatePayload.insigniaUrl = freshUser.insigniaUrl;
+              const effectiveUrl = getInsigniaDataUrl(freshUser.insigniaUrl);
+              setInsigniaUrl(effectiveUrl);
+              updatePayload.insigniaUrl = effectiveUrl;
+
+              // If no cached base64 yet, try to convert the S3 URL
+              if (!effectiveUrl?.startsWith("data:")) {
+                convertUrlToBase64(freshUser.insigniaUrl);
+              }
             }
             if (freshUser.grado?.nombre) setGradoNombre(freshUser.grado.nombre);
             if (freshUser.nivel?.nombre) setNivelNombre(freshUser.nivel.nombre);
@@ -645,8 +675,14 @@ function Dashboard() {
         isOpen={showInsigniaModal}
         onClose={() => setShowInsigniaModal(false)}
         currentInsigniaUrl={insigniaUrl}
-        onUploaded={(url) => setInsigniaUrl(url)}
-        onRemoved={() => setInsigniaUrl(null)}
+        onUploaded={(url) => {
+          setInsigniaUrl(url);
+          useAuthStore.getState().updateUser({ insigniaUrl: url });
+        }}
+        onRemoved={() => {
+          setInsigniaUrl(null);
+          useAuthStore.getState().updateUser({ insigniaUrl: null });
+        }}
       />
 
       {/* Modal guía de bienvenida (una sola vez para usuarios free) */}
