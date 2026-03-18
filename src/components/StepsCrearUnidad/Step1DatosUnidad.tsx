@@ -25,6 +25,7 @@ import {
   Loader2,
   Wand2,
   AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 import { getAreaColor, getAreaIcon } from "@/constants/areaColors";
 import SelectProblematicaModal from "./SelectProblematicaModal";
@@ -32,8 +33,10 @@ import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useUnidadStore } from "@/store/unidad.store";
 import { useAuthStore } from "@/store/auth.store";
+import { useUserStore } from "@/store/user.store";
 import { createUnidad, updateUnidad, seleccionarAreas } from "@/services/unidad.service";
-import { getAllAreas } from "@/services/areas.service";
+import { updateUsuario } from "@/services/usuarios.service";
+import { getAllAreas, isAreaPrimaria } from "@/services/areas.service";
 import { generarTituloUnidad } from "@/services/ia-unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { IArea } from "@/interfaces/IArea";
@@ -65,7 +68,9 @@ const duracionesUnidad = [
 function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros }: Props) {
   const { unidadId: existingUnidadId, setUnidadId, setDatosBase } = useUnidadStore();
   const updateAuthUser = useAuthStore((s) => s.updateUser);
+  const { user: userProfile } = useUserStore();
   const { showLoading, hideLoading } = useGlobalLoading();
+  const prevTituloUnidad = userProfile?.tituloUnidadContexto || "";
 
   // Catálogos
   const [areas, setAreas] = useState<IArea[]>([]);
@@ -140,7 +145,8 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     async function cargar() {
       try {
         const response = await getAllAreas();
-        setAreas(response.data.data || response.data);
+        const all = response.data.data || response.data;
+        setAreas(all.filter((a: IArea) => isAreaPrimaria(a.nombre)));
       } catch {
         handleToaster("Error al cargar las áreas", "error");
       }
@@ -246,8 +252,13 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
       });
 
       // Sincronizar problematicaCompleta en auth store (localStorage)
-      // para que el Dashboard no muestre el modal de problemática innecesariamente
       updateAuthUser({ problematicaCompleta: true });
+
+      // Save title as context for next time (non-blocking)
+      if (titulo.trim() && usuario.id) {
+        updateUsuario(usuario.id, { tituloUnidadContexto: titulo.trim() }).catch(() => {});
+        useUserStore.getState().updateUsuario({ tituloUnidadContexto: titulo.trim() });
+      }
 
       handleToaster(
         existingUnidadId ? "Unidad actualizada exitosamente" : "Unidad creada exitosamente",
@@ -549,6 +560,22 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                 </div>
               </div>
             </div>
+
+            {/* Last used title suggestion */}
+            {prevTituloUnidad && !titulo && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTitulo(prevTituloUnidad);
+                  handleToaster("Título anterior restaurado", "success");
+                }}
+                className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-700/40 bg-amber-50/80 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors text-left w-fit max-w-full"
+              >
+                <RotateCcw className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex-shrink-0">Último usado:</span>
+                <span className="text-xs text-slate-700 dark:text-slate-300 truncate">{prevTituloUnidad}</span>
+              </button>
+            )}
 
             {/* Sugerencias de la IA */}
             {generandoTitulo && (

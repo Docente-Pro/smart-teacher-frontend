@@ -21,6 +21,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useUnidadStore } from "@/store/unidad.store";
+import { useUserStore } from "@/store/user.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
   generarSituacionSignificativa,
@@ -30,6 +31,7 @@ import {
   generarImagenSituacion,
 } from "@/services/ia-unidad.service";
 import { patchPropositosActividades } from "@/services/unidad.service";
+import { updateUsuario } from "@/services/usuarios.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type {
   ISituacionSignificativaResponse,
@@ -45,9 +47,11 @@ interface Props {
 
 type GenerationStatus = "idle" | "generating" | "done" | "error";
 
-function Step2SituacionPropositos({ pagina, setPagina }: Props) {
+function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
   const { unidadId, datosBase, contenido, updateContenido, setGenerandoPaso, generandoPaso } =
     useUnidadStore();
+  const { user: userProfile } = useUserStore();
+  const prevSituacion = userProfile?.situacionSignificativaContexto || "";
 
   // Estado de generación por sección
   const [statusSituacion, setStatusSituacion] = useState<GenerationStatus>(
@@ -341,6 +345,17 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
     if (!contenido.propositos) {
       return handleToaster("Primero genera los propósitos", "error");
     }
+
+    // Save situación as context for next time (non-blocking)
+    if (contenido.situacionSignificativa.trim() && usuario?.id) {
+      updateUsuario(usuario.id, {
+        situacionSignificativaContexto: contenido.situacionSignificativa.trim(),
+      }).catch(() => {});
+      useUserStore.getState().updateUsuario({
+        situacionSignificativaContexto: contenido.situacionSignificativa.trim(),
+      });
+    }
+
     setPagina(pagina + 1);
   }
 
@@ -415,6 +430,28 @@ function Step2SituacionPropositos({ pagina, setPagina }: Props) {
           onRegenerate={() => regenerar("situacion-significativa")}
           isGenerating={isGenerating}
         >
+          {statusSituacion === "idle" && prevSituacion && (
+            <button
+              type="button"
+              onClick={() => {
+                setSituacionTexto(prevSituacion);
+                updateContenido({ situacionSignificativa: prevSituacion });
+                setStatusSituacion("done");
+                handleToaster("Situación significativa anterior restaurada", "success");
+              }}
+              className="flex items-start gap-2.5 w-full text-left p-3 rounded-xl border border-amber-200 dark:border-amber-700/40 bg-amber-50/80 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  Último usado — clic para reutilizar
+                </span>
+                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 mt-1">
+                  {prevSituacion}
+                </p>
+              </div>
+            </button>
+          )}
           {statusSituacion === "done" && (
             <MarkdownTextarea
               value={situacionTexto}

@@ -32,7 +32,10 @@ import {
   FolderOpen,
   Folder,
   ChevronRight,
+  ScanSearch,
 } from "lucide-react";
+import { AdobePdfEmbed } from "@/components/AdobePdfEmbed";
+import ReusableModal from "@/components/Shared/Modal/ReusableModal";
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -276,6 +279,7 @@ function SessionCard({
   confirmDeleteId,
   deletingId,
   onVer,
+  onPreview,
   onDescargar,
   onWord,
   onEditar,
@@ -290,6 +294,7 @@ function SessionCard({
   confirmDeleteId: string | null;
   deletingId: string | null;
   onVer: () => void;
+  onPreview: () => void;
   onDescargar: () => void;
   onWord: () => void;
   onEditar: () => void;
@@ -336,6 +341,17 @@ function SessionCard({
             <Eye className="h-3 w-3 mr-1" />
             Ver
           </Button>
+          {sesion.pdfUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={(e) => { e.stopPropagation(); onPreview(); }}
+              title="Vista previa PDF"
+            >
+              <ScanSearch className="h-3 w-3" />
+            </Button>
+          )}
           <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onDescargar(); }} disabled={downloadingId === sesion.id} title="PDF">
             {downloadingId === sesion.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
           </Button>
@@ -388,6 +404,9 @@ function MisSesiones() {
   const [generatingWordId, setGeneratingWordId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [previewSesion, setPreviewSesion] = useState<ISesion | null>(null);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+  const [loadingPreviewPdf, setLoadingPreviewPdf] = useState(false);
 
   // ─── Folder navigation ───
   const [currentPath, setCurrentPath] = useState<FolderPath>({ level: "root" });
@@ -422,6 +441,39 @@ function MisSesiones() {
   useEffect(() => {
     cargarSesiones();
   }, [cargarSesiones]);
+
+  // ─── Resolve PDF URL for preview modal ───
+  useEffect(() => {
+    if (!previewSesion?.pdfUrl) {
+      if (previewSesion && !previewSesion.pdfUrl) {
+        setPreviewPdfUrl(null);
+        setLoadingPreviewPdf(false);
+      }
+      return;
+    }
+    let cancelled = false;
+    setLoadingPreviewPdf(true);
+    setPreviewPdfUrl(null);
+    const run = async () => {
+      const cdnUrl = buildCdnPdfUrl(previewSesion.pdfUrl ?? undefined);
+      if (cdnUrl) {
+        if (!cancelled) setPreviewPdfUrl(cdnUrl);
+        if (!cancelled) setLoadingPreviewPdf(false);
+        return;
+      }
+      try {
+        const resp = await obtenerUrlDescarga(previewSesion.id);
+        const url = resp?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
+        if (!cancelled && url) setPreviewPdfUrl(url);
+      } catch {
+        if (!cancelled) handleToaster("No se pudo cargar el PDF para la vista previa", "error");
+      } finally {
+        if (!cancelled) setLoadingPreviewPdf(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [previewSesion?.id, previewSesion?.pdfUrl]);
 
   // ─── Filter & group ───
   const filteredSesiones = sesiones.filter((s) => {
@@ -535,6 +587,7 @@ function MisSesiones() {
           confirmDeleteId={confirmDeleteId}
           deletingId={deletingId}
           onVer={() => navigate(`/sesion/${sesion.id}`)}
+          onPreview={() => setPreviewSesion(sesion)}
           onDescargar={() => handleDescargar(sesion.id)}
           onWord={() => handleWord(sesion)}
           onEditar={() => navigate(`/editar-sesion/${sesion.id}`)}
@@ -697,6 +750,7 @@ function MisSesiones() {
   // ═══════════════════════════════════════════════════════════════════
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* ─── Header ─── */}
@@ -908,6 +962,45 @@ function MisSesiones() {
         )}
       </div>
     </div>
+
+      {/* Modal Vista previa PDF */}
+      <ReusableModal
+        isOpen={!!previewSesion}
+        onClose={() => { setPreviewSesion(null); setPreviewPdfUrl(null); }}
+        title={previewSesion?.titulo ? `Vista previa: ${previewSesion.titulo}` : "Vista previa PDF"}
+        size="full"
+        gradient="blue-orange"
+        closeOnOverlayClick={true}
+      >
+        <div className="flex flex-col" style={{ height: "78vh" }}>
+          {loadingPreviewPdf && (
+            <div className="flex flex-1 flex-col items-center justify-center py-20 gap-3">
+              <Loader2 className="h-10 w-10 text-dp-blue-500 animate-spin" />
+              <p className="text-sm text-slate-500 dark:text-slate-400">Cargando PDF…</p>
+            </div>
+          )}
+          {!loadingPreviewPdf && previewPdfUrl && (
+            <div className="w-full flex-1 min-h-0 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <AdobePdfEmbed
+                pdfUrl={previewPdfUrl}
+                fileName={previewSesion?.titulo ? `${previewSesion.titulo}.pdf` : "sesion.pdf"}
+                embedMode="SIZED_CONTAINER"
+                className="w-full h-full rounded-lg"
+                showFullScreen={true}
+                showDownloadPDF={true}
+                showPrintPDF={true}
+              />
+            </div>
+          )}
+          {!loadingPreviewPdf && previewSesion && !previewPdfUrl && previewSesion.pdfUrl && (
+            <div className="flex flex-1 flex-col items-center justify-center py-20 gap-3">
+              <FileText className="h-12 w-12 text-slate-300 dark:text-slate-600" />
+              <p className="text-sm text-slate-500 dark:text-slate-400">No se pudo cargar el PDF.</p>
+            </div>
+          )}
+        </div>
+      </ReusableModal>
+    </>
   );
 }
 

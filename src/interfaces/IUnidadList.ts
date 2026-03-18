@@ -33,6 +33,8 @@ export interface IUnidadListItem {
   contenido?: any; // contenido completo de la unidad (no se usa en el listado)
   pdfUrl: string | null;
   pdfGeneradoAt: string | null;
+  wordUrl?: string | null;
+  wordGeneradoAt?: string | null;
   createdAt: string;
   updatedAt: string;
   nivel: IUnidadListNivel;

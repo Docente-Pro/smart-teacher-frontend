@@ -1,6 +1,6 @@
 import { IArea } from "@/interfaces/IArea";
 import { IUsuario } from "@/interfaces/IUsuario";
-import { getAllAreas } from "@/services/areas.service";
+import { getAllAreas, isAreaPrimaria } from "@/services/areas.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { useEffect, useState } from "react";
@@ -92,7 +92,8 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
       showLoading("Cargando áreas...");
       try {
         const response = await getAllAreas();
-        setAreas(response.data.data || response.data);
+        const all = response.data.data || response.data;
+        setAreas(all.filter((a: IArea) => isAreaPrimaria(a.nombre)));
       } catch (error) {
         handleToaster("Error al cargar las áreas", "error");
       } finally {
