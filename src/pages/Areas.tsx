@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IArea } from "@/interfaces/IArea";
-import { getAllAreas } from "@/services/areas.service";
+import { getAllAreas, isAreaPrimaria } from "@/services/areas.service";
 import { normalizeWord } from "@/utils/normalizeWord";
 import { useAuth0 } from "@/hooks/useAuth0";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
@@ -27,7 +27,9 @@ function Areas() {
       
       try {
         const response = await getAllAreas();
-        const areasData = response.data.data || response.data;
+        const areasData = (response.data.data || response.data).filter(
+          (a: IArea) => isAreaPrimaria(a.nombre)
+        );
         setAreas(areasData);
         setFilteredAreas(areasData);
       } catch (error) {

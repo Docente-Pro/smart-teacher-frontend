@@ -34,6 +34,8 @@ export interface IUsuarioToUpdate {
   provincia?: string;
   distrito?: string;
   nombreSubdirectora?: string;
+  tituloUnidadContexto?: string;
+  situacionSignificativaContexto?: string;
 }
 
 // Interface completa del usuario (respuesta del backend)
@@ -69,6 +71,8 @@ export interface IUsuario {
     nombre: string;
     descripcion: string;
   };
+  tituloUnidadContexto?: string | null;
+  situacionSignificativaContexto?: string | null;
   insigniaUrl?: string | null;
   suscripcion?: ISuscripcion;
   sesiones?: ISesion[];

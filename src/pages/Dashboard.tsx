@@ -36,6 +36,7 @@ import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { getUsuarioById } from "@/services/usuarios.service";
 import { getInsigniaDataUrl } from "@/utils/insigniaCache";
+import { useUserStore } from "@/store/user.store";
 
 /**
  * Tries to load an image URL via img+canvas and cache as base64 in localStorage.
@@ -183,6 +184,9 @@ function Dashboard() {
             if (Object.keys(updatePayload).length > 0) {
               useAuthStore.getState().updateUser(updatePayload);
             }
+
+            // Also populate useUserStore so ProblematicaModal can read context fields
+            useUserStore.getState().setUsuario(freshUser);
           }
         }
 
