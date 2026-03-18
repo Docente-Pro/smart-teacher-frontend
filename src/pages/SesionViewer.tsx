@@ -17,6 +17,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import type { ISesion } from "@/interfaces/ISesion";
 import type { IFichaAlmacenada } from "@/interfaces/IFichaAplicacion";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
+import { AdobePdfEmbed } from "@/components/AdobePdfEmbed";
 
 // ─── Helpers ───
 
@@ -356,7 +357,15 @@ function SesionViewer() {
             </Button>
           </div>
         </div>
-        <iframe src={pdfUrl} className="flex-1 w-full" title={sesion?.titulo || "PDF"} />
+        <div className="flex-1 w-full min-h-0 flex flex-col">
+          <AdobePdfEmbed
+            pdfUrl={pdfUrl}
+            fileName={sesion?.titulo ? `${sesion.titulo}.pdf` : "sesion.pdf"}
+            embedMode="SIZED_CONTAINER"
+            className="flex-1 w-full min-h-0"
+            showFullScreen={false}
+          />
+        </div>
       </div>
     );
   }
@@ -735,7 +744,7 @@ function SesionViewer() {
             )}
           </div>
 
-          {/* ─── Main: PDF Viewer ─── */}
+          {/* ─── Main: PDF Viewer (caja con scroll y controles de página) ─── */}
           <div className="relative rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 shadow-sm overflow-hidden min-h-[600px] lg:min-h-[calc(100vh-160px)]">
             {/* Viewer toolbar */}
             {!loading && !loadingPdf && pdfUrl && (
@@ -793,10 +802,14 @@ function SesionViewer() {
                 </Button>
               </div>
             ) : pdfUrl ? (
-              <iframe
-                src={pdfUrl}
+              <AdobePdfEmbed
+                pdfUrl={pdfUrl}
+                fileName={sesion?.titulo ? `${sesion.titulo}.pdf` : "sesion.pdf"}
+                embedMode="SIZED_CONTAINER"
                 className="w-full h-full min-h-[600px] lg:min-h-[calc(100vh-160px)] border-0"
-                title={sesion?.titulo || "PDF de sesión"}
+                showFullScreen={true}
+                showDownloadPDF={true}
+                showPrintPDF={true}
               />
             ) : null}
           </div>
