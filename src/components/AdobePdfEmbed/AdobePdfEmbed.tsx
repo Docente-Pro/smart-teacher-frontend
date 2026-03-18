@@ -82,7 +82,7 @@ export function AdobePdfEmbed({
   defaultViewMode = "FIT_PAGE",
 }: AdobePdfEmbedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<InstanceType<NonNullable<typeof window.AdobeDC>>["View"] | null>(null);
+  const viewRef = useRef<{ previewFile: (fileConfig: unknown, viewerConfig?: Record<string, unknown>) => void } | null>(null);
   const divId = useId().replace(/:/g, "-");
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
