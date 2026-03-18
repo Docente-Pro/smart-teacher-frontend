@@ -98,6 +98,7 @@ function SesionViewer() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
 
   // ─── Estado Ficha de Aplicación ───
   const [fichaExistente, setFichaExistente] = useState<IFichaAlmacenada | null>(null);
@@ -663,7 +664,7 @@ function SesionViewer() {
               </div>
             )}
 
-            {/* Descargar Word — debajo de Ficha de Aplicación */}
+            {/* Word — debajo de Ficha de Aplicación */}
             {!loading && id && (
               <div className="rounded-xl border border-blue-200 dark:border-blue-800/30 bg-gradient-to-br from-blue-50/80 to-cyan-50/50 dark:from-blue-500/5 dark:to-cyan-500/5 p-4">
                 <div className="flex items-center gap-2.5 mb-3">
@@ -672,22 +673,64 @@ function SesionViewer() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                      Descargar en Word
+                      {(sesion as any)?.wordUrl ? "Word disponible" : "Generar Word"}
                     </p>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Documento editable (.doc)
+                      Documento editable (.docx)
                     </p>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(`/sesion-suscriptor-result/${id}?download=word`, "_blank")}
-                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Descargar Word
-                </Button>
+                {(sesion as any)?.wordUrl ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const { obtenerDownloadUrlWord } = await import("@/services/pdfToWord.service");
+                        const url = await obtenerDownloadUrlWord(id!);
+                        window.open(url, "_blank");
+                      } catch {
+                        handleToaster("Error al obtener el Word", "error");
+                      }
+                    }}
+                    className="w-full border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Ver Word
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isGeneratingWord || !sesion?.pdfUrl}
+                    onClick={async () => {
+                      setIsGeneratingWord(true);
+                      try {
+                        const { generarWordDesdePDFExistente } = await import("@/services/pdfToWord.service");
+                        const wordUrl = await generarWordDesdePDFExistente(id!);
+                        setSesion((prev) => prev ? { ...prev, wordUrl } as ISesion : prev);
+                        handleToaster("Word generado y guardado", "success");
+                      } catch (err: any) {
+                        handleToaster(err?.message || "Error al generar Word", "error");
+                      } finally {
+                        setIsGeneratingWord(false);
+                      }
+                    }}
+                    className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+                  >
+                    {isGeneratingWord ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generando Word...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Generar Word
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             )}
           </div>

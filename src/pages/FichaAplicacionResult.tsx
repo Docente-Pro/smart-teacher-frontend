@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { FichaAplicacionDoc } from "@/components/FichaAplicacionDoc";
 import { useAuthStore } from "@/store/auth.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
   subirFichaPDFaS3,
@@ -324,7 +325,7 @@ function FichaAplicacionResult() {
             docente={docente}
             institucion={institucion}
             mostrarSolucionario={mostrarSolucionario}
-            insigniaUrl={user?.insigniaUrl}
+            insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)}
           />
         </div>
       </div>

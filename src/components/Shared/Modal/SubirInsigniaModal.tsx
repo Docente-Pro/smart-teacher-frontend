@@ -16,6 +16,7 @@ import {
   subirInsigniaAS3,
   confirmarInsignia,
 } from "@/services/insignia.service";
+import { setInsigniaDataUrl, clearInsigniaDataUrl } from "@/utils/insigniaCache";
 
 interface SubirInsigniaModalProps {
   isOpen: boolean;
@@ -83,7 +84,10 @@ function SubirInsigniaModal({
       setUploadedUrl(confirmRes.data.insigniaUrl);
       setStatus("success");
       toast.success("Insignia subida correctamente");
-      onUploaded?.(confirmRes.data.insigniaUrl);
+
+      if (preview) setInsigniaDataUrl(preview);
+
+      onUploaded?.(preview || confirmRes.data.insigniaUrl);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -96,6 +100,7 @@ function SubirInsigniaModal({
   }
 
   function handleRemove() {
+    clearInsigniaDataUrl();
     onRemoved?.();
     toast.success("Insignia eliminada");
     handleClose();

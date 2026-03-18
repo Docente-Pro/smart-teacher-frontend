@@ -17,14 +17,11 @@ import {
   FileText,
   Search,
   Calendar,
-  Clock,
   Download,
   Eye,
   Trash2,
   Plus,
   ArrowLeft,
-  GraduationCap,
-  BookOpen,
   Loader2,
   RefreshCw,
   AlertTriangle,
@@ -34,9 +31,22 @@ import {
   Pencil,
   FolderOpen,
   Folder,
+  ChevronRight,
 } from "lucide-react";
 
-// ─────────────────── Helpers ───────────────────
+// ═══════════════════════════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════════════════════════
+
+type FolderPath =
+  | { level: "root" }
+  | { level: "unidad"; unidadId: string; unidadLabel: string }
+  | { level: "unidad-area"; unidadId: string; unidadLabel: string; area: string }
+  | { level: "individual-area"; area: string };
+
+// ═══════════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════════
 
 function formatFecha(fecha: string) {
   try {
@@ -66,7 +76,6 @@ function formatFechaRelativa(fecha: string) {
   }
 }
 
-/** Área curricular de la sesión (para agrupar y mostrar color) */
 function getSessionArea(s: ISesion): string {
   const raw = s as any;
   const fromArea = raw.area?.nombre ?? (typeof raw.area === "string" ? raw.area : null);
@@ -82,7 +91,6 @@ function getSessionArea(s: ISesion): string {
   return raw.problematica?.nombre ?? "Otra";
 }
 
-/** Si la sesión pertenece a una unidad, devuelve { id, titulo, numeroUnidad }; si no, null */
 function getSessionUnidad(
   s: ISesion,
   unidades: IUnidadListItem[],
@@ -96,7 +104,6 @@ function getSessionUnidad(
   return { id: unidadId, titulo, numeroUnidad };
 }
 
-/** Agrupa sesiones en: por unidad (unidadId → por área) e individuales (por área) */
 function groupSessionsByFolder(
   sessions: ISesion[],
   unidades: IUnidadListItem[],
@@ -135,12 +142,7 @@ function groupSessionsByFolder(
       byArea.push({ areaName, sessions });
     });
     byArea.sort((a, b) => a.areaName.localeCompare(b.areaName));
-    porUnidad.push({
-      unidadId,
-      titulo: folder.titulo,
-      numeroUnidad: folder.numeroUnidad,
-      byArea,
-    });
+    porUnidad.push({ unidadId, titulo: folder.titulo, numeroUnidad: folder.numeroUnidad, byArea });
   });
   porUnidad.sort((a, b) => a.numeroUnidad - b.numeroUnidad);
 
@@ -154,11 +156,123 @@ function groupSessionsByFolder(
   return { porUnidad, individuales };
 }
 
-// ─── Tarjeta de sesión (área con color del sistema, fecha, acciones) ───
+// ═══════════════════════════════════════════════════════════════════
+// Sub-components
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── Breadcrumb ───
+
+function Breadcrumb({
+  path,
+  onNavigate,
+}: {
+  path: FolderPath;
+  onNavigate: (p: FolderPath) => void;
+}) {
+  const segments: Array<{ label: string; onClick?: () => void }> = [];
+
+  segments.push({
+    label: "Mis Sesiones",
+    onClick: path.level !== "root" ? () => onNavigate({ level: "root" }) : undefined,
+  });
+
+  if (path.level === "unidad") {
+    segments.push({ label: path.unidadLabel });
+  } else if (path.level === "unidad-area") {
+    segments.push({
+      label: path.unidadLabel,
+      onClick: () => onNavigate({ level: "unidad", unidadId: path.unidadId, unidadLabel: path.unidadLabel }),
+    });
+    segments.push({ label: path.area });
+  } else if (path.level === "individual-area") {
+    segments.push({
+      label: "Individuales",
+      onClick: () => onNavigate({ level: "root" }),
+    });
+    segments.push({ label: path.area });
+  }
+
+  return (
+    <nav className="flex items-center gap-1 text-sm mb-5 flex-wrap">
+      {segments.map((seg, i) => {
+        const isLast = i === segments.length - 1;
+        return (
+          <span key={i} className="flex items-center gap-1">
+            {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 flex-shrink-0" />}
+            {seg.onClick && !isLast ? (
+              <button
+                onClick={seg.onClick}
+                className="text-dp-blue-600 dark:text-dp-blue-400 hover:underline font-medium truncate max-w-[200px]"
+              >
+                {seg.label}
+              </button>
+            ) : (
+              <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[200px]">
+                {seg.label}
+              </span>
+            )}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
+
+// ─── FolderCard (unit or area) ───
+
+function FolderCard({
+  title,
+  subtitle,
+  count,
+  icon,
+  accentGradient,
+  onClick,
+}: {
+  title: string;
+  subtitle?: string;
+  count: number;
+  icon: React.ReactNode;
+  accentGradient?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="group relative w-full text-left rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
+    >
+      <div className={`h-1.5 bg-gradient-to-r ${accentGradient || "from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-500"} opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
+      <div className="p-4 sm:p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm">
+            {icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-slate-900 dark:text-white text-sm leading-snug truncate group-hover:text-dp-blue-600 dark:group-hover:text-dp-blue-400 transition-colors">
+              {title}
+            </h3>
+            {subtitle && (
+              <p className="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">{subtitle}</p>
+            )}
+          </div>
+          <div className="flex-shrink-0 flex items-center gap-1.5">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full">
+              {count}
+            </span>
+            <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500 group-hover:text-dp-blue-500 group-hover:translate-x-0.5 transition-all" />
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── SessionCard ───
+
 function SessionCard({
   sesion,
   areaName,
   downloadingId,
+  generatingWordId,
   confirmDeleteId,
   deletingId,
   onVer,
@@ -168,11 +282,11 @@ function SessionCard({
   onConfirmDelete,
   onCancelDelete,
   onEliminar,
-  formatFechaRelativa,
 }: {
   sesion: ISesion;
   areaName: string;
   downloadingId: string | null;
+  generatingWordId: string | null;
   confirmDeleteId: string | null;
   deletingId: string | null;
   onVer: () => void;
@@ -182,7 +296,6 @@ function SessionCard({
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
   onEliminar: () => void;
-  formatFechaRelativa: (f: string) => string;
 }) {
   const areaTheme = getAreaColor(areaName);
   const isConfirming = confirmDeleteId === sesion.id;
@@ -226,8 +339,15 @@ function SessionCard({
           <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onDescargar(); }} disabled={downloadingId === sesion.id} title="PDF">
             {downloadingId === sesion.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
           </Button>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onWord(); }} title="Word">
-            <FileText className="h-3 w-3" />
+          <Button
+            variant="outline"
+            size="sm"
+            className={`h-8 w-8 p-0 ${(sesion as any).wordUrl ? "border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400" : ""}`}
+            onClick={(e) => { e.stopPropagation(); onWord(); }}
+            disabled={generatingWordId === sesion.id}
+            title={(sesion as any).wordUrl ? "Ver Word" : "Generar Word"}
+          >
+            {generatingWordId === sesion.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
           </Button>
           <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onEditar(); }} title="Editar">
             <Pencil className="h-3 w-3" />
@@ -250,7 +370,9 @@ function SessionCard({
   );
 }
 
-// ─────────────────── Componente Principal ───────────────────
+// ═══════════════════════════════════════════════════════════════════
+// Main component
+// ═══════════════════════════════════════════════════════════════════
 
 function MisSesiones() {
   const { user: authUser } = useAuthStore();
@@ -263,12 +385,16 @@ function MisSesiones() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [generatingWordId, setGeneratingWordId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  // ─── Folder navigation ───
+  const [currentPath, setCurrentPath] = useState<FolderPath>({ level: "root" });
+
   const userId = authUser?.id || usuario?.id;
 
-  // ─── Cargar sesiones y unidades ───
+  // ─── Data fetching ───
   const cargarSesiones = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
@@ -297,7 +423,7 @@ function MisSesiones() {
     cargarSesiones();
   }, [cargarSesiones]);
 
-  // ─── Filtrar ───
+  // ─── Filter & group ───
   const filteredSesiones = sesiones.filter((s) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -310,14 +436,12 @@ function MisSesiones() {
     );
   });
 
-  // ─── Agrupar por carpetas (por unidad + individuales, luego por área) ───
   const { porUnidad, individuales } = groupSessionsByFolder(filteredSesiones, unidades);
 
-  // ─── Descargar PDF ───
+  // ─── Handlers ───
   const handleDescargar = async (sesionId: string) => {
     setDownloadingId(sesionId);
     try {
-      // 1) Intentar CloudFront directo con pdfUrl del entity
       const sesion = sesiones.find((s) => s.id === sesionId);
       const cdnUrl = buildCdnPdfUrl(sesion?.pdfUrl);
       if (cdnUrl) {
@@ -325,8 +449,6 @@ function MisSesiones() {
         handleToaster("PDF descargado", "success");
         return;
       }
-
-      // 2) Fallback: URL pre-firmada del backend
       const resp = await obtenerUrlDescarga(sesionId);
       const url = resp?.data?.downloadUrl ?? (resp as any)?.downloadUrl;
       if (!url) {
@@ -346,7 +468,6 @@ function MisSesiones() {
     }
   };
 
-  // ─── Eliminar sesión ───
   const handleEliminar = async (sesionId: string) => {
     setDeletingId(sesionId);
     try {
@@ -362,6 +483,36 @@ function MisSesiones() {
     }
   };
 
+  const handleWord = async (sesion: ISesion) => {
+    if ((sesion as any).wordUrl) {
+      try {
+        const { obtenerDownloadUrlWord } = await import("@/services/pdfToWord.service");
+        const url = await obtenerDownloadUrlWord(sesion.id);
+        window.open(url, "_blank");
+      } catch {
+        handleToaster("Error al obtener el Word", "error");
+      }
+      return;
+    }
+    if (!sesion.pdfUrl) {
+      handleToaster("Esta sesión aún no tiene PDF. Ábrela primero para generarlo.", "warning");
+      return;
+    }
+    setGeneratingWordId(sesion.id);
+    try {
+      const { generarWordDesdePDFExistente } = await import("@/services/pdfToWord.service");
+      const wordUrl = await generarWordDesdePDFExistente(sesion.id);
+      setSesiones((prev) =>
+        prev.map((s) => (s.id === sesion.id ? { ...s, wordUrl } as ISesion : s)),
+      );
+      handleToaster("Word generado y guardado", "success");
+    } catch (err: any) {
+      handleToaster(err?.message || "Error al generar Word", "error");
+    } finally {
+      setGeneratingWordId(null);
+    }
+  };
+
   // ─── Stats ───
   const totalSesiones = sesiones.length;
   const sesionesEsteMes = sesiones.filter((s) => {
@@ -371,6 +522,180 @@ function MisSesiones() {
   }).length;
   const sesionesRestantes = authUser?.sesionesRestantes ?? 0;
 
+  // ─── Render helpers for session card grid ───
+  const renderSessionCards = (sessions: ISesion[], areaName: string) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {sessions.map((sesion) => (
+        <SessionCard
+          key={sesion.id}
+          sesion={sesion}
+          areaName={areaName}
+          downloadingId={downloadingId}
+          generatingWordId={generatingWordId}
+          confirmDeleteId={confirmDeleteId}
+          deletingId={deletingId}
+          onVer={() => navigate(`/sesion/${sesion.id}`)}
+          onDescargar={() => handleDescargar(sesion.id)}
+          onWord={() => handleWord(sesion)}
+          onEditar={() => navigate(`/editar-sesion/${sesion.id}`)}
+          onConfirmDelete={() => setConfirmDeleteId(sesion.id)}
+          onCancelDelete={() => setConfirmDeleteId(null)}
+          onEliminar={() => handleEliminar(sesion.id)}
+        />
+      ))}
+    </div>
+  );
+
+  // ─── Resolve current view data ───
+  const renderFolderContent = () => {
+    if (currentPath.level === "root") {
+      const hasUnits = porUnidad.length > 0;
+      const hasIndividuales = individuales.length > 0;
+
+      if (!hasUnits && !hasIndividuales) {
+        return (
+          <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
+            No hay sesiones que coincidan con la búsqueda.
+          </p>
+        );
+      }
+
+      return (
+        <div className="space-y-8">
+          {hasUnits && (
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <FolderOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                  Unidades
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {porUnidad.map((folder) => {
+                  const totalInUnit = folder.byArea.reduce((sum, a) => sum + a.sessions.length, 0);
+                  const label = `Unidad ${folder.numeroUnidad > 0 ? folder.numeroUnidad : ""}${folder.numeroUnidad > 0 ? ": " : ""}${folder.titulo}`;
+                  return (
+                    <FolderCard
+                      key={folder.unidadId}
+                      title={label}
+                      subtitle={`${folder.byArea.length} área${folder.byArea.length === 1 ? "" : "s"}`}
+                      count={totalInUnit}
+                      icon={<Folder className="h-5 w-5 text-amber-500 dark:text-amber-400" />}
+                      accentGradient="from-amber-400 to-orange-500"
+                      onClick={() => setCurrentPath({ level: "unidad", unidadId: folder.unidadId, unidadLabel: label })}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {hasIndividuales && (
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <Folder className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                  Sesiones individuales
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {individuales.map(({ areaName, sessions }) => {
+                  const areaTheme = getAreaColor(areaName);
+                  return (
+                    <FolderCard
+                      key={areaName}
+                      title={areaName}
+                      count={sessions.length}
+                      icon={<span className={`w-3 h-3 rounded-full ${areaTheme.dot}`} />}
+                      accentGradient={areaTheme.gradient}
+                      onClick={() => setCurrentPath({ level: "individual-area", area: areaName })}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </div>
+      );
+    }
+
+    if (currentPath.level === "unidad") {
+      const unit = porUnidad.find((u) => u.unidadId === currentPath.unidadId);
+      if (!unit || unit.byArea.length === 0) {
+        return (
+          <div className="text-center py-12">
+            <Folder className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {searchTerm ? "No hay sesiones que coincidan en esta unidad." : "Esta unidad no tiene sesiones aún."}
+            </p>
+          </div>
+        );
+      }
+
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {unit.byArea.map(({ areaName, sessions }) => {
+            const areaTheme = getAreaColor(areaName);
+            return (
+              <FolderCard
+                key={areaName}
+                title={areaName}
+                count={sessions.length}
+                icon={<span className={`w-3 h-3 rounded-full ${areaTheme.dot}`} />}
+                accentGradient={areaTheme.gradient}
+                onClick={() =>
+                  setCurrentPath({
+                    level: "unidad-area",
+                    unidadId: currentPath.unidadId,
+                    unidadLabel: currentPath.unidadLabel,
+                    area: areaName,
+                  })
+                }
+              />
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (currentPath.level === "unidad-area") {
+      const unit = porUnidad.find((u) => u.unidadId === currentPath.unidadId);
+      const areaData = unit?.byArea.find((a) => a.areaName === currentPath.area);
+      if (!areaData || areaData.sessions.length === 0) {
+        return (
+          <div className="text-center py-12">
+            <FileText className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {searchTerm ? "No hay sesiones que coincidan aquí." : "No hay sesiones en esta área."}
+            </p>
+          </div>
+        );
+      }
+      return renderSessionCards(areaData.sessions, currentPath.area);
+    }
+
+    if (currentPath.level === "individual-area") {
+      const areaData = individuales.find((a) => a.areaName === currentPath.area);
+      if (!areaData || areaData.sessions.length === 0) {
+        return (
+          <div className="text-center py-12">
+            <FileText className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {searchTerm ? "No hay sesiones que coincidan aquí." : "No hay sesiones en esta área."}
+            </p>
+          </div>
+        );
+      }
+      return renderSessionCards(areaData.sessions, currentPath.area);
+    }
+
+    return null;
+  };
+
+  // ═══════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -378,11 +703,21 @@ function MisSesiones() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => {
+              if (currentPath.level !== "root") {
+                if (currentPath.level === "unidad-area") {
+                  setCurrentPath({ level: "unidad", unidadId: currentPath.unidadId, unidadLabel: currentPath.unidadLabel });
+                } else {
+                  setCurrentPath({ level: "root" });
+                }
+              } else {
+                navigate("/dashboard");
+              }
+            }}
             className="mb-4 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Dashboard
+            {currentPath.level !== "root" ? "Atrás" : "Dashboard"}
           </Button>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -477,33 +812,28 @@ function MisSesiones() {
           </Button>
         </div>
 
+        {/* ─── Breadcrumb (only when not at root) ─── */}
+        {currentPath.level !== "root" && (
+          <Breadcrumb path={currentPath} onNavigate={setCurrentPath} />
+        )}
+
         {/* ─── Content ─── */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
                 className="rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 overflow-hidden animate-pulse"
               >
-                <div className="h-1 bg-slate-200 dark:bg-slate-700" />
+                <div className="h-1.5 bg-slate-200 dark:bg-slate-700" />
                 <div className="p-5">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <Skeleton className="h-5 w-3/4 mb-2 rounded-lg" />
-                      <Skeleton className="h-3.5 w-1/3 rounded-lg" />
-                    </div>
+                  <div className="flex items-center gap-3">
                     <Skeleton className="h-11 w-11 rounded-xl" />
-                  </div>
-                  <div className="space-y-2.5 mb-4">
-                    <Skeleton className="h-3.5 w-2/3 rounded-lg" />
-                    <Skeleton className="h-3.5 w-1/2 rounded-lg" />
-                    <Skeleton className="h-3.5 w-2/5 rounded-lg" />
-                  </div>
-                  <Skeleton className="h-7 w-24 rounded-lg mb-4" />
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-700/50 flex gap-2">
-                    <Skeleton className="h-9 flex-1 rounded-lg" />
-                    <Skeleton className="h-9 w-9 rounded-lg" />
-                    <Skeleton className="h-9 w-9 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4 rounded-lg" />
+                      <Skeleton className="h-3 w-1/3 rounded-lg" />
+                    </div>
+                    <Skeleton className="h-5 w-8 rounded-full" />
                   </div>
                 </div>
               </div>
@@ -574,128 +904,7 @@ function MisSesiones() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
-            {/* ─── Sesiones por unidad ─── */}
-            {porUnidad.length > 0 && (
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <FolderOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                    Sesiones por unidad
-                  </h2>
-                </div>
-                <div className="space-y-6">
-                  {porUnidad.map((folder) => (
-                    <div
-                      key={folder.unidadId}
-                      className="rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 overflow-hidden"
-                    >
-                      <div className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700/50">
-                        <Folder className="h-4 w-4 text-amber-500 dark:text-amber-400" />
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          Unidad {folder.numeroUnidad > 0 ? folder.numeroUnidad : ""}{folder.numeroUnidad > 0 ? ": " : ""}{folder.titulo}
-                        </span>
-                      </div>
-                      <div className="p-4 space-y-5">
-                        {folder.byArea.map(({ areaName, sessions }) => {
-                          const areaTheme = getAreaColor(areaName);
-                          return (
-                            <div key={areaName}>
-                              <div
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg mb-3 ${areaTheme.bg} ${areaTheme.border} border`}
-                              >
-                                <span className={`w-2 h-2 rounded-full ${areaTheme.dot}`} />
-                                <span className={`text-sm font-medium ${areaTheme.text}`}>
-                                  {areaName}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {sessions.map((sesion) => (
-                                  <SessionCard
-                                    key={sesion.id}
-                                    sesion={sesion}
-                                    areaName={areaName}
-                                    downloadingId={downloadingId}
-                                    confirmDeleteId={confirmDeleteId}
-                                    deletingId={deletingId}
-                                    onVer={() => navigate(`/sesion/${sesion.id}`)}
-                                    onDescargar={() => handleDescargar(sesion.id)}
-                                    onWord={() => navigate(`/sesion-suscriptor-result/${sesion.id}?download=word`)}
-                                    onEditar={() => navigate(`/editar-sesion/${sesion.id}`)}
-                                    onConfirmDelete={() => setConfirmDeleteId(sesion.id)}
-                                    onCancelDelete={() => setConfirmDeleteId(null)}
-                                    onEliminar={() => handleEliminar(sesion.id)}
-                                    formatFechaRelativa={formatFechaRelativa}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* ─── Sesiones individuales (free) ─── */}
-            {individuales.length > 0 && (
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <Folder className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                    Sesiones individuales
-                  </h2>
-                </div>
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 overflow-hidden">
-                  <div className="p-4 space-y-5">
-                    {individuales.map(({ areaName, sessions }) => {
-                      const areaTheme = getAreaColor(areaName);
-                      return (
-                        <div key={areaName}>
-                          <div
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg mb-3 ${areaTheme.bg} ${areaTheme.border} border`}
-                          >
-                            <span className={`w-2 h-2 rounded-full ${areaTheme.dot}`} />
-                            <span className={`text-sm font-medium ${areaTheme.text}`}>
-                              {areaName}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {sessions.map((sesion) => (
-                              <SessionCard
-                                key={sesion.id}
-                                sesion={sesion}
-                                areaName={areaName}
-                                downloadingId={downloadingId}
-                                confirmDeleteId={confirmDeleteId}
-                                deletingId={deletingId}
-                                onVer={() => navigate(`/sesion/${sesion.id}`)}
-                                onDescargar={() => handleDescargar(sesion.id)}
-                                onWord={() => navigate(`/sesion-suscriptor-result/${sesion.id}?download=word`)}
-                                onEditar={() => navigate(`/editar-sesion/${sesion.id}`)}
-                                onConfirmDelete={() => setConfirmDeleteId(sesion.id)}
-                                onCancelDelete={() => setConfirmDeleteId(null)}
-                                onEliminar={() => handleEliminar(sesion.id)}
-                                formatFechaRelativa={formatFechaRelativa}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {porUnidad.length === 0 && individuales.length === 0 && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
-                No hay sesiones que coincidan con la búsqueda.
-              </p>
-            )}
-          </div>
+          renderFolderContent()
         )}
       </div>
     </div>

@@ -212,19 +212,38 @@ export function useSesionPremiumPDF(
   );
 
   const handleGenerateWord = async () => {
-    if (!documentRef.current || !sesionId) {
+    if (!sesionId) {
       handleToaster("No se pudo acceder al documento", "error");
       return;
     }
 
     setIsGeneratingWord(true);
     try {
+      // Prefer server-side conversion from existing S3 PDF (avoids upload size issues)
+      const pdfUrl = (premiumData?.sesion as any)?.pdfUrl;
+      if (pdfUrl) {
+        const { generarWordDesdePDFExistente } = await import("@/services/pdfToWord.service");
+        const url = await generarWordDesdePDFExistente(sesionId);
+        setWordUrl(url);
+        handleToaster("Word generado y guardado", "success");
+        return;
+      }
+
+      // Fallback: generate PDF locally and upload for conversion
+      if (!documentRef.current) {
+        handleToaster("No se pudo acceder al documento", "error");
+        return;
+      }
+      // First ensure PDF is saved to S3 so we can use from-session next time
+      if (!isSaved && user?.id) {
+        try { await guardarEnNube(); } catch { /* continue anyway */ }
+      }
       const { generateAndUploadWord } = await import("@/services/htmldocs.service");
       const url = await generateAndUploadWord(documentRef.current, sesionId);
       setWordUrl(url);
       handleToaster("Word generado y guardado", "success");
-    } catch (error) {
-      handleToaster("Error al generar el Word", "error");
+    } catch (error: any) {
+      handleToaster(error?.message || "Error al generar el Word", "error");
       console.error(error);
     } finally {
       setIsGeneratingWord(false);

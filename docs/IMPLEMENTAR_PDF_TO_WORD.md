@@ -2,24 +2,30 @@
 
 ## Resumen
 
-El docente genera un Word desde la página de sesión. El frontend genera un PDF (client-side), lo envía al backend, el backend convierte a Word con **SayPDF**, sube el .docx a **S3**, guarda `wordUrl` en la BD, y notifica al frontend vía **Socket.IO**. La conversión es **no bloqueante**.
+El docente genera un Word desde cualquier página (MisSesiones, SesionViewer, etc.)
+**sin salir de la pantalla actual**. El frontend envía solo el `sesionId` al backend,
+el backend descarga el PDF desde S3 internamente, convierte a Word con **SayPDF**,
+sube el .docx a **S3**, guarda `wordUrl` en la BD, y notifica al frontend vía **Socket.IO**.
 
 ## Arquitectura
 
 ```
-Docente hace click en "Descargar Word"
+Docente hace click en "Generar Word"
          │
          ▼
 ┌─────────────────────┐
 │   FRONTEND          │
-│   genera PDF blob   │  (html2canvas + jsPDF, client-side)
+│   POST { sesionId } │  (JSON, sin archivo — liviano)
 └────────┬────────────┘
-         │ POST /api/pdf-to-word { file, sesionId }
+         │ POST /api/pdf-to-word/from-session
          ▼
 ┌─────────────────────┐
 │   BACKEND           │
-│   recibe PDF        │  ← responde { jobId } en < 1 segundo
+│   responde { jobId }│  ← < 1 segundo
 │   lanza background  │
+│   ↓                 │
+│   descarga PDF      │  ← S3 → backend (interno, sin CORS)
+│   de S3             │
 └────────┬────────────┘
          │ (async, sin bloquear)
          ▼
@@ -41,7 +47,7 @@ Docente hace click en "Descargar Word"
 │   FRONTEND          │
 │   recibe wordUrl    │
 │   botón cambia a    │
-│   "Ver Word"        │
+│   "Ver Word" (verde)│
 └─────────────────────┘
 ```
 
@@ -49,8 +55,127 @@ Docente hace click en "Descargar Word"
 
 | Estado | Botón | Acción |
 |--------|-------|--------|
-| Sin `wordUrl` en la sesión | **Descargar Word** (azul) | Genera PDF → envía al backend → convierte → sube a S3 |
+| Sin `wordUrl` en la sesión | **Generar Word** (azul) | Envía sesionId → backend descarga PDF de S3 → convierte → sube Word a S3 |
 | Con `wordUrl` en la sesión | **Ver Word** (verde) | Obtiene URL de descarga firmada de S3 → abre en nueva pestaña |
+
+## Endpoints
+
+### `POST /api/pdf-to-word/from-session` ← NUEVO (preferido)
+
+Backend descarga el PDF desde S3 internamente. Sin upload de archivos.
+Evita errores 413 y problemas de CORS.
+
+**Body (JSON):** `{ "sesionId": "uuid" }`
+**Response:** `{ "success": true, "jobId": "uuid" }`
+
+**Implementación backend:**
+```typescript
+// En pdf-to-word.controller.ts
+async function convertFromSession(req: AuthRequest, res: Response) {
+  const apiKey = process.env.SAYPDF_API_KEY;
+  if (!apiKey) return res.status(500).json({ success: false, error: "SAYPDF_API_KEY no configurado" });
+
+  const auth0Sub = req.auth?.sub;
+  if (!auth0Sub) return res.status(401).json({ success: false, error: "No autorizado" });
+
+  const { sesionId } = req.body;
+  if (!sesionId) return res.status(400).json({ success: false, error: "sesionId requerido" });
+
+  // Verificar que la sesión existe y tiene PDF
+  const sesion = await prismaClient.sesion.findUnique({
+    where: { id: sesionId },
+    select: { pdfUrl: true },
+  });
+
+  if (!sesion?.pdfUrl) {
+    return res.status(400).json({ success: false, error: "La sesión no tiene PDF" });
+  }
+
+  const jobId = randomUUID();
+  res.json({ success: true, jobId });
+
+  // Background: descargar PDF de S3 → convertir → subir Word
+  processConversionFromS3(jobId, sesion.pdfUrl, sesionId, auth0Sub, apiKey).catch((err) => {
+    console.error(`[pdf-to-word] Job ${jobId} failed:`, err.message);
+  });
+}
+
+async function processConversionFromS3(
+  jobId: string, pdfUrl: string, sesionId: string, auth0Sub: string, apiKey: string,
+) {
+  // 1. Descargar PDF desde S3 (server-side, sin CORS)
+  const pdfResp = await axios.get(pdfUrl, { responseType: "arraybuffer" });
+  const pdfBuffer = Buffer.from(pdfResp.data);
+
+  // 2. Reutilizar processConversion existente con el buffer
+  // ... (misma lógica: SayPDF → upload Word a S3 → Prisma update → Socket.IO)
+}
+```
+
+**Ruta:**
+```typescript
+// En pdf-to-word.routes.ts
+router.post("/from-session", express.json(), convertFromSession);
+```
+
+### `POST /api/pdf-to-word` (legacy — con upload de archivo)
+
+Usado solo cuando se genera un PDF fresco desde HTML (ej. primera vez en SesionSuscriptorResult).
+
+**Body (form-data):** `file` (PDF, max 30MB), `sesionId` (UUID)
+**Response:** `{ "success": true, "jobId": "uuid" }`
+
+### Socket Events
+
+| Evento | Payload | Cuándo |
+|--------|---------|--------|
+| `word:listo` | `{ jobId, wordUrl }` | .docx subido a S3 y wordUrl guardado |
+| `word:error` | `{ jobId, message }` | Conversión falló |
+
+### Endpoints existentes (ya implementados)
+
+| Endpoint | Descripción |
+|----------|-------------|
+| `GET /api/sesion/:id/download-url-word` | URL firmada para descargar el .docx desde S3 |
+| `DELETE /api/sesion/:id/word` | Elimina el .docx de S3 y limpia wordUrl |
+
+## CORS — Configurar S3 bucket
+
+El bucket `docs-pdfs-generated` necesita CORS para que el frontend pueda cargar
+imágenes (ej. insignia.png) en el navegador.
+
+**Ir a:** AWS Console → S3 → `docs-pdfs-generated` → Permissions → CORS
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedOrigins": [
+      "https://www.docente-pro.com",
+      "https://docente-pro.com",
+      "http://localhost:5173"
+    ],
+    "ExposeHeaders": ["Content-Length", "Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+## Nginx — Aumentar body size (solo si se usa el endpoint legacy)
+
+Si usas `POST /api/pdf-to-word` con archivo adjunto, Nginx rechaza PDFs > 1MB.
+
+```nginx
+# En la configuración del server block de api.docente-pro.com
+location /api/pdf-to-word {
+    client_max_body_size 30m;
+    proxy_pass http://localhost:3000;
+    # ... demás proxy headers
+}
+```
+
+Con el nuevo endpoint `/from-session` esto no es necesario (solo envía JSON).
 
 ## Solo falta: API Key de SayPDF
 
@@ -63,57 +188,6 @@ SAYPDF_API_KEY=tu_api_key_aqui
 ```
 
 4. Reiniciar backend
-
-## Archivos modificados
-
-### Backend (smart-teacher-backend)
-
-| Archivo | Cambio |
-|---------|--------|
-| `src/controllers/pdf-to-word/pdf-to-word.controller.ts` | Nuevo: recibe PDF, convierte con SayPDF, sube a S3, guarda wordUrl |
-| `src/routes/pdf-to-word/pdf-to-word.routes.ts` | Nuevo: `POST /api/pdf-to-word` |
-| `src/routes/index.ts` | Registra ruta `/api/pdf-to-word` con `verifyToken` |
-| `src/utils/socketService.ts` | Nuevos eventos: `emitWordListo`, `emitWordError` |
-| `src/utils/s3Client.ts` | Nueva función: `uploadWordToS3` |
-| `.env` | Nueva variable: `SAYPDF_API_KEY` |
-
-### Frontend (smart-teacher-frontend)
-
-| Archivo | Cambio |
-|---------|--------|
-| `src/services/pdfToWord.service.ts` | Reescrito: envía PDF + sesionId, espera socket, retorna wordUrl |
-| `src/services/htmldocs.service.ts` | `generateAndUploadWord(element, sesionId)` reemplaza a `generateAndDownloadWord` |
-| `src/services/socket.service.ts` | Nuevos tipos: `WordListoPayload`, `WordErrorPayload` |
-| `src/interfaces/ISesion.ts` | Nuevos campos: `wordUrl`, `wordGeneradoAt` |
-| `src/pages/SesionSuscriptorResult.tsx` | Botón "Descargar Word" → "Ver Word" cuando hay wordUrl |
-| `src/pages/SesionPremiumResult.tsx` | Idem |
-| `src/hooks/useSesionPremiumPDF.ts` | Nuevas funciones: `handleGenerateWord`, `handleVerWord`, estado `wordUrl` |
-| `index.html` | Limpieza: removidos polyfills de html-to-docx |
-| `vite.config.ts` | Limpieza: removido plugin html-to-docx |
-| `package.json` | Removido: `@turbodocx/html-to-docx` |
-
-## API Reference
-
-### `POST /api/pdf-to-word`
-
-Inicia conversión. Retorna inmediatamente.
-
-**Body (form-data):** `file` (PDF, max 30MB), `sesionId` (UUID)
-**Response:** `{ "success": true, "jobId": "uuid" }`
-
-### Socket Events
-
-| Evento | Payload | Cuándo |
-|--------|---------|--------|
-| `word:listo` | `{ jobId, wordUrl }` | .docx subido a S3 y wordUrl guardado |
-| `word:error` | `{ jobId, message }` | Conversión falló |
-
-### Endpoints existentes (ya implementados en backend)
-
-| Endpoint | Descripción |
-|----------|-------------|
-| `GET /api/sesion/:id/download-url-word` | URL firmada para descargar el .docx desde S3 |
-| `DELETE /api/sesion/:id/word` | Elimina el .docx de S3 y limpia wordUrl |
 
 ## SayPDF Pricing
 
@@ -128,8 +202,9 @@ Sandbox mode: header `X-Sandbox: true` para probar sin gastar créditos.
 
 ## Checklist
 
-- [ ] Crear cuenta en saypdf.com
-- [ ] Crear API key
+- [ ] **Backend:** crear endpoint `POST /api/pdf-to-word/from-session`
+- [ ] **S3 CORS:** configurar bucket `docs-pdfs-generated` (ver JSON arriba)
+- [ ] **SayPDF:** crear cuenta y API key
 - [ ] Pegar en `.env` → `SAYPDF_API_KEY=...`
 - [ ] Reiniciar backend
-- [ ] Probar en una sesión: click "Descargar Word" → esperar → debería cambiar a "Ver Word"
+- [ ] Probar: click "Generar Word" desde MisSesiones → spinner → "Word generado" → botón verde "Ver Word"

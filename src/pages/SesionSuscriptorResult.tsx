@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
   obtenerSesionPorId,
@@ -469,21 +470,35 @@ function SesionSuscriptorResult() {
 
   const handlePrint = () => window.print();
 
-  // ── Generar Word → S3 (primera vez) ─────────────────────────────────────
+  // ── Generar Word → S3 ───────────────────────────────────────────────────
   const handleGenerateWord = async () => {
-    if (!documentRef.current || !sesionId) {
+    if (!sesionId) {
       handleToaster("No se pudo acceder al documento", "error");
       return;
     }
 
     setIsGeneratingWord(true);
     try {
+      // If PDF already saved to S3, use server-side conversion (faster, no upload)
+      if (isSaved) {
+        const { generarWordDesdePDFExistente } = await import("@/services/pdfToWord.service");
+        const url = await generarWordDesdePDFExistente(sesionId);
+        setWordUrl(url);
+        handleToaster("Word generado y guardado", "success");
+        return;
+      }
+
+      // Fallback: generate PDF locally and upload for conversion
+      if (!documentRef.current) {
+        handleToaster("No se pudo acceder al documento", "error");
+        return;
+      }
       const { generateAndUploadWord } = await import("@/services/htmldocs.service");
       const url = await generateAndUploadWord(documentRef.current, sesionId);
       setWordUrl(url);
       handleToaster("Word generado y guardado", "success");
-    } catch (error) {
-      handleToaster("Error al generar el Word", "error");
+    } catch (error: any) {
+      handleToaster(error?.message || "Error al generar el Word", "error");
       console.error(error);
     } finally {
       setIsGeneratingWord(false);
@@ -754,7 +769,7 @@ function SesionSuscriptorResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={premiumData} instrumento={instrumento ?? undefined} insigniaUrl={user?.insigniaUrl} />
+          <SesionPremiumDoc data={premiumData} instrumento={instrumento ?? undefined} insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)} />
         </div>
       </div>
     </div>

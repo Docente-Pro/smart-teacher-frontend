@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import {
   getUnidadDetalleSuscriptor,
   getUnidadById,
@@ -840,8 +841,20 @@ function EditarUnidad() {
       toast.error("No se pudo acceder al documento");
       return;
     }
-    toast.info("La generación de Word para unidades estará disponible próximamente");
-    // TODO: implementar flujo Word para unidades cuando se defina el backend
+
+    setIsGeneratingWord(true);
+    try {
+      const { generateAndDownloadWordLocal } = await import("@/services/htmldocs.service");
+      const titulo = (rawUnidad as any)?.titulo || "unidad";
+      const nombre = titulo.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+      const ts = Date.now().toString().slice(-6);
+      await generateAndDownloadWordLocal(documentRef.current, `unidad-${nombre}-${ts}.doc`);
+      toast.success("Word descargado");
+    } catch {
+      toast.error("Error al generar Word");
+    } finally {
+      setIsGeneratingWord(false);
+    }
   };
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -1892,7 +1905,7 @@ function EditarUnidad() {
                 numeroUnidad={rawUnidad.numeroUnidad}
                 grado={gradoLabel}
                 seccion={seccionLabel}
-                insigniaUrl={user?.insigniaUrl}
+                insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)}
               />
               <UnidadDocDatosGenerales
                 institucion={institucionLabel}
