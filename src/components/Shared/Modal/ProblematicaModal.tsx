@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ReusableModal from "@/components/Shared/Modal/ReusableModal";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/auth.store";
@@ -44,6 +44,16 @@ function ProblematicaModal({ isOpen, onComplete, onClose }: ProblematicaModalPro
   // Premium-only context fields
   const [tituloUnidad, setTituloUnidad] = useState("");
   const [situacionSignificativa, setSituacionSignificativa] = useState("");
+  const situacionTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-grow textarea: minimum height = content height
+  useEffect(() => {
+    const el = situacionTextareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const minH = 3 * 24; // ~3 lines
+    el.style.height = `${Math.max(el.scrollHeight, minH)}px`;
+  }, [situacionSignificativa, isOpen]);
 
   // Previous values from backend (for "used last time")
   const prevProblematica = usuario?.problematica;
@@ -231,11 +241,12 @@ function ProblematicaModal({ isOpen, onComplete, onClose }: ProblematicaModalPro
                   Situación significativa / Reto
                 </label>
                 <textarea
+                  ref={situacionTextareaRef}
                   value={situacionSignificativa}
                   onChange={(e) => setSituacionSignificativa(e.target.value)}
                   placeholder='Ej: "Los estudiantes identificarán el uso de decimales en situaciones cotidianas de compra y venta..."'
                   rows={3}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none transition-all resize-none"
+                  className="w-full min-h-[4.5rem] px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none transition-all resize-none overflow-hidden"
                 />
               </div>
             </div>
