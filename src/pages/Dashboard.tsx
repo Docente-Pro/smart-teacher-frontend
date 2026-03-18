@@ -425,150 +425,32 @@ function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        {/* Welcome Hero */}
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-purple-50/80 dark:from-indigo-950/40 dark:via-slate-900 dark:to-purple-950/30 border border-indigo-100/80 dark:border-indigo-800/40 shadow-lg shadow-indigo-100/50 dark:shadow-indigo-950/30 mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 sm:p-8 md:p-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col">
+        {/* Welcome Hero — compact on mobile, full on desktop */}
+        <div className="order-1 relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-purple-50/80 dark:from-indigo-950/40 dark:via-slate-900 dark:to-purple-950/30 border border-indigo-100/80 dark:border-indigo-800/40 shadow-lg shadow-indigo-100/50 dark:shadow-indigo-950/30 mb-4 sm:mb-8">
+          <div className="flex items-center justify-between gap-3 p-4 sm:p-8 md:p-10">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mb-1">¡Hola de nuevo!</p>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1.5">
+              <h2 className="text-xl sm:text-3xl md:text-4xl font-bold mb-0.5 sm:mb-1.5">
                 <span className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 dark:from-white dark:via-indigo-100 dark:to-slate-300 bg-clip-text text-transparent">
                   ¡{saludo}, {firstName}!
                 </span>{" "}
                 <span className="inline-block animate-[wave_1.5s_ease-in-out_1]">👋</span>
               </h2>
-              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">¿Qué te gustaría hacer hoy?</p>
+              <p className="text-xs sm:text-base text-slate-600 dark:text-slate-400">¿Qué te gustaría hacer hoy?</p>
               {unidadActiva && (
-                <p className="text-xs sm:text-sm text-indigo-500/80 dark:text-indigo-400/60 mt-2 font-medium">
+                <p className="text-xs sm:text-sm text-indigo-500/80 dark:text-indigo-400/60 mt-1 sm:mt-2 font-medium">
                   Trabajando en: <span className="text-indigo-700 dark:text-indigo-300">Unidad {unidadActiva.numero} — {unidadActiva.titulo}</span>
                 </p>
               )}
             </div>
-            <div className="flex-shrink-0 w-36 sm:w-44 md:w-52 h-28 sm:h-32 md:h-36 mx-auto sm:mx-0">
+            <div className="hidden sm:block flex-shrink-0 w-44 md:w-52 h-32 md:h-36">
               <WelcomeIllustration className="w-full h-full text-indigo-200 dark:text-indigo-900/50" />
             </div>
           </div>
         </div>
 
-        {/* Summary Cards — compact row */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
-          <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border shadow-sm ${
-            isPremium
-              ? "bg-gradient-to-r from-amber-50 to-orange-50/80 dark:from-amber-950/40 dark:to-orange-950/20 border-amber-200/80 dark:border-amber-600/30"
-              : "bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50"
-          }`}>
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-              isPremium ? "bg-gradient-to-br from-amber-400 to-orange-500" : "bg-amber-50 dark:bg-amber-500/10"
-            }`}>
-              {isPremium ? <Crown className="w-4 h-4 text-white" /> : <User className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Plan</p>
-              <p className={`text-sm font-bold truncate leading-tight ${
-                isPremium ? "text-amber-700 dark:text-amber-300" : "text-slate-900 dark:text-white"
-              }`}>{planLabel}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
-            <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center flex-shrink-0">
-              <GraduationCap className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Grado</p>
-              <p className="text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">{gradoNombre || "—"}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-              <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Unidades</p>
-              <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{totalUnidades}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-              <CalendarDays className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">
-                {isPremium ? "Sesiones" : "Restantes"}
-              </p>
-              <p className={`text-sm font-bold leading-tight ${isPremium ? "text-slate-900 dark:text-white" : "text-emerald-600 dark:text-emerald-400"}`}>
-                {isPremium ? totalSesiones : (user?.sesionesRestantes ?? 0)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Premium Tools */}
-        {isPremium && (
-          <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-50/90 via-orange-50/50 to-amber-50/90 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-amber-950/30 border border-amber-200/80 dark:border-amber-700/40 shadow-lg shadow-amber-200/30 dark:shadow-amber-950/30 mb-6 sm:mb-8">
-            <div className="absolute top-0 right-0 w-28 sm:w-36 h-24 sm:h-28 opacity-90 pointer-events-none">
-              <PremiumBlockIllustration className="w-full h-full" />
-            </div>
-            <div className="relative p-5 sm:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300">
-                  <Crown className="w-3.5 h-3.5" />
-                  Herramientas premium
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  onClick={() => setShowAlumnosModal(true)}
-                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/80 dark:bg-slate-800/50 border border-blue-200/80 dark:border-blue-600/30 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/50 transition-all duration-200 text-left group"
-                >
-                  <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 flex-shrink-0 group-hover:scale-105 transition-transform">
-                    <Users className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                      {alumnosSubidos ? "Modificar lista de alumnos" : "Subir lista de alumnos"}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-                      {alumnosSubidos
-                        ? "Actualiza o reemplaza tu nómina"
-                        : "Sube tu nómina para los instrumentos de evaluación"}
-                    </p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-                </button>
-
-                <button
-                  onClick={() => setShowInsigniaModal(true)}
-                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/80 dark:bg-slate-800/50 border border-purple-200/80 dark:border-purple-600/30 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500/50 transition-all duration-200 text-left group"
-                >
-                  <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 shadow-lg shadow-purple-500/25 flex-shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
-                    {insigniaUrl ? (
-                      <img src={insigniaUrl} alt="Insignia" className="w-5 h-5 object-contain rounded" />
-                    ) : (
-                      <Shield className="w-5 h-5 text-white" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                      {insigniaUrl ? "Cambiar insignia" : "Subir insignia del colegio"}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-                      {insigniaUrl
-                        ? "Actualiza la insignia de tu institución"
-                        : "Se mostrará en tus documentos generados"}
-                    </p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-purple-400 group-hover:text-purple-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-8 sm:mb-12">
+        {/* Features Grid — main actions, first on mobile */}
+        <div className="order-2 sm:order-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-5 sm:mb-12">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             const isLocked = feature.premium && !permissions.canCreateUnidad;
@@ -616,6 +498,123 @@ function Dashboard() {
             );
           })}
         </div>
+
+        {/* Summary Cards — below actions on mobile, above on desktop */}
+        <div className="order-3 sm:order-2 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-8">
+          <div className={`flex items-center gap-2 px-3 py-2 sm:py-2.5 rounded-xl border shadow-sm ${
+            isPremium
+              ? "bg-gradient-to-r from-amber-50 to-orange-50/80 dark:from-amber-950/40 dark:to-orange-950/20 border-amber-200/80 dark:border-amber-600/30"
+              : "bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50"
+          }`}>
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              isPremium ? "bg-gradient-to-br from-amber-400 to-orange-500" : "bg-amber-50 dark:bg-amber-500/10"
+            }`}>
+              {isPremium ? <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" /> : <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Plan</p>
+              <p className={`text-xs sm:text-sm font-bold leading-tight truncate ${
+                isPremium ? "text-amber-700 dark:text-amber-300" : "text-slate-900 dark:text-white"
+              }`}>{planLabel}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center flex-shrink-0">
+              <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600 dark:text-violet-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Grado</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">{gradoNombre || "—"}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Unidades</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">{totalUnidades}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+              <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">
+                {isPremium ? "Sesiones" : "Restantes"}
+              </p>
+              <p className={`text-xs sm:text-sm font-bold leading-tight ${isPremium ? "text-slate-900 dark:text-white" : "text-emerald-600 dark:text-emerald-400"}`}>
+                {isPremium ? totalSesiones : (user?.sesionesRestantes ?? 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Premium Tools — below actions on mobile, above on desktop */}
+        {isPremium && (
+          <div className="order-4 sm:order-3 relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-50/90 via-orange-50/50 to-amber-50/90 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-amber-950/30 border border-amber-200/80 dark:border-amber-700/40 shadow-lg shadow-amber-200/30 dark:shadow-amber-950/30 mb-5 sm:mb-8">
+            <div className="absolute top-0 right-0 w-28 sm:w-36 h-24 sm:h-28 opacity-90 pointer-events-none">
+              <PremiumBlockIllustration className="w-full h-full" />
+            </div>
+            <div className="relative p-4 sm:p-6">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300">
+                  <Crown className="w-3.5 h-3.5" />
+                  Herramientas premium
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                <button
+                  onClick={() => setShowAlumnosModal(true)}
+                  className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-slate-800/50 border border-blue-200/80 dark:border-blue-600/30 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/50 transition-all duration-200 text-left group"
+                >
+                  <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
+                      {alumnosSubidos ? "Modificar lista de alumnos" : "Subir lista de alumnos"}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 hidden sm:block">
+                      {alumnosSubidos
+                        ? "Actualiza o reemplaza tu nómina"
+                        : "Sube tu nómina para los instrumentos de evaluación"}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                </button>
+
+                <button
+                  onClick={() => setShowInsigniaModal(true)}
+                  className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-slate-800/50 border border-purple-200/80 dark:border-purple-600/30 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500/50 transition-all duration-200 text-left group"
+                >
+                  <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 shadow-lg shadow-purple-500/25 flex-shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
+                    {insigniaUrl ? (
+                      <img src={insigniaUrl} alt="Insignia" className="w-4 h-4 sm:w-5 sm:h-5 object-contain rounded" />
+                    ) : (
+                      <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
+                      {insigniaUrl ? "Cambiar insignia" : "Subir insignia del colegio"}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 hidden sm:block">
+                      {insigniaUrl
+                        ? "Actualiza la insignia de tu institución"
+                        : "Se mostrará en tus documentos generados"}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-purple-400 group-hover:text-purple-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* TODO: Actividad Reciente — descomentar cuando haya servicio de actividad */}
         {/* <div className="rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-sm overflow-hidden">

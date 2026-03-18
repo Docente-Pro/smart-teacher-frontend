@@ -841,8 +841,20 @@ function EditarUnidad() {
       toast.error("No se pudo acceder al documento");
       return;
     }
-    toast.info("La generación de Word para unidades estará disponible próximamente");
-    // TODO: implementar flujo Word para unidades cuando se defina el backend
+
+    setIsGeneratingWord(true);
+    try {
+      const { generateAndDownloadWordLocal } = await import("@/services/htmldocs.service");
+      const titulo = (rawUnidad as any)?.titulo || "unidad";
+      const nombre = titulo.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+      const ts = Date.now().toString().slice(-6);
+      await generateAndDownloadWordLocal(documentRef.current, `unidad-${nombre}-${ts}.doc`);
+      toast.success("Word descargado");
+    } catch {
+      toast.error("Error al generar Word");
+    } finally {
+      setIsGeneratingWord(false);
+    }
   };
 
   // ═════════════════════════════════════════════════════════════════════════

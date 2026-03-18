@@ -919,17 +919,6 @@ function EditarSesionPremium() {
 
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
   const handleDownloadWord = async () => {
-    const premData = buildPremiumData();
-    if (!premData) return;
-
-    setView("preview");
-    await new Promise((r) => setTimeout(r, 1500));
-
-    if (!documentRef.current) {
-      toast.error("No se pudo acceder al documento");
-      return;
-    }
-
     if (!sesionId) {
       toast.error("No se encontró el ID de la sesión");
       return;
@@ -937,11 +926,29 @@ function EditarSesionPremium() {
 
     setIsGeneratingWord(true);
     try {
+      // Prefer server-side conversion from existing S3 PDF
+      const hasPdf = !!(rawSesion as any)?.pdfUrl;
+      if (hasPdf) {
+        const { generarWordDesdePDFExistente } = await import("@/services/pdfToWord.service");
+        await generarWordDesdePDFExistente(sesionId);
+        toast.success("Word generado y guardado");
+        return;
+      }
+
+      // Fallback: render preview, generate PDF locally, upload
+      const premData = buildPremiumData();
+      if (!premData) return;
+      setView("preview");
+      await new Promise((r) => setTimeout(r, 1500));
+      if (!documentRef.current) {
+        toast.error("No se pudo acceder al documento");
+        return;
+      }
       const { generateAndUploadWord } = await import("@/services/htmldocs.service");
       await generateAndUploadWord(documentRef.current, sesionId);
       toast.success("Word generado y guardado");
-    } catch {
-      toast.error("Error al generar Word");
+    } catch (err: any) {
+      toast.error(err?.message || "Error al generar Word");
     } finally {
       setIsGeneratingWord(false);
     }

@@ -545,3 +545,101 @@ export async function generateAndUploadWord(
   const pdfBlob = await generatePDFBlob(element, pdfOptions);
   return convertPdfToWordViaApi(pdfBlob, sesionId);
 }
+
+/**
+ * Genera y descarga un Word (.doc) directamente desde el HTML renderizado.
+ * No requiere backend — produce un archivo HTML con MIME de Word que se abre
+ * en Microsoft Word como documento editable.
+ *
+ * Útil para documentos que no tienen flujo backend de conversión (ej. unidades).
+ */
+export async function generateAndDownloadWordLocal(
+  element: HTMLElement,
+  filename: string = "documento.doc",
+): Promise<void> {
+  const clone = element.cloneNode(true) as HTMLElement;
+
+  // Convert SVGs to inline PNGs for Word compatibility
+  const svgs = Array.from(clone.querySelectorAll("svg"));
+  for (const svg of svgs) {
+    const origSvg = Array.from(element.querySelectorAll("svg")).find(
+      (s) => s.isEqualNode(svg) || s.outerHTML === svg.outerHTML
+    );
+    if (origSvg) {
+      const dataUrl = await svgToPngDataUrl(origSvg);
+      if (dataUrl) {
+        const img = document.createElement("img");
+        img.src = dataUrl;
+        const rect = origSvg.getBoundingClientRect();
+        img.style.width = `${rect.width}px`;
+        img.style.height = `${rect.height}px`;
+        svg.replaceWith(img);
+      }
+    }
+  }
+
+  // Convert canvas elements to PNGs
+  const canvases = Array.from(clone.querySelectorAll("canvas"));
+  for (const canvas of canvases) {
+    const origCanvas = Array.from(element.querySelectorAll("canvas")).find(
+      (c) => c.width === canvas.width && c.height === canvas.height
+    );
+    if (origCanvas) {
+      const dataUrl = canvasToPngDataUrl(origCanvas);
+      if (dataUrl) {
+        const img = document.createElement("img");
+        img.src = dataUrl;
+        img.style.width = `${origCanvas.width}px`;
+        img.style.height = `${origCanvas.height}px`;
+        canvas.replaceWith(img);
+      }
+    }
+  }
+
+  // Try to inline external images as base64 to avoid broken images in Word
+  const images = Array.from(clone.querySelectorAll("img"));
+  for (const img of images) {
+    if (img.src && !img.src.startsWith("data:") && !img.src.startsWith("blob:")) {
+      const origImg = Array.from(element.querySelectorAll("img")).find(
+        (i) => i.src === img.src
+      );
+      if (origImg) {
+        const dataUrl = imgToDataUrlViaCanvas(origImg);
+        if (dataUrl) img.src = dataUrl;
+        else img.src = PLACEHOLDER_IMAGE_DATA_URL;
+      }
+    }
+  }
+
+  const htmlContent = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:w="urn:schemas-microsoft-com:office:word"
+          xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; }
+        table { border-collapse: collapse; width: 100%; }
+        td, th { border: 1px solid #999; padding: 4px 6px; }
+        img { max-width: 100%; }
+      </style>
+      <!--[if gte mso 9]>
+      <xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml>
+      <![endif]-->
+    </head>
+    <body>${clone.innerHTML}</body>
+    </html>
+  `;
+
+  const blob = new Blob([htmlContent], {
+    type: "application/msword",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
