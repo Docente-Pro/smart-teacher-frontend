@@ -21,6 +21,8 @@ export interface IUnidad {
   contenido?: IUnidadContenido;
   pdfUrl?: string;
   pdfGeneradoAt?: string;
+  wordUrl?: string;
+  wordGeneradoAt?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -18,6 +18,7 @@ import type { WordListoPayload, WordErrorPayload } from "@/services/socket.servi
 
 const ENDPOINT = "/pdf-to-word";
 const ENDPOINT_FROM_SESSION = "/pdf-to-word/from-session";
+const ENDPOINT_FROM_UNIDAD = "/pdf-to-word/from-unidad";
 const TIMEOUT_MS = 150_000;
 
 interface StartConversionResponse {
@@ -79,6 +80,37 @@ export async function generarWordDesdePDFExistente(
   }
 
   return waitForWordReady(data.jobId);
+}
+
+/**
+ * Triggers Word generation from the unidad's existing S3 PDF.
+ * Same pattern as generarWordDesdePDFExistente but for units.
+ */
+export async function generarWordDesdeUnidad(
+  unidadId: string,
+): Promise<string> {
+  const { data } = await instance.post<StartConversionResponse>(
+    ENDPOINT_FROM_UNIDAD,
+    { unidadId },
+    { timeout: 30_000 },
+  );
+
+  if (!data.success || !data.jobId) {
+    throw new Error("El servidor no pudo iniciar la conversión.");
+  }
+
+  return waitForWordReady(data.jobId);
+}
+
+/**
+ * Obtiene URL prefirmada para descargar el Word de una unidad desde S3.
+ */
+export async function obtenerDownloadUrlWordUnidad(unidadId: string): Promise<string> {
+  const { data } = await instance.get<{
+    success: boolean;
+    data: { downloadUrl: string; expiresIn: number };
+  }>(`/unidad/${unidadId}/download-url-word`);
+  return data.data.downloadUrl;
 }
 
 function waitForWordReady(jobId: string): Promise<string> {

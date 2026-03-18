@@ -834,26 +834,34 @@ function EditarUnidad() {
   };
 
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
-  const handleDownloadWord = async () => {
-    setView("preview");
-    await new Promise((r) => setTimeout(r, 1500));
-    if (!documentRef.current) {
-      toast.error("No se pudo acceder al documento");
+  const handleGenerateWord = async () => {
+    if (!unidadId) return;
+    if (!rawUnidad?.pdfUrl) {
+      toast.error("Primero genera el PDF de la unidad");
       return;
     }
 
     setIsGeneratingWord(true);
     try {
-      const { generateAndDownloadWordLocal } = await import("@/services/htmldocs.service");
-      const titulo = (rawUnidad as any)?.titulo || "unidad";
-      const nombre = titulo.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
-      const ts = Date.now().toString().slice(-6);
-      await generateAndDownloadWordLocal(documentRef.current, `unidad-${nombre}-${ts}.doc`);
-      toast.success("Word descargado");
-    } catch {
-      toast.error("Error al generar Word");
+      const { generarWordDesdeUnidad } = await import("@/services/pdfToWord.service");
+      const wordUrl = await generarWordDesdeUnidad(unidadId);
+      setRawUnidad((prev) => prev ? { ...prev, wordUrl } as IUnidadListItem : prev);
+      toast.success("Word generado y guardado");
+    } catch (err: any) {
+      toast.error(err?.message || "Error al generar Word");
     } finally {
       setIsGeneratingWord(false);
+    }
+  };
+
+  const handleVerWord = async () => {
+    if (!unidadId) return;
+    try {
+      const { obtenerDownloadUrlWordUnidad } = await import("@/services/pdfToWord.service");
+      const url = await obtenerDownloadUrlWordUnidad(unidadId);
+      window.open(url, "_blank");
+    } catch {
+      toast.error("Error al obtener el Word");
     }
   };
 
@@ -1003,18 +1011,37 @@ function EditarUnidad() {
                   <FileDown className="h-4 w-4" />
                   <span className="hidden sm:inline">Descargar PDF</span>
                 </Button>
-                <Button
-                  onClick={handleDownloadWord}
-                  disabled={isGeneratingWord}
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {isGeneratingWord ? "Generando Word..." : "Descargar Word"}
-                  </span>
-                </Button>
+                {rawUnidad?.wordUrl ? (
+                  <Button
+                    onClick={handleVerWord}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Ver Word</span>
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleGenerateWord}
+                    disabled={isGeneratingWord || !rawUnidad?.pdfUrl}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+                  >
+                    {isGeneratingWord ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="hidden sm:inline">Generando Word...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4" />
+                        <span className="hidden sm:inline">Generar Word</span>
+                      </>
+                    )}
+                  </Button>
+                )}
               </>
             )}
           </div>

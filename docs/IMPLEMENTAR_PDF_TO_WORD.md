@@ -132,11 +132,74 @@ Usado solo cuando se genera un PDF fresco desde HTML (ej. primera vez en SesionS
 | `word:listo` | `{ jobId, wordUrl }` | .docx subido a S3 y wordUrl guardado |
 | `word:error` | `{ jobId, message }` | Conversión falló |
 
+### `POST /api/pdf-to-word/from-unidad` ← NUEVO (unidades)
+
+Mismo flujo que `/from-session` pero para unidades didácticas.
+Backend descarga el PDF de la unidad desde S3, convierte a Word con SayPDF,
+sube el .docx a S3, guarda `wordUrl` / `wordGeneradoAt` en el modelo `Unidad`,
+y notifica al frontend con `word:listo`.
+
+**Body (JSON):** `{ "unidadId": "uuid" }`
+**Response:** `{ "success": true, "jobId": "uuid" }`
+
+**Implementación backend:**
+```typescript
+// En pdf-to-word.controller.ts
+async function convertFromUnidad(req: AuthRequest, res: Response) {
+  const apiKey = process.env.SAYPDF_API_KEY;
+  if (!apiKey) return res.status(500).json({ success: false, error: "SAYPDF_API_KEY no configurado" });
+
+  const auth0Sub = req.auth?.sub;
+  if (!auth0Sub) return res.status(401).json({ success: false, error: "No autorizado" });
+
+  const { unidadId } = req.body;
+  if (!unidadId) return res.status(400).json({ success: false, error: "unidadId requerido" });
+
+  const unidad = await prismaClient.unidad.findUnique({
+    where: { id: unidadId },
+    select: { pdfUrl: true, usuarioId: true },
+  });
+
+  if (!unidad?.pdfUrl) {
+    return res.status(400).json({ success: false, error: "La unidad no tiene PDF" });
+  }
+
+  const jobId = randomUUID();
+  res.json({ success: true, jobId });
+
+  // Background: descargar PDF → SayPDF → S3 → DB → Socket
+  processConversionFromS3Unidad(jobId, unidad.pdfUrl, unidadId, auth0Sub, apiKey).catch((err) => {
+    console.error(`[pdf-to-word] Unidad job ${jobId} failed:`, err.message);
+  });
+}
+```
+
+**Ruta:**
+```typescript
+// En pdf-to-word.routes.ts
+router.post("/from-unidad", express.json(), convertFromUnidad);
+```
+
+**Modelo Prisma — agregar campos:**
+```prisma
+model Unidad {
+  // ... campos existentes ...
+  wordUrl        String?
+  wordGeneradoAt DateTime?
+}
+```
+
+**Migración:**
+```bash
+npx prisma migrate dev --name add-word-fields-to-unidad
+```
+
 ### Endpoints existentes (ya implementados)
 
 | Endpoint | Descripción |
 |----------|-------------|
-| `GET /api/sesion/:id/download-url-word` | URL firmada para descargar el .docx desde S3 |
+| `GET /api/sesion/:id/download-url-word` | URL firmada para descargar el .docx de sesión desde S3 |
+| `GET /api/unidad/:id/download-url-word` | URL firmada para descargar el .docx de unidad desde S3 (**nuevo**) |
 | `DELETE /api/sesion/:id/word` | Elimina el .docx de S3 y limpia wordUrl |
 
 ## CORS — Configurar S3 bucket
@@ -202,9 +265,18 @@ Sandbox mode: header `X-Sandbox: true` para probar sin gastar créditos.
 
 ## Checklist
 
+### Sesiones
 - [ ] **Backend:** crear endpoint `POST /api/pdf-to-word/from-session`
+- [ ] Probar: click "Generar Word" desde MisSesiones → spinner → "Word generado" → botón verde "Ver Word"
+
+### Unidades
+- [ ] **Backend:** crear endpoint `POST /api/pdf-to-word/from-unidad`
+- [ ] **Backend:** agregar `wordUrl` / `wordGeneradoAt` al modelo Prisma `Unidad` + migración
+- [ ] **Backend:** crear endpoint `GET /api/unidad/:id/download-url-word` (URL presignada)
+- [ ] Probar: click "Generar Word" desde EditarUnidad → spinner → "Word generado" → botón verde "Ver Word"
+
+### General
 - [ ] **S3 CORS:** configurar bucket `docs-pdfs-generated` (ver JSON arriba)
 - [ ] **SayPDF:** crear cuenta y API key
 - [ ] Pegar en `.env` → `SAYPDF_API_KEY=...`
 - [ ] Reiniciar backend
-- [ ] Probar: click "Generar Word" desde MisSesiones → spinner → "Word generado" → botón verde "Ver Word"
