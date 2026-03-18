@@ -1,8 +1,29 @@
 import { instance } from "./instance";
+
 function getAllAreas() {
     return instance.get("/area");
 }
+
 function getAreaById(id: number) {
     return instance.get(`/area/${id}`);
 }
-export { getAllAreas, getAreaById };
+
+/**
+ * Areas that do NOT belong to primary level (Primaria).
+ * Psicomotriz → Inicial only
+ * Ciencias Sociales, Desarrollo Personal/Ciudadanía/Cívica, Educación para el Trabajo → Secundaria only
+ */
+const NON_PRIMARY_AREA_KEYWORDS = [
+    "psicomotriz",
+    "ciencias sociales",
+    "desarrollo personal",
+    "ciudadan",
+    "educación para el trabajo",
+];
+
+function isAreaPrimaria(nombre: string): boolean {
+    const lower = nombre.toLowerCase();
+    return !NON_PRIMARY_AREA_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+export { getAllAreas, getAreaById, isAreaPrimaria };

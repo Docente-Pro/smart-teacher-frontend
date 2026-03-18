@@ -117,7 +117,7 @@ function OnboardingPage() {
 
         setNiveles(
           nivelesResponse.data.data.filter(
-            (nivel: INivel) => !nivel.nombre?.toLowerCase().includes("secundaria")
+            (nivel: INivel) => nivel.nombre?.toLowerCase().includes("primaria")
           )
         );
         setTodosLosGrados(gradosResponse.data.data);
