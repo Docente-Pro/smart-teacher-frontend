@@ -361,6 +361,8 @@ export interface IUsuarioDetalle {
     titulo: string;
     createdAt: string;
     pdfUrl: string | null;
+    wordUrl: string | null;
+    wordGeneradoAt: string | null;
   }[];
   unidades: {
     id: string;
@@ -369,6 +371,8 @@ export interface IUsuarioDetalle {
     tipo: string;
     createdAt: string;
     pdfUrl: string | null;
+    wordUrl: string | null;
+    wordGeneradoAt: string | null;
   }[];
   stats: {
     totalSesiones: number;

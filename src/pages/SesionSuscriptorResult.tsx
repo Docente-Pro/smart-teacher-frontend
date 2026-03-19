@@ -11,6 +11,7 @@ import {
   Loader2,
   Pencil,
   Printer,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,8 +30,10 @@ import { SesionPremiumDoc } from "@/components/SesionPremiumDoc/SesionPremiumDoc
 import { generarFichaAplicacion } from "@/services/fichaAplicacion.service";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
+import type { RecursoSesion } from "@/interfaces/IRecursoSesion";
 import { buildInstrumentoLocal } from "@/utils/buildInstrumentoFromSesion";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
+import { RecursosSesionPanel } from "@/components/RecursosSesion";
 
 /**
  * Página de vista previa de una Sesión de Aprendizaje para **suscriptores**.
@@ -73,6 +76,12 @@ function SesionSuscriptorResult() {
   // ── Estado de Word ──
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
   const [wordUrl, setWordUrl] = useState<string | null>(null);
+
+  // ── Estado de Recursos ──
+  const [recursos, setRecursos] = useState<RecursoSesion[] | null>(null);
+  const [loadingRecursos, setLoadingRecursos] = useState(false);
+  const [errorRecursos, setErrorRecursos] = useState<string | null>(null);
+  const [showRecursos, setShowRecursos] = useState(false);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Cargar sesión completa del backend
@@ -574,6 +583,29 @@ function SesionSuscriptorResult() {
     }
   };
 
+  // ── Cargar recursos sugeridos ──
+  const handleCargarRecursos = async () => {
+    if (!sesionId) return;
+    setLoadingRecursos(true);
+    setErrorRecursos(null);
+    try {
+      const { obtenerRecursosSesion } = await import("@/services/sesiones.service");
+      const resp = await obtenerRecursosSesion(sesionId);
+      setRecursos(resp.recursos ?? []);
+    } catch (err: any) {
+      setErrorRecursos(err?.response?.data?.message || err?.message || "Error al obtener recursos");
+    } finally {
+      setLoadingRecursos(false);
+    }
+  };
+
+  const handleToggleRecursos = () => {
+    setShowRecursos((v) => !v);
+    if (recursos === null && !loadingRecursos) {
+      handleCargarRecursos();
+    }
+  };
+
   // ── Print styles ──
   const printStyles = `
     @media print {
@@ -764,7 +796,33 @@ function SesionSuscriptorResult() {
                 {isGeneratingFicha ? "..." : "Ficha"}
               </span>
             </Button>
+            <Button
+              onClick={handleToggleRecursos}
+              size="sm"
+              variant="outline"
+              className={`gap-1.5 transition-all ${
+                showRecursos
+                  ? "border-violet-400 text-violet-700 bg-violet-50 dark:border-violet-500 dark:text-violet-400 dark:bg-violet-950"
+                  : "border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-600 dark:text-violet-400 dark:hover:bg-violet-950"
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Recursos</span>
+            </Button>
           </div>
+
+          {/* Panel de recursos colapsable */}
+          {showRecursos && sesionId && (
+            <div className="max-w-md">
+              <RecursosSesionPanel
+                sesionId={sesionId}
+                recursos={recursos}
+                loading={loadingRecursos}
+                error={errorRecursos}
+                onCargar={handleCargarRecursos}
+              />
+            </div>
+          )}
         </div>
 
         {/* Documento para captura PDF */}
