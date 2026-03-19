@@ -696,7 +696,7 @@ function SesionViewer() {
               </div>
             )}
 
-            {/* Recursos sugeridos — solo premium */}
+            {/* TODO: Recursos sugeridos — descomentar cuando el backend esté listo
             {!loading && sesion && id && isPremium && (
               <RecursosSesionPanel
                 sesionId={id}
@@ -706,8 +706,9 @@ function SesionViewer() {
                 onCargar={handleCargarRecursos}
               />
             )}
+            */}
 
-            {/* Word — debajo de Recursos */}
+            {/* Word */}
             {!loading && id && (
               <div className="rounded-xl border border-blue-200 dark:border-blue-800/30 bg-gradient-to-br from-blue-50/80 to-cyan-50/50 dark:from-blue-500/5 dark:to-cyan-500/5 p-4">
                 <div className="flex items-center gap-2.5 mb-3">

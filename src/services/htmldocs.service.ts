@@ -421,6 +421,7 @@ function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
       after: [],
       avoid: ["tr", "table", "img", ".no-break", ".keep-together", "svg", ".grafico-educativo"],
     },
+    enableLinks: true,
   };
 }
 
