@@ -796,6 +796,7 @@ function SesionSuscriptorResult() {
                 {isGeneratingFicha ? "..." : "Ficha"}
               </span>
             </Button>
+            {/* TODO: Recursos — descomentar cuando el backend esté listo
             <Button
               onClick={handleToggleRecursos}
               size="sm"
@@ -809,9 +810,10 @@ function SesionSuscriptorResult() {
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Recursos</span>
             </Button>
+            */}
           </div>
 
-          {/* Panel de recursos colapsable */}
+          {/* TODO: Panel de recursos colapsable — descomentar cuando el backend esté listo
           {showRecursos && sesionId && (
             <div className="max-w-md">
               <RecursosSesionPanel
@@ -823,6 +825,7 @@ function SesionSuscriptorResult() {
               />
             </div>
           )}
+          */}
         </div>
 
         {/* Documento para captura PDF */}
