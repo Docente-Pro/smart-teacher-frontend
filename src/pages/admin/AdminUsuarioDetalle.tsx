@@ -8,6 +8,10 @@ import {
   upgradePremium,
   rehacerSesion,
   rellenarListaAlumnosSesion,
+  adminDownloadUrlWordSesion,
+  adminDownloadUrlWordUnidad,
+  adminGenerarWordSesion,
+  adminGenerarWordUnidad,
 } from "@/services/admin.service";
 import { corregirEstandares, arreglarHorario, getUnidadById, editarContenidoUnidad } from "@/services/unidad.service";
 import type { IUsuarioDetalle } from "@/interfaces/IAdmin";
@@ -22,6 +26,7 @@ import {
   Calendar,
   CreditCard,
   FileText,
+  FileDown,
   FolderOpen,
   ArrowDownCircle,
   Trash2,
@@ -49,6 +54,8 @@ export default function AdminUsuarioDetalle() {
   const [rellenandoLista, setRellenandoLista] = useState<string | null>(null);
   const [corrigiendoUnidad, setCorrigiendoUnidad] = useState<string | null>(null);
   const [corrigiendoHorario, setCorrigiendoHorario] = useState<string | null>(null);
+  const [downloadingWord, setDownloadingWord] = useState<string | null>(null);
+  const [generatingWord, setGeneratingWord] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) cargarDetalle();
@@ -568,6 +575,7 @@ export default function AdminUsuarioDetalle() {
                   <th className="px-3 py-2 font-medium">Título</th>
                   <th className="px-3 py-2 font-medium">Fecha</th>
                   <th className="px-3 py-2 font-medium">PDF</th>
+                  <th className="px-3 py-2 font-medium">Word</th>
                   <th className="px-3 py-2 font-medium">Acción</th>
                 </tr>
               </thead>
@@ -594,6 +602,69 @@ export default function AdminUsuarioDetalle() {
                         >
                           <ExternalLink className="w-4 h-4" />
                         </a>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {s.wordUrl ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1 text-xs h-7 text-green-700 hover:text-green-800 hover:bg-green-50 p-1"
+                          disabled={downloadingWord === s.id}
+                          onClick={async () => {
+                            setDownloadingWord(s.id);
+                            try {
+                              const res = await adminDownloadUrlWordSesion(s.id);
+                              window.open(res.data.downloadUrl, "_blank");
+                            } catch (err: any) {
+                              toast.error(err?.response?.data?.message || "Error al obtener Word");
+                            } finally {
+                              setDownloadingWord(null);
+                            }
+                          }}
+                        >
+                          {downloadingWord === s.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FileDown className="w-4 h-4" />
+                          )}
+                        </Button>
+                      ) : s.pdfUrl ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
+                          disabled={generatingWord === s.id}
+                          onClick={async () => {
+                            setGeneratingWord(s.id);
+                            try {
+                              const wordUrl = await adminGenerarWordSesion(s.id);
+                              setUsuario((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  sesiones: prev.sesiones.map((ses) =>
+                                    ses.id === s.id ? { ...ses, wordUrl } : ses,
+                                  ),
+                                };
+                              });
+                              toast.success("Word generado");
+                            } catch (err: any) {
+                              toast.error(err?.message || "Error al generar Word");
+                            } finally {
+                              setGeneratingWord(null);
+                            }
+                          }}
+                        >
+                          {generatingWord === s.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <FileText className="w-3 h-3" />
+                          )}
+                          {generatingWord === s.id ? "…" : "Generar"}
+                        </Button>
                       ) : (
                         <span className="text-gray-300 text-xs">—</span>
                       )}
@@ -697,6 +768,7 @@ export default function AdminUsuarioDetalle() {
                   <th className="px-3 py-2 font-medium">Tipo</th>
                   <th className="px-3 py-2 font-medium">Fecha</th>
                   <th className="px-3 py-2 font-medium">PDF</th>
+                  <th className="px-3 py-2 font-medium">Word</th>
                   <th className="px-3 py-2 font-medium">Acciones</th>
                 </tr>
               </thead>
@@ -729,6 +801,69 @@ export default function AdminUsuarioDetalle() {
                         >
                           <ExternalLink className="w-4 h-4" />
                         </a>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {u.wordUrl ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1 text-xs h-7 text-green-700 hover:text-green-800 hover:bg-green-50 p-1"
+                          disabled={downloadingWord === u.id}
+                          onClick={async () => {
+                            setDownloadingWord(u.id);
+                            try {
+                              const res = await adminDownloadUrlWordUnidad(u.id);
+                              window.open(res.data.downloadUrl, "_blank");
+                            } catch (err: any) {
+                              toast.error(err?.response?.data?.message || "Error al obtener Word");
+                            } finally {
+                              setDownloadingWord(null);
+                            }
+                          }}
+                        >
+                          {downloadingWord === u.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FileDown className="w-4 h-4" />
+                          )}
+                        </Button>
+                      ) : u.pdfUrl ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
+                          disabled={generatingWord === u.id}
+                          onClick={async () => {
+                            setGeneratingWord(u.id);
+                            try {
+                              const wordUrl = await adminGenerarWordUnidad(u.id);
+                              setUsuario((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  unidades: prev.unidades.map((uni) =>
+                                    uni.id === u.id ? { ...uni, wordUrl } : uni,
+                                  ),
+                                };
+                              });
+                              toast.success("Word generado");
+                            } catch (err: any) {
+                              toast.error(err?.message || "Error al generar Word");
+                            } finally {
+                              setGeneratingWord(null);
+                            }
+                          }}
+                        >
+                          {generatingWord === u.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <FileText className="w-3 h-3" />
+                          )}
+                          {generatingWord === u.id ? "…" : "Generar"}
+                        </Button>
                       ) : (
                         <span className="text-gray-300 text-xs">—</span>
                       )}

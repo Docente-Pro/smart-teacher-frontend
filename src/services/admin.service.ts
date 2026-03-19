@@ -406,6 +406,109 @@ export async function adminConfirmarUploadPDF(body: {
   return data;
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 5. Descarga de Word (Admin)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+interface IAdminDownloadUrlWordResponse {
+  success: boolean;
+  data: { downloadUrl: string; expiresIn: number };
+  message: string;
+}
+
+/** GET /api/admin/sesion/:sesionId/download-url-word */
+export async function adminDownloadUrlWordSesion(
+  sesionId: string,
+): Promise<IAdminDownloadUrlWordResponse> {
+  const { data } = await instance.get<IAdminDownloadUrlWordResponse>(
+    `/admin/sesion/${sesionId}/download-url-word`,
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}
+
+/** GET /api/admin/unidad/:unidadId/download-url-word */
+export async function adminDownloadUrlWordUnidad(
+  unidadId: string,
+): Promise<IAdminDownloadUrlWordResponse> {
+  const { data } = await instance.get<IAdminDownloadUrlWordResponse>(
+    `/admin/unidad/${unidadId}/download-url-word`,
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}
+
+interface IAdminGenerarWordResponse {
+  success: boolean;
+  jobId: string;
+}
+
+const POLL_INTERVAL_MS = 4_000;
+const POLL_TIMEOUT_MS = 150_000;
+
+/**
+ * Polls the admin download-url-word endpoint until the Word is ready (200)
+ * or timeout is reached. The backend returns 404 while generating.
+ */
+async function pollForWordReady(
+  getUrl: () => Promise<IAdminDownloadUrlWordResponse>,
+): Promise<string> {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    try {
+      const res = await getUrl();
+      if (res.success && res.data?.downloadUrl) {
+        return res.data.downloadUrl;
+      }
+    } catch (err: any) {
+      if (err?.response?.status === 404) continue;
+      throw err;
+    }
+  }
+
+  throw new Error("La conversión a Word tardó demasiado. Intenta de nuevo.");
+}
+
+/**
+ * POST /api/admin/sesion/:sesionId/generar-word
+ * Triggers Word generation for any session (admin, no ownership check).
+ * Polls download-url-word until the Word is ready (admin doesn't receive socket events).
+ */
+export async function adminGenerarWordSesion(
+  sesionId: string,
+): Promise<string> {
+  const { data } = await instance.post<IAdminGenerarWordResponse>(
+    `/admin/sesion/${sesionId}/generar-word`,
+    {},
+    { headers: getAdminHeaders(), timeout: 30_000 },
+  );
+  if (!data.success || !data.jobId) {
+    throw new Error("El servidor no pudo iniciar la conversión.");
+  }
+  return pollForWordReady(() => adminDownloadUrlWordSesion(sesionId));
+}
+
+/**
+ * POST /api/admin/unidad/:unidadId/generar-word
+ * Triggers Word generation for any unit (admin, no ownership check).
+ * Polls download-url-word until the Word is ready (admin doesn't receive socket events).
+ */
+export async function adminGenerarWordUnidad(
+  unidadId: string,
+): Promise<string> {
+  const { data } = await instance.post<IAdminGenerarWordResponse>(
+    `/admin/unidad/${unidadId}/generar-word`,
+    {},
+    { headers: getAdminHeaders(), timeout: 30_000 },
+  );
+  if (!data.success || !data.jobId) {
+    throw new Error("El servidor no pudo iniciar la conversión.");
+  }
+  return pollForWordReady(() => adminDownloadUrlWordUnidad(unidadId));
+}
+
 /**
  * 4.4 DELETE /api/admin/usuarios/:usuarioId
  * Eliminar usuario y todos sus datos. Acción irreversible.

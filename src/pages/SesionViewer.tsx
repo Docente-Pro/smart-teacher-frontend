@@ -16,8 +16,10 @@ import { useAuthStore } from "@/store/auth.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { ISesion } from "@/interfaces/ISesion";
 import type { IFichaAlmacenada } from "@/interfaces/IFichaAplicacion";
+import type { RecursoSesion } from "@/interfaces/IRecursoSesion";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
 import { AdobePdfEmbed } from "@/components/AdobePdfEmbed";
+import { RecursosSesionPanel } from "@/components/RecursosSesion";
 
 // ─── Helpers ───
 
@@ -105,6 +107,11 @@ function SesionViewer() {
   const [fichaExistente, setFichaExistente] = useState<IFichaAlmacenada | null>(null);
   const [loadingFicha, setLoadingFicha] = useState(false);
   const [isGeneratingFicha, setIsGeneratingFicha] = useState(false);
+
+  // ─── Estado Recursos Sugeridos ───
+  const [recursos, setRecursos] = useState<RecursoSesion[] | null>(null);
+  const [loadingRecursos, setLoadingRecursos] = useState(false);
+  const [errorRecursos, setErrorRecursos] = useState<string | null>(null);
 
   // ─── Cargar sesión y PDF ───
   useEffect(() => {
@@ -329,6 +336,22 @@ function SesionViewer() {
       handleToaster(msg, "error");
     } finally {
       setIsGeneratingFicha(false);
+    }
+  };
+
+  // ─── Cargar recursos sugeridos ───
+  const handleCargarRecursos = async () => {
+    if (!id) return;
+    setLoadingRecursos(true);
+    setErrorRecursos(null);
+    try {
+      const { obtenerRecursosSesion } = await import("@/services/sesiones.service");
+      const resp = await obtenerRecursosSesion(id);
+      setRecursos(resp.recursos ?? []);
+    } catch (err: any) {
+      setErrorRecursos(err?.response?.data?.message || err?.message || "Error al obtener recursos");
+    } finally {
+      setLoadingRecursos(false);
     }
   };
 
@@ -673,7 +696,18 @@ function SesionViewer() {
               </div>
             )}
 
-            {/* Word — debajo de Ficha de Aplicación */}
+            {/* Recursos sugeridos — solo premium */}
+            {!loading && sesion && id && isPremium && (
+              <RecursosSesionPanel
+                sesionId={id}
+                recursos={recursos}
+                loading={loadingRecursos}
+                error={errorRecursos}
+                onCargar={handleCargarRecursos}
+              />
+            )}
+
+            {/* Word — debajo de Recursos */}
             {!loading && id && (
               <div className="rounded-xl border border-blue-200 dark:border-blue-800/30 bg-gradient-to-br from-blue-50/80 to-cyan-50/50 dark:from-blue-500/5 dark:to-cyan-500/5 p-4">
                 <div className="flex items-center gap-2.5 mb-3">
