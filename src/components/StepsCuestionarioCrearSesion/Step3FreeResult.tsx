@@ -392,14 +392,16 @@ function Step3FreeResult({ pagina, setPagina, usuarioFromState }: Props) {
 
   async function handleFichaAplicacion() {
     if (!usuarioFromState?.id) return;
+    const currentSesion = sesion;
+    if (!currentSesion) return;
 
     setIsGeneratingFicha(true);
     try {
-      const duracionStr = sesion.datosGenerales?.duracion || "90";
+      const duracionStr = currentSesion.datosGenerales?.duracion || "90";
       const duracionNum = parseInt(duracionStr, 10) || 90;
 
       const respuestaCrear = await crearSesion({
-        titulo: sesion.titulo || "Sesión de aprendizaje",
+        titulo: currentSesion.titulo || "Sesión de aprendizaje",
         usuarioId: usuarioFromState.id,
         nivelId: usuarioFromState.nivelId ?? 1,
         gradoId: usuarioFromState.gradoId ?? 1,
