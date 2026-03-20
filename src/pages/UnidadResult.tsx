@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   FileDown,
+  FileText,
   Printer,
   Cloud,
   CloudOff,
@@ -93,6 +94,43 @@ function UnidadResult() {
       setSavingDirectivo(false);
     }
   }, [directivoInput, usuario?.id, user?.id, updateUsuarioStore, guardarEnNube]);
+
+  // ── Word generation ──
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
+  const [wordUrl, setWordUrl] = useState<string | null>(null);
+
+  const handleGenerateWord = async () => {
+    if (!unidadId || !isSaved) {
+      handleToaster("Espera a que el PDF se guarde primero", "info");
+      return;
+    }
+    setIsGeneratingWord(true);
+    try {
+      const { generarWordDesdeUnidad } = await import("@/services/pdfToWord.service");
+      const url = await generarWordDesdeUnidad(unidadId);
+      setWordUrl(url);
+      handleToaster("Word generado correctamente", "success");
+    } catch (err: any) {
+      handleToaster(err?.message || "Error al generar Word", "error");
+    } finally {
+      setIsGeneratingWord(false);
+    }
+  };
+
+  const handleVerWord = async () => {
+    if (wordUrl) {
+      window.open(wordUrl, "_blank");
+      return;
+    }
+    if (!unidadId) return;
+    try {
+      const { obtenerDownloadUrlWordUnidad } = await import("@/services/pdfToWord.service");
+      const url = await obtenerDownloadUrlWordUnidad(unidadId);
+      window.open(url, "_blank");
+    } catch {
+      handleToaster("Error al obtener el Word", "error");
+    }
+  };
 
   // ── Código compartido (viene del store, establecido durante pre-solicitar en Step0) ──
   const codigoCompartido = datosBase?.codigoCompartido || null;
@@ -247,6 +285,40 @@ function UnidadResult() {
               <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
               <span className="sm:hidden">{isGenerating ? "..." : "PDF"}</span>
             </Button>
+            {wordUrl ? (
+              <Button
+                onClick={handleVerWord}
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Ver Word</span>
+                <span className="sm:hidden">Word</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerateWord}
+                disabled={isGeneratingWord || !isSaved}
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
+              >
+                {isGeneratingWord ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="hidden sm:inline">Generando Word...</span>
+                    <span className="sm:hidden">...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Generar Word</span>
+                    <span className="sm:hidden">Word</span>
+                  </>
+                )}
+              </Button>
+            )}
             {unidadId && (
               <Button
                 onClick={() => navigate(`/editar-unidad/${unidadId}`)}

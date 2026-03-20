@@ -91,6 +91,7 @@ function UnidadDetail() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
 
   // ─── Cargar unidad y PDF ───
   useEffect(() => {
@@ -227,6 +228,36 @@ function UnidadDetail() {
       setCopiedCode(true);
       handleToaster("Código copiado al portapapeles", "success");
       setTimeout(() => setCopiedCode(false), 2000);
+    }
+  };
+
+  const handleGenerateWord = async () => {
+    if (!id) return;
+    if (!unidad?.pdfUrl) {
+      handleToaster("Primero se debe generar el PDF de la unidad", "info");
+      return;
+    }
+    setIsGeneratingWord(true);
+    try {
+      const { generarWordDesdeUnidad } = await import("@/services/pdfToWord.service");
+      const wordUrl = await generarWordDesdeUnidad(id);
+      setUnidad((prev) => prev ? { ...prev, wordUrl } : prev);
+      handleToaster("Word generado correctamente", "success");
+    } catch (err: any) {
+      handleToaster(err?.message || "Error al generar Word", "error");
+    } finally {
+      setIsGeneratingWord(false);
+    }
+  };
+
+  const handleVerWord = async () => {
+    if (!id) return;
+    try {
+      const { obtenerDownloadUrlWordUnidad } = await import("@/services/pdfToWord.service");
+      const url = await obtenerDownloadUrlWordUnidad(id);
+      window.open(url, "_blank");
+    } catch {
+      handleToaster("Error al obtener el Word", "error");
     }
   };
 
@@ -376,6 +407,37 @@ function UnidadDetail() {
                 <Download className="h-4 w-4 mr-2" />
                 Descargar
               </Button>
+              {unidad?.wordUrl ? (
+                <Button
+                  onClick={handleVerWord}
+                  variant="outline"
+                  size="sm"
+                  className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950 transition-all"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Ver Word
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleGenerateWord}
+                  disabled={isGeneratingWord || !unidad?.pdfUrl}
+                  variant="outline"
+                  size="sm"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950 transition-all"
+                >
+                  {isGeneratingWord ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generar Word
+                    </>
+                  )}
+                </Button>
+              )}
               {id && (
                 <Button
                   size="sm"
@@ -387,7 +449,6 @@ function UnidadDetail() {
                   Editar
                 </Button>
               )}
-
             </div>
           )}
         </div>
