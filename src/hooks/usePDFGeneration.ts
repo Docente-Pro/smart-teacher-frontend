@@ -10,6 +10,7 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [savedSesionId, setSavedSesionId] = useState<string | null>(null);
   const guardadoIniciado = useRef(false); // Evitar doble envío
   const { sesion } = useSesionStore();
   const { user } = useAuthStore();
@@ -82,6 +83,7 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
 
       const confirmData = (respuestaConfirm as any)?.data ?? respuestaConfirm;
 
+      setSavedSesionId(sesionId);
       setIsSaved(true);
       return confirmData;
     } catch (error) {
@@ -187,6 +189,7 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
     isGenerating,
     isSaving,
     isSaved,
+    savedSesionId,
     handleDownloadPDF,
     handlePrint,
     guardarEnNube,
