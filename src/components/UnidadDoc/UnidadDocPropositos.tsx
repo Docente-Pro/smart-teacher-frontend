@@ -1,5 +1,5 @@
-import type { IPropositos, IAreaComplementaria } from "@/interfaces/IUnidadIA";
-import React, { Fragment } from "react";
+import type { IPropositos, IAreaComplementaria, ICompetenciaProposito } from "@/interfaces/IUnidadIA";
+import { Fragment } from "react";
 import { getAreaColor } from "@/constants/areaColors";
 import { parseMarkdown } from "@/utils/parseMarkdown";
 
@@ -23,13 +23,88 @@ function VerticalText({ text }: { text: string }) {
   );
 }
 
+function normalizarTexto(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function getActividadCriteriosAgrupados(comp: ICompetenciaProposito) {
+  const actividades = comp.actividades ?? [];
+  const actividadCriterios = comp.actividadCriterios ?? [];
+  const usados = new Set<number>();
+
+  const grupos = actividades.map((actividad, idx) => {
+    const porNombreIdx = actividadCriterios.findIndex(
+      (ac, acIdx) => !usados.has(acIdx) && normalizarTexto(ac.actividad) === normalizarTexto(actividad)
+    );
+    const mapeadoIdx = porNombreIdx >= 0 ? porNombreIdx : idx;
+    const mapeado = actividadCriterios[mapeadoIdx];
+    if (mapeado) usados.add(mapeadoIdx);
+
+    return {
+      actividad,
+      criterios: mapeado?.criterios ?? [],
+    };
+  });
+
+  if (grupos.length === 0 && actividadCriterios.length > 0) {
+    return actividadCriterios.map((ac) => ({
+      actividad: ac.actividad,
+      criterios: ac.criterios ?? [],
+    }));
+  }
+
+  return grupos;
+}
+
+/**
+ * Builds activity-criteria groups for a competency, with fallback distribution
+ * when the backend doesn't provide explicit actividadCriterios pairing.
+ */
+function getGruposConFallback(comp: ICompetenciaProposito): Array<{ actividad: string; criterios: string[] }> {
+  const rawGrupos = getActividadCriteriosAgrupados(comp);
+
+  if (rawGrupos.length > 0 && rawGrupos.some((g) => g.criterios.length > 0)) {
+    return rawGrupos;
+  }
+
+  if (rawGrupos.length > 0 && comp.criterios?.length > 0) {
+    const criterios = comp.criterios;
+    const n = rawGrupos.length;
+    const perGroup = Math.ceil(criterios.length / n);
+    return rawGrupos.map((g, idx) => ({
+      actividad: g.actividad,
+      criterios: criterios.slice(idx * perGroup, (idx + 1) * perGroup),
+    }));
+  }
+
+  if (rawGrupos.length === 0 && comp.actividades?.length > 0 && comp.criterios?.length > 0) {
+    const n = comp.actividades.length;
+    const perGroup = Math.ceil(comp.criterios.length / n);
+    return comp.actividades.map((act, idx) => ({
+      actividad: act,
+      criterios: comp.criterios.slice(idx * perGroup, (idx + 1) * perGroup),
+    }));
+  }
+
+  if (rawGrupos.length > 0) return rawGrupos;
+
+  if (comp.criterios?.length > 0) {
+    return [{ actividad: "", criterios: comp.criterios }];
+  }
+  if (comp.actividades?.length > 0) {
+    return comp.actividades.map((act) => ({ actividad: act, criterios: [] }));
+  }
+  return [{ actividad: "", criterios: [] }];
+}
+
 /**
  * II. PROPÓSITO DE APRENDIZAJE
  *
  * Gran tabla con columnas: AREA, COMPETENCIAS Y CAPACIDADES, ESTÁNDAR DE APRENDIZAJE,
  * CRITERIOS, ACTIVIDADES, INSTRUMENTOS.
  *
- * Incluye también Competencias Transversales y Áreas Complementarias.
+ * Each activity-criteria group gets its own <tr> so criteria and activities
+ * are aligned at the same vertical level. rowSpan is used for the other columns.
  */
 export function UnidadDocPropositos({ propositos, areasComplementarias }: Props) {
   if (!propositos) return null;
@@ -54,87 +129,106 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
         </thead>
         <tbody>
           {propositos.areasPropositos.map((areaProp, aIdx) => {
-            const totalCompetencias = areaProp.competencias.length;
             const areaHex = getAreaColor(areaProp.area).hex;
 
-            return areaProp.competencias.map((comp, cIdx) => {
-              const isFirst = cIdx === 0;
-              const isLast = cIdx === totalCompetencias - 1;
+            const compData = areaProp.competencias.map((comp) => ({
+              comp,
+              grupos: getGruposConFallback(comp),
+            }));
 
-              // Bordes de la celda del área: ocultar top/bottom intermedios
-              const areaCellBorder: React.CSSProperties = {
-                borderTop: isFirst ? "1px solid #000" : "none",
-                borderBottom: isLast ? "1px solid #000" : "none",
-                borderLeft: "1px solid #000",
-                borderRight: "1px solid #000",
-              };
+            const totalFilasArea = compData.reduce((sum, cd) => sum + cd.grupos.length, 0) || 1;
 
-              return (
-              <tr key={`${aIdx}-${cIdx}`}>
-                {/* Celda de AREA — en cada fila, texto solo en la primera */}
-                <td
-                  style={{
-                    textAlign: "center",
-                    verticalAlign: "middle",
-                    width: "24px",
-                    maxWidth: "24px",
-                    fontWeight: "bold",
-                    fontSize: "7pt",
-                    padding: "0.15rem 0.05rem",
-                    backgroundColor: areaHex.light,
-                    lineHeight: 1.1,
-                    letterSpacing: "0px",
-                    ...areaCellBorder,
-                  }}
-                >
-                  {isFirst && <VerticalText text={areaProp.area.toUpperCase()} />}
-                </td>
+            let areaRendered = false;
 
-                {/* Competencia + Capacidades */}
-                <td style={{ fontSize: "8pt" }}>
-                  <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
-                    {comp.nombre}
-                  </p>
-                  {comp.capacidades.map((cap, i) => (
-                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
-                      • {cap}
-                    </p>
-                  ))}
-                </td>
+            return compData.flatMap(({ comp, grupos }, cIdx) => {
+              const numGrupos = grupos.length;
 
-                {/* Estándar */}
-                <td style={{ fontSize: "8pt" }}>{comp.estandar}</td>
+              return grupos.map((grupo, gIdx) => {
+                const showArea = !areaRendered;
+                if (showArea) areaRendered = true;
+                const isFirstGroup = gIdx === 0;
 
-                {/* Criterios */}
-                <td style={{ fontSize: "8pt" }}>
-                  {comp.criterios.map((crit, i) => (
-                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
-                      <span style={{ flexShrink: 0 }}>•</span>
-                      <span>{parseMarkdown(crit)}</span>
-                    </p>
-                  ))}
-                </td>
+                return (
+                  <tr key={`${aIdx}-${cIdx}-${gIdx}`}>
+                    {/* AREA — first row of this area, spans all rows */}
+                    {showArea && (
+                      <td
+                        rowSpan={totalFilasArea}
+                        style={{
+                          textAlign: "center",
+                          verticalAlign: "middle",
+                          width: "24px",
+                          maxWidth: "24px",
+                          fontWeight: "bold",
+                          fontSize: "7pt",
+                          padding: "0.15rem 0.05rem",
+                          backgroundColor: areaHex.light,
+                          lineHeight: 1.1,
+                          letterSpacing: "0px",
+                        }}
+                      >
+                        <VerticalText text={areaProp.area.toUpperCase()} />
+                      </td>
+                    )}
 
-                {/* Actividades */}
-                <td style={{ fontSize: "8pt" }}>
-                  {comp.actividades.map((act, i) => (
-                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem", display: "flex", gap: "0.2rem" }}>
-                      <span style={{ flexShrink: 0 }}>•</span>
-                      <span>{parseMarkdown(act)}</span>
-                    </p>
-                  ))}
-                </td>
+                    {/* COMPETENCIA + CAPACIDADES — first group of each competency */}
+                    {isFirstGroup && (
+                      <td rowSpan={numGrupos} style={{ fontSize: "8pt", verticalAlign: "top" }}>
+                        <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
+                          {comp.nombre}
+                        </p>
+                        {comp.capacidades.map((cap, i) => (
+                          <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
+                            • {cap}
+                          </p>
+                        ))}
+                      </td>
+                    )}
 
-                {/* Instrumento */}
-                <td style={{ fontSize: "8pt", verticalAlign: "middle", textAlign: "center" }}>
-                  {comp.instrumento}
-                </td>
-              </tr>
-              );
+                    {/* ESTÁNDAR — first group of each competency */}
+                    {isFirstGroup && (
+                      <td rowSpan={numGrupos} style={{ fontSize: "8pt", verticalAlign: "top" }}>
+                        {comp.estandar}
+                      </td>
+                    )}
+
+                    {/* CRITERIOS — each group's criteria, aligned with its activity */}
+                    <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
+                      {grupo.criterios.map((crit, j) => (
+                        <p
+                          key={j}
+                          style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}
+                        >
+                          <span style={{ flexShrink: 0 }}>•</span>
+                          <span>{parseMarkdown(crit)}</span>
+                        </p>
+                      ))}
+                    </td>
+
+                    {/* ACTIVIDAD — each group's activity */}
+                    <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
+                      {grupo.actividad && (
+                        <p style={{ fontSize: "8pt", marginBottom: "0.1rem", display: "flex", gap: "0.2rem" }}>
+                          <span style={{ flexShrink: 0 }}>•</span>
+                          <span>{parseMarkdown(grupo.actividad)}</span>
+                        </p>
+                      )}
+                    </td>
+
+                    {/* INSTRUMENTO — first group of each competency */}
+                    {isFirstGroup && (
+                      <td
+                        rowSpan={numGrupos}
+                        style={{ fontSize: "8pt", verticalAlign: "middle", textAlign: "center" }}
+                      >
+                        {comp.instrumento}
+                      </td>
+                    )}
+                  </tr>
+                );
+              });
             });
           })}
-
-          {/* ─── Competencias Transversales ─── (se renderizan en tabla aparte) */}
         </tbody>
       </table>
 

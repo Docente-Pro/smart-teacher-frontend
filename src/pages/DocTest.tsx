@@ -1,9 +1,10 @@
 import { Document, Footer } from "@htmldocs/react";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer, Cloud, CloudOff, Loader2, Home } from "lucide-react";
-import { useRef, useMemo } from "react";
+import { FileDown, Printer, Cloud, CloudOff, Loader2, Home, ClipboardList } from "lucide-react";
+import { useRef, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { usePDFGeneration } from "@/hooks/usePDFGeneration";
+import { usePermissions } from "@/hooks/usePermissions";
 import { DocumentStyles } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
 import { DatosGeneralesSection } from "@/components/DocTest/DatosGeneralesSection";
@@ -14,9 +15,12 @@ import { PreparacionSesionSection } from "@/components/DocTest/PreparacionSesion
 import { InstrumentoEvaluacionSection } from "@/components/SesionPremiumDoc/InstrumentoEvaluacionSection";
 import { buildInstrumentoLocal } from "@/utils/buildInstrumentoFromSesion";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
+import { generarFichaAplicacion } from "@/services/fichaAplicacion.service";
+import { handleToaster } from "@/utils/Toasters/handleToasters";
 import type { ICriterioIA } from "@/interfaces/ISesionAprendizaje";
 
 import { useSesionStore } from "@/store/sesion.store";
+import { useUserStore } from "@/store/user.store";
 import { SecuenciaDidacticaSection } from "@/components/DocTest/SecuenciaDidacticaSection";
 import { getAreaColor } from "@/constants/areaColors";
 
@@ -24,7 +28,10 @@ function DocTest() {
   const documentRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { sesion } = useSesionStore();
-  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint } = usePDFGeneration(documentRef, sesion?.datosGenerales.area);
+  const { user: usuario } = useUserStore();
+  const { isPremium } = usePermissions();
+  const { isGenerating, isSaving, isSaved, savedSesionId, handleDownloadPDF, handlePrint } = usePDFGeneration(documentRef, sesion?.datosGenerales.area);
+  const [isGeneratingFicha, setIsGeneratingFicha] = useState(false);
 
   // ── Derivar colores del área ────────────────────────────────────
   const areaHex = sesion ? getAreaColor(sesion.datosGenerales.area).hex : null;
@@ -48,6 +55,43 @@ function DocTest() {
     });
   }, [sesion]);
   
+  const handleFichaAplicacion = async () => {
+    if (!savedSesionId || !isSaved) {
+      handleToaster("Espera a que la sesión se guarde primero", "info");
+      return;
+    }
+
+    setIsGeneratingFicha(true);
+    try {
+      const resp = await generarFichaAplicacion(savedSesionId, {
+        incluirRespuestas: true,
+        dificultad: "media",
+      });
+
+      handleToaster("¡Ficha generada! Abriendo vista previa...", "success");
+
+      navigate("/ficha-aplicacion-result", {
+        state: {
+          ficha: resp.ficha,
+          fichaId: resp.fichaId,
+          docente: usuario.nombre || "",
+          institucion: usuario.nombreInstitucion || "",
+          sesionId: savedSesionId,
+          presignedUrl: resp.presignedUrl,
+          s3Key: resp.s3Key,
+        },
+      });
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error al generar la ficha de aplicación";
+      handleToaster(msg, "error");
+    } finally {
+      setIsGeneratingFicha(false);
+    }
+  };
+
   // Estilos para ocultar elementos del navegador al imprimir
   const printStyles = `
     @media print {
@@ -153,6 +197,27 @@ function DocTest() {
               <Printer className="h-4 w-4" />
               <span className="hidden sm:inline">Imprimir</span>
             </Button>
+            {isPremium && (
+              <Button
+                onClick={handleFichaAplicacion}
+                disabled={isGeneratingFicha || !isSaved}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950"
+              >
+                {isGeneratingFicha ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ClipboardList className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isGeneratingFicha ? "Generando Ficha..." : "Ficha de Aplicación"}
+                </span>
+                <span className="sm:hidden">
+                  {isGeneratingFicha ? "..." : "Ficha"}
+                </span>
+              </Button>
+            )}
             <Button 
               onClick={handleDownloadPDF} 
               disabled={isGenerating}

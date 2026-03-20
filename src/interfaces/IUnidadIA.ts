@@ -65,7 +65,13 @@ export interface ICompetenciaProposito {
   estandar: string;
   criterios: string[];
   actividades: string[];
+  actividadCriterios?: IActividadCriterioProposito[];
   instrumento: string;
+}
+
+export interface IActividadCriterioProposito {
+  actividad: string;
+  criterios: string[];
 }
 
 export interface IAreaProposito {

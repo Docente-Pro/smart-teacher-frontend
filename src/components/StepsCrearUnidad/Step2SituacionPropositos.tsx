@@ -136,6 +136,9 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
                       actividades: comp.actividades.map((act, actI) =>
                         actI !== actIdx ? act : newValue
                       ),
+                      actividadCriterios: (comp.actividadCriterios ?? []).map((ac, acI) =>
+                        acI !== actIdx ? ac : { ...ac, actividad: newValue }
+                      ),
                     }
               ),
             }
@@ -168,7 +171,14 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
               competencias: a.competencias.map((c, cI) =>
                 cI !== compIdx
                   ? c
-                  : { ...c, actividades: [...currentActividades, ""] },
+                  : {
+                      ...c,
+                      actividades: [...currentActividades, ""],
+                      actividadCriterios: [
+                        ...(c.actividadCriterios ?? []),
+                        { actividad: "", criterios: [] },
+                      ],
+                    },
               ),
             }
       ),
@@ -195,6 +205,9 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
                   : {
                       ...comp,
                       actividades: comp.actividades.filter((_, i) => i !== actIdx),
+                      actividadCriterios: (comp.actividadCriterios ?? []).filter(
+                        (_, i) => i !== actIdx
+                      ),
                     }
               ),
             }
@@ -363,6 +376,15 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
     statusSituacion === "done" &&
     statusEvidencias === "done" &&
     statusPropositos === "done";
+
+  const getCriteriosByActividadIndex = useCallback(
+    (comp: IPropositos["areasPropositos"][number]["competencias"][number], idx: number) => {
+      const item = comp.actividadCriterios?.[idx];
+      if (item?.criterios?.length) return item.criterios;
+      return [];
+    },
+    []
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6">
@@ -561,39 +583,44 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
                               </ul>
                             </div>
                           )}
-                          {comp.criterios?.length > 0 && (
-                            <div className="mt-1">
-                              <p className="text-xs text-slate-500 font-medium">Criterios:</p>
-                              <ul className="list-disc list-inside text-xs space-y-0.5 ml-2">
-                                {comp.criterios.map((cr, i) => (
-                                  <li key={i}>{parseMarkdown(cr)}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
                           <div className="mt-1">
-                            <p className="text-xs text-slate-500 font-medium">Actividades:</p>
+                            <p className="text-xs text-slate-500 font-medium">
+                              Actividades y criterios agrupados:
+                            </p>
                             <div className="space-y-1 ml-2 mt-1">
                               {(comp.actividades ?? []).map((act, i) => (
-                                <div key={i} className="flex items-center gap-1.5">
-                                  <span className="text-xs text-slate-400 shrink-0 w-5">{i + 1}.</span>
-                                  <Input
-                                    value={act}
-                                    onChange={(e) =>
-                                      handleActividadChange(aIdx, cIdx, i, e.target.value)
-                                    }
-                                    className="h-7 text-xs border-slate-200 dark:border-slate-700 focus:border-purple-400 dark:focus:border-purple-500 flex-1"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 shrink-0 text-slate-400 hover:text-red-500"
-                                    onClick={() => handleRemoveActividad(aIdx, cIdx, i)}
-                                    title="Quitar actividad"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
+                                <div
+                                  key={i}
+                                  className="rounded-md border border-slate-200 dark:border-slate-700 p-2"
+                                >
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs text-slate-400 shrink-0 w-5">{i + 1}.</span>
+                                    <Input
+                                      value={act}
+                                      onChange={(e) =>
+                                        handleActividadChange(aIdx, cIdx, i, e.target.value)
+                                      }
+                                      className="h-7 text-xs border-slate-200 dark:border-slate-700 focus:border-purple-400 dark:focus:border-purple-500 flex-1"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 shrink-0 text-slate-400 hover:text-red-500"
+                                      onClick={() => handleRemoveActividad(aIdx, cIdx, i)}
+                                      title="Quitar actividad"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+
+                                  {getCriteriosByActividadIndex(comp, i).length > 0 && (
+                                    <ul className="list-disc list-inside text-xs space-y-0.5 mt-1 ml-6 text-slate-600 dark:text-slate-300">
+                                      {getCriteriosByActividadIndex(comp, i).map((cr, cIdxLocal) => (
+                                        <li key={cIdxLocal}>{parseMarkdown(cr)}</li>
+                                      ))}
+                                    </ul>
+                                  )}
                                 </div>
                               ))}
                               <Button

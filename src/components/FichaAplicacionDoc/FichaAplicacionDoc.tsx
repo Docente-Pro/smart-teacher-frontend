@@ -58,8 +58,9 @@ function FichaHeader({
         style={{
           display: "flex",
           alignItems: "center",
-          background: `linear-gradient(135deg, ${hex.accent}, ${hex.primary})`,
-          color: "#fff",
+          backgroundColor: hex.light,
+          borderBottom: `3px solid ${hex.accent}`,
+          color: "#1a1a1a",
           padding: "0.6rem 0.8rem",
           marginBottom: "0.4rem",
           gap: "0.6rem",
@@ -78,8 +79,7 @@ function FichaHeader({
             style={{
               fontSize: "9pt",
               marginBottom: "0.15rem",
-              opacity: 0.9,
-              textShadow: "0 1px 2px rgba(0,0,0,0.2)",
+              color: "#444",
             }}
           >
             {institucion}
@@ -90,7 +90,7 @@ function FichaHeader({
               fontWeight: 800,
               margin: 0,
               lineHeight: 1.3,
-              textShadow: "0 1px 3px rgba(0,0,0,0.3)",
+              color: hex.accent,
               letterSpacing: "0.3px",
             }}
           >
@@ -1100,15 +1100,15 @@ function Solucionario({
     <div style={{ marginTop: "0.5rem" }}>
       <div
         style={{
-          background: `linear-gradient(135deg, ${hex.accent}, ${hex.primary})`,
-          color: "#fff",
+          backgroundColor: hex.light,
+          borderBottom: `3px solid ${hex.accent}`,
+          color: hex.accent,
           fontWeight: 800,
           fontSize: "11pt",
           padding: "0.45rem 0.5rem",
           textAlign: "center",
           marginBottom: "0.3rem",
           letterSpacing: "1px",
-          textShadow: "0 1px 3px rgba(0,0,0,0.3)",
         }}
       >
         SOLUCIONARIO — SOLO PARA EL DOCENTE
