@@ -155,7 +155,11 @@ function SesionSuscriptorResult() {
               ...(a.sexo && { sexo: a.sexo }),
               ...(a.dni != null && a.dni !== "" && { dni: a.dni }),
             }));
-            await editarContenidoSesion(sesionId!, { contenido: { listaAlumnos } });
+            await editarContenidoSesion(sesionId!, {
+              contenido: { listaAlumnos },
+              ...(raw.unidadId ? { unidadId: raw.unidadId } : {}),
+              ...(raw.areaId ? { areaId: raw.areaId } : {}),
+            });
             if (!cancelled) {
               const updated = await obtenerSesionPorId(sesionId!);
               raw = updated as any;
@@ -187,6 +191,8 @@ function SesionSuscriptorResult() {
         const sesionForDoc = {
           // ── Identificadores y metadatos ──
           id: raw.id,
+          unidadId: raw.unidadId ?? undefined,
+          areaId: raw.areaId ?? undefined,
           titulo: pick<string>(raw.titulo, contenido.titulo, "Sesión de Aprendizaje"),
           area: pick(raw.area, contenido.area),
           nivel: pick(raw.nivel, contenido.nivel),
@@ -356,6 +362,9 @@ function SesionSuscriptorResult() {
 
       const idSesion = premiumData.sesion.id;
       const usuarioId = user.id;
+      const sesionAny = premiumData.sesion as any;
+      const unidadId: string | undefined = sesionAny?.unidadId ?? undefined;
+      const areaId: number | undefined = sesionAny?.areaId ?? undefined;
 
       // Paso 1 — URL presigned
       const respuestaUpload = await solicitarUploadPDF({
@@ -375,6 +384,8 @@ function SesionSuscriptorResult() {
         usuarioId,
         key: uploadData.key,
         contenido: premiumData.sesion as any,
+        ...(unidadId ? { unidadId } : {}),
+        ...(areaId ? { areaId } : {}),
       });
 
       setIsSaved(true);

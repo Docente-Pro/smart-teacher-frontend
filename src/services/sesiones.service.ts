@@ -42,6 +42,8 @@ interface ConfirmarUploadRequest {
   usuarioId: string;
   key: string;
   contenido: Partial<ISesionAprendizaje>;
+  unidadId?: string;
+  areaId?: number;
 }
 
 interface ConfirmarUploadResponse {
@@ -306,6 +308,8 @@ export async function generarSesionUnidad(
 export interface IEditarContenidoSesionRequest {
   titulo?: string;
   contenido?: Record<string, any>;
+  unidadId?: string;
+  areaId?: number;
 }
 
 export interface IEditarContenidoSesionResponse {

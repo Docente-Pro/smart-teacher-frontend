@@ -1265,7 +1265,7 @@ export function FichaAplicacionDoc({
       />
 
       {/* Secciones / bloques renderizables */}
-      {ficha.secciones.map((seccion, i) => (
+      {(ficha.secciones ?? []).map((seccion, i) => (
         <div key={i}>
           <SeccionRenderer seccion={seccion} hex={hex} />
         </div>
@@ -1276,7 +1276,7 @@ export function FichaAplicacionDoc({
         // Recoger graficoOperacion de cada sección tipo "problema"
         const graficosOp: GraficoSolucion[] = [];
         let pIdx = 0;
-        ficha.secciones.forEach((sec) => {
+        (ficha.secciones ?? []).forEach((sec) => {
           if (sec.tipo === "problema") {
             pIdx++;
             const prob = sec as ISeccionProblema;

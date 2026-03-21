@@ -128,7 +128,8 @@ function Step2({ pagina, setPagina }: Props) {
         const areaEncontrada = areas.find((a: any) => a.nombre === sesion.datosGenerales.area);
         
         if (areaEncontrada) {
-          setAreaId(areaEncontrada.id); // Guardar areaId para el hook de sugerencia
+          setAreaId(areaEncontrada.id);
+          updateSesion({ areaId: areaEncontrada.id });
           const response = await getCompetencyById(areaEncontrada.id);
           setCompetencias(response.data.data || response.data);
         }

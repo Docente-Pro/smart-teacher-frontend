@@ -51,6 +51,7 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
         gradoId: usuario.gradoId ?? 1,
         problematicaId: usuario.problematicaId ?? 1,
         duracion: duracionNum,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
       });
 
       // El backend puede devolver { id } o { data: { id } } o { success, data: { id } }
@@ -79,6 +80,7 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
         usuarioId,
         key: uploadData.key,
         contenido: sesion,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
       });
 
       const confirmData = (respuestaConfirm as any)?.data ?? respuestaConfirm;

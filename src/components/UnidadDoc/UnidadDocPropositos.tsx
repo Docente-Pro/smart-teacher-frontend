@@ -63,7 +63,7 @@ function getActividadCriteriosAgrupados(comp: ICompetenciaProposito) {
 function getGruposConFallback(comp: ICompetenciaProposito): Array<{ actividad: string; criterios: string[] }> {
   const rawGrupos = getActividadCriteriosAgrupados(comp);
 
-  if (rawGrupos.length > 0 && rawGrupos.some((g) => g.criterios.length > 0)) {
+  if (rawGrupos.length > 0 && rawGrupos.some((g) => (g.criterios?.length ?? 0) > 0)) {
     return rawGrupos;
   }
 
@@ -128,10 +128,10 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
           </tr>
         </thead>
         <tbody>
-          {propositos.areasPropositos.map((areaProp, aIdx) => {
+          {(propositos.areasPropositos ?? []).map((areaProp, aIdx) => {
             const areaHex = getAreaColor(areaProp.area).hex;
 
-            const compData = areaProp.competencias.map((comp) => ({
+            const compData = (areaProp.competencias ?? []).map((comp) => ({
               comp,
               grupos: getGruposConFallback(comp),
             }));
@@ -177,7 +177,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                         <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
                           {comp.nombre}
                         </p>
-                        {comp.capacidades.map((cap, i) => (
+                        {(comp.capacidades ?? []).map((cap, i) => (
                           <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
                             • {cap}
                           </p>
@@ -194,7 +194,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
 
                     {/* CRITERIOS — each group's criteria, aligned with its activity */}
                     <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
-                      {grupo.criterios.map((crit, j) => (
+                      {(grupo.criterios ?? []).map((crit, j) => (
                         <p
                           key={j}
                           style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}
@@ -233,7 +233,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
       </table>
 
       {/* ─── Competencias Transversales (tabla separada) ─── */}
-      {propositos.competenciasTransversales.length > 0 && (
+      {(propositos.competenciasTransversales?.length ?? 0) > 0 && (
         <table style={{ marginTop: "0.3rem" }}>
           <thead>
             <tr>
@@ -257,13 +257,13 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
             </tr>
           </thead>
           <tbody>
-            {propositos.competenciasTransversales.map((ct, i) => (
+            {(propositos.competenciasTransversales ?? []).map((ct, i) => (
               <tr key={`trans-${i}`}>
                 <td style={{ fontSize: "8pt" }}>
                   <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
                     {ct.nombre}
                   </p>
-                  {ct.capacidades.map((cap, j) => (
+                  {(ct.capacidades ?? []).map((cap, j) => (
                     <p key={j} style={{ fontSize: "8pt", marginBottom: "0.05rem" }}>
                       • {cap}
                     </p>
@@ -271,7 +271,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                 </td>
                 <td style={{ fontSize: "8pt" }}>{ct.estandar || ""}</td>
                 <td style={{ fontSize: "8pt" }}>
-                  {ct.criterios.map((crit, j) => (
+                  {(ct.criterios ?? []).map((crit, j) => (
                     <p key={j} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
                       <span style={{ flexShrink: 0 }}>•</span>
                       <span>{crit}</span>
@@ -310,7 +310,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                     <p style={{ fontSize: "8pt" }}>• {ac.dimension}</p>
                   </td>
                   <td style={{ fontSize: "8pt" }}>
-                    {ac.actividades.map((act, j) => (
+                    {(ac.actividades ?? []).map((act, j) => (
                       <p key={j} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
                         <span style={{ flexShrink: 0 }}>•</span>
                         <span>{parseMarkdown(act)}</span>

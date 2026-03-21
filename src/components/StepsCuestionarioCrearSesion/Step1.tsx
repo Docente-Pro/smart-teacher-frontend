@@ -112,7 +112,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
     }
   }, [sesion]);
 
-  function handleAreaClick(areaNombre: string) {
+  function handleAreaClick(areaNombre: string, id?: number) {
     setAreaSeleccionada(areaNombre);
     if (sesion) {
       updateSesion({
@@ -120,6 +120,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
           ...sesion.datosGenerales,
           area: areaNombre,
         },
+        ...(id != null ? { areaId: id } : {}),
       });
     }
   }
@@ -196,7 +197,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
                 return (
                   <div
                     key={area.id}
-                    onClick={() => handleAreaClick(area.nombre)}
+                    onClick={() => handleAreaClick(area.nombre, area.id)}
                     className={`
                       group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
                       ${

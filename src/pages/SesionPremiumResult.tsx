@@ -69,7 +69,12 @@ function SesionPremiumResult() {
     if (!id) return;
     setSavingFecha(true);
     try {
-      await editarContenidoSesion(id, { contenido: { fechaSesion: fechaSesion || undefined } });
+      const sesionAny = premiumData?.sesion as any;
+      await editarContenidoSesion(id, {
+        contenido: { fechaSesion: fechaSesion || undefined },
+        ...(sesionAny?.unidadId ? { unidadId: sesionAny.unidadId } : {}),
+        ...(sesionAny?.areaId ? { areaId: sesionAny.areaId } : {}),
+      });
       handleToaster("Fecha guardada", "success");
     } catch {
       handleToaster("Error al guardar la fecha", "error");
