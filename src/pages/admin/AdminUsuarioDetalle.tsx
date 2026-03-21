@@ -12,6 +12,7 @@ import {
   adminDownloadUrlWordUnidad,
   adminGenerarWordSesion,
   adminGenerarWordUnidad,
+  adminGenerarFichaAplicacion,
 } from "@/services/admin.service";
 import { corregirEstandares, arreglarHorario, getUnidadById, editarContenidoUnidad } from "@/services/unidad.service";
 import type { IUsuarioDetalle } from "@/interfaces/IAdmin";
@@ -39,6 +40,7 @@ import {
   Wrench,
   CalendarClock,
   ListChecks,
+  ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -56,6 +58,7 @@ export default function AdminUsuarioDetalle() {
   const [corrigiendoHorario, setCorrigiendoHorario] = useState<string | null>(null);
   const [downloadingWord, setDownloadingWord] = useState<string | null>(null);
   const [generatingWord, setGeneratingWord] = useState<string | null>(null);
+  const [generandoFicha, setGenerandoFicha] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) cargarDetalle();
@@ -741,6 +744,47 @@ export default function AdminUsuarioDetalle() {
                             <ListChecks className="w-3 h-3" />
                           )}
                           {rellenandoLista === s.id ? "…" : "Rellenar lista"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-50"
+                          disabled={generandoFicha === s.id || rehaciendo === s.id}
+                          onClick={async () => {
+                            setGenerandoFicha(s.id);
+                            try {
+                              const res = await adminGenerarFichaAplicacion(s.id, {
+                                incluirRespuestas: true,
+                                dificultad: "media",
+                              });
+                              navigate(`/admin/ficha-pdf/${s.id}`, {
+                                state: {
+                                  ficha: res.ficha,
+                                  fichaId: res.fichaId,
+                                  presignedUrl: res.presignedUrl,
+                                  s3Key: res.s3Key,
+                                  docente: usuario?.nombre ?? "",
+                                  institucion: usuario?.nombreInstitucion ?? "",
+                                  usuarioId: usuario!.id,
+                                },
+                              });
+                            } catch (err: any) {
+                              toast.error(
+                                err?.response?.data?.message ||
+                                  err?.response?.data?.error ||
+                                  "Error al generar ficha",
+                              );
+                            } finally {
+                              setGenerandoFicha(null);
+                            }
+                          }}
+                        >
+                          {generandoFicha === s.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <ClipboardList className="w-3 h-3" />
+                          )}
+                          {generandoFicha === s.id ? "Generando…" : "Ficha"}
                         </Button>
                       </div>
                     </td>
