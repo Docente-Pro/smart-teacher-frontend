@@ -67,6 +67,7 @@ function Step4({ pagina, setPagina }: Props) {
       const response = await instance.post("/ia/generar-criterios-evaluacion", {
         temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
         competencia: sesion.propositoAprendizaje.competencia,
         capacidades: sesion.propositoAprendizaje.capacidades,
         cantidadCriterios: cantidadCapacidades,

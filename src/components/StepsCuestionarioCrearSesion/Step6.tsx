@@ -42,6 +42,7 @@ function Step6({ pagina, setPagina }: Props) {
       const response = await instance.post("/ia/generar-proposito-sesion", {
         temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,
         capacidades: sesion.propositoAprendizaje.capacidades,

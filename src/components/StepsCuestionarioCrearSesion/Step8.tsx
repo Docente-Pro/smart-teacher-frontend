@@ -301,6 +301,7 @@ function Step8({ pagina, setPagina }: Props) {
       const response = await instance.post("/ia/generar-secuencia-didactica", {
         temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
         temaId: sesion.temaId,
         datosGenerales: sesion.datosGenerales,
         propositoAprendizaje: sesion.propositoAprendizaje,
@@ -375,6 +376,7 @@ function Step8({ pagina, setPagina }: Props) {
             }))
           : undefined;
 
+        const respAreaId = data.data?.areaId ?? data.areaId;
         updateSesion({
           titulo: data.data.titulo || sesion.titulo,
           secuenciaDidactica: {
@@ -385,6 +387,7 @@ function Step8({ pagina, setPagina }: Props) {
           preparacion: preparacionFinal,
           ...(enfoquesMapeados && { enfoquesTransversales: enfoquesMapeados }),
           ...(data.imagenes_disponibles && { imagenes_disponibles: data.imagenes_disponibles }),
+          ...(respAreaId ? { areaId: Number(respAreaId) } : {}),
         });
 
         handleToaster("Secuencia didáctica generada exitosamente con IA", "success");
@@ -399,6 +402,7 @@ function Step8({ pagina, setPagina }: Props) {
         const imgReq = {
           sesion: data.data,
           area: sesion.datosGenerales?.area || "",
+          ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
           grado: sesion.datosGenerales?.grado || "",
           tema: sesion.temaCurricular || "",
         };
