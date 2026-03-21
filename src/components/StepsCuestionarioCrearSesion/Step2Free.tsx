@@ -135,6 +135,7 @@ function Step2Free({ pagina, setPagina }: Props) {
         const areaEncontrada = areas.find((a: any) => a.nombre === sesion.datosGenerales.area);
         if (areaEncontrada) {
           setAreaId(areaEncontrada.id);
+          updateSesion({ areaId: areaEncontrada.id });
           const response = await getCompetencyById(areaEncontrada.id);
           setCompetencias(response.data.data || response.data);
         }

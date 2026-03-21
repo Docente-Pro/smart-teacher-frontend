@@ -1,6 +1,6 @@
 import { IUsuario } from "@/interfaces/IUsuario";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+
 import {
   Card,
   CardContent,
@@ -29,16 +29,11 @@ import {
   GraduationCap,
   Eye,
   Save,
-  ClipboardList,
-  Loader2,
 } from "lucide-react";
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import type { IProcesoSecuencia, ICriterioIA } from "@/interfaces/ISesionAprendizaje";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
-import { crearSesion } from "@/services/sesiones.service";
-import { generarFichaAplicacion } from "@/services/fichaAplicacion.service";
-import { usePermissions } from "@/hooks/usePermissions";
 
 /* ───── helpers ───── */
 function criterioTexto(c: string | ICriterioIA): string {
@@ -350,11 +345,8 @@ interface Props {
   usuarioFromState: IUsuario;
 }
 
-function Step3FreeResult({ pagina, setPagina, usuarioFromState }: Props) {
-  const navigate = useNavigate();
+function Step3FreeResult({ pagina, setPagina }: Props) {
   const { sesion, updateSesion } = useSesionStore();
-  const { isPremium } = usePermissions();
-  const [isGeneratingFicha, setIsGeneratingFicha] = useState(false);
 
   if (!sesion) return null;
 
@@ -390,60 +382,6 @@ function Step3FreeResult({ pagina, setPagina, usuarioFromState }: Props) {
     window.location.href = "/result";
   }
 
-  async function handleFichaAplicacion() {
-    if (!usuarioFromState?.id) return;
-    const currentSesion = sesion;
-    if (!currentSesion) return;
-
-    setIsGeneratingFicha(true);
-    try {
-      const duracionStr = currentSesion.datosGenerales?.duracion || "90";
-      const duracionNum = parseInt(duracionStr, 10) || 90;
-
-      const respuestaCrear = await crearSesion({
-        titulo: currentSesion.titulo || "Sesión de aprendizaje",
-        usuarioId: usuarioFromState.id,
-        nivelId: usuarioFromState.nivelId ?? 1,
-        gradoId: usuarioFromState.gradoId ?? 1,
-        problematicaId: usuarioFromState.problematicaId ?? 1,
-        duracion: duracionNum,
-      });
-
-      const sesionId =
-        (respuestaCrear as any)?.data?.id ??
-        (respuestaCrear as any)?.id ??
-        respuestaCrear?.id;
-
-      if (!sesionId) throw new Error("No se obtuvo el ID de la sesión");
-
-      const resp = await generarFichaAplicacion(sesionId, {
-        incluirRespuestas: true,
-        dificultad: "media",
-      });
-
-      handleToaster("¡Ficha generada! Abriendo vista previa...", "success");
-
-      navigate("/ficha-aplicacion-result", {
-        state: {
-          ficha: resp.ficha,
-          fichaId: resp.fichaId,
-          docente: usuarioFromState.nombre || "",
-          institucion: usuarioFromState.nombreInstitucion || "",
-          sesionId,
-          presignedUrl: resp.presignedUrl,
-          s3Key: resp.s3Key,
-        },
-      });
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.message ||
-        "Error al generar la ficha de aplicación";
-      handleToaster(msg, "error");
-    } finally {
-      setIsGeneratingFicha(false);
-    }
-  }
 
   /* ═══════════════ RENDER ═══════════════ */
   return (
@@ -748,21 +686,6 @@ function Step3FreeResult({ pagina, setPagina, usuarioFromState }: Props) {
             Anterior
           </Button>
           <div className="flex gap-3">
-            {isPremium && (
-              <Button
-                onClick={handleFichaAplicacion}
-                disabled={isGeneratingFicha}
-                variant="outline"
-                className="h-14 px-6 text-lg font-semibold border-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950 transition-all"
-              >
-                {isGeneratingFicha ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (
-                  <ClipboardList className="mr-2 h-5 w-5" />
-                )}
-                {isGeneratingFicha ? "Generando..." : "Ficha de Aplicación"}
-              </Button>
-            )}
             <Button
               onClick={handleGenerarPDF}
               className="h-14 px-10 text-lg font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300"

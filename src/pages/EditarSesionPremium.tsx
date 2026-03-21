@@ -737,11 +737,16 @@ function EditarSesionPremium() {
       if (fechaSesion) contenidoPatch.fechaSesion = fechaSesion;
       if (sesion.area !== undefined) contenidoPatch.area = sesion.area;
 
+      const rawUnidadId: string | undefined = (rawSesion as any)?.unidadId ?? undefined;
+      const rawAreaId: number | undefined = (rawSesion as any)?.areaId ?? undefined;
+
       toast.info("Guardando cambios...");
       await editarContenidoSesion(sesionId, {
         titulo:
           titulo !== (rawSesion as any)?.titulo ? titulo : undefined,
         contenido: contenidoPatch,
+        ...(rawUnidadId ? { unidadId: rawUnidadId } : {}),
+        ...(rawAreaId ? { areaId: rawAreaId } : {}),
       });
 
       toast.success("Contenido guardado en la base de datos");
@@ -794,6 +799,8 @@ function EditarSesionPremium() {
           usuarioId: user.id,
           key: uploadData.key,
           contenido: premData.sesion as any,
+          ...(rawUnidadId ? { unidadId: rawUnidadId } : {}),
+          ...(rawAreaId ? { areaId: rawAreaId } : {}),
         });
 
         toast.success("PDF actualizado y guardado en la nube ☁️");

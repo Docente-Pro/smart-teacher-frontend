@@ -78,14 +78,15 @@ export interface IUsuario {
   sesiones?: ISesion[];
 }
 
-// Interface para crear sesión (ahora sin problematicaId en el body)
 export interface ISesionToCreate {
   titulo: string;
   usuarioId: string;
-  nivelId: number;      // Se puede pre-llenar del usuario
-  gradoId: number;      // Se puede pre-llenar del usuario
-  problematicaId: number; // Se puede pre-llenar del usuario
+  nivelId: number;
+  gradoId: number;
+  problematicaId: number;
   duracion: number;
   fechaInicio?: string;
   fechaFin?: string;
+  unidadId?: string;
+  areaId?: number;
 }

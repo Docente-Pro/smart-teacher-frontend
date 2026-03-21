@@ -182,9 +182,10 @@ export interface IImagenDisponible {
 
 export interface ISesionAprendizaje {
   datosGenerales: IDatosGenerales;
+  areaId?: number;
   titulo: string;
-  temaCurricular?: string; // Tema en texto (para mostrar o fallback)
-  temaId?: number; // ID del tema del currículo (null si es personalizado)
+  temaCurricular?: string;
+  temaId?: number;
   /** Objeto tema curricular devuelto por sugerir-competencia; se envía en todos los pasos IA */
   temaCurricularObjeto?: Record<string, unknown>;
   situacionTexto?: string; // Texto de la situación significativa devuelto por sugerir-competencia

@@ -152,7 +152,11 @@ function SesionViewer() {
               ...(a.sexo && { sexo: a.sexo }),
               ...(a.dni != null && a.dni !== "" && { dni: a.dni }),
             }));
-            await editarContenidoSesion(sesionId, { contenido: { listaAlumnos } });
+            await editarContenidoSesion(sesionId, {
+              contenido: { listaAlumnos },
+              ...(raw.unidadId ? { unidadId: raw.unidadId } : {}),
+              ...(raw.areaId ? { areaId: raw.areaId } : {}),
+            });
             if (!cancelled) {
               const updated = await obtenerSesionPorId(sesionId);
               setSesion(updated);
