@@ -181,14 +181,33 @@ function getSlotOrderInWeek(dia: string, bloqueIndex: number): number {
   return DIA_ORDER.indexOf(dia) * 10 + bloqueIndex;
 }
 
+/**
+ * Calcula la semana actual de la unidad.
+ * La siguiente semana se habilita cada sábado a las 00:00.
+ * getDay(): 0=domingo … 6=sábado
+ */
 function calcularSemanaActual(fechaInicio: string, duracion: number): number {
   const start = new Date(fechaInicio);
-  const today = new Date();
+  const now = new Date();
   start.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  if (today < start) return 1;
-  const diffDays = Math.floor((today.getTime() - start.getTime()) / 86400000);
-  return Math.min(Math.max(Math.floor(diffDays / 7) + 1, 1), duracion);
+
+  if (now < start) return 1;
+
+  // Encontrar el sábado (inicio de la semana de generación) correspondiente a fechaInicio.
+  // Retrocedemos al sábado anterior o igual a la fecha de inicio.
+  const startDay = start.getDay(); // 0=dom … 6=sáb
+  const daysToSaturday = startDay === 6 ? 0 : startDay + 1; // días que retroceder hasta sábado
+  const firstSaturday = new Date(start);
+  firstSaturday.setDate(firstSaturday.getDate() - daysToSaturday);
+  firstSaturday.setHours(0, 0, 0, 0);
+
+  const nowMidnight = new Date(now);
+  nowMidnight.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.floor((nowMidnight.getTime() - firstSaturday.getTime()) / 86400000);
+  const week = Math.floor(diffDays / 7) + 1;
+
+  return Math.min(Math.max(week, 1), duracion);
 }
 
 /** Busca el areaId por nombre dentro de las areas del miembro.
@@ -997,7 +1016,7 @@ function GenerarSesionPremium() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Semana no disponible</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Esta semana aún no comienza. Solo puedes generar sesiones de la semana actual.</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Esta semana aún no comienza. Se habilitará el sábado a las 00:00 h.</p>
                     </div>
                   </div>
                 )}
