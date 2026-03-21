@@ -63,6 +63,7 @@ export function useAutoGenerarSesion() {
       const criteriosRes = await instance.post("/ia/generar-criterios-evaluacion", {
         temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
         competencia: sesion.propositoAprendizaje.competencia,
         capacidades: sesion.propositoAprendizaje.capacidades,
         cantidadCriterios: cantidadCapacidades,
@@ -89,6 +90,7 @@ export function useAutoGenerarSesion() {
       const propositoRes = await instance.post("/ia/generar-proposito-sesion", {
         temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,
         capacidades: sesion.propositoAprendizaje.capacidades,
@@ -112,6 +114,7 @@ export function useAutoGenerarSesion() {
       const enfoquesRes = await instance.post("/ia/sugerir-enfoques-transversales", {
         temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,
         propositoSesion: propositoText || sesion.propositoSesion,
@@ -134,9 +137,11 @@ export function useAutoGenerarSesion() {
       // Re-leer sesion actualizada del store
       const sesionActualizada = useSesionStore.getState().sesion;
 
+      const areaIdActual = sesionActualizada?.areaId ?? sesion.areaId;
       const secuenciaRes = await instance.post("/ia/generar-secuencia-didactica", {
         temaCurricular: getTemaCurricularPayload(sesionActualizada ?? sesion),
         area: sesionActualizada?.datosGenerales?.area ?? sesion.datosGenerales.area,
+        ...(areaIdActual ? { areaId: areaIdActual } : {}),
         temaId: sesionActualizada?.temaId ?? sesion.temaId,
         datosGenerales: sesionActualizada?.datosGenerales ?? sesion.datosGenerales,
         propositoAprendizaje: sesionActualizada?.propositoAprendizaje ?? sesion.propositoAprendizaje,
@@ -197,6 +202,7 @@ export function useAutoGenerarSesion() {
               }))
             : undefined;
 
+        const respAreaId = data.areaId ?? secuenciaRes.data.areaId;
         updateSesion({
           titulo: data.titulo || sesionActualizada?.titulo || "",
           secuenciaDidactica: {
@@ -209,6 +215,7 @@ export function useAutoGenerarSesion() {
           ...(secuenciaRes.data.imagenes_disponibles && {
             imagenes_disponibles: secuenciaRes.data.imagenes_disponibles,
           }),
+          ...(respAreaId ? { areaId: Number(respAreaId) } : {}),
         });
       }
 
@@ -220,6 +227,7 @@ export function useAutoGenerarSesion() {
         generarImagenesSesion({
           sesion: secuenciaRes.data.data,
           area: sesionFinal.datosGenerales?.area || "",
+          ...(sesionFinal.areaId ? { areaId: sesionFinal.areaId } : {}),
           grado: sesionFinal.datosGenerales?.grado || "",
           tema: sesionFinal.temaCurricular || "",
         })
