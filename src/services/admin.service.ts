@@ -522,3 +522,53 @@ export async function eliminarUsuario(
   );
   return data;
 }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 6. Fichas de Aplicación (Admin)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface IAdminGenerarFichaResponse {
+  success: boolean;
+  fichaId: string;
+  ficha: Record<string, any>;
+  presignedUrl: string;
+  s3Key: string;
+  docenteUsuarioId: string;
+  docenteNombre: string;
+}
+
+/**
+ * 4.5 POST /api/admin/sesion/:sesionId/generar-ficha-aplicacion
+ * Regenera la ficha del docente dueño de la sesión.
+ */
+export async function adminGenerarFichaAplicacion(
+  sesionId: string,
+  options: {
+    incluirRespuestas?: boolean;
+    cantidadEjercicios?: number;
+    dificultad?: string;
+  } = {},
+): Promise<IAdminGenerarFichaResponse> {
+  const { data } = await instance.post<IAdminGenerarFichaResponse>(
+    `/admin/sesion/${sesionId}/generar-ficha-aplicacion`,
+    options,
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}
+
+/**
+ * 4.6 POST /api/admin/ficha/:fichaId/confirm-upload
+ * Confirma que el admin subió el PDF de la ficha a S3.
+ */
+export async function adminConfirmUploadFicha(
+  fichaId: string,
+  body: { s3Key?: string } = {},
+): Promise<{ success: boolean }> {
+  const { data } = await instance.post(
+    `/admin/ficha/${fichaId}/confirm-upload`,
+    body,
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}

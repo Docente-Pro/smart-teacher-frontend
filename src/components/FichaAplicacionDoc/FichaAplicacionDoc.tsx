@@ -447,19 +447,21 @@ function BloqueProblema({
         </div>
       )}
 
-      {/* Línea de respuesta */}
-      <div style={{ padding: "0.2rem 0.5rem", fontSize: "10pt" }}>
-        <span style={{ fontWeight: "bold" }}>Respuesta: </span>
-        <span
-          style={{
-            display: "inline-block",
-            width: "200px",
-            borderBottom: "1.5px solid #333",
-          }}
-        >
-          &nbsp;
-        </span>
-      </div>
+      {/* Línea de respuesta (solo si no hay cuadro de resolución) */}
+      {!contenido.espacioResolucion && (
+        <div style={{ padding: "0.2rem 0.5rem", fontSize: "10pt" }}>
+          <span style={{ fontWeight: "bold" }}>Respuesta: </span>
+          <span
+            style={{
+              display: "inline-block",
+              width: "200px",
+              borderBottom: "1.5px solid #333",
+            }}
+          >
+            &nbsp;
+          </span>
+        </div>
+      )}
     </div>
   );
 }
