@@ -510,6 +510,40 @@ export async function adminGenerarWordUnidad(
 }
 
 /**
+ * 4.3b PATCH /api/admin/usuarios/:usuarioId
+ * Actualizar perfil de un usuario desde el panel admin.
+ */
+export interface IAdminUpdateUsuarioRequest {
+  nombre?: string;
+  email?: string;
+  nombreInstitucion?: string;
+  nombreDirectivo?: string;
+  nombreSubdirectora?: string;
+  genero?: string;
+  seccion?: string;
+  nivelId?: number;
+  gradoId?: number;
+  problematicaId?: number;
+  departamento?: string;
+  provincia?: string;
+  distrito?: string;
+  tituloUnidadContexto?: string;
+  situacionSignificativaContexto?: string;
+}
+
+export async function adminUpdateUsuario(
+  usuarioId: string,
+  body: IAdminUpdateUsuarioRequest,
+): Promise<IUsuarioDetalleResponse> {
+  const { data } = await instance.patch<IUsuarioDetalleResponse>(
+    `/admin/usuarios/${usuarioId}`,
+    body,
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}
+
+/**
  * 4.4 DELETE /api/admin/usuarios/:usuarioId
  * Eliminar usuario y todos sus datos. Acción irreversible.
  */

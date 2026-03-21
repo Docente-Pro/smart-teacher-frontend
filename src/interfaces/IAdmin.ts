@@ -330,12 +330,17 @@ export interface IUsuarioDetalle {
   email: string;
   auth0UserId: string;
   nombreInstitucion: string;
-  seccion?: string;
+  nombreDirectivo?: string | null;
+  nombreSubdirectora?: string | null;
+  genero?: string | null;
+  seccion?: string | null;
   departamento: string | null;
   provincia: string | null;
   distrito: string | null;
   perfilCompleto: boolean;
   problematicaCompleta: boolean;
+  tituloUnidadContexto?: string | null;
+  situacionSignificativaContexto?: string | null;
   createdAt: string;
   nivel: { id: number; nombre: string } | null;
   grado: { id: number; nombre: string } | null;

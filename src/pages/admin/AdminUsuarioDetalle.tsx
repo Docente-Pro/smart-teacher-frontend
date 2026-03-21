@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   getUsuarioDetalle,
@@ -13,10 +13,26 @@ import {
   adminGenerarWordSesion,
   adminGenerarWordUnidad,
   adminGenerarFichaAplicacion,
+  adminUpdateUsuario,
 } from "@/services/admin.service";
+import type { IAdminUpdateUsuarioRequest } from "@/services/admin.service";
 import { corregirEstandares, arreglarHorario, getUnidadById, editarContenidoUnidad } from "@/services/unidad.service";
+import { getNiveles } from "@/features/initialForm/services/niveles.service";
+import { getAllGrados } from "@/services/grado.service";
+import { getAllProblematicas } from "@/services/problematica.service";
 import type { IUsuarioDetalle } from "@/interfaces/IAdmin";
+import type { INivel } from "@/interfaces/INivel";
+import type { IGrado } from "@/interfaces/IGrado";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ArrowLeft,
   Loader2,
@@ -41,8 +57,25 @@ import {
   CalendarClock,
   ListChecks,
   ClipboardList,
+  Pencil,
+  Save,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
+
+import departamentosData from "@/utils/peru_ubigeo/1_ubigeo_departamentos.json";
+import provinciasData from "@/utils/peru_ubigeo/2_ubigeo_provincias.json";
+import distritosData from "@/utils/peru_ubigeo/3_ubigeo_distritos.json";
+
+interface UbigeoDepartamento { id: number; departamento: string; ubigeo: string }
+interface UbigeoProvincia { id: number; provincia: string; ubigeo: string; departamento_id: number }
+interface UbigeoDistrito { id: number; distrito: string; ubigeo: string; provincia_id: number; departamento_id: number }
+
+const departamentos: UbigeoDepartamento[] = departamentosData.ubigeo_departamentos;
+const provincias: UbigeoProvincia[] = provinciasData.ubigeo_provincias;
+const distritos: UbigeoDistrito[] = distritosData.ubigeo_distritos;
 
 export default function AdminUsuarioDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +92,127 @@ export default function AdminUsuarioDetalle() {
   const [downloadingWord, setDownloadingWord] = useState<string | null>(null);
   const [generatingWord, setGeneratingWord] = useState<string | null>(null);
   const [generandoFicha, setGenerandoFicha] = useState<string | null>(null);
+
+  // ── Edit profile state ──
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState<IAdminUpdateUsuarioRequest>({});
+  const [niveles, setNiveles] = useState<INivel[]>([]);
+  const [todosLosGrados, setTodosLosGrados] = useState<IGrado[]>([]);
+  const [problematicas, setProblematicas] = useState<{ id: number; nombre: string; descripcion: string }[]>([]);
+  const [catalogsLoaded, setCatalogsLoaded] = useState(false);
+
+  const gradosFiltrados = useMemo(() => {
+    if (!editForm.nivelId || !todosLosGrados.length) return [];
+    return todosLosGrados.filter((g) => g.nivelId === editForm.nivelId).sort((a, b) => a.id - b.id);
+  }, [editForm.nivelId, todosLosGrados]);
+
+  const provinciasFiltradas = useMemo(() => {
+    if (!editForm.departamento) return [];
+    const dep = departamentos.find((d) => d.departamento === editForm.departamento);
+    if (!dep) return [];
+    return provincias.filter((p) => p.departamento_id === dep.id);
+  }, [editForm.departamento]);
+
+  const distritosFiltrados = useMemo(() => {
+    if (!editForm.provincia || !provinciasFiltradas.length) return [];
+    const prov = provincias.find(
+      (p) => p.provincia === editForm.provincia && provinciasFiltradas.includes(p),
+    );
+    if (!prov) return [];
+    return distritos.filter((d) => d.provincia_id === prov.id);
+  }, [editForm.provincia, provinciasFiltradas]);
+
+  function initEditForm(u: IUsuarioDetalle) {
+    setEditForm({
+      nombre: u.nombre ?? "",
+      email: u.email ?? "",
+      nombreInstitucion: u.nombreInstitucion ?? "",
+      nombreDirectivo: u.nombreDirectivo ?? "",
+      nombreSubdirectora: u.nombreSubdirectora ?? "",
+      genero: u.genero ?? "",
+      seccion: u.seccion ?? "",
+      nivelId: u.nivel?.id ?? 0,
+      gradoId: u.grado?.id ?? 0,
+      problematicaId: u.problematica?.id ?? 0,
+      departamento: u.departamento ?? "",
+      provincia: u.provincia ?? "",
+      distrito: u.distrito ?? "",
+      tituloUnidadContexto: u.tituloUnidadContexto ?? "",
+      situacionSignificativaContexto: u.situacionSignificativaContexto ?? "",
+    });
+  }
+
+  async function loadCatalogs() {
+    if (catalogsLoaded) return;
+    try {
+      const [nivelesRes, gradosRes, probRes] = await Promise.all([
+        getNiveles(),
+        getAllGrados(),
+        getAllProblematicas(),
+      ]);
+      setNiveles(nivelesRes.data.data ?? nivelesRes.data ?? []);
+      setTodosLosGrados(gradosRes.data.data ?? gradosRes.data ?? []);
+      const probData = probRes.data.data ?? probRes.data ?? [];
+      setProblematicas(probData);
+      setCatalogsLoaded(true);
+    } catch {
+      toast.error("Error al cargar catálogos");
+    }
+  }
+
+  function handleOpenEdit() {
+    if (!usuario) return;
+    initEditForm(usuario);
+    loadCatalogs();
+    setEditOpen(true);
+  }
+
+  function handleCancelEdit() {
+    setEditOpen(false);
+  }
+
+  function updateField<K extends keyof IAdminUpdateUsuarioRequest>(key: K, value: IAdminUpdateUsuarioRequest[K]) {
+    setEditForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSaveProfile() {
+    if (!id || !usuario) return;
+    setEditSaving(true);
+    try {
+      const payload: IAdminUpdateUsuarioRequest = {};
+      const f = editForm;
+      if (f.nombre && f.nombre !== usuario.nombre) payload.nombre = f.nombre;
+      if (f.email && f.email !== usuario.email) payload.email = f.email;
+      if ((f.nombreInstitucion ?? "") !== (usuario.nombreInstitucion ?? "")) payload.nombreInstitucion = f.nombreInstitucion;
+      if ((f.nombreDirectivo ?? "") !== (usuario.nombreDirectivo ?? "")) payload.nombreDirectivo = f.nombreDirectivo;
+      if ((f.nombreSubdirectora ?? "") !== (usuario.nombreSubdirectora ?? "")) payload.nombreSubdirectora = f.nombreSubdirectora;
+      if ((f.genero ?? "") !== (usuario.genero ?? "")) payload.genero = f.genero;
+      if ((f.seccion ?? "") !== (usuario.seccion ?? "")) payload.seccion = f.seccion;
+      if (f.nivelId && f.nivelId !== (usuario.nivel?.id ?? 0)) payload.nivelId = f.nivelId;
+      if (f.gradoId && f.gradoId !== (usuario.grado?.id ?? 0)) payload.gradoId = f.gradoId;
+      if (f.problematicaId && f.problematicaId !== (usuario.problematica?.id ?? 0)) payload.problematicaId = f.problematicaId;
+      if ((f.departamento ?? "") !== (usuario.departamento ?? "")) payload.departamento = f.departamento;
+      if ((f.provincia ?? "") !== (usuario.provincia ?? "")) payload.provincia = f.provincia;
+      if ((f.distrito ?? "") !== (usuario.distrito ?? "")) payload.distrito = f.distrito;
+      if ((f.tituloUnidadContexto ?? "") !== (usuario.tituloUnidadContexto ?? "")) payload.tituloUnidadContexto = f.tituloUnidadContexto;
+      if ((f.situacionSignificativaContexto ?? "") !== (usuario.situacionSignificativaContexto ?? "")) payload.situacionSignificativaContexto = f.situacionSignificativaContexto;
+
+      if (Object.keys(payload).length === 0) {
+        toast.info("No hay cambios que guardar");
+        return;
+      }
+
+      const res = await adminUpdateUsuario(id, payload);
+      setUsuario(res.data);
+      toast.success("Perfil actualizado correctamente");
+      setEditOpen(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.response?.data?.error || "Error al actualizar perfil");
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   useEffect(() => {
     if (id) cargarDetalle();
@@ -418,8 +572,283 @@ export default function AdminUsuarioDetalle() {
               year: "numeric",
             })}
           />
+          {usuario.genero && <InfoItem label="Género" value={usuario.genero} />}
+          {usuario.seccion && <InfoItem label="Sección" value={usuario.seccion} />}
+          {usuario.nombreDirectivo && <InfoItem label="Directivo" value={usuario.nombreDirectivo} />}
+          {usuario.nombreSubdirectora && <InfoItem label="Subdirectora" value={usuario.nombreSubdirectora} />}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => (editOpen ? handleCancelEdit() : handleOpenEdit())}
+            className="gap-1.5 text-blue-600 border-blue-300 hover:bg-blue-50"
+          >
+            {editOpen ? <ChevronUp className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+            {editOpen ? "Cerrar edición" : "Editar Perfil"}
+          </Button>
         </div>
       </div>
+
+      {/* Edit Profile Form */}
+      {editOpen && (
+        <div className="bg-white border border-blue-200 rounded-xl p-6 space-y-5">
+          <h2 className="text-gray-900 font-semibold text-sm flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-blue-500" />
+            Editar Perfil
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Nombre */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-nombre" className="text-xs text-gray-500">Nombre completo</Label>
+              <Input
+                id="edit-nombre"
+                value={editForm.nombre ?? ""}
+                onChange={(e) => updateField("nombre", e.target.value)}
+                placeholder="Nombre del docente"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-email" className="text-xs text-gray-500">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editForm.email ?? ""}
+                onChange={(e) => updateField("email", e.target.value)}
+                placeholder="correo@ejemplo.com"
+              />
+            </div>
+
+            {/* Institución */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-institucion" className="text-xs text-gray-500">Institución Educativa</Label>
+              <Input
+                id="edit-institucion"
+                value={editForm.nombreInstitucion ?? ""}
+                onChange={(e) => updateField("nombreInstitucion", e.target.value)}
+                placeholder="Nombre de la I.E."
+              />
+            </div>
+
+            {/* Género */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-gray-500">Género</Label>
+              <Select
+                value={editForm.genero ?? ""}
+                onValueChange={(v) => updateField("genero", v)}
+              >
+                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Masculino">Masculino</SelectItem>
+                  <SelectItem value="Femenino">Femenino</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Nivel */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-gray-500">Nivel</Label>
+              <Select
+                value={editForm.nivelId ? String(editForm.nivelId) : ""}
+                onValueChange={(v) => {
+                  const nivelId = Number(v);
+                  updateField("nivelId", nivelId);
+                  const gradoValido = todosLosGrados.find(
+                    (g) => g.nivelId === nivelId && g.id === editForm.gradoId,
+                  );
+                  if (!gradoValido) updateField("gradoId", 0);
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Seleccionar nivel" /></SelectTrigger>
+                <SelectContent>
+                  {niveles.map((n) => (
+                    <SelectItem key={n.id} value={String(n.id)}>{n.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Grado */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-gray-500">Grado</Label>
+              <Select
+                value={editForm.gradoId ? String(editForm.gradoId) : ""}
+                onValueChange={(v) => updateField("gradoId", Number(v))}
+                disabled={!editForm.nivelId}
+              >
+                <SelectTrigger><SelectValue placeholder="Seleccionar grado" /></SelectTrigger>
+                <SelectContent>
+                  {gradosFiltrados.map((g) => (
+                    <SelectItem key={g.id} value={String(g.id)}>{g.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Problemática */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-gray-500">Problemática</Label>
+              <Select
+                value={editForm.problematicaId ? String(editForm.problematicaId) : ""}
+                onValueChange={(v) => updateField("problematicaId", Number(v))}
+              >
+                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  {problematicas.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sección */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-seccion" className="text-xs text-gray-500">Sección</Label>
+              <Input
+                id="edit-seccion"
+                value={editForm.seccion ?? ""}
+                onChange={(e) => updateField("seccion", e.target.value)}
+                placeholder='Ej: "A"'
+              />
+            </div>
+
+            {/* Directivo */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-directivo" className="text-xs text-gray-500">Nombre del Directivo</Label>
+              <Input
+                id="edit-directivo"
+                value={editForm.nombreDirectivo ?? ""}
+                onChange={(e) => updateField("nombreDirectivo", e.target.value)}
+                placeholder="Director/a"
+              />
+            </div>
+
+            {/* Subdirectora */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-subdirectora" className="text-xs text-gray-500">Nombre Subdirectora</Label>
+              <Input
+                id="edit-subdirectora"
+                value={editForm.nombreSubdirectora ?? ""}
+                onChange={(e) => updateField("nombreSubdirectora", e.target.value)}
+                placeholder="Subdirector/a"
+              />
+            </div>
+          </div>
+
+          {/* Ubicación */}
+          <div>
+            <p className="text-xs text-gray-400 font-medium mb-2 flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5" /> Ubicación
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Departamento */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-500">Departamento</Label>
+                <Select
+                  value={editForm.departamento ?? ""}
+                  onValueChange={(v) => {
+                    updateField("departamento", v);
+                    updateField("provincia", "");
+                    updateField("distrito", "");
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {departamentos.map((d) => (
+                      <SelectItem key={d.id} value={d.departamento}>{d.departamento}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Provincia */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-500">Provincia</Label>
+                <Select
+                  value={editForm.provincia ?? ""}
+                  onValueChange={(v) => {
+                    updateField("provincia", v);
+                    updateField("distrito", "");
+                  }}
+                  disabled={!editForm.departamento}
+                >
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {provinciasFiltradas.map((p) => (
+                      <SelectItem key={p.id} value={p.provincia}>{p.provincia}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Distrito */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-500">Distrito</Label>
+                <Select
+                  value={editForm.distrito ?? ""}
+                  onValueChange={(v) => updateField("distrito", v)}
+                  disabled={!editForm.provincia}
+                >
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {distritosFiltrados.map((d) => (
+                      <SelectItem key={d.id} value={d.distrito}>{d.distrito}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Contexto de unidad */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-titulo-unidad" className="text-xs text-gray-500">Título Unidad (contexto)</Label>
+              <Input
+                id="edit-titulo-unidad"
+                value={editForm.tituloUnidadContexto ?? ""}
+                onChange={(e) => updateField("tituloUnidadContexto", e.target.value)}
+                placeholder="Título de la unidad didáctica"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-situacion" className="text-xs text-gray-500">Situación Significativa (contexto)</Label>
+              <Input
+                id="edit-situacion"
+                value={editForm.situacionSignificativaContexto ?? ""}
+                onChange={(e) => updateField("situacionSignificativaContexto", e.target.value)}
+                placeholder="Situación significativa de la unidad"
+              />
+            </div>
+          </div>
+
+          {/* Save / Cancel */}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleCancelEdit}
+              disabled={editSaving}
+              className="text-gray-500"
+            >
+              <X className="w-4 h-4 mr-1" /> Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveProfile}
+              disabled={editSaving}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {editSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+              Guardar cambios
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Reset Actions */}
       <div className="bg-white border border-gray-200 rounded-xl p-5">
