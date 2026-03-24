@@ -606,3 +606,100 @@ export async function adminConfirmUploadFicha(
   );
   return data;
 }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 6. Operaciones de Unidad con token admin
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** GET /api/unidad/:id — con token admin */
+export async function adminGetUnidadById(unidadId: string) {
+  return instance.get(`/unidad/${unidadId}`, { headers: getAdminHeaders() });
+}
+
+/** POST /api/unidades/corregir-estandares — con token admin */
+export async function adminCorregirEstandares(
+  unidadId: string,
+): Promise<ICorregirEstandaresResponse> {
+  const { data } = await instance.post<ICorregirEstandaresResponse>(
+    "/unidades/corregir-estandares",
+    { unidadId },
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}
+
+export interface ICorregirEstandaresUpload {
+  presignedUrl: string;
+  s3Key: string;
+  expiresIn: number;
+  method: string;
+  contentType: string;
+}
+
+export interface ICorregirEstandaresMiembroUpload {
+  miembroId: string;
+  usuarioId: string;
+  presignedUrl: string;
+  s3Key: string;
+}
+
+export interface ICorregirEstandaresResponse {
+  success: boolean;
+  totalCorregidos: number;
+  guardadoEnBD: boolean;
+  correcciones: {
+    area: string;
+    competencia: string;
+    estandarAnterior: string;
+    estandarCorregido: string;
+  }[];
+  unidad: Record<string, any>;
+  upload: ICorregirEstandaresUpload | null;
+  miembrosUpload: ICorregirEstandaresMiembroUpload[];
+}
+
+export interface IArreglarHorarioRequest {
+  secuencia: Record<string, any>;
+  grado: string;
+  turno?: string;
+}
+
+export interface IArreglarHorarioCambio {
+  semana: number;
+  dia: string;
+  hora: number;
+  antes: string;
+  despues: string;
+}
+
+export interface IArreglarHorarioResponse {
+  success: boolean;
+  secuencia: Record<string, any>;
+  cambios: IArreglarHorarioCambio[];
+  error?: string;
+}
+
+/** POST /api/unidad/arreglar-horario — con token admin */
+export async function adminArreglarHorario(
+  body: IArreglarHorarioRequest,
+): Promise<IArreglarHorarioResponse> {
+  const { data } = await instance.post<IArreglarHorarioResponse>(
+    "/unidad/arreglar-horario",
+    body,
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}
+
+/** PATCH /api/unidades/:id/contenido — con token admin */
+export async function adminEditarContenidoUnidad(
+  unidadId: string,
+  body: { titulo?: string; contenido?: Record<string, any> },
+): Promise<{ success: boolean; message: string; data: Record<string, any> }> {
+  const { data } = await instance.patch(
+    `/unidades/${unidadId}/contenido`,
+    body,
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}

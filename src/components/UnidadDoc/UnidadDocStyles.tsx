@@ -34,6 +34,8 @@ export function UnidadDocStyles() {
             padding: 0.25rem 0.35rem;
             text-align: left;
             vertical-align: top;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
           }
 
           th {

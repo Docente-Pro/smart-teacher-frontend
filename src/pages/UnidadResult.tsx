@@ -49,6 +49,7 @@ function UnidadResult() {
   const { datosBase, contenido, unidadId } = useUnidadStore();
   const { user } = useAuthStore();
   const { user: usuario, updateUsuario: updateUsuarioStore, fetchUsuario } = useUserStore();
+
   const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, guardarEnNube } =
     useUnidadPDFGeneration(documentRef);
 

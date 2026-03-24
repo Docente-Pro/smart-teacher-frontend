@@ -116,125 +116,177 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
       </h3>
 
       {/* ─── Tabla principal por áreas ─── */}
-      <table>
+      <table style={{ tableLayout: "fixed", width: "100%" }}>
+        <colgroup>
+          <col style={{ width: "4%" }} />
+          <col style={{ width: "16%" }} />
+          <col style={{ width: "28%" }} />
+          <col style={{ width: "18%" }} />
+          <col style={{ width: "20%" }} />
+          <col style={{ width: "14%" }} />
+        </colgroup>
         <thead>
           <tr>
-            <th style={{ width: "6%", textAlign: "center" }}>ÁREA</th>
-            <th style={{ width: "16%", textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
-            <th style={{ width: "28%", textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
-            <th style={{ width: "18%", textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
-            <th style={{ width: "18%", textAlign: "center" }}>ACTIVIDADES</th>
-            <th style={{ width: "14%", textAlign: "center" }}>INSTRUMENTOS</th>
+            <th style={{ textAlign: "center" }}>ÁREA</th>
+            <th style={{ textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
+            <th style={{ textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
+            <th style={{ textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
+            <th style={{ textAlign: "center" }}>ACTIVIDADES</th>
+            <th style={{ textAlign: "center" }}>INSTRUMENTOS</th>
           </tr>
         </thead>
-        <tbody>
-          {(propositos.areasPropositos ?? []).map((areaProp, aIdx) => {
-            const areaHex = getAreaColor(areaProp.area).hex;
+        {(propositos.areasPropositos ?? []).map((areaProp, aIdx) => {
+          const areaHex = getAreaColor(areaProp.area).hex;
 
-            const compData = (areaProp.competencias ?? []).map((comp) => ({
-              comp,
-              grupos: getGruposConFallback(comp),
-            }));
+          const compData = (areaProp.competencias ?? []).map((comp) => ({
+            comp,
+            grupos: getGruposConFallback(comp),
+          }));
 
-            const totalFilasArea = compData.reduce((sum, cd) => sum + cd.grupos.length, 0) || 1;
+          if (compData.length === 0) {
+            return (
+              <tbody key={`${aIdx}-empty`}>
+                <tr>
+                  <td
+                    style={{
+                      textAlign: "center",
+                      verticalAlign: "middle",
+                      fontWeight: "bold",
+                      fontSize: "7pt",
+                      padding: "0.15rem 0.05rem",
+                      backgroundColor: areaHex.light,
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    <VerticalText text={areaProp.area.toUpperCase()} />
+                  </td>
+                  <td colSpan={5} style={{ fontSize: "8pt", color: "#888", fontStyle: "italic" }}>
+                    Sin competencias generadas
+                  </td>
+                </tr>
+              </tbody>
+            );
+          }
 
-            let areaRendered = false;
+          const areaBg = areaHex.light;
+          let isFirstAreaRow = true;
 
-            return compData.flatMap(({ comp, grupos }, cIdx) => {
-              const numGrupos = grupos.length;
+          return (
+            <tbody
+              key={aIdx}
+              style={{ pageBreakInside: "avoid", breakInside: "avoid" } as React.CSSProperties}
+            >
+              {compData.flatMap(({ comp, grupos }, cIdx) => {
+                let isFirstCompRow = true;
 
-              return grupos.map((grupo, gIdx) => {
-                const showArea = !areaRendered;
-                if (showArea) areaRendered = true;
-                const isFirstGroup = gIdx === 0;
+                return grupos.map((grupo, gIdx) => {
+                  const showAreaName = isFirstAreaRow;
+                  const showCompContent = isFirstCompRow;
+                  if (isFirstAreaRow) isFirstAreaRow = false;
+                  if (isFirstCompRow) isFirstCompRow = false;
 
-                return (
-                  <tr key={`${aIdx}-${cIdx}-${gIdx}`}>
-                    {/* AREA — first row of this area, spans all rows */}
-                    {showArea && (
+                  return (
+                    <tr key={`${aIdx}-${cIdx}-${gIdx}`}>
+                      {/* AREA — every row has this cell; only the first shows the name */}
                       <td
-                        rowSpan={totalFilasArea}
                         style={{
                           textAlign: "center",
                           verticalAlign: "middle",
-                          width: "24px",
-                          maxWidth: "24px",
                           fontWeight: "bold",
                           fontSize: "7pt",
                           padding: "0.15rem 0.05rem",
-                          backgroundColor: areaHex.light,
+                          backgroundColor: areaBg,
                           lineHeight: 1.1,
-                          letterSpacing: "0px",
-                        }}
+                          ...(!showAreaName ? { borderTop: "hidden" } : {}),
+                        } as React.CSSProperties}
                       >
-                        <VerticalText text={areaProp.area.toUpperCase()} />
+                        {showAreaName && <VerticalText text={areaProp.area.toUpperCase()} />}
                       </td>
-                    )}
 
-                    {/* COMPETENCIA + CAPACIDADES — first group of each competency */}
-                    {isFirstGroup && (
-                      <td rowSpan={numGrupos} style={{ fontSize: "8pt", verticalAlign: "top" }}>
-                        <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
-                          {comp.nombre}
-                        </p>
-                        {(comp.capacidades ?? []).map((cap, i) => (
-                          <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
-                            • {cap}
+                      {/* COMPETENCIA + CAPACIDADES — first grupo shows content */}
+                      <td
+                        style={{
+                          fontSize: "8pt",
+                          verticalAlign: "top",
+                          ...(!showCompContent ? { borderTop: "hidden" } : {}),
+                        } as React.CSSProperties}
+                      >
+                        {showCompContent && (
+                          <>
+                            <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
+                              {comp.nombre}
+                            </p>
+                            {(comp.capacidades ?? []).map((cap, i) => (
+                              <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
+                                • {cap}
+                              </p>
+                            ))}
+                          </>
+                        )}
+                      </td>
+
+                      {/* ESTÁNDAR — first grupo shows content */}
+                      <td
+                        style={{
+                          fontSize: "8pt",
+                          verticalAlign: "top",
+                          ...(!showCompContent ? { borderTop: "hidden" } : {}),
+                        } as React.CSSProperties}
+                      >
+                        {showCompContent && comp.estandar}
+                      </td>
+
+                      {/* CRITERIOS */}
+                      <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
+                        {(grupo.criterios ?? []).map((crit, j) => (
+                          <p
+                            key={j}
+                            style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}
+                          >
+                            <span style={{ flexShrink: 0 }}>•</span>
+                            <span>{parseMarkdown(crit)}</span>
                           </p>
                         ))}
                       </td>
-                    )}
 
-                    {/* ESTÁNDAR — first group of each competency */}
-                    {isFirstGroup && (
-                      <td rowSpan={numGrupos} style={{ fontSize: "8pt", verticalAlign: "top" }}>
-                        {comp.estandar}
+                      {/* ACTIVIDAD */}
+                      <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
+                        {grupo.actividad && (
+                          <p style={{ fontSize: "8pt", marginBottom: "0.1rem", display: "flex", gap: "0.2rem" }}>
+                            <span style={{ flexShrink: 0 }}>•</span>
+                            <span>{parseMarkdown(grupo.actividad)}</span>
+                          </p>
+                        )}
                       </td>
-                    )}
 
-                    {/* CRITERIOS — each group's criteria, aligned with its activity */}
-                    <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
-                      {(grupo.criterios ?? []).map((crit, j) => (
-                        <p
-                          key={j}
-                          style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}
-                        >
-                          <span style={{ flexShrink: 0 }}>•</span>
-                          <span>{parseMarkdown(crit)}</span>
-                        </p>
-                      ))}
-                    </td>
-
-                    {/* ACTIVIDAD — each group's activity */}
-                    <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
-                      {grupo.actividad && (
-                        <p style={{ fontSize: "8pt", marginBottom: "0.1rem", display: "flex", gap: "0.2rem" }}>
-                          <span style={{ flexShrink: 0 }}>•</span>
-                          <span>{parseMarkdown(grupo.actividad)}</span>
-                        </p>
-                      )}
-                    </td>
-
-                    {/* INSTRUMENTO — first group of each competency */}
-                    {isFirstGroup && (
+                      {/* INSTRUMENTO — first grupo shows content */}
                       <td
-                        rowSpan={numGrupos}
-                        style={{ fontSize: "8pt", verticalAlign: "middle", textAlign: "center" }}
+                        style={{
+                          fontSize: "8pt",
+                          verticalAlign: "middle",
+                          textAlign: "center",
+                          ...(!showCompContent ? { borderTop: "hidden" } : {}),
+                        } as React.CSSProperties}
                       >
-                        {comp.instrumento}
+                        {showCompContent && comp.instrumento}
                       </td>
-                    )}
-                  </tr>
-                );
-              });
-            });
-          })}
-        </tbody>
+                    </tr>
+                  );
+                });
+              })}
+            </tbody>
+          );
+        })}
       </table>
 
       {/* ─── Competencias Transversales (tabla separada) ─── */}
       {(propositos.competenciasTransversales?.length ?? 0) > 0 && (
-        <table style={{ marginTop: "0.3rem" }}>
+        <table style={{ tableLayout: "fixed", width: "100%", marginTop: "0.3rem" }}>
+          <colgroup>
+            <col style={{ width: "28%" }} />
+            <col style={{ width: "36%" }} />
+            <col style={{ width: "36%" }} />
+          </colgroup>
           <thead>
             <tr>
               <th
@@ -251,9 +303,9 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
               </th>
             </tr>
             <tr>
-              <th style={{ width: "28%", textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
-              <th style={{ width: "36%", textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
-              <th style={{ width: "36%", textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
+              <th style={{ textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
+              <th style={{ textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
+              <th style={{ textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
             </tr>
           </thead>
           <tbody>
@@ -290,13 +342,19 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
           <h3 className="section-subtitle" style={{ marginTop: "0.3rem" }}>
             ÁREA COMPLEMENTARIA
           </h3>
-          <table>
+          <table style={{ tableLayout: "fixed", width: "100%" }}>
+            <colgroup>
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "25%" }} />
+              <col style={{ width: "15%" }} />
+              <col style={{ width: "40%" }} />
+            </colgroup>
             <thead>
               <tr>
-                <th style={{ width: "20%", textAlign: "center" }}>ÁREA COMPLEMENTARIA</th>
-                <th style={{ width: "25%", textAlign: "center" }}>COMPETENCIA RELACIONADA</th>
-                <th style={{ width: "15%", textAlign: "center" }}>DIMENSIÓN</th>
-                <th style={{ width: "40%", textAlign: "center" }}>ACTIVIDADES</th>
+                <th style={{ textAlign: "center" }}>ÁREA COMPLEMENTARIA</th>
+                <th style={{ textAlign: "center" }}>COMPETENCIA RELACIONADA</th>
+                <th style={{ textAlign: "center" }}>DIMENSIÓN</th>
+                <th style={{ textAlign: "center" }}>ACTIVIDADES</th>
               </tr>
             </thead>
             <tbody>

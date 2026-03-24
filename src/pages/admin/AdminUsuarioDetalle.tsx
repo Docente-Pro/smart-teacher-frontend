@@ -16,7 +16,7 @@ import {
   adminUpdateUsuario,
 } from "@/services/admin.service";
 import type { IAdminUpdateUsuarioRequest } from "@/services/admin.service";
-import { corregirEstandares, arreglarHorario, getUnidadById, editarContenidoUnidad } from "@/services/unidad.service";
+import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares } from "@/services/admin.service";
 import { getNiveles } from "@/features/initialForm/services/niveles.service";
 import { getAllGrados } from "@/services/grado.service";
 import { getAllProblematicas } from "@/services/problematica.service";
@@ -1351,7 +1351,7 @@ export default function AdminUsuarioDetalle() {
                           if (!confirm(`¿Corregir estándares de la unidad "${u.titulo || u.id}"? Se regenerará el PDF.`)) return;
                           setCorrigiendoUnidad(u.id);
                           try {
-                            const res = await corregirEstandares(u.id);
+                            const res = await adminCorregirEstandares(u.id);
                             if (res.totalCorregidos === 0) {
                               toast.info("Los estándares ya estaban correctos");
                               return;
@@ -1402,7 +1402,8 @@ export default function AdminUsuarioDetalle() {
                           setCorrigiendoHorario(u.id);
                           try {
                             // 1. Cargar unidad completa para obtener secuencia
-                            const { data: unidad } = await getUnidadById(u.id);
+                            const { data: rawUnidad } = await adminGetUnidadById(u.id);
+                            const unidad = (rawUnidad as any)?.data ?? rawUnidad;
                             let contenido = unidad.contenido as any;
                             if (typeof contenido === "string") {
                               try { contenido = JSON.parse(contenido); } catch { contenido = {}; }
@@ -1425,7 +1426,7 @@ export default function AdminUsuarioDetalle() {
                             const grado = usuario?.grado?.nombre ?? "";
 
                             // 2. Llamar al endpoint de arreglar horario
-                            const res = await arreglarHorario({
+                            const res = await adminArreglarHorario({
                               secuencia: contenido.secuencia,
                               grado,
                               turno: "mañana",
@@ -1442,7 +1443,7 @@ export default function AdminUsuarioDetalle() {
                             }
 
                             // 3. Guardar la secuencia corregida en BD
-                            await editarContenidoUnidad(u.id, {
+                            await adminEditarContenidoUnidad(u.id, {
                               contenido: { secuencia: res.secuencia },
                             });
 
