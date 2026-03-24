@@ -163,7 +163,7 @@ function TablaListaCotejo({
         </tr>
       </thead>
       <tbody>
-        {Array.from({ length: Math.max(FILAS_VACIAS, alumnos.length) }).map((_, rowIdx) => {
+        {Array.from({ length: alumnos.length > 0 ? alumnos.length : FILAS_VACIAS }).map((_, rowIdx) => {
           const alumno = alumnos[rowIdx];
           return (
             <tr key={rowIdx}>
@@ -294,7 +294,7 @@ function TablaEscalaValoracion({
         </tr>
       </thead>
       <tbody>
-        {Array.from({ length: Math.max(FILAS_VACIAS, alumnos.length) }).map((_, rowIdx) => {
+        {Array.from({ length: alumnos.length > 0 ? alumnos.length : FILAS_VACIAS }).map((_, rowIdx) => {
           const alumno = alumnos[rowIdx];
           return (
             <tr key={rowIdx}>

@@ -15,6 +15,7 @@ import {
   Calculator,
   Microscope,
   Church,
+  Monitor,
   Clock,
   CheckCircle2,
   ArrowRight,
@@ -67,6 +68,7 @@ const areaIcons: { [key: string]: any } = {
   Matemática: Calculator,
   "Ciencia y Tecnología": Microscope,
   "Educación Religiosa": Church,
+  Computación: Monitor,
 };
 
 const areaGradients: { [key: string]: string } = {
@@ -78,6 +80,7 @@ const areaGradients: { [key: string]: string } = {
   Matemática: "from-yellow-500 to-orange-500",
   "Ciencia y Tecnología": "from-teal-500 to-green-500",
   "Educación Religiosa": "from-amber-500 to-yellow-500",
+  Computación: "from-teal-500 to-cyan-600",
 };
 
 function Step1({ pagina, setPagina, usuarioFromState }: Props) {

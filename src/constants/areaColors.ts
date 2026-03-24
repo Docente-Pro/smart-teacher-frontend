@@ -9,6 +9,7 @@ import {
   Microscope,
   Church,
   BookOpen,
+  Monitor,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -151,6 +152,17 @@ export const AREA_COLORS: Record<string, AreaColorConfig> = {
     hex: { primary: "#818CF8", light: "#EEF2FF", medium: "#C7D2FE", accent: "#4F46E5" },
   },
 
+  /* ── Computación: teal ── */
+  "Computación": {
+    gradient: "from-teal-500 to-cyan-600",
+    bg: "bg-teal-50 dark:bg-teal-500/10",
+    border: "border-teal-200/70 dark:border-teal-500/25",
+    text: "text-teal-700 dark:text-teal-300",
+    dot: "bg-teal-500",
+    pill: "bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300",
+    hex: { primary: "#14B8A6", light: "#F0FDFA", medium: "#99F6E4", accent: "#0D9488" },
+  },
+
   /* ── Tutoría: cyan ── */
   "Tutoría": {
     gradient: "from-cyan-400 to-teal-500",
@@ -186,6 +198,7 @@ export const AREA_ICONS: Record<string, ComponentType<{ className?: string }>> =
   "Matemática": Calculator,
   "Ciencia y Tecnología": Microscope,
   "Educación Religiosa": Church,
+  "Computación": Monitor,
   "Tutoría": BookOpen,
 };
 

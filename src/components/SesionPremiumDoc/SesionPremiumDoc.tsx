@@ -446,13 +446,6 @@ function ProcesoPremiumRow({
       ? proceso.estrategias.join("\n")
       : proceso.estrategias || "";
 
-  // Soporta "recursos" (v2) y "recursosDidacticos" (v1)
-  const recursosRaw = proceso.recursos ?? proceso.recursosDidacticos;
-  const recursosTexto =
-    Array.isArray(recursosRaw)
-      ? recursosRaw.join(", ")
-      : recursosRaw || "";
-
   // Normalizar imágenes: soporta imagen singular (v2), imagenes array (v1)
   // e imagenContenido (contenido didáctico: tabla, gráfico, mapa, etc.)
   const baseImagenes = proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
@@ -463,23 +456,11 @@ function ProcesoPremiumRow({
   const imgJunto = imagenes.filter((img) => img.posicion === "junto");
   const imgDespues = imagenes.filter((img) => img.posicion === "despues" || img.posicion === "debajo" || (!img.posicion && img.posicion !== "antes" && img.posicion !== "junto"));
 
+  const tituloProc = proceso.proceso || "";
+
   return (
     <tr key={idx}>
       <td style={{ fontSize: "9pt", padding: "0.8rem", lineHeight: "1.6" }}>
-        {/* Título del proceso */}
-        {proceso.proceso && (
-          <div
-            style={{
-              fontSize: "10pt",
-              fontWeight: "bold",
-              marginBottom: "0.8rem",
-              color: "#1e293b",
-            }}
-          >
-            {proceso.proceso}
-          </div>
-        )}
-
         {/* Imágenes con posicion "antes" */}
         {imgAntes.length > 0 && (
           <div style={{ marginBottom: "0.6rem", textAlign: "center" }}>
@@ -489,7 +470,7 @@ function ProcesoPremiumRow({
                   src={img.url}
                   alt={img.descripcion || ""}
                   crossOrigin="anonymous"
-                  style={{ maxWidth: "350px", maxHeight: "300px" }}
+                  style={{ maxWidth: "260px", maxHeight: "220px" }}
                 />
                 {(img as any).texto_overlay && (
                   <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
@@ -506,11 +487,11 @@ function ProcesoPremiumRow({
           </div>
         )}
 
-        {/* Estrategias — con o sin imágenes "junto" */}
+        {/* "TítuloProceso: estrategias..." — sin label "Estrategias:" */}
         {estrategiasTexto && imgJunto.length > 0 ? (
           <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
             <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
-              <strong>Estrategias:</strong>{" "}
+              {tituloProc && <strong>{tituloProc}: </strong>}
               {Array.isArray(proceso.estrategias) && proceso.estrategias.length > 1 ? (
                 <ul style={{ marginLeft: "1rem", marginTop: "0.3rem", lineHeight: 1.6 }}>
                   {proceso.estrategias.map((e, i) => (
@@ -521,14 +502,14 @@ function ProcesoPremiumRow({
                 <span>{parseMarkdown(estrategiasTexto)}</span>
               )}
             </div>
-            <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <div style={{ flexShrink: 0, maxWidth: "35%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
               {imgJunto.map((img, imgIdx) => (
                 <div key={(img as any).id ?? imgIdx} style={{ textAlign: "center" }}>
                   <img
                     src={img.url}
                     alt={img.descripcion || ""}
                     crossOrigin="anonymous"
-                    style={{ maxWidth: "350px", maxHeight: "300px" }}
+                    style={{ maxWidth: "260px", maxHeight: "220px" }}
                   />
                   {(img as any).texto_overlay && (
                     <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
@@ -546,7 +527,7 @@ function ProcesoPremiumRow({
           </div>
         ) : estrategiasTexto ? (
           <div style={{ marginBottom: "0.8rem", whiteSpace: "pre-wrap" }}>
-            <strong>Estrategias:</strong>{" "}
+            {tituloProc && <strong>{tituloProc}: </strong>}
             {Array.isArray(proceso.estrategias) &&
             proceso.estrategias.length > 1 ? (
               <ul
@@ -566,6 +547,10 @@ function ProcesoPremiumRow({
               <span>{parseMarkdown(estrategiasTexto)}</span>
             )}
           </div>
+        ) : tituloProc ? (
+          <div style={{ marginBottom: "0.8rem" }}>
+            <strong>{tituloProc}</strong>
+          </div>
         ) : null}
 
         {/* Imágenes con posicion "despues" o sin posicion */}
@@ -577,7 +562,7 @@ function ProcesoPremiumRow({
                   src={img.url}
                   alt={img.descripcion || ""}
                   crossOrigin="anonymous"
-                  style={{ maxWidth: "350px", maxHeight: "300px" }}
+                  style={{ maxWidth: "260px", maxHeight: "220px" }}
                 />
                 {(img as any).texto_overlay && (
                   <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
@@ -597,18 +582,17 @@ function ProcesoPremiumRow({
         {/* Gráfico educativo (Math o Área) */}
         {proceso.grafico && esGraficoRenderable(proceso.grafico) && (
           <div style={{
-            marginTop: "1rem",
-            marginBottom: "1rem",
-            padding: "1rem 1.25rem",
+            marginTop: "0.6rem",
+            marginBottom: "0.6rem",
+            padding: "0.6rem 0.8rem",
             background: "linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%)",
-            borderRadius: "12px",
+            borderRadius: "8px",
             border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
             textAlign: "center",
             overflow: "visible",
           }}>
             <div style={{
-              maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 420,
+              maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 340,
               width: "100%",
               margin: "0 auto",
               minWidth: 0,
@@ -621,20 +605,20 @@ function ProcesoPremiumRow({
         {/* Gráfico de operación */}
         {(proceso as any).graficoOperacion && esGraficoRenderable((proceso as any).graficoOperacion) && (
           <div style={{
-            marginTop: "0.8rem",
-            marginBottom: "0.8rem",
+            marginTop: "0.5rem",
+            marginBottom: "0.5rem",
             backgroundColor: "#faf5ff",
-            padding: "1rem",
+            padding: "0.6rem 0.8rem",
             borderRadius: "8px",
             border: "2px solid #d8b4fe",
             overflow: "visible",
           }}>
-            <p style={{ fontSize: "9pt", fontWeight: "bold", color: "#7c3aed", marginBottom: "0.5rem", margin: 0 }}>
+            <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#7c3aed", marginBottom: "0.3rem", margin: 0 }}>
               🔢 Operación / Recurso:
             </p>
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem", minWidth: 0 }}>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "0.3rem", minWidth: 0 }}>
               <div style={{ 
-                maxWidth: esGraficoAnchoCompleto((proceso as any).graficoOperacion) ? "100%" : 420, 
+                maxWidth: esGraficoAnchoCompleto((proceso as any).graficoOperacion) ? "100%" : 340, 
                 width: "100%",
                 minWidth: 0,
               }}>
@@ -670,17 +654,6 @@ function ProcesoPremiumRow({
           </div>
         )}
 
-        {/* Recursos didácticos y tiempo */}
-        {recursosTexto && (
-          <div>
-            <strong>Recursos:</strong> {recursosTexto}
-          </div>
-        )}
-        {proceso.tiempo && (
-          <div>
-            <strong>Tiempo:</strong> {proceso.tiempo}
-          </div>
-        )}
       </td>
     </tr>
   );

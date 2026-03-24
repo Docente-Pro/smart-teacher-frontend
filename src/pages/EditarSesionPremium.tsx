@@ -1132,9 +1132,16 @@ function EditarSesionPremium() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 p-4 sm:p-8">
+      <style>{`
+        @media print {
+          .editar-sesion-toolbar {
+            display: none !important;
+          }
+        }
+      `}</style>
       <div className="max-w-5xl mx-auto">
         {/* ── Header ── */}
-        <div className="flex flex-col gap-4 mb-6">
+        <div className="editar-sesion-toolbar flex flex-col gap-4 mb-6">
           <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"

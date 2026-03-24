@@ -36,6 +36,7 @@ import {
   generarMateriales,
   generarReflexiones,
   regenerarPasoUnidad,
+  regenerarSecuencia,
 } from "@/services/ia-unidad.service";
 import { HorarioPanel } from "./HorarioPanel";
 import { SortableSlotsList } from "./SortableSlotsList";
@@ -214,7 +215,8 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       setStatusSecuencia("generating");
       setGenerandoPaso("Secuencia de Actividades");
       const contenidoParaSec = useUnidadStore.getState().contenido;
-      const resSec = await generarSecuencia(unidadId, horario, contenidoParaSec as Record<string, unknown>);
+      const horarioActual = useUnidadStore.getState().horario;
+      const resSec = await generarSecuencia(unidadId, horarioActual, contenidoParaSec as Record<string, unknown>);
       const secData: ISecuencia = {
         hiloConductor: (resSec.data as any).hiloConductor ?? "",
         semanas: (resSec.data as any).semanas ?? [],
@@ -306,20 +308,24 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     setGenerandoPaso(labels[paso]);
 
     try {
-      const res = await regenerarPasoUnidad(unidadId, paso);
-
       if (paso === "secuencia") {
+        const horarioActual = useUnidadStore.getState().horario;
+        const contenidoActual = useUnidadStore.getState().contenido;
+        const res = await regenerarSecuencia(unidadId, horarioActual, contenidoActual as Record<string, unknown>);
         const d = res.data as unknown as ISecuenciaResponse;
         setSecuencia(d);
         updateContenido({ secuencia: d });
-      } else if (paso === "materiales") {
-        const d = (res.data as unknown as IMaterialesResponse).materiales;
-        setMateriales(d);
-        updateContenido({ materiales: d });
       } else {
-        const d = (res.data as unknown as IReflexionesResponse).reflexiones;
-        setReflexiones(d);
-        updateContenido({ reflexiones: d });
+        const res = await regenerarPasoUnidad(unidadId, paso);
+        if (paso === "materiales") {
+          const d = (res.data as unknown as IMaterialesResponse).materiales;
+          setMateriales(d);
+          updateContenido({ materiales: d });
+        } else {
+          const d = (res.data as unknown as IReflexionesResponse).reflexiones;
+          setReflexiones(d);
+          updateContenido({ reflexiones: d });
+        }
       }
 
       setStatus("done");

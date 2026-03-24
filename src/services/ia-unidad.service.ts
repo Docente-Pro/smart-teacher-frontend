@@ -86,17 +86,9 @@ export async function generarEnfoques(
   return data;
 }
 
-/** Mapea HorarioEscolar (dias[].horas[]) al formato del contrato: dias[].turnoManana/turnoTarde */
-function horarioToSecuenciaBody(horario: HorarioEscolar): { horario: { dias: Array<{ dia: string; turnoManana: { area: string }; turnoTarde: { area: string } }> } } {
-  return {
-    horario: {
-      dias: horario.dias.map((d) => ({
-        dia: d.dia,
-        turnoManana: { area: d.horas[0]?.area ?? "" },
-        turnoTarde: { area: d.horas[1]?.area ?? "" },
-      })),
-    },
-  };
+/** Mapea HorarioEscolar (dias[].horas[]) al formato completo para el backend */
+function horarioToSecuenciaBody(horario: HorarioEscolar): { horario: HorarioEscolar } {
+  return { horario };
 }
 
 /** Paso 6 — Secuencia de Actividades (requiere pasos 1, 2, 3, 5)
@@ -215,9 +207,17 @@ export async function generarImagenSituacion(
 /**
  * POST /api/ia-unidad/:unidadId/generar-completa
  * Ejecuta los 8 pasos de forma secuencial en el backend.
+ * Acepta horario y contenidoEditado opcionales (contrato §7).
  */
-export async function generarUnidadCompleta(unidadId: string): Promise<IPasoUnidadResponse> {
-  const { data } = await instance.post(`${BASE}/${unidadId}/generar-completa`);
+export async function generarUnidadCompleta(
+  unidadId: string,
+  horario?: HorarioEscolar | null,
+  contenidoEditado?: ContenidoEditadoBody
+): Promise<IPasoUnidadResponse> {
+  const body: Record<string, unknown> = {};
+  if (horario?.dias?.length) Object.assign(body, horarioToSecuenciaBody(horario));
+  if (contenidoEditado && Object.keys(contenidoEditado).length > 0) body.contenidoEditado = contenidoEditado;
+  const { data } = await instance.post(`${BASE}/${unidadId}/generar-completa`, Object.keys(body).length ? body : undefined);
   return data;
 }
 
@@ -232,6 +232,19 @@ export async function regenerarPasoUnidad(
   paso: PasoUnidad
 ): Promise<IPasoUnidadResponse> {
   const { data } = await instance.post(`${BASE}/${unidadId}/regenerar/${paso}`);
+  return data;
+}
+
+/** Regenerar secuencia enviando horario + contenidoEditado (contrato §8.2: mismo body que generar). */
+export async function regenerarSecuencia(
+  unidadId: string,
+  horario?: HorarioEscolar | null,
+  contenidoEditado?: ContenidoEditadoBody
+): Promise<IPasoUnidadResponse<ISecuenciaResponse>> {
+  const body: Record<string, unknown> = {};
+  if (horario?.dias?.length) Object.assign(body, horarioToSecuenciaBody(horario));
+  if (contenidoEditado && Object.keys(contenidoEditado).length > 0) body.contenidoEditado = contenidoEditado;
+  const { data } = await instance.post(`${BASE}/${unidadId}/regenerar/secuencia`, Object.keys(body).length ? body : undefined);
   return data;
 }
 
