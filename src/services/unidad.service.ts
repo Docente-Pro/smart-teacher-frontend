@@ -30,7 +30,6 @@ import type {
   ISesionComplementariaRequest,
   ISesionComplementariaResponse,
 } from "@/interfaces/ISesionComplementaria";
-import type { IUnidad } from "@/interfaces/IUnidad";
 
 // ============================================
 // Precios dinámicos (público)
