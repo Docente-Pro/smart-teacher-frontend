@@ -13,6 +13,10 @@ export function clearUserStorage() {
     "user-storage",
     "unidad-wizard-storage",
     "sesion-storage",
+    // Cache y datos por docente (deben limpiarse al cerrar sesión)
+    "dp_alumnos_subidos",
+    "dp_alumnos_data",
+    "insignia_base64",
   ];
 
   // Claves de tokens / auth manuales del usuario

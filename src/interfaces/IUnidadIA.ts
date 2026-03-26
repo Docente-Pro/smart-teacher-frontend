@@ -163,6 +163,15 @@ export interface ISemanaSecuencia {
   dias: IDiaSecuencia[];
 }
 
+/** Reprogramación automática por feriados nacionales (opcional, backend reciente). */
+export interface IReprogramacionFeriados {
+  aplicado: boolean;
+  scope: "nacional";
+  cantidadFeriados: number;
+  fechasFeriadas: Array<{ fecha: string; nombre: string }>;
+  diasLectivosReprogramados: number;
+}
+
 /** Actividad que el backend excluyó para cumplir máx. 3 áreas/día */
 export interface IActividadExcluida {
   area: string;
@@ -176,6 +185,8 @@ export interface ISecuencia {
   semanas: ISemanaSecuencia[];
   /** Presente solo si Python excluyó bloques por límite de áreas/día */
   actividadesExcluidas?: IActividadExcluida[];
+  /** Presente si se aplicó reprogramación por feriados nacionales */
+  reprogramacionFeriados?: IReprogramacionFeriados;
 }
 
 export interface ISecuenciaRequest extends IUnidadContextoBase {
