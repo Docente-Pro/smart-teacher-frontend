@@ -116,7 +116,10 @@ export interface ISeccionOrdenar {
 }
 
 export interface IAfirmacionVF {
-  afirmacion: string;
+  /** Texto mostrado al estudiante (contrato API) */
+  texto?: string;
+  /** @deprecated Mismo significado que `texto`; mantener por payloads antiguos */
+  afirmacion?: string;
   respuesta?: boolean; // Va al solucionario, no se muestra
 }
 

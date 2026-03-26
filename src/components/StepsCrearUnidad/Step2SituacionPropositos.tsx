@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,21 +34,89 @@ import {
 import { patchPropositosActividades } from "@/services/unidad.service";
 import { updateUsuario } from "@/services/usuarios.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
+import type { IUnidad } from "@/interfaces/IUnidad";
+import type { ContenidoSaveStatus } from "@/hooks/useAutoSaveContenido";
 import type {
   ISituacionSignificativaResponse,
   IEvidencias,
   IPropositos,
+  IActividadCriterioProposito,
 } from "@/interfaces/IUnidadIA";
 
 interface Props {
   pagina: number;
   setPagina: (pagina: number) => void;
   usuario: IUsuario;
+  contenidoSaveStatus: ContenidoSaveStatus;
 }
 
 type GenerationStatus = "idle" | "generating" | "done" | "error";
 
-function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
+type PendingCriterioSlot = { areaIdx: number; compIdx: number; actIdx: number };
+
+function nombreCompetenciaProposito(
+  comp: IPropositos["areasPropositos"][number]["competencias"][number]
+): string {
+  const ext = comp as { competencia?: string };
+  return (comp.nombre || ext.competencia || "").trim();
+}
+
+function normActividadTxt(t: string): string {
+  return t.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Una fila de `actividadCriterios` con la fila i de `actividades` solo si el texto coincide.
+ * Evita mostrar criterios viejos en una fila nueva tras borrar (índices desfasados o payload del servidor).
+ */
+function reconcileActividadCriteriosParaActividades(
+  actividades: string[],
+  actividadCriterios: IActividadCriterioProposito[] | undefined
+): IActividadCriterioProposito[] {
+  const prev = [...(actividadCriterios ?? [])];
+  const usedPrev = new Set<number>();
+
+  return actividades.map((texto) => {
+    const n = normActividadTxt(texto);
+    if (!n) {
+      return { actividad: texto, criterios: [] };
+    }
+    const j = prev.findIndex(
+      (ac, idx) => !usedPrev.has(idx) && normActividadTxt(ac.actividad) === n
+    );
+    if (j >= 0) {
+      usedPrev.add(j);
+      return { ...prev[j], actividad: texto };
+    }
+    return { actividad: texto, criterios: [] };
+  });
+}
+
+function alinearPropositosActividadCriterios(prop: IPropositos): IPropositos {
+  return {
+    ...prop,
+    areasPropositos: prop.areasPropositos.map((area) => ({
+      ...area,
+      competencias: area.competencias.map((comp) => {
+        const actividades = comp.actividades ?? [];
+        return {
+          ...comp,
+          actividades,
+          actividadCriterios: reconcileActividadCriteriosParaActividades(
+            actividades,
+            comp.actividadCriterios
+          ),
+        };
+      }),
+    })),
+  };
+}
+
+function competenciaKey(areaIdx: number, compIdx: number): string {
+  return `${areaIdx}-${compIdx}`;
+}
+
+function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveStatus }: Props) {
   const { unidadId, datosBase, contenido, updateContenido, setGenerandoPaso, generandoPaso } =
     useUnidadStore();
   const { user: userProfile } = useUserStore();
@@ -80,37 +149,139 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
       setStatusEvidencias("done");
     }
     if (contenido.propositos && !propositos) {
-      setPropositos(contenido.propositos);
+      setPropositos(alinearPropositosActividadCriterios(contenido.propositos));
       setStatusPropositos("done");
     }
   }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos]);
 
   // Secciones colapsadas
   const [expandedPropositos, setExpandedPropositos] = useState(true);
-  const syncActividadesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (syncActividadesTimerRef.current) clearTimeout(syncActividadesTimerRef.current);
+  /** `${areaIdx}-${compIdx}` mientras un PATCH con IA genera criterios para actividades nuevas */
+  const [criteriosActividadSyncKey, setCriteriosActividadSyncKey] = useState<string | null>(null);
+  /** `${areaIdx}-${compIdx}` mientras un PATCH de actividades está en curso (guardar manual) */
+  const [savingActividadesKey, setSavingActividadesKey] = useState<string | null>(null);
+  /** Competencias con cambios locales de actividades aún no guardados */
+  const [dirtyCompetenciaKeys, setDirtyCompetenciaKeys] = useState<string[]>([]);
+  /** Índices de filas añadidas con "Agregar actividad" que aún deben disparar IA al tener texto */
+  const pendingCriteriosActividadRef = useRef<PendingCriterioSlot[]>([]);
+
+  const markCompetenciaDirty = useCallback((areaIdx: number, compIdx: number) => {
+    const k = competenciaKey(areaIdx, compIdx);
+    setDirtyCompetenciaKeys((prev) => (prev.includes(k) ? prev : [...prev, k]));
   }, []);
 
-  // Sincroniza las actividades de una competencia con el backend (PATCH). Si no se pasa propositos, lee del store.
+  const clearCompetenciaDirty = useCallback((areaIdx: number, compIdx: number) => {
+    const k = competenciaKey(areaIdx, compIdx);
+    setDirtyCompetenciaKeys((prev) => prev.filter((it) => it !== k));
+  }, []);
+
+  const isCompetenciaDirty = useCallback(
+    (areaIdx: number, compIdx: number) => dirtyCompetenciaKeys.includes(competenciaKey(areaIdx, compIdx)),
+    [dirtyCompetenciaKeys]
+  );
+
+  const adjustPendingAfterRemove = useCallback(
+    (areaIdx: number, compIdx: number, removedActIdx: number) => {
+      const next: PendingCriterioSlot[] = [];
+      for (const s of pendingCriteriosActividadRef.current) {
+        if (s.areaIdx !== areaIdx || s.compIdx !== compIdx) {
+          next.push(s);
+          continue;
+        }
+        if (s.actIdx === removedActIdx) continue;
+        if (s.actIdx > removedActIdx) next.push({ ...s, actIdx: s.actIdx - 1 });
+        else next.push(s);
+      }
+      pendingCriteriosActividadRef.current = next;
+    },
+    []
+  );
+
+  // Sincroniza actividades (PATCH) al pulsar Guardar.
+  // Con texto en filas marcadas como nuevas, envía nuevasActividades → IA genera criterios.
   const syncActividadesToBackend = useCallback(
-    (areaIdx: number, compIdx: number, propositosSnapshot?: IPropositos | null) => {
-      if (!unidadId) return;
+    async (areaIdx: number, compIdx: number, propositosSnapshot?: IPropositos | null): Promise<boolean> => {
+      if (!unidadId) return false;
       const props = propositosSnapshot ?? useUnidadStore.getState().contenido?.propositos;
-      if (!props?.areasPropositos?.[areaIdx]?.competencias?.[compIdx]) return;
+      if (!props?.areasPropositos?.[areaIdx]?.competencias?.[compIdx]) return false;
       const area = props.areasPropositos[areaIdx];
       const comp = area.competencias[compIdx];
       const actividades = comp.actividades ?? [];
-      patchPropositosActividades(unidadId, {
+      const competenciaNombre = nombreCompetenciaProposito(comp);
+
+      const pendingForComp = pendingCriteriosActividadRef.current.filter(
+        (s) => s.areaIdx === areaIdx && s.compIdx === compIdx
+      );
+      const nuevasActividades: string[] = [];
+      const sentSlots: PendingCriterioSlot[] = [];
+      for (const slot of pendingForComp) {
+        const t = (actividades[slot.actIdx] ?? "").trim();
+        if (t) {
+          nuevasActividades.push(t);
+          sentSlots.push(slot);
+        }
+      }
+
+      const body = {
         area: area.area,
-        competencia: comp.nombre,
+        competencia: competenciaNombre,
         actividades,
-      }).catch((err) => {
+        ...(nuevasActividades.length > 0 ? { nuevasActividades } : {}),
+      };
+
+      const syncKey = competenciaKey(areaIdx, compIdx);
+      setSavingActividadesKey(syncKey);
+      if (nuevasActividades.length > 0) setCriteriosActividadSyncKey(syncKey);
+
+      try {
+        const res = await patchPropositosActividades(unidadId, body);
+        if (res.success === false) return false;
+
+        pendingCriteriosActividadRef.current = pendingCriteriosActividadRef.current.filter(
+          (s) =>
+            !sentSlots.some(
+              (ss) => ss.areaIdx === s.areaIdx && ss.compIdx === s.compIdx && ss.actIdx === s.actIdx
+            )
+        );
+        const n = res.criteriosGeneradosParaActividades;
+        if (n != null && n > 0) {
+          handleToaster(
+            n === 1
+              ? "Se generaron criterios para la nueva actividad."
+              : `Se generaron criterios para ${n} actividades nuevas.`,
+            "success"
+          );
+        }
+
+        const unidad = res.data as IUnidad | undefined;
+        const propFromServer = unidad?.contenido?.propositos;
+        if (propFromServer) {
+          const propAlineado = alinearPropositosActividadCriterios(propFromServer);
+          setPropositos(propAlineado);
+          updateContenido({ propositos: propAlineado });
+        } else if (propositosSnapshot) {
+          // Mantener store/UI consistentes aunque el backend no devuelva contenido completo.
+          const propAlineado = alinearPropositosActividadCriterios(propositosSnapshot);
+          setPropositos(propAlineado);
+          updateContenido({ propositos: propAlineado });
+        }
+
+        clearCompetenciaDirty(areaIdx, compIdx);
+        return true;
+      } catch (err: any) {
         console.error("Error al sincronizar actividades:", err);
-        handleToaster("No se pudo guardar en el servidor. Revisa la conexión.", "error");
-      });
+        handleToaster(
+          err?.response?.data?.message ??
+            "No se pudo guardar las actividades. Revisa la conexión o reintenta.",
+          "error"
+        );
+        return false;
+      } finally {
+        setSavingActividadesKey((k) => (k === syncKey ? null : k));
+        setCriteriosActividadSyncKey((k) => (k === syncKey ? null : k));
+      }
     },
-    [unidadId]
+    [unidadId, updateContenido, setPropositos, clearCompetenciaDirty]
   );
 
   // Handler para editar una actividad in-place
@@ -145,12 +316,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
       ),
     };
     setPropositos(updated);
-    updateContenido({ propositos: updated });
-    if (syncActividadesTimerRef.current) clearTimeout(syncActividadesTimerRef.current);
-    syncActividadesTimerRef.current = setTimeout(() => {
-      syncActividadesToBackend(areaIdx, compIdx);
-      syncActividadesTimerRef.current = null;
-    }, 600);
+    markCompetenciaDirty(areaIdx, compIdx);
   };
 
   // Agregar una nueva actividad a una competencia (se guarda en el store)
@@ -161,6 +327,8 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
     const comp = area.competencias[compIdx];
     if (!comp) return;
     const currentActividades = comp.actividades ?? [];
+    const newActIdx = currentActividades.length;
+    pendingCriteriosActividadRef.current.push({ areaIdx, compIdx, actIdx: newActIdx });
     const updated: IPropositos = {
       ...propositos,
       areasPropositos: propositos.areasPropositos.map((a, aI) =>
@@ -174,24 +342,23 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
                   : {
                       ...c,
                       actividades: [...currentActividades, ""],
-                      actividadCriterios: [
-                        ...(c.actividadCriterios ?? []),
-                        { actividad: "", criterios: [] },
-                      ],
+                      actividadCriterios: reconcileActividadCriteriosParaActividades(
+                        [...currentActividades, ""],
+                        c.actividadCriterios
+                      ),
                     },
               ),
             }
       ),
     };
     setPropositos(updated);
-    updateContenido({ propositos: updated });
-    if (syncActividadesTimerRef.current) clearTimeout(syncActividadesTimerRef.current);
-    syncActividadesToBackend(areaIdx, compIdx, updated);
+    markCompetenciaDirty(areaIdx, compIdx);
   };
 
   // Eliminar una actividad
   const handleRemoveActividad = (areaIdx: number, compIdx: number, actIdx: number) => {
     if (!propositos) return;
+    adjustPendingAfterRemove(areaIdx, compIdx, actIdx);
     const updated: IPropositos = {
       ...propositos,
       areasPropositos: propositos.areasPropositos.map((area, aI) =>
@@ -199,24 +366,28 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
           ? area
           : {
               ...area,
-              competencias: area.competencias.map((comp, cI) =>
-                cI !== compIdx
-                  ? comp
-                  : {
-                      ...comp,
-                      actividades: comp.actividades.filter((_, i) => i !== actIdx),
-                      actividadCriterios: (comp.actividadCriterios ?? []).filter(
-                        (_, i) => i !== actIdx
-                      ),
-                    }
-              ),
+              competencias: area.competencias.map((comp, cI) => {
+                if (cI !== compIdx) return comp;
+                const actividadesNueva = comp.actividades.filter((_, i) => i !== actIdx);
+                return {
+                  ...comp,
+                  actividades: actividadesNueva,
+                  actividadCriterios: reconcileActividadCriteriosParaActividades(
+                    actividadesNueva,
+                    comp.actividadCriterios
+                  ),
+                };
+              }),
             }
       ),
     };
     setPropositos(updated);
-    updateContenido({ propositos: updated });
-    if (syncActividadesTimerRef.current) clearTimeout(syncActividadesTimerRef.current);
-    syncActividadesToBackend(areaIdx, compIdx, updated);
+    markCompetenciaDirty(areaIdx, compIdx);
+  };
+
+  const handleGuardarActividades = async (areaIdx: number, compIdx: number) => {
+    if (!propositos || !isCompetenciaDirty(areaIdx, compIdx)) return;
+    await syncActividadesToBackend(areaIdx, compIdx, propositos);
   };
 
   const isGenerating = generandoPaso !== null;
@@ -273,9 +444,11 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
       setGenerandoPaso("Propósitos de Aprendizaje");
       const contenidoParaProp = useUnidadStore.getState().contenido;
       const resProp = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>);
-      const propData = resProp.data as IPropositos;
+      const propData = alinearPropositosActividadCriterios(resProp.data as IPropositos);
       setPropositos(propData);
       updateContenido({ propositos: propData });
+      pendingCriteriosActividadRef.current = [];
+      setDirtyCompetenciaKeys([]);
       setStatusPropositos("done");
 
       // Esperar la imagen si aún no terminó (no bloquea UX, ya terminaron los 3 pasos)
@@ -332,9 +505,11 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
         setEvidencias(d);
         updateContenido({ evidencias: d });
       } else {
-        const d = res.data as unknown as IPropositos;
+        const d = alinearPropositosActividadCriterios(res.data as unknown as IPropositos);
         setPropositos(d);
         updateContenido({ propositos: d });
+        pendingCriteriosActividadRef.current = [];
+        setDirtyCompetenciaKeys([]);
       }
 
       setStatus("done");
@@ -357,6 +532,12 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
     }
     if (!contenido.propositos) {
       return handleToaster("Primero genera los propósitos", "error");
+    }
+    if (dirtyCompetenciaKeys.length > 0) {
+      return handleToaster(
+        "Tienes actividades sin guardar en Propósitos. Pulsa Guardar antes de continuar.",
+        "error"
+      );
     }
 
     // Save situación as context for next time (non-blocking)
@@ -386,7 +567,47 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
     []
   );
 
+  const isSavingContenido = contenidoSaveStatus === "saving";
+  const isGenerandoCriteriosActividad = criteriosActividadSyncKey !== null;
+  const isSavingActividades = savingActividadesKey !== null;
+  const uiBlockedPaso2 = isSavingContenido || isGenerandoCriteriosActividad || isSavingActividades;
+  const mensajeBloqueoPaso2 =
+    isGenerandoCriteriosActividad && isSavingContenido
+      ? "Generando criterios de evaluación y guardando contenido…"
+      : isGenerandoCriteriosActividad && isSavingActividades
+        ? "Guardando actividades y generando criterios…"
+        : isSavingActividades
+          ? "Guardando actividades de los propósitos…"
+      : isGenerandoCriteriosActividad
+        ? "Generando criterios de evaluación para la(s) actividad(es) nueva(s)…"
+        : "Guardando contenido…";
+
   return (
+    <>
+      <DialogPrimitive.Root open={uiBlockedPaso2} modal>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[600] bg-slate-950/60 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <DialogPrimitive.Content
+            className="fixed left-1/2 top-1/2 z-[601] w-[min(92vw,22rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl outline-none dark:border-slate-600 dark:bg-slate-900 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+            aria-describedby={undefined}
+          >
+            <DialogPrimitive.Title className="sr-only">Operación en curso</DialogPrimitive.Title>
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Loader2 className="h-11 w-11 shrink-0 animate-spin text-emerald-600 dark:text-emerald-400" aria-hidden />
+              <div>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{mensajeBloqueoPaso2}</p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  No cierres ni recargues esta página hasta que termine.
+                </p>
+              </div>
+            </div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6">
       <div className="max-w-5xl mx-auto">
         {/* ── Header ── */}
@@ -411,7 +632,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
           <div className="text-center mb-10">
             <Button
               onClick={generarTodo}
-              disabled={isGenerating}
+              disabled={isGenerating || uiBlockedPaso2}
               className="h-16 px-10 text-lg font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
             >
               {isGenerating ? (
@@ -451,17 +672,19 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
           status={statusSituacion}
           onRegenerate={() => regenerar("situacion-significativa")}
           isGenerating={isGenerating}
+          interactionLocked={uiBlockedPaso2}
         >
           {statusSituacion === "idle" && prevSituacion && (
             <button
               type="button"
+              disabled={uiBlockedPaso2}
               onClick={() => {
                 setSituacionTexto(prevSituacion);
                 updateContenido({ situacionSignificativa: prevSituacion });
                 setStatusSituacion("done");
                 handleToaster("Situación significativa anterior restaurada", "success");
               }}
-              className="flex items-start gap-2.5 w-full text-left p-3 rounded-xl border border-amber-200 dark:border-amber-700/40 bg-amber-50/80 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+              className="flex items-start gap-2.5 w-full text-left p-3 rounded-xl border border-amber-200 dark:border-amber-700/40 bg-amber-50/80 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors disabled:opacity-50 disabled:pointer-events-none"
             >
               <RefreshCw className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
               <div className="min-w-0 flex-1">
@@ -475,16 +698,18 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
             </button>
           )}
           {statusSituacion === "done" && (
-            <MarkdownTextarea
-              value={situacionTexto}
-              onChange={(v) => {
-                setSituacionTexto(v);
-                updateContenido({ situacionSignificativa: v });
-              }}
-              rows={12}
-              className="border-emerald-200 dark:border-emerald-800 focus:ring-emerald-500"
-              viewClassName="border-emerald-200 dark:border-emerald-800 min-h-[200px]"
-            />
+            <div className={uiBlockedPaso2 ? "pointer-events-none select-none opacity-60" : undefined}>
+              <MarkdownTextarea
+                value={situacionTexto}
+                onChange={(v) => {
+                  setSituacionTexto(v);
+                  updateContenido({ situacionSignificativa: v });
+                }}
+                rows={12}
+                className="border-emerald-200 dark:border-emerald-800 focus:ring-emerald-500"
+                viewClassName="border-emerald-200 dark:border-emerald-800 min-h-[200px]"
+              />
+            </div>
           )}
         </IASection>
 
@@ -498,9 +723,10 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
           status={statusEvidencias}
           onRegenerate={() => regenerar("evidencias")}
           isGenerating={isGenerating}
+          interactionLocked={uiBlockedPaso2}
         >
           {statusEvidencias === "done" && evidencias && (
-            <div className="space-y-4">
+            <div className={`space-y-4 ${uiBlockedPaso2 ? "pointer-events-none select-none opacity-60" : ""}`}>
               <EvidenciaField
                 label="Propósito"
                 value={evidencias.proposito}
@@ -545,13 +771,16 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
           status={statusPropositos}
           onRegenerate={() => regenerar("propositos")}
           isGenerating={isGenerating}
+          interactionLocked={uiBlockedPaso2}
         >
           {statusPropositos === "done" && propositos && (
-            <div className="space-y-4">
+            <div className={`space-y-4 ${uiBlockedPaso2 ? "pointer-events-none select-none opacity-60" : ""}`}>
               {/* Toggle */}
               <button
+                type="button"
                 onClick={() => setExpandedPropositos(!expandedPropositos)}
-                className="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-400 hover:underline"
+                disabled={uiBlockedPaso2}
+                className="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-400 hover:underline disabled:opacity-50 disabled:pointer-events-none"
               >
                 {expandedPropositos ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 {propositos.areasPropositos?.length || 0} áreas con propósitos
@@ -572,7 +801,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
                           key={cIdx}
                           className="ml-2 mb-4 pl-3 border-l-2 border-purple-200 dark:border-purple-800"
                         >
-                          <p className="font-semibold text-sm">{comp.nombre}</p>
+                          <p className="font-semibold text-sm">{nombreCompetenciaProposito(comp)}</p>
                           {comp.capacidades?.length > 0 && (
                             <div className="mt-1">
                               <p className="text-xs text-slate-500 font-medium">Capacidades:</p>
@@ -587,6 +816,11 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
                             <p className="text-xs text-slate-500 font-medium">
                               Actividades y criterios agrupados:
                             </p>
+                            {isCompetenciaDirty(aIdx, cIdx) && (
+                              <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                Hay cambios sin guardar en esta competencia.
+                              </p>
+                            )}
                             <div className="space-y-1 ml-2 mt-1">
                               {(comp.actividades ?? []).map((act, i) => (
                                 <div
@@ -597,6 +831,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
                                     <span className="text-xs text-slate-400 shrink-0 w-5">{i + 1}.</span>
                                     <Input
                                       value={act}
+                                      disabled={uiBlockedPaso2}
                                       onChange={(e) =>
                                         handleActividadChange(aIdx, cIdx, i, e.target.value)
                                       }
@@ -607,6 +842,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
                                       variant="ghost"
                                       size="icon"
                                       className="h-7 w-7 shrink-0 text-slate-400 hover:text-red-500"
+                                      disabled={uiBlockedPaso2}
                                       onClick={() => handleRemoveActividad(aIdx, cIdx, i)}
                                       title="Quitar actividad"
                                     >
@@ -628,10 +864,27 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
                                 variant="outline"
                                 size="sm"
                                 className="mt-2 h-8 text-xs gap-1.5 border-dashed border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                                disabled={uiBlockedPaso2}
                                 onClick={() => handleAddActividad(aIdx, cIdx)}
                               >
                                 <Plus className="h-3.5 w-3.5" />
                                 Agregar actividad
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="mt-2 ml-2 h-8 text-xs gap-1.5"
+                                disabled={uiBlockedPaso2 || !isCompetenciaDirty(aIdx, cIdx)}
+                                onClick={() => handleGuardarActividades(aIdx, cIdx)}
+                              >
+                                {savingActividadesKey === competenciaKey(aIdx, cIdx) ? (
+                                  <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    Guardando...
+                                  </>
+                                ) : (
+                                  "Guardar"
+                                )}
                               </Button>
                             </div>
                           </div>
@@ -678,13 +931,14 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
             onClick={() => setPagina(pagina - 1)}
             variant="outline"
             className="h-14 px-8 text-lg"
+            disabled={uiBlockedPaso2}
           >
             <ArrowLeft className="mr-2 h-5 w-5" />
             Anterior
           </Button>
           <Button
             onClick={handleContinuar}
-            disabled={!allDone}
+            disabled={!allDone || uiBlockedPaso2 || dirtyCompetenciaKeys.length > 0}
             className="h-14 px-10 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continuar
@@ -693,6 +947,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario }: Props) {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -708,6 +963,7 @@ function IASection({
   status,
   onRegenerate,
   isGenerating,
+  interactionLocked = false,
   children,
 }: {
   icon: React.ReactNode;
@@ -716,8 +972,11 @@ function IASection({
   status: GenerationStatus;
   onRegenerate: () => void;
   isGenerating: boolean;
+  /** Bloqueo por guardado automático o generación de criterios (modal a pantalla) */
+  interactionLocked?: boolean;
   children: React.ReactNode;
 }) {
+  const regenDisabled = isGenerating || interactionLocked;
   return (
     <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -732,7 +991,7 @@ function IASection({
         {status === "done" && (
           <Button
             onClick={onRegenerate}
-            disabled={isGenerating}
+            disabled={regenDisabled}
             variant="outline"
             size="sm"
             className="gap-1.5 text-xs"
@@ -766,7 +1025,7 @@ function IASection({
         {status === "error" && (
           <div className="text-center py-8">
             <p className="text-sm text-red-500 mb-2">Error al generar. Intenta de nuevo.</p>
-            <Button onClick={onRegenerate} variant="destructive" size="sm">
+            <Button onClick={onRegenerate} variant="destructive" size="sm" disabled={regenDisabled}>
               <RefreshCw className="h-4 w-4 mr-1.5" />
               Reintentar
             </Button>
