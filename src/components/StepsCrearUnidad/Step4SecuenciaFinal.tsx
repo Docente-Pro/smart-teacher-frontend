@@ -217,10 +217,11 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       const contenidoParaSec = useUnidadStore.getState().contenido;
       const horarioActual = useUnidadStore.getState().horario;
       const resSec = await generarSecuencia(unidadId, horarioActual, contenidoParaSec as Record<string, unknown>);
+      const secResp = resSec.data as ISecuenciaResponse;
       const secData: ISecuencia = {
-        hiloConductor: (resSec.data as any).hiloConductor ?? "",
-        semanas: (resSec.data as any).semanas ?? [],
-        actividadesExcluidas: (resSec.data as any).actividadesExcluidas,
+        ...secResp,
+        hiloConductor: secResp.hiloConductor ?? "",
+        semanas: secResp.semanas ?? [],
       };
       setSecuencia(secData);
       updateContenido({ secuencia: secData });
@@ -356,6 +357,8 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   }
 
   const tieneExcluidas = (secuencia?.actividadesExcluidas?.length ?? 0) > 0;
+  const resumenFeriados = secuencia?.reprogramacionFeriados;
+  const mostrarBannerFeriados = resumenFeriados?.aplicado === true;
 
   /** Actualiza la secuencia al editar un turno, una hora o la fecha del día; persiste en el store.
    * Usa actualizador funcional para que al arrastrar entre días (dos actualizaciones seguidas)
@@ -548,6 +551,18 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                     </ul>
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
                       Puedes editar la secuencia abajo para incluir estas actividades en el día que prefieras.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Aviso reprogramación por feriados nacionales */}
+              {mostrarBannerFeriados && (
+                <div className="rounded-lg border border-cyan-200 bg-cyan-50 dark:border-cyan-800 dark:bg-cyan-950/40 p-4 flex gap-3">
+                  <CalendarDays className="h-5 w-5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-cyan-800 dark:text-cyan-200">
+                      Se reprogramaron {resumenFeriados.diasLectivosReprogramados} días por feriados nacionales.
                     </p>
                   </div>
                 </div>

@@ -202,6 +202,12 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
         });
         localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user-storage");
+        localStorage.removeItem("unidad-wizard-storage");
+        localStorage.removeItem("sesion-storage");
+        localStorage.removeItem("dp_alumnos_subidos");
+        localStorage.removeItem("dp_alumnos_data");
+        localStorage.removeItem("insignia_base64");
       },
 
       setLoading: (loading) => {

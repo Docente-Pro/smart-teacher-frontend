@@ -600,6 +600,8 @@ function EditarUnidad() {
             })),
           })),
         })),
+        actividadesExcluidas: (rawContenido.secuencia as any)?.actividadesExcluidas,
+        reprogramacionFeriados: (rawContenido.secuencia as any)?.reprogramacionFeriados,
       },
       materiales: materialesEdit
         .split("\n")

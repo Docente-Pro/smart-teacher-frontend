@@ -60,6 +60,7 @@ export type {
   ISemanaSecuencia,
   IDiaSecuencia,
   IHoraActividad,
+  IReprogramacionFeriados,
   ISecuenciaResponse,
   IMaterialesResponse,
   IReflexionPregunta,
