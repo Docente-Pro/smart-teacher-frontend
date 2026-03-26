@@ -104,17 +104,10 @@ function renderProcesoRow(proceso: any, idx: number) {
   return (
     <tr key={idx}>
       <td style={{ fontSize: "9pt", padding: "0.8rem", lineHeight: "1.6" }}>
-        {/* Título del proceso */}
-        {proceso.proceso && (
-          <div style={{
-            fontSize: "10pt",
-            fontWeight: "bold",
-            marginBottom: "0.8rem",
-            color: "#1e293b"
-          }}>
-            {proceso.proceso}
-          </div>
-        )}
+        {/*
+          Formato alineado con Premium:
+          "Proceso: estrategias..." (sin etiqueta "Estrategias")
+        */}
 
         {/* 🖼️ Imágenes posición "antes" */}
         {renderImagenesProceso(proceso, 'antes')}
@@ -123,11 +116,16 @@ function renderProcesoRow(proceso: any, idx: number) {
         {tieneImagenesJunto ? (
           <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
             <div style={{ flex: 1 }}>
-              {proceso.estrategias && (
-                <div>
-                  <strong>Estrategias:</strong> {parseMarkdown(proceso.estrategias)}
+              {proceso.estrategias ? (
+                <div style={{ whiteSpace: "pre-wrap" }}>
+                  {proceso.proceso && <strong>{proceso.proceso}: </strong>}
+                  {parseMarkdown(proceso.estrategias)}
                 </div>
-              )}
+              ) : proceso.proceso ? (
+                <div>
+                  <strong>{proceso.proceso}</strong>
+                </div>
+              ) : null}
             </div>
             <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
               {imgJunto.map((img: any, imgIdx: number) => (
@@ -152,9 +150,16 @@ function renderProcesoRow(proceso: any, idx: number) {
             </div>
           </div>
         ) : (
-          proceso.estrategias && (
+          (proceso.estrategias || proceso.proceso) && (
             <div style={{ marginBottom: "0.8rem" }}>
-              <strong>Estrategias:</strong> {parseMarkdown(proceso.estrategias)}
+              {proceso.estrategias ? (
+                <>
+                  {proceso.proceso && <strong>{proceso.proceso}: </strong>}
+                  {parseMarkdown(proceso.estrategias)}
+                </>
+              ) : (
+                <strong>{proceso.proceso}</strong>
+              )}
             </div>
           )
         )}
@@ -335,11 +340,8 @@ function renderProcesoRow(proceso: any, idx: number) {
           </div>
         )}
 
-        {/* Recursos didácticos y tiempo */}
+        {/* Tiempo */}
         <div style={{ display: "flex", gap: "1rem", fontSize: "8pt", color: "#64748b" }}>
-          {(proceso.recursos || proceso.recursosDidacticos) && (
-            <div><strong>Recursos:</strong> {proceso.recursos || proceso.recursosDidacticos}</div>
-          )}
           {proceso.tiempo && (
             <div><strong>Tiempo:</strong> {proceso.tiempo}</div>
           )}
