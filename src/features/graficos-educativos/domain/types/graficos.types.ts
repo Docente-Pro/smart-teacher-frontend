@@ -517,7 +517,10 @@ export interface GraficoBaseDiezBloques extends ConfiguracionGrafico {
 // ============= PICTOGRAMA =============
 
 export interface FilaPictograma {
-  categoria: string;
+  /** Etiqueta de fila (API / generador) */
+  categoria?: string;
+  /** Sinónimo usado por algunas respuestas del backend */
+  nombre?: string;
   cantidad: number;
   icono?: string;
   color?: string;

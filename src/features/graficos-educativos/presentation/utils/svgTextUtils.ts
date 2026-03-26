@@ -20,14 +20,15 @@ const PX_PER_CHAR_11 = 6;
  * Estima el ancho en px de un texto SVG (Comic Sans, font-weight normal).
  * Es una aproximación conservadora que evita la necesidad de `getComputedTextLength()`.
  */
-export function estimateTextWidth(text: string, fontSize: number = 14): number {
+export function estimateTextWidth(text: string | null | undefined, fontSize: number = 14): number {
+  const s = text ?? "";
   const pxPerChar =
     fontSize >= 16 ? 8.5 :
     fontSize >= 14 ? PX_PER_CHAR_14 :
     fontSize >= 13 ? PX_PER_CHAR_13 :
     fontSize >= 12 ? PX_PER_CHAR_12 :
     PX_PER_CHAR_11;
-  return text.length * pxPerChar;
+  return s.length * pxPerChar;
 }
 
 // ─── Word-wrap ───

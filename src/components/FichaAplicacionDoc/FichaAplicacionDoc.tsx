@@ -153,26 +153,6 @@ function FichaHeader({
               </td>
             </tr>
           )}
-          {ficha.capacidad && (
-            <tr>
-              <td
-                style={{
-                  backgroundColor: hex.light,
-                  fontWeight: "bold",
-                  fontSize: "9pt",
-                  padding: "0.25rem 0.4rem",
-                }}
-              >
-                Capacidad
-              </td>
-              <td
-                colSpan={3}
-                style={{ fontSize: "9pt", padding: "0.25rem 0.4rem" }}
-              >
-                {ficha.capacidad}
-              </td>
-            </tr>
-          )}
           {ficha.desempeno && (
             <tr>
               <td
@@ -469,12 +449,8 @@ function BloqueProblema({
 // ═════════════════════════════════════════════════════════════════════════════
 // BLOQUE 3: Preguntas de comprensión / reflexión
 // ═════════════════════════════════════════════════════════════════════════════
-
-const NIVEL_BADGE: Record<string, { bg: string; color: string; label: string }> = {
-  literal: { bg: "#DBEAFE", color: "#1E40AF", label: "Literal" },
-  inferencial: { bg: "#D1FAE5", color: "#065F46", label: "Inferencial" },
-  "crítico": { bg: "#FEF3C7", color: "#92400E", label: "Crítico" },
-};
+// El texto de `pregunta` suele traer ya la numeración ("1. ..."); no duplicar índice.
+// `nivel` (literal / inferencial / crítico) no se muestra en el PDF para no saturar la ficha.
 
 function BloquePreguntas({
   seccion,
@@ -487,33 +463,12 @@ function BloquePreguntas({
     <div style={{ marginBottom: "0.5rem" }}>
       <SectionTitle title={seccion.titulo} hex={hex} />
       {seccion.contenido.preguntas.map((p, i) => {
-        const badge = p.nivel ? NIVEL_BADGE[p.nivel] : null;
         const lineas = p.lineasRespuesta ?? 2;
         return (
           <div key={i} style={{ padding: "0.3rem 0.5rem" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.3rem" }}>
-              <span style={{ fontWeight: "bold", fontSize: "10pt", minWidth: "20px" }}>
-                {i + 1}.
-              </span>
-              <span style={{ fontSize: "10pt", lineHeight: 1.4, flex: 1 }}>
-                {p.pregunta}
-              </span>
-              {badge && (
-                <span
-                  style={{
-                    backgroundColor: badge.bg,
-                    color: badge.color,
-                    fontSize: "7pt",
-                    fontWeight: "bold",
-                    padding: "0.1rem 0.35rem",
-                    borderRadius: "8px",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {badge.label}
-                </span>
-              )}
-            </div>
+            <p style={{ fontSize: "10pt", lineHeight: 1.4, margin: 0 }}>
+              {p.pregunta}
+            </p>
             {/* Líneas punteadas para respuesta */}
             {Array.from({ length: lineas }).map((_, li) => (
               <div
@@ -521,7 +476,7 @@ function BloquePreguntas({
                 style={{
                   borderBottom: "1px dotted #aaa",
                   height: "22px",
-                  marginLeft: "20px",
+                  marginTop: "2px",
                 }}
               />
             ))}
@@ -843,6 +798,32 @@ function BloqueOrdenar({
 // BLOQUE 8: Verdadero / Falso
 // ═════════════════════════════════════════════════════════════════════════════
 
+const vfRadioCell: React.CSSProperties = {
+  border: "1px solid #333",
+  textAlign: "center",
+  verticalAlign: "middle",
+  padding: "0.35rem 0.25rem",
+  width: "2.25rem",
+};
+
+function vfRadioCircle(hex: Hex): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "14px",
+    height: "14px",
+    border: `1.5px solid ${hex.accent}`,
+    borderRadius: "50%",
+    margin: "0 auto",
+    boxSizing: "border-box",
+  };
+}
+
+function textoAfirmacionVF(a: { texto?: string; afirmacion?: string }): string {
+  return (a.texto ?? a.afirmacion ?? "").trim();
+}
+
 function BloqueVerdaderoFalso({
   seccion,
   hex,
@@ -850,59 +831,37 @@ function BloqueVerdaderoFalso({
   seccion: ISeccionVerdaderoFalso;
   hex: Hex;
 }) {
+  const thBase: React.CSSProperties = {
+    backgroundColor: hex.light,
+    border: "1px solid #333",
+    fontSize: "9pt",
+    fontWeight: "bold",
+    padding: "0.3rem 0.4rem",
+    textAlign: "center",
+  };
+
   return (
     <div style={{ marginBottom: "0.5rem" }}>
       <SectionTitle title={seccion.titulo} hex={hex} />
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          tableLayout: "fixed",
+        }}
+      >
+        <colgroup>
+          <col style={{ width: "2rem" }} />
+          <col />
+          <col style={{ width: "2.25rem" }} />
+          <col style={{ width: "2.25rem" }} />
+        </colgroup>
         <thead>
           <tr>
-            <th
-              style={{
-                backgroundColor: hex.light,
-                border: "1px solid #333",
-                fontSize: "9pt",
-                padding: "0.25rem 0.4rem",
-                width: "5%",
-                textAlign: "center",
-              }}
-            >
-              N°
-            </th>
-            <th
-              style={{
-                backgroundColor: hex.light,
-                border: "1px solid #333",
-                fontSize: "9pt",
-                padding: "0.25rem 0.4rem",
-                textAlign: "left",
-              }}
-            >
-              Afirmación
-            </th>
-            <th
-              style={{
-                backgroundColor: hex.light,
-                border: "1px solid #333",
-                fontSize: "9pt",
-                padding: "0.25rem 0.4rem",
-                width: "6%",
-                textAlign: "center",
-              }}
-            >
-              V
-            </th>
-            <th
-              style={{
-                backgroundColor: hex.light,
-                border: "1px solid #333",
-                fontSize: "9pt",
-                padding: "0.25rem 0.4rem",
-                width: "6%",
-                textAlign: "center",
-              }}
-            >
-              F
-            </th>
+            <th style={{ ...thBase, width: "2rem" }}>N°</th>
+            <th style={{ ...thBase, textAlign: "left" }}>Afirmación</th>
+            <th style={{ ...thBase, ...vfRadioCell, fontWeight: "bold" }}>V</th>
+            <th style={{ ...thBase, ...vfRadioCell, fontWeight: "bold" }}>F</th>
           </tr>
         </thead>
         <tbody>
@@ -913,7 +872,9 @@ function BloqueVerdaderoFalso({
                   border: "1px solid #333",
                   textAlign: "center",
                   fontSize: "9pt",
-                  padding: "0.25rem",
+                  fontWeight: "bold",
+                  padding: "0.3rem 0.25rem",
+                  verticalAlign: "middle",
                 }}
               >
                 {i + 1}
@@ -922,28 +883,19 @@ function BloqueVerdaderoFalso({
                 style={{
                   border: "1px solid #333",
                   fontSize: "10pt",
-                  padding: "0.3rem 0.4rem",
+                  padding: "0.35rem 0.45rem",
+                  verticalAlign: "middle",
+                  lineHeight: 1.35,
+                  wordBreak: "break-word",
                 }}
               >
-                {a.afirmacion}
+                {textoAfirmacionVF(a)}
               </td>
-              <td
-                style={{
-                  border: "1px solid #333",
-                  textAlign: "center",
-                  fontSize: "10pt",
-                }}
-              >
-                ○
+              <td style={vfRadioCell}>
+                <span style={vfRadioCircle(hex)} aria-hidden />
               </td>
-              <td
-                style={{
-                  border: "1px solid #333",
-                  textAlign: "center",
-                  fontSize: "10pt",
-                }}
-              >
-                ○
+              <td style={vfRadioCell}>
+                <span style={vfRadioCircle(hex)} aria-hidden />
               </td>
             </tr>
           ))}

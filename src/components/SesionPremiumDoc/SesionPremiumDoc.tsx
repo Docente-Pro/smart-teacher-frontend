@@ -14,8 +14,7 @@
  * aplicado a cabeceras de sección, th, header y footer.
  */
 
-import { Document, Footer } from "@htmldocs/react";
-import { DocumentStyles } from "@/components/DocTest";
+import { DocumentStyles, HtmldocsDocument, HtmldocsFooter } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
 import { getAreaColor, type AreaColorConfig } from "@/constants/areaColors";
 import { InstrumentoEvaluacionSection } from "./InstrumentoEvaluacionSection";
@@ -976,7 +975,7 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
   const hex = areaConfig.hex;
 
   return (
-    <Document size="A4" orientation="portrait" margin="0.5in">
+    <HtmldocsDocument size="A4" orientation="portrait" margin="0.5in">
       <DocumentStyles thBgColor={hex.light} />
 
       {/* HEADER */}
@@ -1089,7 +1088,7 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
       {/* FUENTES MINEDU — deshabilitado, no se renderiza en el PDF */}
 
       {/* Footer — con color del área */}
-      <Footer position="bottom-center">
+      <HtmldocsFooter position="bottom-center">
         {() => (
           <div
             style={{
@@ -1105,8 +1104,8 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
             <span>Sesión de Aprendizaje - {areaName || "Premium"}</span>
           </div>
         )}
-      </Footer>
-    </Document>
+      </HtmldocsFooter>
+    </HtmldocsDocument>
   );
 }
 

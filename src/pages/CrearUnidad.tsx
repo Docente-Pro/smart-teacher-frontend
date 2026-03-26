@@ -312,6 +312,7 @@ function CrearUnidad() {
                 pagina={currentStep}
                 setPagina={handleSetStep}
                 usuario={usuarioData}
+                contenidoSaveStatus={contenidoSaveStatus}
               />
             )}
 

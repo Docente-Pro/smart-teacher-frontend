@@ -30,6 +30,7 @@ import type {
   ISesionComplementariaRequest,
   ISesionComplementariaResponse,
 } from "@/interfaces/ISesionComplementaria";
+import type { IUnidad } from "@/interfaces/IUnidad";
 
 // ============================================
 // Precios dinámicos (público)
@@ -490,12 +491,15 @@ export interface IPatchPropositosActividadesRequest {
   area: string;
   competencia: string;
   actividades: string[];
+  /** Actividades nuevas (manual) para las que el backend genera criterios por IA en esta petición */
+  nuevasActividades?: string[];
 }
 
 export interface IPatchPropositosActividadesResponse {
   success: boolean;
   message?: string;
-  data?: Record<string, unknown>;
+  data?: IUnidad;
+  criteriosGeneradosParaActividades?: number;
 }
 
 /** Normaliza nombre de área (quita prefijo "Área de") para coincidir con el backend */
@@ -508,16 +512,24 @@ export function normalizarNombreArea(nombre: string): string {
  * El backend busca area y competencia (con normalización) y reemplaza solo actividades.
  * PATCH /api/unidades/:id/propositos/actividades
  */
+const PATCH_PROPOSITOS_IA_TIMEOUT_MS = 180_000;
+
 export async function patchPropositosActividades(
   unidadId: string,
   body: IPatchPropositosActividadesRequest,
+  options?: { timeout?: number }
 ): Promise<IPatchPropositosActividadesResponse> {
+  const hasNuevas = (body.nuevasActividades?.length ?? 0) > 0;
+  const timeout =
+    options?.timeout ?? (hasNuevas ? PATCH_PROPOSITOS_IA_TIMEOUT_MS : undefined);
+
   const { data } = await instance.patch<IPatchPropositosActividadesResponse>(
     `/unidades/${unidadId}/propositos/actividades`,
     {
       ...body,
       area: normalizarNombreArea(body.area),
     },
+    timeout != null ? { timeout } : undefined
   );
   return data;
 }
