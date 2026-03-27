@@ -8,6 +8,22 @@ interface Props {
   imagenSituacionUrl?: string;
 }
 
+function resumirProposito(texto?: string): string {
+  const limpio = (texto ?? "").replace(/\s+/g, " ").trim();
+  if (!limpio) return "";
+
+  // Prioriza las dos primeras oraciones para mantener el propósito breve.
+  const oraciones = limpio
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const base = oraciones.slice(0, 2).join(" ");
+  const candidato = base || limpio;
+
+  if (candidato.length <= 280) return candidato;
+  return `${candidato.slice(0, 277).trimEnd()}...`;
+}
+
 /**
  * PLANTEAMIENTO DE LA SITUACIÓN + EVIDENCIA DE APRENDIZAJE
  */
@@ -58,18 +74,15 @@ export function UnidadDocSituacion({ situacionSignificativa, evidencias, imagenS
       {/* ─── Evidencias de aprendizaje ─── */}
       {evidencias && (
         <>
-          <h3 className="section-subtitle" style={{ marginTop: "0.3rem" }}>
-            EVIDENCIA DE APRENDIZAJE
-          </h3>
           <table>
             <thead>
               <tr>
-                <th style={{ width: "100%", textAlign: "center" }}>PROPÓSITO</th>
+                <th style={{ width: "100%", textAlign: "center" }}>PROPÓSITO DE LA UNIDAD</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style={{ fontSize: "9pt" }}>{parseMarkdown(evidencias.proposito)}</td>
+                <td style={{ fontSize: "9pt" }}>{parseMarkdown(resumirProposito(evidencias.proposito))}</td>
               </tr>
             </tbody>
           </table>
