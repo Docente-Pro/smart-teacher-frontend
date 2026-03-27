@@ -12,11 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { subirPDFaS3 } from "@/services/sesiones.service";
-import { confirmarUploadUnidad } from "@/services/unidad.service";
+import { confirmarUploadUnidad, solicitarUploadUrlUnidad } from "@/services/unidad.service";
 import type {
   ICorregirEstandaresResponse,
   ICorregirEstandaresMiembroUpload,
 } from "@/services/unidad.service";
+import { adminGenerarWordUnidad } from "@/services/admin.service";
 import {
   UnidadDocStyles,
   UnidadDocHeader,
@@ -138,6 +139,8 @@ interface AdminCorregirEstandaresState {
   nombreDirectivo: string;
   nombreSubdirectora: string;
   usuarioId: string;
+  /** true si el Word anterior fue eliminado y debe regenerarse tras el PDF */
+  wordInvalidado?: boolean;
 }
 
 /**
@@ -214,16 +217,27 @@ export default function AdminCorregirEstandaresPdf() {
       });
 
       // ── Subir PDF del propietario ──
-      if (corregirResponse.upload?.presignedUrl) {
-        setEstado("Subiendo PDF del propietario…");
-        await subirPDFaS3(corregirResponse.upload.presignedUrl, pdfBlob);
+      // Si la respuesta no trae presigned URL (ej: arreglar-actividades), solicitarla ahora
+      let uploadPresignedUrl = corregirResponse.upload?.presignedUrl ?? null;
+      let uploadS3Key = corregirResponse.upload?.s3Key ?? null;
+
+      if (!uploadPresignedUrl) {
+        setEstado("Solicitando URL de subida…");
+        const urlRes = await solicitarUploadUrlUnidad({ unidadId, usuarioId });
+        uploadPresignedUrl = urlRes.data.uploadUrl;
+        uploadS3Key = urlRes.data.key;
+      }
+
+      if (uploadPresignedUrl && uploadS3Key) {
+        setEstado("Subiendo PDF…");
+        await subirPDFaS3(uploadPresignedUrl, pdfBlob);
 
         // ── Confirmar subida ──
         setEstado("Confirmando subida…");
         await confirmarUploadUnidad({
           unidadId,
           usuarioId,
-          key: corregirResponse.upload.s3Key,
+          key: uploadS3Key,
         });
       }
 
@@ -248,11 +262,22 @@ export default function AdminCorregirEstandaresPdf() {
         }
       }
 
+      // ── Regenerar Word si fue invalidado (fire-and-forget) ──
+      if (navState.wordInvalidado) {
+        setEstado("Regenerando Word en segundo plano…");
+        adminGenerarWordUnidad(unidadId).then(() => {
+          toast.success("Word regenerado correctamente");
+        }).catch((wordErr: any) => {
+          console.error("❌ [AdminCorregirEstandares] Error regenerando Word:", wordErr);
+          toast.warning("PDF subido, pero el Word no pudo regenerarse — inténtalo manualmente.");
+        });
+      }
+
       // ── Éxito ──
       setCompletado(true);
       const total = corregirResponse.totalCorregidos;
-      setEstado(`¡${total} estándar(es) corregido(s) — PDF regenerado y subido!`);
-      toast.success(`${total} estándar(es) corregido(s) — PDF actualizado`);
+      setEstado(`¡${total} corrección(es) — PDF regenerado y subido!`);
+      toast.success(`${total} corrección(es) aplicada(s) — PDF actualizado`);
 
       // Navegar de vuelta
       setTimeout(() => {

@@ -452,6 +452,32 @@ export async function arreglarHorario(
 }
 
 // ============================================
+// Finalizar unidad (docente propietario)
+// POST /api/unidades/:id/finalizar
+// ============================================
+
+export interface IFinalizarUnidadResponse {
+  success: boolean;
+  message: string;
+  data?: Record<string, unknown>;
+}
+
+/**
+ * Marca la unidad como finalizada (pone fechaFin = ahora).
+ * Solo puede hacerlo el propietario. La unidad debe tener estadoPago = CONFIRMADO.
+ * POST /api/unidades/:id/finalizar
+ */
+export async function finalizarUnidad(
+  unidadId: string,
+): Promise<IFinalizarUnidadResponse> {
+  const { data } = await instance.post<IFinalizarUnidadResponse>(
+    `/unidades/${unidadId}/finalizar`,
+    {},
+  );
+  return data;
+}
+
+// ============================================
 // Editar contenido de unidad
 // PATCH /api/unidades/:id/contenido
 // ============================================

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { listarUnidadesByUsuario, obtenerDownloadUrlUnidad, sincronizarMiembroUnidad } from "@/services/unidad.service";
+import { listarUnidadesByUsuario, obtenerDownloadUrlUnidad, sincronizarMiembroUnidad, finalizarUnidad } from "@/services/unidad.service";
 import { buildCdnPdfUrl } from "@/utils/cdn";
 import type { IUnidadListItem } from "@/interfaces/IUnidadList";
 import {
@@ -32,6 +32,8 @@ import {
   Check,
   MessageCircle,
   Pencil,
+  FlagOff,
+  CheckCircle2,
 } from "lucide-react";
 
 // ─────────────────── Helpers ───────────────────
@@ -85,6 +87,21 @@ function formatPeriodo(fechaInicio?: string, fechaFin?: string) {
   return `${formatFecha(fechaInicio)} — ${formatFecha(fechaFin)}`;
 }
 
+/** Unidad finalizada = fechaFin existe y ya pasó */
+function isUnidadFinalizada(fechaFin?: string | null): boolean {
+  if (!fechaFin) return false;
+  return new Date(fechaFin).getTime() <= Date.now();
+}
+
+/** Solo propietarios con pago CONFIRMADO y unidad activa pueden finalizar */
+function puedeFinalizarUnidad(unidad: IUnidadListItem): boolean {
+  return (
+    unidad._rol === "PROPIETARIO" &&
+    unidad.estadoPago === "CONFIRMADO" &&
+    !isUnidadFinalizada(unidad.fechaFin)
+  );
+}
+
 function getTipoBadgeClasses(tipo?: string) {
   const base = "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border";
   if (tipo === "COMPARTIDA") {
@@ -117,6 +134,8 @@ function MisUnidades() {
   const [searchTerm, setSearchTerm] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [finalizandoId, setFinalizandoId] = useState<string | null>(null);
+  const [confirmFinalizarId, setConfirmFinalizarId] = useState<string | null>(null);
 
   const userId = user?.id;
 
@@ -265,6 +284,25 @@ function MisUnidades() {
       handleToaster(msg, "error");
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  // ─── Finalizar unidad ───
+  const handleFinalizar = async (unidadId: string) => {
+    setConfirmFinalizarId(null);
+    setFinalizandoId(unidadId);
+    try {
+      const res = await finalizarUnidad(unidadId);
+      handleToaster(res.message || "Unidad finalizada correctamente", "success");
+      await cargarUnidades();
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Error al finalizar la unidad";
+      handleToaster(msg, "error");
+    } finally {
+      setFinalizandoId(null);
     }
   };
 
@@ -578,6 +616,12 @@ function MisUnidades() {
                         </span>
                       );
                     })()}
+                    {isUnidadFinalizada(unidad.fechaFin) && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600/50">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Finalizada
+                      </span>
+                    )}
                   </div>
 
                   {/* Compartir código (solo COMPARTIDA) */}
@@ -651,6 +695,22 @@ function MisUnidades() {
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
+                    {puedeFinalizarUnidad(unidad) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-all"
+                        onClick={() => setConfirmFinalizarId(unidad.id)}
+                        disabled={finalizandoId === unidad.id}
+                        title="Finalizar unidad"
+                      >
+                        {finalizandoId === unidad.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <FlagOff className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -658,6 +718,71 @@ function MisUnidades() {
           </div>
         )}
       </div>
+
+      {/* ─── Modal confirmar finalizar ─── */}
+      {confirmFinalizarId && (() => {
+        const unidadTarget = unidades.find((u) => u.id === confirmFinalizarId);
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            onClick={() => setConfirmFinalizarId(null)}
+          >
+            <div
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-700"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-500/20">
+                  <FlagOff className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Finalizar unidad
+                </h3>
+              </div>
+
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                ¿Estás seguro que deseas finalizar{" "}
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  "{unidadTarget?.titulo}"
+                </span>
+                ?
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                La unidad quedará cerrada. Seguirá existiendo con todas sus sesiones y PDFs, pero dejará de contar como activa, lo que te permitirá crear una nueva unidad.
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmFinalizarId(null)}
+                  disabled={finalizandoId === confirmFinalizarId}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleFinalizar(confirmFinalizarId)}
+                  disabled={finalizandoId === confirmFinalizarId}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {finalizandoId === confirmFinalizarId ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                      Finalizando...
+                    </>
+                  ) : (
+                    <>
+                      <FlagOff className="h-4 w-4 mr-1.5" />
+                      Sí, finalizar
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
