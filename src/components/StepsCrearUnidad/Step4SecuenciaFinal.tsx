@@ -360,6 +360,20 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const resumenFeriados = secuencia?.reprogramacionFeriados;
   const mostrarBannerFeriados = resumenFeriados?.aplicado === true;
 
+  const semanasGeneradas = secuencia?.semanas?.length ?? 0;
+  const duracionPedida = datosBase?.duracion ?? 0;
+  const haySemanasExtra = semanasGeneradas > duracionPedida && duracionPedida > 0;
+
+  function recortarSemanasExtra() {
+    if (!secuencia || !haySemanasExtra) return;
+    const updated: ISecuencia = {
+      ...secuencia,
+      semanas: secuencia.semanas.slice(0, duracionPedida),
+    };
+    setSecuencia(updated);
+    updateContenido({ secuencia: updated });
+  }
+
   /** Actualiza la secuencia al editar un turno, una hora o la fecha del día; persiste en el store.
    * Usa actualizador funcional para que al arrastrar entre días (dos actualizaciones seguidas)
    * la segunda vea el estado ya actualizado por la primera. */
@@ -560,11 +574,34 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
               {mostrarBannerFeriados && (
                 <div className="rounded-lg border border-cyan-200 bg-cyan-50 dark:border-cyan-800 dark:bg-cyan-950/40 p-4 flex gap-3">
                   <CalendarDays className="h-5 w-5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-cyan-800 dark:text-cyan-200">
                       Se reprogramaron {resumenFeriados.diasLectivosReprogramados} días por feriados nacionales.
                     </p>
                   </div>
+                </div>
+              )}
+
+              {/* Aviso semanas extra generadas por feriados */}
+              {haySemanasExtra && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 p-4 flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                      Se generaron {semanasGeneradas} semanas (pediste {duracionPedida}).
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                      La semana extra contiene sesiones de recuperación por feriados. Puedes mantenerla o descartarla.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 border-amber-400 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:border-amber-600 dark:hover:bg-amber-950/60 text-xs"
+                    onClick={recortarSemanasExtra}
+                  >
+                    Recortar a {duracionPedida} semanas
+                  </Button>
                 </div>
               )}
 

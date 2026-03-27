@@ -16,7 +16,8 @@ import {
   adminUpdateUsuario,
 } from "@/services/admin.service";
 import type { IAdminUpdateUsuarioRequest } from "@/services/admin.service";
-import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares } from "@/services/admin.service";
+import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares, adminArreglarActividades } from "@/services/admin.service";
+import type { IArreglarActividadesResponse } from "@/services/admin.service";
 import { getNiveles } from "@/features/initialForm/services/niveles.service";
 import { getAllGrados } from "@/services/grado.service";
 import { getAllProblematicas } from "@/services/problematica.service";
@@ -89,6 +90,8 @@ export default function AdminUsuarioDetalle() {
   const [rellenandoLista, setRellenandoLista] = useState<string | null>(null);
   const [corrigiendoUnidad, setCorrigiendoUnidad] = useState<string | null>(null);
   const [corrigiendoHorario, setCorrigiendoHorario] = useState<string | null>(null);
+  const [arreglandoActividades, setArreglandoActividades] = useState<string | null>(null);
+  const [resultadoArreglo, setResultadoArreglo] = useState<{ unidadId: string; res: IArreglarActividadesResponse } | null>(null);
   const [downloadingWord, setDownloadingWord] = useState<string | null>(null);
   const [generatingWord, setGeneratingWord] = useState<string | null>(null);
   const [generandoFicha, setGenerandoFicha] = useState<string | null>(null);
@@ -1494,11 +1497,157 @@ export default function AdminUsuarioDetalle() {
                         )}
                         {corrigiendoHorario === u.id ? "Arreglando…" : "Arreglar Horario"}
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-50 ml-1"
+                        disabled={arreglandoActividades === u.id}
+                        onClick={async () => {
+                          if (!confirm(`¿Arreglar actividades de la unidad "${u.titulo || u.id}"?\n\nEsto auditará y reparará competencias, actividades, criterios, estándares y la secuencia.\n\nPuede tardar hasta 4 minutos.`)) return;
+                          setArreglandoActividades(u.id);
+                          setResultadoArreglo(null);
+                          try {
+                            const res = await adminArreglarActividades(u.id, "mañana");
+                            setResultadoArreglo({ unidadId: u.id, res });
+                            if (res.correcciones.length > 0 && res.unidad) {
+                              // Hubo correcciones → regenerar siempre PDF y Word (el contenido cambió)
+                              toast.success(`${res.correcciones.length} corrección(es) aplicada(s) — generando PDF y Word actualizados…`);
+                              navigate(`/admin/corregir-estandares-pdf/${u.id}`, {
+                                state: {
+                                  corregirResponse: {
+                                    success: res.success,
+                                    totalCorregidos: res.correcciones.length,
+                                    guardadoEnBD: res.guardadoEnBD ?? false,
+                                    correcciones: [],
+                                    unidad: res.unidad,
+                                    upload: null, // null → la página solicita presigned URL
+                                    miembrosUpload: [],
+                                  },
+                                  unidadId: u.id,
+                                  titulo: u.titulo || "",
+                                  numeroUnidad: u.numeroUnidad,
+                                  grado: usuario?.grado?.nombre ?? "",
+                                  nivel: usuario?.nivel?.nombre ?? "",
+                                  fechaInicio: "",
+                                  fechaFin: "",
+                                  docente: usuario?.nombre ?? "",
+                                  institucion: usuario?.nombreInstitucion ?? "",
+                                  seccion: usuario?.seccion ?? "",
+                                  nombreDirectivo: usuario?.nombreDirectivo ?? "",
+                                  nombreSubdirectora: usuario?.nombreSubdirectora ?? "",
+                                  usuarioId: usuario!.id,
+                                  wordInvalidado: true, // siempre regenerar Word si hubo correcciones
+                                },
+                              });
+                            } else {
+                              toast.info("La unidad ya estaba correcta; no se aplicaron cambios.");
+                            }
+                          } catch (err: any) {
+                            console.error("❌ [Admin] Error al arreglar actividades:", err);
+                            toast.error(
+                              err?.response?.data?.message || "Error al arreglar actividades",
+                            );
+                          } finally {
+                            setArreglandoActividades(null);
+                          }
+                        }}
+                      >
+                        {arreglandoActividades === u.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <ListChecks className="w-3 h-3" />
+                        )}
+                        {arreglandoActividades === u.id ? "Arreglando…" : "Arreglar Actividades"}
+                      </Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {/* ─── Resultado de Arreglar Actividades ─── */}
+            {resultadoArreglo && (
+              <div className="mt-4 p-4 rounded-xl border border-violet-200 bg-violet-50/60">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-violet-800 flex items-center gap-1.5">
+                    <ListChecks className="w-4 h-4" />
+                    Resultado — Arreglar Actividades
+                  </h4>
+                  <button
+                    onClick={() => setResultadoArreglo(null)}
+                    className="text-xs text-violet-500 hover:underline"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+
+                {/* Advertencia PDF/Word invalidado */}
+                {(resultadoArreglo.res.pdfInvalidado || resultadoArreglo.res.wordInvalidado) && (
+                  <div className="mb-3 flex items-start gap-2 p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-800">
+                    <span className="text-base leading-none mt-0.5">⚠️</span>
+                    <div className="text-xs leading-relaxed">
+                      {resultadoArreglo.res.advertencia
+                        ? resultadoArreglo.res.advertencia
+                        : [
+                            resultadoArreglo.res.pdfInvalidado && "El PDF anterior fue eliminado.",
+                            resultadoArreglo.res.wordInvalidado && "El Word anterior fue eliminado.",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                      {" "}El docente debe generar y subir un nuevo PDF desde su cuenta.
+                    </div>
+                  </div>
+                )}
+
+                {/* Resumen */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                  {(
+                    [
+                      ["Competencias verificadas", resultadoArreglo.res.resumen.competenciasVerificadas],
+                      ["Competencias corregidas", resultadoArreglo.res.resumen.competenciasCorregidas],
+                      ["Capacidades corregidas", resultadoArreglo.res.resumen.capacidadesCorregidas],
+                      ["Áreas con actividades nuevas", resultadoArreglo.res.resumen.areasConActividadesRegeneradas],
+                      ["Estándares corregidos", resultadoArreglo.res.resumen.estandaresCorregidos],
+                      ["Secuencia regenerada", resultadoArreglo.res.resumen.secuenciaRegenerada ? "Sí" : "No"],
+                      ["Feriados reprogramados", resultadoArreglo.res.resumen.feriadosDetectados],
+                    ] as [string, number | string][]
+                  ).map(([label, val]) => (
+                    <div key={label} className="bg-white rounded-lg px-3 py-2 border border-violet-100 text-center">
+                      <p className="text-lg font-bold text-violet-700">{val}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Correcciones detalle */}
+                {resultadoArreglo.res.correcciones.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No se aplicaron cambios; la unidad ya estaba correcta.</p>
+                ) : (
+                  <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+                    {resultadoArreglo.res.correcciones.map((c, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs bg-white rounded-lg px-3 py-1.5 border border-violet-100">
+                        <span className="shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-violet-100 text-violet-700 capitalize">
+                          {c.fase}
+                        </span>
+                        {c.area && (
+                          <span className="shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+                            {c.area}
+                          </span>
+                        )}
+                        <span className="text-slate-600 leading-relaxed">{c.descripcion}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {resultadoArreglo.res.duracion != null && (
+                  <p className="text-[10px] text-slate-400 mt-2 text-right">
+                    Duración: {resultadoArreglo.res.duracion.toFixed(1)} s
+                    {resultadoArreglo.res.guardadoEnBD && " · Guardado en BD"}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Section>

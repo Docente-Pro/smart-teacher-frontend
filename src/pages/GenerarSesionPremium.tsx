@@ -414,13 +414,14 @@ function GenerarSesionPremium() {
       return map;
     }
 
-    // Past weeks → show generated/clonada or blocked
+    // Past weeks → generated/clonada stay as-is; ungenerated are still available
+    // (teacher may have missed them and wants to catch up)
     if (isPastWeek) {
       for (const slot of allSlots) {
         if (generatedSlots.has(slot.key)) {
           map.set(slot.key, clonedSlots.has(slot.key) ? "clonada" : "generada");
         } else {
-          map.set(slot.key, "bloqueada");
+          map.set(slot.key, "disponible");
         }
       }
       return map;
@@ -1027,7 +1028,7 @@ function GenerarSesionPremium() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Semana pasada</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Esta semana ya pasó. Las sesiones no generadas quedan bloqueadas.</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Esta semana ya pasó. Puedes seguir generando las sesiones que te faltaron.</p>
                     </div>
                   </div>
                 )}

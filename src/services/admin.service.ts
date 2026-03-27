@@ -691,6 +691,65 @@ export async function adminArreglarHorario(
   return data;
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 7. Arreglar actividades de unidad (Admin)
+// POST /api/admin/unidad/arreglar-actividades
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface IResumenArregloActividades {
+  competenciasVerificadas: number;
+  competenciasCorregidas: number;
+  capacidadesCorregidas: number;
+  areasConActividadesRegeneradas: number;
+  estandaresCorregidos: number;
+  secuenciaRegenerada: boolean;
+  /** Días feriados nacionales detectados y reprogramados en la secuencia */
+  feriadosDetectados: number;
+}
+
+export interface ICorreccionDetalleActividades {
+  fase: "competencias" | "capacidades" | "actividades" | "estandares" | "secuencia" | "feriados";
+  area?: string;
+  tipo: string;
+  descripcion: string;
+}
+
+export interface IArreglarActividadesResponse {
+  success: boolean;
+  unidadId?: string;
+  guardadoEnBD?: boolean;
+  /** true si el PDF fue eliminado de S3 (el docente debe subir uno nuevo) */
+  pdfInvalidado?: boolean;
+  /** true si el Word fue eliminado de S3 (regenerar con /generar-word una vez haya PDF) */
+  wordInvalidado?: boolean;
+  /** Mensaje descriptivo para mostrar en UI cuando pdfInvalidado es true */
+  advertencia?: string;
+  duracion: number | null;
+  resumen: IResumenArregloActividades;
+  correcciones: ICorreccionDetalleActividades[];
+  unidad: Record<string, unknown> | null;
+}
+
+/**
+ * POST /api/admin/unidad/arreglar-actividades
+ * Audita y repara competencias, actividades, criterios, estándares y secuencia.
+ * Proceso largo (~2-4 min). Requiere timeout de ≥300 000 ms.
+ */
+export async function adminArreglarActividades(
+  unidadId: string,
+  turno: "mañana" | "tarde" = "mañana",
+): Promise<IArreglarActividadesResponse> {
+  const { data } = await instance.post<IArreglarActividadesResponse>(
+    "/admin/unidad/arreglar-actividades",
+    { unidadId, turno },
+    {
+      headers: getAdminHeaders(),
+      timeout: 310_000,
+    },
+  );
+  return data;
+}
+
 /** PATCH /api/unidades/:id/contenido — con token admin */
 export async function adminEditarContenidoUnidad(
   unidadId: string,
