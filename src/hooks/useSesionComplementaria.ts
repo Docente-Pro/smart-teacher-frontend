@@ -54,7 +54,13 @@ export function useSesionComplementaria() {
       tipo: TipoSesionComplementaria;
       titulo: string;
       descripcion?: string;
+      docente?: string;
       unidadId?: string;
+      nivel?: string;
+      grado?: string;
+      seccion?: string;
+      fecha?: string;
+      duracionMinutos?: number;
     }): Promise<ISesionComplementariaResponse | null> => {
       setState({ phase: "generating", isRunning: true, error: null, result: null });
 
@@ -63,7 +69,13 @@ export function useSesionComplementaria() {
           tipo: params.tipo,
           actividadTitulo: params.titulo,
           descripcion: params.descripcion,
+          docente: params.docente,
+          nivel: params.nivel,
+          grado: params.grado,
+          seccion: params.seccion,
+          fecha: params.fecha,
           unidadId: params.unidadId,
+          duracionMinutos: params.duracionMinutos,
         };
 
         const response = await generarSesionComplementaria(body);

@@ -18,6 +18,8 @@ import { DocumentStyles, HtmldocsDocument, HtmldocsFooter } from "@/components/D
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
 import { getAreaColor, type AreaColorConfig } from "@/constants/areaColors";
 import { InstrumentoEvaluacionSection } from "./InstrumentoEvaluacionSection";
+import { SesionTutoriaDoc } from "./SesionTutoriaDoc";
+import { SesionPlanLectorDoc } from "./SesionPlanLectorDoc";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 import { parseMarkdown } from "@/utils/parseMarkdown";
@@ -973,6 +975,20 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
   const areaName = toLabel(sesion.area);
   const areaConfig = getAreaColor(areaName);
   const hex = areaConfig.hex;
+  const areaNormalized = areaName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const isTutoria = areaNormalized.includes("tutoria");
+  const isPlanLector = areaNormalized.includes("plan lector") || areaNormalized.includes("planlector");
+
+  if (isTutoria) {
+    return <SesionTutoriaDoc data={data} insigniaUrl={insigniaUrl} />;
+  }
+
+  if (isPlanLector) {
+    return <SesionPlanLectorDoc data={data} insigniaUrl={insigniaUrl} />;
+  }
 
   return (
     <HtmldocsDocument size="A4" orientation="portrait" margin="0.5in">

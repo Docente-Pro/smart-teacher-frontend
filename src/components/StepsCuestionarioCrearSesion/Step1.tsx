@@ -11,6 +11,7 @@ import {
   Activity,
   Palette,
   MessageCircle,
+  BookOpen,
   Globe,
   Calculator,
   Microscope,
@@ -69,6 +70,8 @@ const areaIcons: { [key: string]: any } = {
   "Ciencia y Tecnología": Microscope,
   "Educación Religiosa": Church,
   Computación: Monitor,
+  Tutoría: Users,
+  "Plan Lector": BookOpen,
 };
 
 const areaGradients: { [key: string]: string } = {
@@ -81,7 +84,28 @@ const areaGradients: { [key: string]: string } = {
   "Ciencia y Tecnología": "from-teal-500 to-green-500",
   "Educación Religiosa": "from-amber-500 to-yellow-500",
   Computación: "from-teal-500 to-cyan-600",
+  Tutoría: "from-rose-500 to-pink-500",
+  "Plan Lector": "from-emerald-500 to-teal-500",
 };
+
+const PREMIUM_EXTRA_AREAS: IArea[] = [
+  {
+    id: -101,
+    nombre: "Tutoría",
+    descripcion: "Sesión complementaria de Tutoría",
+    color: "#ec4899",
+    imagen: "",
+    competencias: [],
+  },
+  {
+    id: -102,
+    nombre: "Plan Lector",
+    descripcion: "Sesión complementaria de Plan Lector",
+    color: "#10b981",
+    imagen: "",
+    competencias: [],
+  },
+];
 
 function Step1({ pagina, setPagina, usuarioFromState }: Props) {
   const { sesion, updateSesion } = useSesionStore();
@@ -89,6 +113,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
   const [areaSeleccionada, setAreaSeleccionada] = useState<string>("");
   const [duracionSeleccionada, setDuracionSeleccionada] = useState<string>("");
   const { showLoading, hideLoading } = useGlobalLoading();
+  const isPremiumUser = !!usuarioFromState?.suscripcion?.activa;
 
   useEffect(() => {
     async function cargarAreas() {
@@ -96,7 +121,8 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
       try {
         const response = await getAllAreas();
         const all = response.data.data || response.data;
-        setAreas(all.filter((a: IArea) => isAreaPrimaria(a.nombre)));
+        const curriculares = all.filter((a: IArea) => isAreaPrimaria(a.nombre));
+        setAreas(isPremiumUser ? [...curriculares, ...PREMIUM_EXTRA_AREAS] : curriculares);
       } catch (error) {
         handleToaster("Error al cargar las áreas", "error");
       } finally {
@@ -105,7 +131,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
     }
 
     cargarAreas();
-  }, []);
+  }, [isPremiumUser]);
 
   // Inicializar desde el store si ya hay datos
   useEffect(() => {
@@ -123,7 +149,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
           ...sesion.datosGenerales,
           area: areaNombre,
         },
-        ...(id != null ? { areaId: id } : {}),
+        areaId: id != null && id > 0 ? id : undefined,
       });
     }
   }

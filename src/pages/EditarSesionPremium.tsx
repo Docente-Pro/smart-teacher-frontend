@@ -73,6 +73,14 @@ function toLabel(v: unknown): string {
   return String(v);
 }
 
+function normalizeAreaName(area: string): string {
+  return area
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 function estrategiasToString(e: string | string[]): string {
   if (typeof e === "string") return e;
   if (Array.isArray(e)) return e.join("\n\n");
@@ -91,6 +99,38 @@ function recursosToString(r: string | string[] | undefined): string {
   if (typeof r === "string") return r;
   if (Array.isArray(r)) return r.join("\n");
   return String(r ?? "");
+}
+
+function faseProcesosToText(fase: IFasePremium | undefined): string {
+  const procesos = fase?.procesos ?? [];
+  if (procesos.length === 0) return "";
+
+  return procesos
+    .map((p) => {
+      const partes: string[] = [];
+      if (p.proceso?.trim()) partes.push(p.proceso.trim());
+      const estrategias = estrategiasToString(p.estrategias).trim();
+      if (estrategias) partes.push(estrategias);
+      return partes.join("\n");
+    })
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function getTutoriaMomento(momentos: any, key: "presentacion" | "desarrollo" | "cierre" | "despues"): any {
+  if (!momentos || typeof momentos !== "object") return undefined;
+  if (key === "despues") {
+    return (
+      momentos.despuesDeLaHoraTutoria ||
+      momentos.despuesHoraTutoria ||
+      momentos.despuesDeTutoria ||
+      momentos.despues
+    );
+  }
+  if (key === "presentacion") {
+    return momentos.presentacion || momentos.presentación || momentos.inicio;
+  }
+  return momentos[key];
 }
 
 function stringToRecursos(s: string): string[] {
@@ -113,6 +153,27 @@ function pick<T>(...candidates: unknown[]): T {
     return v as T;
   }
   return candidates[candidates.length - 1] as T;
+}
+
+function getPdfExportOptionsForArea(area: string) {
+  const normalized = normalizeAreaName(area || "");
+  const isTutoria = normalized.includes("tutoria");
+
+  const base = {
+    size: "A4" as const,
+    orientation: "portrait" as const,
+    preserveGraphicSize: true,
+  };
+
+  if (!isTutoria) return base;
+
+  // Tutoría: evitar huecos blancos grandes permitiendo corte de tablas/filas.
+  return {
+    ...base,
+    margin: [4, 4, 4, 4] as [number, number, number, number],
+    pagebreakAvoid: ["img", ".no-break", ".keep-together", "svg", ".grafico-educativo"],
+    pagebreakMode: ["css", "legacy"] as Array<"css" | "legacy" | "avoid-all">,
+  };
 }
 
 
@@ -313,6 +374,24 @@ function EditarSesionPremium() {
   /** Fecha de la sesión (editable). Se guarda en contenido.fechaSesion y se muestra en el PDF. */
   const [fechaSesion, setFechaSesion] = useState("");
 
+  // ── Campos específicos de Tutoría (nuevo editor) ──
+  const [tutoriaDimension, setTutoriaDimension] = useState("");
+  const [tutoriaQueBuscamos, setTutoriaQueBuscamos] = useState("");
+  const [tutoriaMateriales, setTutoriaMateriales] = useState("");
+  const [tutoriaPresentacionDesc, setTutoriaPresentacionDesc] = useState("");
+  const [tutoriaDesarrolloDesc, setTutoriaDesarrolloDesc] = useState("");
+  const [tutoriaCierreDesc, setTutoriaCierreDesc] = useState("");
+  const [tutoriaDespuesTiempo, setTutoriaDespuesTiempo] = useState("");
+  const [tutoriaDespuesDesc, setTutoriaDespuesDesc] = useState("");
+
+  // ── Campos específicos de Plan Lector (nuevo editor) ──
+  const [planLectorArea, setPlanLectorArea] = useState("");
+  const [planLectorDocente, setPlanLectorDocente] = useState("");
+  const [planLectorGradoSeccion, setPlanLectorGradoSeccion] = useState("");
+  const [planLectorInicioDesc, setPlanLectorInicioDesc] = useState("");
+  const [planLectorDesarrolloDesc, setPlanLectorDesarrolloDesc] = useState("");
+  const [planLectorCierreDesc, setPlanLectorCierreDesc] = useState("");
+
   // ═════════════════════════════════════════════════════════════════════════
   // Cargar sesión del backend
   // ═════════════════════════════════════════════════════════════════════════
@@ -493,6 +572,149 @@ function EditarSesionPremium() {
         const dateStr =
           contenido.fechaSesion || contenido.fechaInicio || raw.fechaInicio || raw.createdAt;
         setFechaSesion(dateOnlyToInputValue(dateStr) || dateStr || "");
+
+        // Cargar formato front Tutoría / Plan Lector (si existe)
+        const formatoTutoria = contenido.formatoFrontTutoria || raw.formatoFrontTutoria;
+        const formatoPlanLector = contenido.formatoFrontPlanLector || raw.formatoFrontPlanLector;
+
+        setTutoriaDimension(
+          pick<string>(
+            formatoTutoria?.datosInformativos?.dimension,
+            raw.dimension,
+            contenido.dimension,
+            "",
+          ),
+        );
+        setTutoriaQueBuscamos(
+          pick<string>(
+            formatoTutoria?.datosInformativos?.queBuscamos,
+            raw.propositoSesion,
+            contenido.propositoSesion,
+            "",
+          ),
+        );
+        setTutoriaMateriales(
+          pick<string[]>(
+            formatoTutoria?.datosInformativos?.materiales,
+            raw.preparacion?.recursosMateriales,
+            contenido.preparacion?.recursosMateriales,
+            [],
+          ).join("\n"),
+        );
+        const momentoPresentacion = getTutoriaMomento(formatoTutoria?.momentos, "presentacion");
+        const momentoDesarrollo = getTutoriaMomento(formatoTutoria?.momentos, "desarrollo");
+        const momentoCierre = getTutoriaMomento(formatoTutoria?.momentos, "cierre");
+        const momentoDespues = getTutoriaMomento(formatoTutoria?.momentos, "despues");
+
+        setTutoriaPresentacionDesc(
+          pick<string>(
+            momentoPresentacion?.descripcion,
+            momentoPresentacion?.contenido,
+            faseProcesosToText(fasesLoaded.inicio),
+            "",
+          ),
+        );
+        setTutoriaDesarrolloDesc(
+          pick<string>(
+            momentoDesarrollo?.descripcion,
+            momentoDesarrollo?.contenido,
+            faseProcesosToText(fasesLoaded.desarrollo),
+            "",
+          ),
+        );
+        setTutoriaCierreDesc(
+          pick<string>(
+            momentoCierre?.descripcion,
+            momentoCierre?.contenido,
+            faseProcesosToText(fasesLoaded.cierre),
+            "",
+          ),
+        );
+        setTutoriaDespuesTiempo(pick<string>(momentoDespues?.tiempo, ""));
+        setTutoriaDespuesDesc(
+          pick<string>(
+            momentoDespues?.descripcion,
+            momentoDespues?.contenido,
+            [refl?.sobreAprendizajes, refl?.sobreEnsenanza].filter(Boolean).join("\n\n"),
+            "",
+          ),
+        );
+
+        // Si llega tiempo por formato front de tutoría, priorizarlo en la UI de edición
+        if (momentoPresentacion?.tiempo || momentoDesarrollo?.tiempo || momentoCierre?.tiempo) {
+          setFases((prev) => ({
+            inicio: { ...prev.inicio, tiempo: pick<string>(momentoPresentacion?.tiempo, prev.inicio.tiempo, "") },
+            desarrollo: { ...prev.desarrollo, tiempo: pick<string>(momentoDesarrollo?.tiempo, prev.desarrollo.tiempo, "") },
+            cierre: { ...prev.cierre, tiempo: pick<string>(momentoCierre?.tiempo, prev.cierre.tiempo, "") },
+          }));
+        }
+
+        setPlanLectorInicioDesc(formatoPlanLector?.momentos?.inicio?.descripcion || "");
+        setPlanLectorDesarrolloDesc(formatoPlanLector?.momentos?.desarrollo?.descripcion || "");
+        setPlanLectorCierreDesc(formatoPlanLector?.momentos?.cierre?.descripcion || "");
+
+        const gradoSeccionDefault = seccion
+          ? `${toLabel(raw.grado || contenido.grado)} - Sección ${seccion}`
+          : toLabel(raw.grado || contenido.grado);
+
+        setPlanLectorArea(
+          pick<string>(
+            formatoPlanLector?.datosInformativos?.area,
+            toLabel(raw.area || contenido.area),
+            "Plan lector - Comunicación",
+          ),
+        );
+        setPlanLectorDocente(
+          pick<string>(
+            formatoPlanLector?.datosInformativos?.docente,
+            sesionUsuario?.nombre,
+            usuario?.nombre,
+            user?.name,
+            "",
+          ),
+        );
+        setPlanLectorGradoSeccion(
+          pick<string>(
+            formatoPlanLector?.datosInformativos?.gradoSeccion,
+            gradoSeccionDefault,
+            "",
+          ),
+        );
+
+        const plInicio = formatoPlanLector?.momentos?.inicio;
+        const plDesarrollo = formatoPlanLector?.momentos?.desarrollo;
+        const plCierre = formatoPlanLector?.momentos?.cierre;
+        setPlanLectorInicioDesc(
+          pick<string>(
+            plInicio?.descripcion,
+            (plInicio as any)?.contenido,
+            faseProcesosToText(fasesLoaded.inicio),
+            "",
+          ),
+        );
+        setPlanLectorDesarrolloDesc(
+          pick<string>(
+            plDesarrollo?.descripcion,
+            (plDesarrollo as any)?.contenido,
+            faseProcesosToText(fasesLoaded.desarrollo),
+            "",
+          ),
+        );
+        setPlanLectorCierreDesc(
+          pick<string>(
+            plCierre?.descripcion,
+            (plCierre as any)?.contenido,
+            faseProcesosToText(fasesLoaded.cierre),
+            "",
+          ),
+        );
+        if (plInicio?.tiempo || plDesarrollo?.tiempo || plCierre?.tiempo) {
+          setFases((prev) => ({
+            inicio: { ...prev.inicio, tiempo: pick<string>(plInicio?.tiempo, prev.inicio.tiempo, "") },
+            desarrollo: { ...prev.desarrollo, tiempo: pick<string>(plDesarrollo?.tiempo, prev.desarrollo.tiempo, "") },
+            cierre: { ...prev.cierre, tiempo: pick<string>(plCierre?.tiempo, prev.cierre.tiempo, "") },
+          }));
+        }
       } catch (err: any) {
         if (!cancelled) {
           setError(
@@ -620,6 +842,77 @@ function EditarSesionPremium() {
         : {}),
     };
 
+    const areaNormalized = normalizeAreaName(
+      toLabel(sesionForDoc.area || raw.area || contenido.area || ""),
+    );
+    if (areaNormalized.includes("tutoria")) {
+      sesionForDoc.dimension = tutoriaDimension;
+      sesionForDoc.formatoFrontTutoria = {
+        datosInformativos: {
+          tituloSesion: titulo,
+          area: "Tutoría",
+          nivel: toLabel(sesionForDoc.nivel),
+          tutor: docente,
+          gradoSeccion: seccion
+            ? `${toLabel(sesionForDoc.grado)} - Sección ${seccion}`
+            : toLabel(sesionForDoc.grado),
+          fecha: fechaSesion || undefined,
+          dimension: tutoriaDimension || undefined,
+          queBuscamos: tutoriaQueBuscamos || propositoSesion || undefined,
+          materiales: tutoriaMateriales
+            .split("\n")
+            .map((x: string) => x.trim())
+            .filter(Boolean),
+        },
+        momentos: {
+          presentacion: {
+            tiempo: fases.inicio.tiempo || "10 min",
+            descripcion: tutoriaPresentacionDesc || undefined,
+          },
+          desarrollo: {
+            tiempo: fases.desarrollo.tiempo || "70 min",
+            descripcion: tutoriaDesarrolloDesc || undefined,
+          },
+          cierre: {
+            tiempo: fases.cierre.tiempo || "10 min",
+            descripcion: tutoriaCierreDesc || undefined,
+          },
+          despuesDeLaHoraTutoria: {
+            tiempo: tutoriaDespuesTiempo || undefined,
+            descripcion: tutoriaDespuesDesc || undefined,
+          },
+        },
+      };
+    } else if (areaNormalized.includes("plan lector") || areaNormalized.includes("planlector")) {
+      sesionForDoc.formatoFrontPlanLector = {
+        datosInformativos: {
+          tituloSesion: titulo,
+          area: planLectorArea || "Plan lector - Comunicación",
+          docente: planLectorDocente || docente,
+          fecha: fechaSesion || undefined,
+          gradoSeccion:
+            planLectorGradoSeccion ||
+            (seccion
+              ? `${toLabel(sesionForDoc.grado)} - Sección ${seccion}`
+              : toLabel(sesionForDoc.grado)),
+        },
+        momentos: {
+          inicio: {
+            tiempo: fases.inicio.tiempo || "5 min",
+            descripcion: planLectorInicioDesc || undefined,
+          },
+          desarrollo: {
+            tiempo: fases.desarrollo.tiempo || "35 min",
+            descripcion: planLectorDesarrolloDesc || undefined,
+          },
+          cierre: {
+            tiempo: fases.cierre.tiempo || "5 min",
+            descripcion: planLectorCierreDesc || undefined,
+          },
+        },
+      };
+    }
+
     return {
       success: true,
       docente,
@@ -645,6 +938,20 @@ function EditarSesionPremium() {
     institucion,
     seccion,
     usuario?.nombreDirectivo,
+    tutoriaDimension,
+    tutoriaQueBuscamos,
+    tutoriaMateriales,
+    tutoriaPresentacionDesc,
+    tutoriaDesarrolloDesc,
+    tutoriaCierreDesc,
+    tutoriaDespuesTiempo,
+    tutoriaDespuesDesc,
+    planLectorArea,
+    planLectorDocente,
+    planLectorGradoSeccion,
+    planLectorInicioDesc,
+    planLectorDesarrolloDesc,
+    planLectorCierreDesc,
   ]);
 
   // Instrumento de evaluación (lista de cotejo / escala) para la vista previa PDF
@@ -780,11 +1087,10 @@ function EditarSesionPremium() {
         const { generatePDFBlob } = await import(
           "@/services/htmldocs.service"
         );
-        const pdfBlob = await generatePDFBlob(documentRef.current, {
-          size: "A4",
-          orientation: "portrait",
-          preserveGraphicSize: true,
-        });
+        const pdfBlob = await generatePDFBlob(
+          documentRef.current,
+          getPdfExportOptionsForArea(areaEdit),
+        );
 
         const respUpload = await solicitarUploadPDF({
           sesionId,
@@ -912,11 +1218,7 @@ function EditarSesionPremium() {
       await generateAndDownloadPDF(
         documentRef.current,
         `sesion-editada-${timestamp}.pdf`,
-        {
-          size: "A4",
-          orientation: "portrait",
-          preserveGraphicSize: true,
-        },
+        getPdfExportOptionsForArea(areaEdit),
       );
       toast.success("PDF descargado");
     } catch {
@@ -1001,6 +1303,9 @@ function EditarSesionPremium() {
   }
 
   const areaName = (areaEdit && areaEdit.trim()) ? areaEdit.trim() : toLabel(raw.area || parsedContenido.area || parsedContenido.datosGenerales?.area);
+  const areaNameNormalized = normalizeAreaName(areaName || "");
+  const isTutoriaEditor = areaNameNormalized.includes("tutoria");
+  const isPlanLectorEditor = areaNameNormalized.includes("plan lector") || areaNameNormalized.includes("planlector");
   const hex = getAreaColor(areaName).hex;
   const premiumData = buildPremiumData();
 
@@ -1253,7 +1558,152 @@ function EditarSesionPremium() {
         {/* ══════════════════════════════════════════════════════════════════
             Modo EDITAR — Diseño tipo PDF con celdas editables
         ══════════════════════════════════════════════════════════════════ */}
-        {view === "edit" && (
+        {view === "edit" && isTutoriaEditor && (
+          <div className="edit-doc bg-white shadow-lg mx-auto rounded" style={{ maxWidth: "270mm", padding: "12mm 15mm", fontFamily: "'Arial', 'Helvetica Neue', sans-serif", color: "#1a1a1a" }}>
+            <style>{EDIT_DOC_STYLES}</style>
+            <h2 style={{ textAlign: "center", fontWeight: "bold", marginBottom: "0.6rem" }}>SESIÓN DE TUTORÍA</h2>
+            <table>
+              <tbody>
+                <tr>
+                  <td style={{ width: "25%", fontWeight: "bold", backgroundColor: hex.light }}>Título de la sesión</td>
+                  <td className="ec">
+                    <textarea
+                      value={titulo}
+                      onChange={(e) => setTitulo(e.target.value)}
+                      rows={2}
+                      placeholder="Título de la sesión"
+                    />
+                  </td>
+                </tr>
+                <tr><td style={{ width: "25%", fontWeight: "bold", backgroundColor: hex.light }}>Área</td><td>Tutoría</td></tr>
+                <tr><td style={{ fontWeight: "bold", backgroundColor: hex.light }}>Tutor(a)</td><td>{docente}</td></tr>
+                <tr><td style={{ fontWeight: "bold", backgroundColor: hex.light }}>Grado y sección</td><td>{toLabel(raw.grado || parsedContenido.grado)} {seccion ? `- ${seccion}` : ""}</td></tr>
+                <tr><td style={{ fontWeight: "bold", backgroundColor: hex.light }}>Fecha</td><td className="ec"><Input type="date" value={fechaSesion} onChange={(e) => setFechaSesion(e.target.value || "")} className="h-8 text-sm w-full max-w-[180px]" /></td></tr>
+                <tr><td style={{ fontWeight: "bold", backgroundColor: hex.light }}>Dimensión</td><td className="ec"><input type="text" value={tutoriaDimension} onChange={(e) => setTutoriaDimension(e.target.value)} placeholder="Personal/Social" /></td></tr>
+                <tr><td style={{ fontWeight: "bold", backgroundColor: hex.light }}>¿Qué buscamos?</td><td className="ec"><textarea value={tutoriaQueBuscamos} onChange={(e) => setTutoriaQueBuscamos(e.target.value)} rows={3} /></td></tr>
+                <tr><td style={{ fontWeight: "bold", backgroundColor: hex.light }}>Materiales</td><td className="ec"><textarea value={tutoriaMateriales} onChange={(e) => setTutoriaMateriales(e.target.value)} rows={3} placeholder="Uno por línea" /></td></tr>
+              </tbody>
+            </table>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: "28%", backgroundColor: hex.light }}>MOMENTOS</th>
+                  <th style={{ width: "72%", backgroundColor: hex.light }}>DESCRIPCIÓN</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="ec"><strong>1. PRESENTACIÓN</strong><br /><input type="text" value={fases.inicio.tiempo} onChange={(e) => setFases((p) => ({ ...p, inicio: { ...p.inicio, tiempo: e.target.value } }))} placeholder="10 min" /></td>
+                  <td className="ec"><textarea value={tutoriaPresentacionDesc} onChange={(e) => setTutoriaPresentacionDesc(e.target.value)} rows={5} /></td>
+                </tr>
+                <tr>
+                  <td className="ec"><strong>2. DESARROLLO</strong><br /><input type="text" value={fases.desarrollo.tiempo} onChange={(e) => setFases((p) => ({ ...p, desarrollo: { ...p.desarrollo, tiempo: e.target.value } }))} placeholder="70 min" /></td>
+                  <td className="ec"><textarea value={tutoriaDesarrolloDesc} onChange={(e) => setTutoriaDesarrolloDesc(e.target.value)} rows={7} /></td>
+                </tr>
+                <tr>
+                  <td className="ec"><strong>3. CIERRE</strong><br /><input type="text" value={fases.cierre.tiempo} onChange={(e) => setFases((p) => ({ ...p, cierre: { ...p.cierre, tiempo: e.target.value } }))} placeholder="10 min" /></td>
+                  <td className="ec"><textarea value={tutoriaCierreDesc} onChange={(e) => setTutoriaCierreDesc(e.target.value)} rows={4} /></td>
+                </tr>
+                <tr>
+                  <td className="ec"><strong>4. DESPUÉS DE LA HORA DE TUTORÍA</strong><br /><input type="text" value={tutoriaDespuesTiempo} onChange={(e) => setTutoriaDespuesTiempo(e.target.value)} placeholder="Seguimiento semanal" /></td>
+                  <td className="ec"><textarea value={tutoriaDespuesDesc} onChange={(e) => setTutoriaDespuesDesc(e.target.value)} rows={4} /></td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="flex justify-center pt-6">
+              <Button onClick={handleGuardar} disabled={saving || pdfUploading} size="lg" className="gap-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-700 hover:to-green-700 px-8">
+                {saving || pdfUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                {saving ? "Guardando cambios..." : pdfUploading ? "Subiendo PDF..." : "Guardar cambios y actualizar PDF"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {view === "edit" && isPlanLectorEditor && (
+          <div className="edit-doc bg-white shadow-lg mx-auto rounded" style={{ maxWidth: "270mm", padding: "12mm 15mm", fontFamily: "'Arial', 'Helvetica Neue', sans-serif", color: "#1a1a1a" }}>
+            <style>{EDIT_DOC_STYLES}</style>
+            <h2 style={{ textAlign: "center", fontWeight: "bold", marginBottom: "0.6rem" }}>EXPERIENCIA DE LECTURA</h2>
+            <table>
+              <tbody>
+                <tr>
+                  <td style={{ width: "25%", fontWeight: "bold", backgroundColor: hex.light }}>Título de la sesión</td>
+                  <td className="ec">
+                    <textarea
+                      value={titulo}
+                      onChange={(e) => setTitulo(e.target.value)}
+                      rows={2}
+                      placeholder="Título de la sesión"
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: "25%", fontWeight: "bold", backgroundColor: hex.light }}>Área</td>
+                  <td className="ec">
+                    <input
+                      type="text"
+                      value={planLectorArea}
+                      onChange={(e) => setPlanLectorArea(e.target.value)}
+                      placeholder="Plan lector - Comunicación"
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: "bold", backgroundColor: hex.light }}>Docente</td>
+                  <td className="ec">
+                    <input
+                      type="text"
+                      value={planLectorDocente}
+                      onChange={(e) => setPlanLectorDocente(e.target.value)}
+                      placeholder="Nombre del docente"
+                    />
+                  </td>
+                </tr>
+                <tr><td style={{ fontWeight: "bold", backgroundColor: hex.light }}>Fecha</td><td className="ec"><Input type="date" value={fechaSesion} onChange={(e) => setFechaSesion(e.target.value || "")} className="h-8 text-sm w-full max-w-[180px]" /></td></tr>
+                <tr>
+                  <td style={{ fontWeight: "bold", backgroundColor: hex.light }}>Grado y sección</td>
+                  <td className="ec">
+                    <input
+                      type="text"
+                      value={planLectorGradoSeccion}
+                      onChange={(e) => setPlanLectorGradoSeccion(e.target.value)}
+                      placeholder="Ej. 5to grado - Sección A"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: "22%", backgroundColor: hex.light }}>MOMENTOS</th>
+                  <th style={{ width: "78%", backgroundColor: hex.light }}>DESCRIPCIÓN</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="ec"><strong>Inicio</strong><br /><input type="text" value={fases.inicio.tiempo} onChange={(e) => setFases((p) => ({ ...p, inicio: { ...p.inicio, tiempo: e.target.value } }))} placeholder="5 min" /></td>
+                  <td className="ec"><textarea value={planLectorInicioDesc} onChange={(e) => setPlanLectorInicioDesc(e.target.value)} rows={6} /></td>
+                </tr>
+                <tr>
+                  <td className="ec"><strong>Desarrollo</strong><br /><input type="text" value={fases.desarrollo.tiempo} onChange={(e) => setFases((p) => ({ ...p, desarrollo: { ...p.desarrollo, tiempo: e.target.value } }))} placeholder="35 min" /></td>
+                  <td className="ec"><textarea value={planLectorDesarrolloDesc} onChange={(e) => setPlanLectorDesarrolloDesc(e.target.value)} rows={8} /></td>
+                </tr>
+                <tr>
+                  <td className="ec"><strong>Cierre</strong><br /><input type="text" value={fases.cierre.tiempo} onChange={(e) => setFases((p) => ({ ...p, cierre: { ...p.cierre, tiempo: e.target.value } }))} placeholder="5 min" /></td>
+                  <td className="ec"><textarea value={planLectorCierreDesc} onChange={(e) => setPlanLectorCierreDesc(e.target.value)} rows={5} /></td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="flex justify-center pt-6">
+              <Button onClick={handleGuardar} disabled={saving || pdfUploading} size="lg" className="gap-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-700 hover:to-green-700 px-8">
+                {saving || pdfUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                {saving ? "Guardando cambios..." : pdfUploading ? "Subiendo PDF..." : "Guardar cambios y actualizar PDF"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {view === "edit" && !isTutoriaEditor && !isPlanLectorEditor && (
           <div
             className="edit-doc bg-white shadow-lg mx-auto rounded"
             style={{

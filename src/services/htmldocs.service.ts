@@ -15,6 +15,10 @@ interface LocalPDFOptions {
    * los gráficos ya tienen el tamaño correcto en pantalla.
    */
   preserveGraphicSize?: boolean;
+  /** Selectores CSS que html2pdf debe evitar cortar entre páginas */
+  pagebreakAvoid?: string[];
+  /** Modos de pagebreak de html2pdf */
+  pagebreakMode?: Array<"css" | "legacy" | "avoid-all">;
 }
 
 /**
@@ -397,7 +401,19 @@ function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
     margin = [8, 6, 8, 6], // top, left, bottom, right en mm — tighter to fit more per page
     filename = "documento.pdf",
     imageQuality = 0.98,
+    pagebreakAvoid,
+    pagebreakMode = ["css", "legacy"],
   } = options;
+
+  const defaultAvoid = [
+    "tr",
+    "table",
+    "img",
+    ".no-break",
+    ".keep-together",
+    "svg",
+    ".grafico-educativo",
+  ];
 
   return {
     margin,
@@ -416,10 +432,10 @@ function getHtml2PdfOptions(options: LocalPDFOptions = {}) {
     },
     // Reduce white gaps: avoid splitting inside these; whole block moves to next page
     pagebreak: {
-      mode: ["css", "legacy"] as const,
+      mode: pagebreakMode,
       before: [],
       after: [],
-      avoid: ["tr", "table", "img", ".no-break", ".keep-together", "svg", ".grafico-educativo"],
+      avoid: pagebreakAvoid ?? defaultAvoid,
     },
     enableLinks: true,
   };

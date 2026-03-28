@@ -752,6 +752,11 @@ function BloqueOrdenar({
   seccion: ISeccionOrdenar;
   hex: Hex;
 }) {
+  const getTextoOrdenar = (elemento: ISeccionOrdenar["contenido"]["elementos"][number]): string => {
+    if (typeof elemento === "string") return elemento.trim();
+    return (elemento?.texto ?? "").trim();
+  };
+
   return (
     <div style={{ marginBottom: "0.5rem" }}>
       <SectionTitle title={seccion.titulo} hex={hex} />
@@ -786,7 +791,7 @@ function BloqueOrdenar({
             >
               &nbsp;
             </span>
-            <span style={{ fontSize: "10pt" }}>{el.texto}</span>
+            <span style={{ fontSize: "10pt" }}>{getTextoOrdenar(el) || "\u00A0"}</span>
           </div>
         ))}
       </div>

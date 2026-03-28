@@ -8,6 +8,34 @@ interface Props {
   data: GraficoTablaValores;
 }
 
+const getDisplayText = (value: unknown): string => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const preferred = obj.encabezado ?? obj.texto ?? obj.contenido ?? obj.valor;
+    return preferred !== undefined ? getDisplayText(preferred) : String(value);
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return '';
+
+  // Algunos payloads llegan como pseudo-JSON: "{'encabezado':'Referencia','tipo':'texto'}"
+  if (raw.startsWith('{') && raw.endsWith('}')) {
+    try {
+      const normalized = raw.replace(/'/g, '"');
+      const parsed = JSON.parse(normalized) as Record<string, unknown>;
+      const preferred = parsed.encabezado ?? parsed.texto ?? parsed.contenido ?? parsed.valor;
+      if (preferred !== undefined) return getDisplayText(preferred);
+    } catch {
+      // Si no se puede parsear, retornamos el valor original
+    }
+  }
+
+  return raw;
+};
+
 /**
  * Divide texto en múltiples líneas según el ancho máximo aproximado
  * Usa aproximación de 7px por carácter para fuente de 13-14px
@@ -54,7 +82,7 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
   // Normalizar datos: el backend puede enviar formato nuevo (2D array de objetos)
   // o el formato esperado (encabezados + elementos con celdas)
   const normalizado = React.useMemo(() => {
-    let encabezados: string[] = data.encabezados || [];
+    let encabezados: string[] = (data.encabezados || []).map((h) => getDisplayText(h));
     let elementos: { celdas: (string | number)[] }[] = [];
     const mostrarBordes = data.mostrarBordes ?? true;
 
@@ -69,12 +97,12 @@ export const TablaValores: React.FC<Props> = ({ data }) => {
         const esFilaEncabezado = fila.some((celda: any) => celda?.esEncabezado);
         if (esFilaEncabezado && encabezados.length === 0) {
           encabezados = fila.map((celda: any) =>
-            String(celda?.contenido ?? celda ?? '')
+            getDisplayText(celda?.contenido ?? celda ?? '')
           );
         } else {
           elementos.push({
             celdas: fila.map((celda: any) =>
-              celda?.contenido !== undefined ? celda.contenido : celda
+              getDisplayText(celda?.contenido !== undefined ? celda.contenido : celda)
             ),
           });
         }

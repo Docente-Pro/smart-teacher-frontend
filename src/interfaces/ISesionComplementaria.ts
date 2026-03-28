@@ -34,11 +34,25 @@ export interface ISesionComplementariaRequest {
   tipo: TipoSesionComplementaria;
   actividadTitulo: string;
   descripcion?: string;
+  docente?: string;
+  nivel?: string;
+  grado?: string;
+  seccion?: string;
+  /** ISO date: YYYY-MM-DD */
+  fecha?: string;
   unidadId?: string;
   /** Ubicación en el calendario — necesaria para restaurar el slot como generado */
   semana?: number;
   dia?: string;
   turno?: string;
+  /** Duración objetivo en minutos (Tutoría usa 90 = 10+70+10) */
+  duracionMinutos?: number;
+  contextoUnidad?: {
+    situacionSignificativa?: string;
+    hiloConductor?: string;
+    productoIntegrador?: string;
+    enfoques?: Array<Record<string, unknown>>;
+  };
 }
 
 // ─── Respuesta del backend ───────────────────────────────────────────────────
@@ -50,6 +64,8 @@ export interface ISesionComplementariaRequest {
 export interface ISesionComplementariaData {
   tipo: TipoSesionComplementaria;
   propositoSesion: string;
+  /** Tutoría: dimensión socioemocional principal */
+  dimension?: string;
   enfoquesTransversales: Array<{
     enfoque: string;
     valor: string;
@@ -98,6 +114,41 @@ export interface ISesionComplementariaData {
   };
   recursoNarrativo: IRecursoNarrativo;
   resumen?: string;
+  /** Formato preferente para render de Plan Lector en frontend */
+  formatoFrontPlanLector?: {
+    datosInformativos?: {
+      tituloSesion?: string;
+      area?: string;
+      docente?: string;
+      fecha?: string;
+      gradoSeccion?: string;
+    };
+    momentos?: {
+      inicio?: { tiempo?: string; descripcion?: string };
+      desarrollo?: { tiempo?: string; descripcion?: string };
+      cierre?: { tiempo?: string; descripcion?: string };
+    };
+  };
+  /** Formato preferente para render de Tutoría en frontend */
+  formatoFrontTutoria?: {
+    datosInformativos?: {
+      tituloSesion?: string;
+      area?: string;
+      nivel?: string;
+      tutor?: string;
+      gradoSeccion?: string;
+      fecha?: string;
+      dimension?: string;
+      queBuscamos?: string;
+      materiales?: string[];
+    };
+    momentos?: {
+      presentacion?: { tiempo?: string; descripcion?: string };
+      desarrollo?: { tiempo?: string; descripcion?: string };
+      cierre?: { tiempo?: string; descripcion?: string };
+      despuesDeLaHoraTutoria?: { tiempo?: string; descripcion?: string };
+    };
+  };
 }
 
 export interface ISesionComplementariaSesion extends ISesionComplementariaData {

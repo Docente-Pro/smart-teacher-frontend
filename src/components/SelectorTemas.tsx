@@ -22,6 +22,29 @@ interface SelectorTemasProps {
   onTemaSeleccionado?: (tema: string) => void;
 }
 
+function getTemaIdString(tema: ITemaPorCiclo): string | null {
+  const id = (tema as any)?.id;
+  if (id === null || id === undefined) return null;
+  return String(id);
+}
+
+function normalizeAreaName(area: string): string {
+  return area
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function isAreaComplementaria(area: string): boolean {
+  const normalized = normalizeAreaName(area);
+  return (
+    normalized === "tutoria" ||
+    normalized === "plan lector" ||
+    normalized === "planlector"
+  );
+}
+
 export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
   const { sesion, updateSesion } = useSesionStore();
   const [temas, setTemas] = useState<ITemaPorCiclo[]>([]);
@@ -59,6 +82,15 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
         return;
       }
 
+      // Tutoría / Plan Lector no usan catálogo curricular por área/ciclo.
+      // Se trabaja con tema personalizado y no debe mostrar "Área no encontrada".
+      if (isAreaComplementaria(sesion.datosGenerales.area)) {
+        setTemas([]);
+        setTemasFiltrados([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         // Obtener el ID del área
@@ -92,7 +124,8 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
           setTemaEditado(sesion.temaCurricular);
           const temaEncontrado = temasData.find(t => t.tema === sesion.temaCurricular);
           if (temaEncontrado) {
-            setTemaSeleccionadoId(temaEncontrado.id.toString());
+            const temaId = getTemaIdString(temaEncontrado);
+            if (temaId) setTemaSeleccionadoId(temaId);
           }
         }
       } catch (error) {
@@ -121,7 +154,7 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
   // Manejar selección de tema del select
   const handleSeleccionarTema = (temaId: string) => {
     setTemaSeleccionadoId(temaId);
-    const temaEncontrado = temas.find(t => t.id.toString() === temaId);
+    const temaEncontrado = temas.find(t => getTemaIdString(t) === temaId);
     
     if (temaEncontrado) {
       setTemaEditado(temaEncontrado.tema);
@@ -147,7 +180,7 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
 
     // Si el texto fue modificado respecto al tema original, limpiar temaId
     // para que la IA use el texto en lugar del ID
-    const temaOriginal = temas.find(t => t.id.toString() === temaSeleccionadoId);
+    const temaOriginal = temas.find(t => getTemaIdString(t) === temaSeleccionadoId);
     const textoFueModificado = !temaOriginal || temaOriginal.tema !== temaEditado.trim();
 
     updateSesion({
@@ -181,7 +214,7 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
 
   // Cancelar edición
   const handleCancelarEdicion = () => {
-    const temaOriginal = temas.find(t => t.id.toString() === temaSeleccionadoId);
+    const temaOriginal = temas.find(t => getTemaIdString(t) === temaSeleccionadoId);
     if (temaOriginal) {
       setTemaEditado(temaOriginal.tema);
     }
@@ -244,11 +277,14 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
                         No se encontraron temas
                       </div>
                     ) : (
-                      temasFiltrados.map((tema) => (
-                        <SelectItem key={tema.id} value={tema.id.toString()}>
-                          {tema.orden}. {tema.tema}
-                        </SelectItem>
-                      ))
+                      temasFiltrados
+                        .map((tema) => ({ tema, id: getTemaIdString(tema) }))
+                        .filter((x): x is { tema: ITemaPorCiclo; id: string } => !!x.id)
+                        .map(({ tema, id }) => (
+                          <SelectItem key={id} value={id}>
+                            {tema.orden}. {tema.tema}
+                          </SelectItem>
+                        ))
                     )}
                   </SelectContent>
                 </Select>

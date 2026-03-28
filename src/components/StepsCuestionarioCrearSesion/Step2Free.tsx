@@ -2,6 +2,7 @@ import { ICompetencia } from "@/interfaces/ICompetencia";
 import { IUsuario } from "@/interfaces/IUsuario";
 import { getCompetencyById } from "@/services/competencias.service";
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { getCapacidadByCompentenciaId } from "@/services/capacidades.service";
 import { ICapacidad } from "@/interfaces/ICapacidad";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -21,6 +22,8 @@ import {
 } from "lucide-react";
 import { useSesionStore } from "@/store/sesion.store";
 import { getAllAreas } from "@/services/areas.service";
+import { generarSesionComplementaria } from "@/services/unidad.service";
+import type { TipoSesionComplementaria } from "@/interfaces/ISesionComplementaria";
 import { SelectorTemas } from "@/components/SelectorTemas";
 import { useCompetenciaSugerida } from "@/hooks/useCompetenciaSugerida";
 import { useAutoGenerarSesion, type AutoGenPhase } from "@/hooks/useAutoGenerarSesion";
@@ -46,7 +49,31 @@ const PHASE_CONFIG: Record<
   error: { icon: Target, gradient: "from-red-500 to-rose-500", progress: 0 },
 };
 
-function Step2Free({ pagina, setPagina }: Props) {
+function normalizeAreaName(area: string): string {
+  return area
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function getTipoComplementariaFromArea(area: string): TipoSesionComplementaria | null {
+  const normalized = normalizeAreaName(area);
+  if (normalized === "tutoria") return "Tutoría";
+  if (normalized === "plan lector" || normalized === "planlector") return "Plan Lector";
+  return null;
+}
+
+function getTodayISODateLocal(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function Step2Free({ pagina, setPagina, usuarioFromState }: Props) {
+  const navigate = useNavigate();
   const { sesion, updateSesion } = useSesionStore();
   const [competencias, setCompetencias] = useState<ICompetencia[]>([]);
   const [capacidadesSeleccionadas, setCapacidadesSeleccionadas] = useState<ICapacidad[]>([]);
@@ -54,12 +81,16 @@ function Step2Free({ pagina, setPagina }: Props) {
   const [loadingCapacidades, setLoadingCapacidades] = useState(false);
   const [competenciaSeleccionada, setCompetenciaSeleccionada] = useState<string>("");
   const [areaId, setAreaId] = useState<number | null>(null);
+  const [isGeneratingComplementaria, setIsGeneratingComplementaria] = useState(false);
 
   const temaEffectInitializedRef = useRef(false);
   const temaPrevioRef = useRef<string | undefined | null>(sesion?.temaCurricular);
 
   // Auto-generate hook
   const { phase, isRunning, phaseLabel, run: autoGenerar } = useAutoGenerarSesion();
+  const isPremiumUser = !!usuarioFromState?.suscripcion?.activa;
+  const tipoComplementaria = getTipoComplementariaFromArea(sesion?.datosGenerales?.area || "");
+  const esComplementaria = !!tipoComplementaria;
 
   const handleTemaSeleccionado = (tema: string) => {
     setCompetenciaSeleccionada("");
@@ -81,7 +112,7 @@ function Step2Free({ pagina, setPagina }: Props) {
     areaId,
     temaId: sesion?.temaId ?? null,
     temaTexto: sesion?.temaCurricular || null,
-    enabled: !!areaId && !!sesion?.temaCurricular && !competenciaSeleccionada,
+    enabled: !esComplementaria && !!areaId && !!sesion?.temaCurricular && !competenciaSeleccionada,
   });
 
   useEffect(() => {
@@ -128,6 +159,14 @@ function Step2Free({ pagina, setPagina }: Props) {
   useEffect(() => {
     async function cargarCompetencias() {
       if (!sesion?.datosGenerales.area) return;
+      if (esComplementaria) {
+        setAreaId(null);
+        setCompetencias([]);
+        setCompetenciaSeleccionada("");
+        setCapacidadesSeleccionadas([]);
+        setLoadingCompetencias(false);
+        return;
+      }
       setLoadingCompetencias(true);
       try {
         const areasResponse = await getAllAreas();
@@ -146,7 +185,7 @@ function Step2Free({ pagina, setPagina }: Props) {
       }
     }
     cargarCompetencias();
-  }, [sesion?.datosGenerales.area]);
+  }, [sesion?.datosGenerales.area, esComplementaria]);
 
   useEffect(() => {
     async function cargarCapacidades() {
@@ -202,7 +241,55 @@ function Step2Free({ pagina, setPagina }: Props) {
    * y al finalizar se avanza al paso de resultado.
    */
   async function handleGenerarSesion() {
+    const currentSesion = sesion;
+    if (!currentSesion) return;
     if (!isReady) return;
+
+    if (esComplementaria && tipoComplementaria) {
+      if (!isPremiumUser) {
+        handleToaster("Tutoría y Plan Lector están disponibles para usuarios premium", "error");
+        return;
+      }
+      setIsGeneratingComplementaria(true);
+      try {
+        const resp = await generarSesionComplementaria({
+          tipo: tipoComplementaria,
+          actividadTitulo: currentSesion.temaCurricular?.trim() || "Sesión complementaria",
+          descripcion: currentSesion.situacionTexto || undefined,
+          docente: usuarioFromState.nombre,
+          nivel: usuarioFromState.nivel?.nombre,
+          grado: usuarioFromState.grado?.nombre,
+          seccion: usuarioFromState.seccion,
+          fecha: getTodayISODateLocal(),
+          duracionMinutos: tipoComplementaria === "Tutoría" ? 90 : 45,
+        });
+
+        const premiumData = {
+          ...resp,
+          seccion: usuarioFromState.seccion ?? "",
+          nombreDirectivo: usuarioFromState.nombreDirectivo ?? "",
+          sesion: {
+            ...(resp.sesion as any),
+            area: tipoComplementaria,
+            nivel: usuarioFromState.nivel?.nombre ?? "",
+            grado: usuarioFromState.grado?.nombre ?? "",
+          },
+        };
+
+        handleToaster(resp.message || "Sesión complementaria generada con éxito", "success");
+        navigate("/sesion-premium-result", {
+          state: { premiumData, instrumento: null },
+        });
+      } catch (error: any) {
+        handleToaster(
+          error?.response?.data?.message || "Error al generar sesión complementaria",
+          "error",
+        );
+      } finally {
+        setIsGeneratingComplementaria(false);
+      }
+      return;
+    }
 
     const success = await autoGenerar();
     if (success) {
@@ -213,12 +300,15 @@ function Step2Free({ pagina, setPagina }: Props) {
   // Derivar si el sistema está "listo" (competencia + capacidades resueltas en background)
   const isReady =
     !!sesion?.temaCurricular?.trim() &&
-    !!competenciaSeleccionada &&
-    capacidadesSeleccionadas.length > 0 &&
-    !loadingCapacidades;
+    (esComplementaria
+      ? true
+      : !!competenciaSeleccionada &&
+        capacidadesSeleccionadas.length > 0 &&
+        !loadingCapacidades);
 
   // Derivar si está "preparando" en background
   const isPreparing =
+    !esComplementaria &&
     !!sesion?.temaCurricular?.trim() &&
     (!competenciaSeleccionada || loadingCapacidades || loadingSugerencia || loadingCompetencias);
 
@@ -361,11 +451,20 @@ function Step2Free({ pagina, setPagina }: Props) {
           </Button>
           <Button
             onClick={handleGenerarSesion}
-            disabled={!isReady || isRunning}
+            disabled={!isReady || isRunning || isGeneratingComplementaria}
             className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Wand2 className="mr-2 h-5 w-5" />
-            Generar Sesión con IA
+            {(isRunning || isGeneratingComplementaria) ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Generando...
+              </>
+            ) : (
+              <>
+                <Wand2 className="mr-2 h-5 w-5" />
+                Generar Sesión con IA
+              </>
+            )}
           </Button>
         </div>
       </div>
