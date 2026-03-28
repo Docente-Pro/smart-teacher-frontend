@@ -110,7 +110,7 @@ export interface ISeccionOrdenar {
   tipo: "ordenar";
   titulo: string;
   contenido: {
-    elementos: IElementoOrdenar[];
+    elementos: Array<IElementoOrdenar | string>;
     tipoOrden?: "cronologico" | "numerico" | "logico";
   };
 }

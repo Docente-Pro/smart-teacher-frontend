@@ -584,13 +584,20 @@ function GenerarSesionPremium() {
 
       if (tipoComplementario) {
         // ── Sesión complementaria (Tutoría / Plan Lector) ──
+        const diaData = currentSemana.dias.find((d) => d.dia === dia);
         const compResp = await generarSesionComplementaria({
           tipo: tipoComplementario,
           actividadTitulo: actividad,
+          docente: usuario?.nombre ?? undefined,
+          nivel: selectedUnidad?.nivel?.nombre,
+          grado: selectedUnidad?.grado?.nombre,
+          seccion: usuario?.seccion ?? undefined,
+          fecha: diaData?.fecha || undefined,
           unidadId: selectedUnidadId,
           semana: currentSemana.semana,
           dia,
           turno: turnoKey,
+          duracionMinutos: tipoComplementario === "Tutoría" ? 90 : 45,
         });
         // Normalizar a la misma forma que generarSesionUnidad
         // El backend guarda recursoNarrativo dentro de `contenido` pero no
