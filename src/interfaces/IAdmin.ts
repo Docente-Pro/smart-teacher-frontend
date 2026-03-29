@@ -375,6 +375,8 @@ export interface IUsuarioDetalle {
     numeroUnidad: number;
     tipo: string;
     createdAt: string;
+    /** null/undefined o fecha futura → activa; pasada → ya finalizada (ocultar Finalizar) */
+    fechaFin?: string | null;
     pdfUrl: string | null;
     wordUrl: string | null;
     wordGeneradoAt: string | null;
