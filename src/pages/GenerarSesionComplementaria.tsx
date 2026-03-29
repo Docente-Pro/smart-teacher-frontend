@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSesionComplementaria } from "@/hooks/useSesionComplementaria";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
+import { isUnidadListaActiva } from "@/utils/unidadActiva";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import type { IUnidadListItem } from "@/interfaces/IUnidadList";
 import type { TipoSesionComplementaria } from "@/interfaces/ISesionComplementaria";
@@ -68,8 +69,11 @@ function GenerarSesionComplementaria() {
 
     listarUnidadesByUsuario(user.id)
       .then((data) => {
-        // Filtrar solo unidades con pago confirmado
-        const pagadas = data.filter((u) => u.estadoPago === "CONFIRMADO");
+        // Pago confirmado y unidad activa (no finalizada)
+        const pagadas = data.filter(
+          (u) =>
+            u.estadoPago === "CONFIRMADO" && isUnidadListaActiva(u.fechaFin),
+        );
         setUnidades(pagadas);
         if (pagadas.length === 1) {
           setSelectedUnidadId(pagadas[0].id);
