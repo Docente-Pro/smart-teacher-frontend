@@ -7,6 +7,7 @@ import { useUserStore } from "@/store/user.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { listarUnidadesByUsuario, sincronizarMiembroUnidad, generarSesionComplementaria } from "@/services/unidad.service";
+import { isUnidadListaActiva } from "@/utils/unidadActiva";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import type { TipoSesionComplementaria } from "@/interfaces/ISesionComplementaria";
 import { generarImagenesSesion } from "@/services/ia-sesion.service";
@@ -314,11 +315,13 @@ function GenerarSesionPremium() {
   const [clonedSlots, setClonedSlots] = useState<Set<SlotKey>>(new Set());
 
   // ─── Derived ───
+  /** Pago confirmado + unidad activa (no finalizada por fechaFin) — p. ej. varias unidades en secundaria */
   const unidadesActivas = useMemo(
     () =>
       unidades.filter((u) => {
         const miembro = u.miembros.find((mb) => mb.usuarioId === userId);
-        return miembro?.estadoPago === "CONFIRMADO";
+        if (miembro?.estadoPago !== "CONFIRMADO") return false;
+        return isUnidadListaActiva(u.fechaFin);
       }),
     [unidades, userId],
   );
@@ -327,6 +330,22 @@ function GenerarSesionPremium() {
     () => unidadesActivas.find((u) => u.id === selectedUnidadId) ?? null,
     [unidadesActivas, selectedUnidadId],
   );
+
+  /** Si la unidad elegida dejó de estar activa (p. ej. finalizada), limpiar o fijar la única restante */
+  useEffect(() => {
+    if (unidadesActivas.length === 0) {
+      setSelectedUnidadId(null);
+      return;
+    }
+    if (
+      selectedUnidadId &&
+      !unidadesActivas.some((u) => u.id === selectedUnidadId)
+    ) {
+      setSelectedUnidadId(
+        unidadesActivas.length === 1 ? unidadesActivas[0].id : null,
+      );
+    }
+  }, [unidadesActivas, selectedUnidadId]);
 
   /** Áreas del miembro actual (puede estar vacío si ya no hay restricciones por miembro) */
   const miembroAreas = useMemo<IUnidadListMiembroArea[]>(() => {
@@ -492,7 +511,9 @@ function GenerarSesionPremium() {
       setUnidades(items);
       const activas = items.filter((u) => {
         const mb = u.miembros.find((m) => m.usuarioId === userId);
-        return mb?.estadoPago === "CONFIRMADO";
+        return (
+          mb?.estadoPago === "CONFIRMADO" && isUnidadListaActiva(u.fechaFin)
+        );
       });
       if (activas.length === 1) setSelectedUnidadId(activas[0].id);
     } catch (err: any) {
