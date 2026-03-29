@@ -27,6 +27,7 @@ import type {
   ISolucionarioItem,
 } from "@/interfaces/IFichaAplicacion";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
+import { normalizarEtiquetaGrafico } from "@/utils/normalizarEtiquetaGrafico";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Types
@@ -522,7 +523,7 @@ function BloqueTabla({ seccion, hex }: { seccion: ISeccionTabla; hex: Hex }) {
                   textAlign: "center",
                 }}
               >
-                {col}
+                {normalizarEtiquetaGrafico(col)}
               </th>
             ))}
           </tr>

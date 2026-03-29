@@ -438,6 +438,24 @@ export async function adminDownloadUrlWordUnidad(
   return data;
 }
 
+/** POST /api/admin/unidad/:unidadId/finalizar */
+export interface IAdminFinalizarUnidadResponse {
+  success: boolean;
+  message: string;
+  data?: Record<string, unknown>;
+}
+
+export async function adminFinalizarUnidad(
+  unidadId: string,
+): Promise<IAdminFinalizarUnidadResponse> {
+  const { data } = await instance.post<IAdminFinalizarUnidadResponse>(
+    `/admin/unidad/${unidadId}/finalizar`,
+    {},
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}
+
 interface IAdminGenerarWordResponse {
   success: boolean;
   jobId: string;
