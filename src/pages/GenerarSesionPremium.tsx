@@ -259,6 +259,18 @@ function formatFechaDia(fecha: string): string {
   }
 }
 
+function isUnidadSecundaria(unidad: IUnidadListItem | null | undefined): boolean {
+  if (!unidad) return false;
+  const contenido = (unidad as any).contenido ?? {};
+  if (Array.isArray(contenido?.secuenciaPorGrado) && contenido.secuenciaPorGrado.length > 0) {
+    return true;
+  }
+  if (Array.isArray(contenido?.gradosSecundaria) && contenido.gradosSecundaria.length > 0) {
+    return true;
+  }
+  return /secundaria/i.test(unidad?.nivel?.nombre ?? "");
+}
+
 function isHoy(fecha: string): boolean {
   if (!fecha) return false;
   const today = new Date();
@@ -564,6 +576,12 @@ function GenerarSesionPremium() {
     setClonedSlots(cloned);
     setGeneratedSesiones(sesMap);
   }, [selectedUnidad]);
+
+  useEffect(() => {
+    if (!selectedUnidad) return;
+    if (!isUnidadSecundaria(selectedUnidad)) return;
+    navigate("/generar-sesion-secundaria", { replace: true });
+  }, [selectedUnidad, navigate]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // HANDLERS

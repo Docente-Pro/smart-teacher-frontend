@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -50,6 +50,53 @@ interface Props {
   maxMiembros: number;
 }
 
+const SECONDARY_GRADES = [
+  "Primer Año",
+  "Segundo Año",
+  "Tercer Año",
+  "Cuarto Año",
+  "Quinto Año",
+];
+const SECONDARY_GRADE_ID_BY_NAME: Record<string, number> = {
+  "Primer Año": 7,
+  "Segundo Año": 8,
+  "Tercer Año": 9,
+  "Cuarto Año": 10,
+  "Quinto Año": 11,
+};
+const DEFAULT_SECONDARY_WEEKS = 4;
+
+function normalizeAreaName(area: string): string {
+  return (area || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function isTutoriaArea(area: string): boolean {
+  return normalizeAreaName(area).includes("tutoria");
+}
+
+function mapUserGradeToSecondaryYear(gradoNombre?: string): string | null {
+  const normalized = normalizeAreaName(gradoNombre || "");
+  if (normalized.includes("primer")) return "Primer Año";
+  if (normalized.includes("segundo")) return "Segundo Año";
+  if (normalized.includes("tercer")) return "Tercer Año";
+  if (normalized.includes("cuarto")) return "Cuarto Año";
+  if (normalized.includes("quinto")) return "Quinto Año";
+  return null;
+}
+
+function calcularDistribucionAutomatica(totalSemanas: number, totalSesionesUnidad: number): number[] {
+  if (totalSemanas <= 0) return [];
+  const base = Math.floor(totalSesionesUnidad / totalSemanas);
+  const resto = totalSesionesUnidad % totalSemanas;
+  return Array.from({ length: totalSemanas }, (_, idx) =>
+    idx < resto ? base + 1 : base,
+  );
+}
+
 /** Helper: formatear fecha sin problemas de timezone */
 function formatFechaLocal(fecha: string): string {
   if (!fecha) return "";
@@ -68,6 +115,7 @@ const duracionesUnidad = [
 function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros }: Props) {
   const { unidadId: existingUnidadId, setUnidadId, setDatosBase } = useUnidadStore();
   const updateAuthUser = useAuthStore((s) => s.updateUser);
+  const authUser = useAuthStore((s) => s.user as any);
   const { user: userProfile } = useUserStore();
   const { showLoading, hideLoading } = useGlobalLoading();
   const prevTituloUnidad = userProfile?.tituloUnidadContexto || "";
@@ -82,6 +130,10 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [areasSeleccionadas, setAreasSeleccionadas] = useState<string[]>([]);
+  const [gradosPorArea, setGradosPorArea] = useState<Record<string, string[]>>({});
+  const [modoDistribucionPorArea, setModoDistribucionPorArea] = useState<Record<string, "automatica" | "manual">>({});
+  const [sesionesPorArea, setSesionesPorArea] = useState<Record<string, number>>({});
+  const [sesionesSemanalesPorArea, setSesionesSemanalesPorArea] = useState<Record<string, number[]>>({});
 
   // Problemática (seleccionada desde modal)
   const [problematica, setProblematica] = useState<{ id: number; nombre: string; descripcion: string } | null>(
@@ -139,6 +191,60 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
   // Datos del usuario (pre-llenados)
   const nivel = usuario.nivel?.nombre || "";
   const grado = usuario.grado?.nombre || "";
+  const isSecundaria = nivel.toLowerCase().includes("secundaria");
+  const userSecondaryYear = mapUserGradeToSecondaryYear(grado);
+  const profileSecondaryYearsFromUsuario = Array.from(
+    new Set(
+      (usuario.gradosAreas || [])
+        .filter((ga) =>
+          normalizeAreaName(ga.grado?.nivel?.nombre || "").includes("secundaria") &&
+          !isTutoriaArea(ga.area?.nombre || ""),
+        )
+        .map((ga) => ga.grado?.nombre || "")
+        .filter(Boolean),
+    ),
+  );
+  const profileSecondaryYearsFromAuth = Array.isArray(authUser?.secundariaGradosPerfil)
+    ? authUser.secundariaGradosPerfil.filter((g: unknown): g is string => typeof g === "string")
+    : [];
+  const profileSecondaryYears: string[] =
+    profileSecondaryYearsFromUsuario.length > 0
+      ? profileSecondaryYearsFromUsuario
+      : profileSecondaryYearsFromAuth;
+  const profileTutoriaYearFromUsuario =
+    (usuario.gradosAreas || []).find((ga) => isTutoriaArea(ga.area?.nombre || ""))?.grado?.nombre || null;
+  const profileTutoriaYearFromAuth =
+    typeof authUser?.tutoriaGradoPerfil === "string" ? authUser.tutoriaGradoPerfil : null;
+  const profileTutoriaYear: string | null = profileTutoriaYearFromUsuario || profileTutoriaYearFromAuth;
+  const userGradesByArea = useMemo(
+    () =>
+      (usuario.gradosAreas || []).reduce<Record<string, string[]>>((acc, item) => {
+        const areaNombre = item.area?.nombre || "";
+        const gradoNombre = item.grado?.nombre || "";
+        if (!areaNombre || !gradoNombre) return acc;
+        const current = acc[areaNombre] || [];
+        if (!current.includes(gradoNombre)) current.push(gradoNombre);
+        acc[areaNombre] = current;
+        return acc;
+      }, {}),
+    [usuario.gradosAreas],
+  );
+  const allowedSecondaryAreaNames = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (usuario.gradosAreas || [])
+            .map((ga) => ga.area?.nombre || "")
+            .filter(Boolean),
+        ),
+      ),
+    [usuario.gradosAreas],
+  );
+  const hasConfiguredSecondaryProfile = isSecundaria && allowedSecondaryAreaNames.length > 0;
+  const areasToShow = useMemo(() => {
+    if (!isSecundaria || !hasConfiguredSecondaryProfile) return areas;
+    return areas.filter((a) => allowedSecondaryAreaNames.includes(a.nombre));
+  }, [areas, isSecundaria, hasConfiguredSecondaryProfile, allowedSecondaryAreaNames]);
 
   // Cargar áreas al montar
   useEffect(() => {
@@ -146,13 +252,17 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
       try {
         const response = await getAllAreas();
         const all = response.data.data || response.data;
-        setAreas(all.filter((a: IArea) => isAreaPrimaria(a.nombre)));
+        setAreas(
+          isSecundaria
+            ? all
+            : all.filter((a: IArea) => isAreaPrimaria(a.nombre)),
+        );
       } catch {
         handleToaster("Error al cargar las áreas", "error");
       }
     }
     cargar();
-  }, []);
+  }, [isSecundaria]);
 
   // Calcular fecha fin automáticamente
   const fechaFinCalculada = fechaInicio && duracion > 0
@@ -171,10 +281,122 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     }
   }, [fechaFinCalculada]);
 
+  useEffect(() => {
+    if (!isSecundaria || duracion > 0) return;
+    setDuracion(DEFAULT_SECONDARY_WEEKS);
+  }, [isSecundaria, duracion]);
+
   function toggleArea(nombre: string) {
+    if (isSecundaria && !areasSeleccionadas.includes(nombre) && areasSeleccionadas.length >= 2) {
+      handleToaster("En secundaria puedes seleccionar máximo 2 áreas por unidad", "error");
+      return;
+    }
     setAreasSeleccionadas((prev) =>
       prev.includes(nombre) ? prev.filter((a) => a !== nombre) : [...prev, nombre]
     );
+  }
+
+  useEffect(() => {
+    if (!isSecundaria) return;
+    setGradosPorArea((prev) => {
+      const next: Record<string, string[]> = {};
+      areasSeleccionadas.forEach((area) => {
+        next[area] = prev[area] || [];
+      });
+      return next;
+    });
+    setModoDistribucionPorArea((prev) => {
+      const next: Record<string, "automatica" | "manual"> = {};
+      areasSeleccionadas.forEach((area) => {
+        next[area] = prev[area] || "automatica";
+      });
+      return next;
+    });
+    setSesionesPorArea((prev) => {
+      const next: Record<string, number> = {};
+      areasSeleccionadas.forEach((area) => {
+        if (isTutoriaArea(area)) {
+          next[area] = duracion || 0;
+        } else {
+          next[area] = prev[area] || duracion || 0;
+        }
+      });
+      return next;
+    });
+  }, [areasSeleccionadas, duracion, isSecundaria]);
+
+  useEffect(() => {
+    if (!isSecundaria || duracion <= 0) return;
+    setSesionesSemanalesPorArea((prev) => {
+      const next: Record<string, number[]> = { ...prev };
+      areasSeleccionadas.forEach((area) => {
+        const totalSesiones = isTutoriaArea(area) ? duracion : (sesionesPorArea[area] || duracion);
+        const modo = modoDistribucionPorArea[area] || "automatica";
+        if (modo === "automatica" || !next[area] || next[area].length !== duracion) {
+          next[area] = calcularDistribucionAutomatica(duracion, totalSesiones);
+        }
+      });
+      return next;
+    });
+  }, [areasSeleccionadas, sesionesPorArea, modoDistribucionPorArea, duracion, isSecundaria]);
+
+  useEffect(() => {
+    if (!isSecundaria || !userSecondaryYear) return;
+    const tutoriaArea = areasSeleccionadas.find(isTutoriaArea);
+    if (!tutoriaArea) return;
+    setGradosPorArea((prev) => {
+      const current = prev[tutoriaArea] || [];
+      if (current.length > 0) return prev;
+      return { ...prev, [tutoriaArea]: [userSecondaryYear] };
+    });
+  }, [areasSeleccionadas, isSecundaria, userSecondaryYear]);
+
+  useEffect(() => {
+    if (!isSecundaria || areasSeleccionadas.length === 0) return;
+    setGradosPorArea((prev) => {
+      const next = { ...prev };
+      areasSeleccionadas.forEach((area) => {
+        if ((next[area] || []).length > 0) return;
+        if (isTutoriaArea(area)) {
+          next[area] = profileTutoriaYear
+            ? [profileTutoriaYear]
+            : (userSecondaryYear ? [userSecondaryYear] : []);
+          return;
+        }
+        if ((userGradesByArea[area] || []).length > 0) {
+          next[area] = userGradesByArea[area];
+          return;
+        }
+        next[area] = profileSecondaryYears.length > 0
+          ? profileSecondaryYears
+          : (userSecondaryYear ? [userSecondaryYear] : []);
+      });
+      return next;
+    });
+  }, [areasSeleccionadas, isSecundaria, profileSecondaryYears, profileTutoriaYear, userSecondaryYear, userGradesByArea]);
+
+  useEffect(() => {
+    if (!isSecundaria || areas.length === 0 || areasSeleccionadas.length > 0) return;
+    const fromUsuario = Array.from(
+      new Set(
+        (usuario.gradosAreas || [])
+          .map((ga) => ga.area?.nombre || "")
+          .filter(Boolean),
+      ),
+    );
+    if (fromUsuario.length === 0) return;
+    setAreasSeleccionadas(fromUsuario.slice(0, 2));
+  }, [isSecundaria, areas, areasSeleccionadas.length, usuario.gradosAreas]);
+
+  function toggleGradoArea(area: string, gradoLabel: string) {
+    if (hasConfiguredSecondaryProfile && (userGradesByArea[area] || []).length > 0) return;
+    setGradosPorArea((prev) => {
+      const prevArea = prev[area] || [];
+      const nextArea = prevArea.includes(gradoLabel)
+        ? prevArea.filter((g) => g !== gradoLabel)
+        : [...prevArea, gradoLabel];
+      return { ...prev, [area]: nextArea };
+    });
   }
 
   function getIcon(nombre: string) {
@@ -189,35 +411,75 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
   async function handleContinuar() {
     // Validaciones
     if (!titulo.trim()) return handleToaster("Ingresa el título de la unidad", "error");
-    if (duracion <= 0) return handleToaster("Selecciona la duración", "error");
+    if (!isSecundaria && duracion <= 0) return handleToaster("Selecciona la duración", "error");
     if (!fechaInicio) return handleToaster("Selecciona la fecha de inicio", "error");
     if (areasSeleccionadas.length === 0) return handleToaster("Selecciona al menos un área", "error");
     if (!problematica) return handleToaster("Selecciona una problemática", "error");
+    if (isSecundaria) {
+      for (const area of areasSeleccionadas) {
+        const grados = gradosPorArea[area] || [];
+        if (grados.length === 0) {
+          return handleToaster(`Asigna al menos un grado para ${area}`, "error");
+        }
+        if (isTutoriaArea(area)) continue;
+        const total = sesionesPorArea[area] || 0;
+        if (total <= 0) {
+          return handleToaster(`Define el total de sesiones para ${area}`, "error");
+        }
+      }
+    }
 
     showLoading(existingUnidadId ? "Actualizando unidad de aprendizaje..." : "Creando unidad de aprendizaje...");
 
     try {
+      if (!usuario.nivelId || (!isSecundaria && !usuario.gradoId)) {
+        hideLoading();
+        return handleToaster("Completa nivel y grado en tu perfil para continuar", "error");
+      }
+
+      const gradosSecundariaIds = isSecundaria
+        ? Array.from(
+            new Set(
+              Object.values(gradosPorArea)
+                .flat()
+                .map((g) => SECONDARY_GRADE_ID_BY_NAME[g])
+                .filter((id): id is number => Number.isFinite(id)),
+            ),
+          ).sort((a, b) => a - b)
+        : [];
+
+      if (isSecundaria && gradosSecundariaIds.length === 0) {
+        hideLoading();
+        return handleToaster("No se encontraron grados de secundaria válidos", "error");
+      }
+
       const payload = {
         usuarioId: usuario.id,
         titulo,
         tipo: tipoUnidad,
-        nivelId: usuario.nivelId!,
-        gradoId: usuario.gradoId!,
+        nivelId: usuario.nivelId,
+        gradoId: isSecundaria ? null : (usuario.gradoId ?? null),
+        ...(isSecundaria ? { gradosSecundaria: gradosSecundariaIds } : {}),
         numeroUnidad,
-        duracion,
+        duracion: isSecundaria ? (duracion || DEFAULT_SECONDARY_WEEKS) : duracion,
         fechaInicio,
         fechaFin,
         problematicaId: problematica.id,
         ...(tipoUnidad === "COMPARTIDA" ? { maxMiembros } : {}),
       };
 
+      const unidadIdToUse = existingUnidadId || unidadActiva?.id || null;
+      if (unidadIdToUse && unidadIdToUse !== existingUnidadId) {
+        setUnidadId(unidadIdToUse);
+      }
+
       let unidadResultId: string;
       let codigoCompartido: string | undefined;
 
-      if (existingUnidadId) {
+      if (unidadIdToUse) {
         // Ya existe una unidad (soft reset) → actualizar datos base
-        await updateUnidad(existingUnidadId, payload);
-        unidadResultId = existingUnidadId;
+        await updateUnidad(unidadIdToUse, payload);
+        unidadResultId = unidadIdToUse;
       } else {
         // Nueva unidad → crear
         const response = await createUnidad(payload);
@@ -239,13 +501,37 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         grado,
         titulo,
         numeroUnidad,
-        duracion,
+        duracion: isSecundaria ? (duracion || DEFAULT_SECONDARY_WEEKS) : duracion,
         fechaInicio,
         fechaFin,
         problematicaNombre: problematica.nombre,
         problematicaDescripcion: problematica.descripcion,
         areas: areasSeleccionadas.map((n) => ({ nombre: n })),
         tipo: tipoUnidad,
+        ...(isSecundaria
+          ? {
+              esSecundariaWizard: true,
+              gradesPool: SECONDARY_GRADES,
+              gradosPorArea,
+              gradosSecundariaIds,
+              tieneTutoria: areasSeleccionadas.some(isTutoriaArea),
+              gradosTutoria: (areasSeleccionadas.find(isTutoriaArea) ? gradosPorArea[areasSeleccionadas.find(isTutoriaArea)!] : []) || [],
+              planificacionAreas: areasSeleccionadas.map((area) => ({
+                area,
+                totalSemanas: duracion,
+                totalSesionesUnidad: isTutoriaArea(area) ? duracion : (sesionesPorArea[area] || duracion),
+                modoDistribucion: modoDistribucionPorArea[area] || "automatica",
+                sesionesPorSemana:
+                  sesionesSemanalesPorArea[area] ||
+                  calcularDistribucionAutomatica(
+                    duracion,
+                    isTutoriaArea(area) ? duracion : (sesionesPorArea[area] || duracion),
+                  ),
+                editable: !isTutoriaArea(area),
+                reglaAplicada: isTutoriaArea(area) ? "Tutoria semanal" : undefined,
+              })),
+            }
+          : {}),
         ...(tipoUnidad === "COMPARTIDA"
           ? { maxMiembros, codigoCompartido }
           : {}),
@@ -264,6 +550,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         existingUnidadId ? "Unidad actualizada exitosamente" : "Unidad creada exitosamente",
         "success"
       );
+      setUnidadActiva(null);
       setPagina(pagina + 1);
     } catch (error: any) {
       console.error("Error al crear unidad:", error);
@@ -272,6 +559,11 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
       const resData = error?.response?.data;
       if (error?.response?.status === 400 && resData?.data?.unidadActiva) {
         setUnidadActiva(resData.data.unidadActiva);
+        if (resData.data.unidadActiva?.id) {
+          // Permite reusar la unidad activa en el siguiente intento (update en vez de create).
+          setUnidadId(resData.data.unidadActiva.id);
+          handleToaster("Se usará tu unidad activa para continuar.", "success");
+        }
         return; // no toast, se muestra la alerta en la UI
       }
 
@@ -309,7 +601,22 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
           <CardContent className="pt-6">
             <div className="flex flex-wrap gap-4 justify-center">
               <InfoBadge icon={<GraduationCap className="h-4 w-4" />} label="Nivel" value={nivel || "—"} />
-              <InfoBadge icon={<BookOpen className="h-4 w-4" />} label="Grado" value={grado || "—"} />
+              {!isSecundaria ? (
+                <InfoBadge icon={<BookOpen className="h-4 w-4" />} label="Grado" value={grado || "—"} />
+              ) : (
+                <>
+                  <InfoBadge
+                    icon={<BookOpen className="h-4 w-4" />}
+                    label="Años (Secundaria)"
+                    value={profileSecondaryYears.length > 0 ? profileSecondaryYears.join(", ") : (grado || "—")}
+                  />
+                  <InfoBadge
+                    icon={<BookOpen className="h-4 w-4" />}
+                    label="Tutoría"
+                    value={profileTutoriaYear || "Sin asignar"}
+                  />
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -431,12 +738,14 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
               Áreas Curriculares
             </CardTitle>
             <CardDescription className="text-base">
-              Selecciona una o más áreas para integrar en la unidad
+              {isSecundaria
+                ? "Selecciona hasta 2 áreas para esta unidad"
+                : "Selecciona una o más áreas para integrar en la unidad"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {areas.map((area) => {
+              {areasToShow.map((area) => {
                 const IconComp = getIcon(area.nombre);
                 const gradient = getGradient(area.nombre);
                 const isSelected = areasSeleccionadas.includes(area.nombre);
@@ -493,8 +802,164 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                 ))}
               </div>
             )}
+            {isSecundaria && hasConfiguredSecondaryProfile && (
+              <p className="mt-3 text-xs text-cyan-700 dark:text-cyan-300">
+                Usamos las áreas configuradas en tu perfil docente.
+              </p>
+            )}
           </CardContent>
         </Card>
+
+        {/* ── Secundaria: grados por área ── */}
+        {isSecundaria && areasSeleccionadas.length > 0 && (
+          <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <div className="h-10 w-10 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg flex items-center justify-center">
+                  <GraduationCap className="h-6 w-6 text-white" />
+                </div>
+                Perfil Académico por Área
+              </CardTitle>
+              <CardDescription className="text-base">
+                Puedes elegir varios años por área. En Tutoría puedes dejar solo un año si corresponde.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {areasSeleccionadas.map((area) => (
+                <div key={`grados-${area}`} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="text-sm font-bold">{area}</p>
+                    {isTutoriaArea(area) && (
+                      <span className="text-[11px] px-2 py-1 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                        Puede ser 1 año
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                    {SECONDARY_GRADES.map((g) => {
+                      const checked = (gradosPorArea[area] || []).includes(g);
+                      const locked = hasConfiguredSecondaryProfile && (userGradesByArea[area] || []).length > 0;
+                      return (
+                        <button
+                          type="button"
+                          key={`${area}-${g}`}
+                          onClick={() => toggleGradoArea(area, g)}
+                          disabled={locked}
+                          className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                            checked
+                              ? "bg-cyan-600 border-cyan-600"
+                              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                          }`}
+                          style={{ color: checked ? "#fff" : undefined }}
+                        >
+                          {g}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {hasConfiguredSecondaryProfile && (userGradesByArea[area] || []).length > 0 && (
+                    <p className="mt-2 text-[11px] text-cyan-700 dark:text-cyan-300">
+                      Configurado previamente en onboarding.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Secundaria: planificación de sesiones por área ── */}
+        {isSecundaria && areasSeleccionadas.length > 0 && (
+          <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <div className="h-10 w-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
+                Configuración de Carga por Área
+              </CardTitle>
+              <CardDescription className="text-base">
+                Define sesiones por área. Las sesiones del área aplican a todos los años seleccionados para esa área.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {areasSeleccionadas.map((area) => {
+                const isTutoria = isTutoriaArea(area);
+                const total = isTutoria ? duracion : (sesionesPorArea[area] || duracion);
+                const dist = sesionesSemanalesPorArea[area] || calcularDistribucionAutomatica(duracion, total);
+                const modo = modoDistribucionPorArea[area] || "automatica";
+                return (
+                  <div key={`sesiones-${area}`} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-bold">{area}</p>
+                      {isTutoria && (
+                        <span className="text-[11px] px-2 py-1 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                          Regla fija: 1 sesión por semana
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs mb-1.5 block">Total sesiones de unidad</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={total}
+                          disabled={isTutoria}
+                          onChange={(e) => {
+                            const v = Math.max(0, Number(e.target.value) || 0);
+                            setSesionesPorArea((prev) => ({ ...prev, [area]: v }));
+                          }}
+                          className="h-10"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-1.5 block">Modo distribución</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={modo === "automatica" ? "default" : "outline"}
+                            size="sm"
+                            disabled={isTutoria}
+                            onClick={() =>
+                              setModoDistribucionPorArea((prev) => ({ ...prev, [area]: "automatica" }))
+                            }
+                          >
+                            Automática
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={modo === "manual" ? "default" : "outline"}
+                            size="sm"
+                            disabled
+                            title="Manual se habilita en siguiente iteración"
+                          >
+                            Manual
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs mb-1.5 block">Sesiones por semana</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {dist.map((n, i) => (
+                          <span
+                            key={`${area}-${i}`}
+                            className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                          >
+                            S{i + 1}: {n}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
 
         {/* ── Título y Número ── */}
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
@@ -638,6 +1103,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
 
 
         {/* ── Duración ── */}
+        {!isSecundaria && (
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
@@ -704,6 +1170,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* ── Fechas ── */}
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
@@ -758,7 +1225,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         <div className="flex justify-center sm:justify-end pb-10">
           <Button
             onClick={handleContinuar}
-            disabled={!titulo || duracion <= 0 || !fechaInicio || areasSeleccionadas.length === 0 || !problematica || !!unidadActiva}
+            disabled={!titulo || (!isSecundaria && duracion <= 0) || !fechaInicio || areasSeleccionadas.length === 0 || !problematica}
             className="w-full sm:w-auto h-14 px-10 text-lg font-semibold bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continuar

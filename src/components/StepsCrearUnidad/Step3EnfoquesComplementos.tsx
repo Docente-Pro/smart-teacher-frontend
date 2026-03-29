@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { parseMarkdown } from "@/utils/parseMarkdown";
 import {
   Sparkles,
@@ -9,6 +10,7 @@ import {
   RefreshCw,
   Compass,
   Layers,
+  BookOpen,
   Loader2,
   Wand2,
   CheckCircle2,
@@ -16,6 +18,10 @@ import {
 } from "lucide-react";
 import { useUnidadStore } from "@/store/unidad.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
+import {
+  editarContenidoUnidad,
+  generarCampoTematicoSecundaria,
+} from "@/services/unidad.service";
 import {
   generarAreasComplementarias,
   generarEnfoques,
@@ -27,6 +33,7 @@ import type {
   IAreasComplementariasResponse,
   IEnfoqueUnidad,
   IEnfoquesResponse,
+  IPropositosPorGradoItem,
 } from "@/interfaces/IUnidadIA";
 
 interface Props {
@@ -55,9 +62,14 @@ const ENFOQUE_COLORS = [
   "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30",
 ];
 
+function campoTematicoKey(gradoId: number, areaIdx: number, compIdx: number): string {
+  return `${gradoId}-${areaIdx}-${compIdx}`;
+}
+
 function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
-  const { unidadId, contenido, updateContenido, generandoPaso, setGenerandoPaso } =
+  const { unidadId, datosBase, contenido, updateContenido, generandoPaso, setGenerandoPaso } =
     useUnidadStore();
+  const isSecundariaWizard = Boolean((datosBase as any)?.esSecundariaWizard);
 
   const [statusAreas, setStatusAreas] = useState<GenerationStatus>(
     contenido.areasComplementarias?.length ? "done" : "idle"
@@ -70,6 +82,23 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
     contenido.areasComplementarias || []
   );
   const [enfoques, setEnfoques] = useState<IEnfoqueUnidad[]>(contenido.enfoques || []);
+  const [propositosPorGrado, setPropositosPorGrado] = useState<IPropositosPorGradoItem[]>(
+    (contenido.propositosPorGrado as IPropositosPorGradoItem[]) || []
+  );
+  const [generandoCamposTematicos, setGenerandoCamposTematicos] = useState(false);
+  const [dirtyCamposTematicosKeys, setDirtyCamposTematicosKeys] = useState<string[]>([]);
+  const [savingCampoTematicoKey, setSavingCampoTematicoKey] = useState<string | null>(null);
+  const [savingAllCamposTematicos, setSavingAllCamposTematicos] = useState(false);
+
+  // En secundaria no se usan áreas complementarias en este paso.
+  useEffect(() => {
+    if (!isSecundariaWizard) return;
+    if ((contenido.areasComplementarias?.length ?? 0) > 0 || areasComp.length > 0) {
+      setAreasComp([]);
+      updateContenido({ areasComplementarias: [] });
+    }
+    setStatusAreas("done");
+  }, [isSecundariaWizard]);
 
   // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
   useEffect(() => {
@@ -81,7 +110,14 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
       setEnfoques(contenido.enfoques);
       setStatusEnfoques("done");
     }
-  }, [contenido.areasComplementarias, contenido.enfoques]);
+    if (
+      Array.isArray(contenido.propositosPorGrado) &&
+      contenido.propositosPorGrado.length > 0 &&
+      propositosPorGrado.length === 0
+    ) {
+      setPropositosPorGrado(contenido.propositosPorGrado as IPropositosPorGradoItem[]);
+    }
+  }, [contenido.areasComplementarias, contenido.enfoques, contenido.propositosPorGrado]);
 
   const isGenerating = generandoPaso !== null;
 
@@ -91,18 +127,27 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
   const generarTodo = useCallback(async () => {
     if (!unidadId) return handleToaster("Error: unidad no creada", "error");
 
+    let pasoEnCurso: "areas" | "enfoques" | null = null;
     try {
-      // 4. Áreas Complementarias (contenidoEditado por si el docente editó pasos previos)
-      setStatusAreas("generating");
-      setGenerandoPaso("Áreas Complementarias");
-      const contenidoActual = useUnidadStore.getState().contenido;
-      const resAreas = await generarAreasComplementarias(unidadId, contenidoActual as Record<string, unknown>);
-      const areasData = (resAreas.data as IAreasComplementariasResponse).areasComplementarias;
-      setAreasComp(areasData);
-      updateContenido({ areasComplementarias: areasData });
-      setStatusAreas("done");
+      if (!isSecundariaWizard) {
+        // 4. Áreas Complementarias (contenidoEditado por si el docente editó pasos previos)
+        pasoEnCurso = "areas";
+        setStatusAreas("generating");
+        setGenerandoPaso("Áreas Complementarias");
+        const contenidoActual = useUnidadStore.getState().contenido;
+        const resAreas = await generarAreasComplementarias(unidadId, contenidoActual as Record<string, unknown>);
+        const areasData = (resAreas.data as IAreasComplementariasResponse).areasComplementarias;
+        setAreasComp(areasData);
+        updateContenido({ areasComplementarias: areasData });
+        setStatusAreas("done");
+      } else {
+        setAreasComp([]);
+        updateContenido({ areasComplementarias: [] });
+        setStatusAreas("done");
+      }
 
       // 5. Enfoques Transversales
+      pasoEnCurso = "enfoques";
       setStatusEnfoques("generating");
       setGenerandoPaso("Enfoques Transversales");
       const contenidoParaEnf = useUnidadStore.getState().contenido;
@@ -117,14 +162,14 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
     } catch (error: any) {
       console.error("Error al generar:", error);
       setGenerandoPaso(null);
-      if (statusAreas === "generating") setStatusAreas("error");
-      if (statusEnfoques === "generating") setStatusEnfoques("error");
+      if (pasoEnCurso === "areas") setStatusAreas("error");
+      if (pasoEnCurso === "enfoques") setStatusEnfoques("error");
       handleToaster(
         error?.response?.data?.message || "Error al generar con IA",
         "error"
       );
     }
-  }, [unidadId]);
+  }, [unidadId, isSecundariaWizard]);
 
   /* ─── Regenerar individual ─── */
   async function regenerar(paso: "areas-complementarias" | "enfoques") {
@@ -176,10 +221,153 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
     if (!contenido.enfoques?.length) {
       return handleToaster("Primero genera los enfoques transversales", "error");
     }
+    if (dirtyCamposTematicosKeys.length > 0) {
+      return handleToaster(
+        "Tienes campos temáticos sin guardar. Pulsa Guardar antes de continuar.",
+        "error"
+      );
+    }
     setPagina(pagina + 1);
   }
 
-  const allDone = statusAreas === "done" && statusEnfoques === "done";
+  async function generarCamposTematicosSecundaria() {
+    if (!unidadId) return;
+    if (!isSecundariaWizard) return;
+    try {
+      setGenerandoCamposTematicos(true);
+      const res = await generarCampoTematicoSecundaria({
+        unidadId,
+        forzarRegeneracion: false,
+      });
+      const lista = (res.unidad?.contenido?.propositosPorGrado || []) as IPropositosPorGradoItem[];
+      setPropositosPorGrado(lista);
+      setDirtyCamposTematicosKeys([]);
+      updateContenido({
+        propositosPorGrado: lista,
+        ...(lista[0]?.propositos ? { propositos: lista[0].propositos } : {}),
+      });
+      const total = res.totalCamposTematicosGenerados ?? 0;
+      handleToaster(
+        total > 0
+          ? `Campos temáticos generados: ${total}`
+          : "Campos temáticos actualizados para secundaria",
+        "success"
+      );
+    } catch (error: any) {
+      handleToaster(
+        error?.response?.data?.message || "No se pudieron generar los campos temáticos",
+        "error"
+      );
+    } finally {
+      setGenerandoCamposTematicos(false);
+    }
+  }
+
+  function updateCampoTematico(
+    gradoId: number,
+    areaIdx: number,
+    compIdx: number,
+    valor: string
+  ) {
+    const prevValor =
+      (
+        propositosPorGrado.find((pg) => pg.gradoId === gradoId)?.propositos.areasPropositos?.[areaIdx]
+          ?.competencias?.[compIdx] as any
+      )?.campoTematico ?? "";
+    const key = campoTematicoKey(gradoId, areaIdx, compIdx);
+    const updated = propositosPorGrado.map((pg) => {
+      if (pg.gradoId !== gradoId) return pg;
+      return {
+        ...pg,
+        propositos: {
+          ...pg.propositos,
+          areasPropositos: (pg.propositos.areasPropositos || []).map((area, aIdx) =>
+            aIdx !== areaIdx
+              ? area
+              : {
+                  ...area,
+                  competencias: (area.competencias || []).map((comp, cIdx) =>
+                    cIdx !== compIdx ? comp : { ...comp, campoTematico: valor }
+                  ),
+                }
+          ),
+        },
+      };
+    });
+    setPropositosPorGrado(updated);
+    updateContenido({ propositosPorGrado: updated });
+    const changed = prevValor !== valor;
+    setDirtyCamposTematicosKeys((prev) => {
+      if (changed) return prev.includes(key) ? prev : [...prev, key];
+      return prev.filter((k) => k !== key);
+    });
+  }
+
+  async function guardarCampoTematico(gradoId: number, areaIdx: number, compIdx: number) {
+    if (!unidadId) return;
+    const key = campoTematicoKey(gradoId, areaIdx, compIdx);
+    if (!dirtyCamposTematicosKeys.includes(key)) return;
+
+    setSavingCampoTematicoKey(key);
+    try {
+      const res = await editarContenidoUnidad(unidadId, {
+        contenido: { propositosPorGrado },
+      });
+      const listaServidor = (res.data?.contenido?.propositosPorGrado || []) as IPropositosPorGradoItem[];
+      if (Array.isArray(listaServidor) && listaServidor.length > 0) {
+        setPropositosPorGrado(listaServidor);
+        updateContenido({
+          propositosPorGrado: listaServidor,
+          ...(listaServidor[0]?.propositos ? { propositos: listaServidor[0].propositos } : {}),
+        });
+      } else {
+        updateContenido({ propositosPorGrado });
+      }
+      setDirtyCamposTematicosKeys((prev) => prev.filter((k) => k !== key));
+      handleToaster("Campo temático guardado", "success");
+    } catch (error: any) {
+      handleToaster(
+        error?.response?.data?.message || "No se pudo guardar el campo temático",
+        "error"
+      );
+    } finally {
+      setSavingCampoTematicoKey((curr) => (curr === key ? null : curr));
+    }
+  }
+
+  async function guardarTodosCamposTematicos() {
+    if (!unidadId) return;
+    if (!isSecundariaWizard) return;
+    if (dirtyCamposTematicosKeys.length === 0) return;
+
+    setSavingAllCamposTematicos(true);
+    try {
+      const res = await editarContenidoUnidad(unidadId, {
+        contenido: { propositosPorGrado },
+      });
+      const listaServidor = (res.data?.contenido?.propositosPorGrado || []) as IPropositosPorGradoItem[];
+      if (Array.isArray(listaServidor) && listaServidor.length > 0) {
+        setPropositosPorGrado(listaServidor);
+        updateContenido({
+          propositosPorGrado: listaServidor,
+          ...(listaServidor[0]?.propositos ? { propositos: listaServidor[0].propositos } : {}),
+        });
+      } else {
+        updateContenido({ propositosPorGrado });
+      }
+      setDirtyCamposTematicosKeys([]);
+      handleToaster("Campos temáticos guardados", "success");
+    } catch (error: any) {
+      handleToaster(
+        error?.response?.data?.message || "No se pudieron guardar los campos temáticos",
+        "error"
+      );
+    } finally {
+      setSavingAllCamposTematicos(false);
+    }
+  }
+
+  const allDone = statusEnfoques === "done" && (isSecundariaWizard || statusAreas === "done");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 sm:p-6">
@@ -194,10 +382,12 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
             <span className="text-sm font-semibold tracking-wide">PASO 3 DE 4</span>
           </div>
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent mb-4 tracking-tight">
-            Enfoques y Complementos
+            {isSecundariaWizard ? "Enfoques Transversales" : "Enfoques y Complementos"}
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Áreas complementarias y enfoques transversales para enriquecer la unidad
+            {isSecundariaWizard
+              ? "Definimos los enfoques transversales de la unidad"
+              : "Áreas complementarias y enfoques transversales para enriquecer la unidad"}
           </p>
         </div>
 
@@ -224,77 +414,81 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
           </div>
         )}
 
-        {/* ═══════════════════════════════
-            Áreas Complementarias
-            ═══════════════════════════════ */}
-        <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <div className="h-10 w-10 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <Layers className="h-6 w-6 text-white" />
-              </div>
-              Áreas Complementarias
-              {statusAreas === "done" && <CheckCircle2 className="h-5 w-5 text-green-500 ml-2" />}
-            </CardTitle>
-            {statusAreas === "done" && (
-              <Button
-                onClick={() => regenerar("areas-complementarias")}
-                disabled={isGenerating}
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${isGenerating ? "animate-spin" : ""}`} />
-                Regenerar
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {statusAreas === "idle" && (
-              <Placeholder label="Pendiente de generación" />
-            )}
-            {statusAreas === "generating" && (
-              <GeneratingSpinner label="Áreas Complementarias" />
-            )}
-            {statusAreas === "error" && (
-              <ErrorState onRetry={() => regenerar("areas-complementarias")} />
-            )}
-            {statusAreas === "done" && areasComp.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {areasComp.map((ac, i) => (
-                  <div
-                    key={i}
-                    className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 transition-all hover:shadow-lg"
-                  >
-                    <div className={`h-2 bg-gradient-to-r ${AREA_COLORS[i % AREA_COLORS.length]}`} />
-                    <div className="p-4">
-                      <h4 className="font-bold text-base mb-1">{ac.area}</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                        {ac.competenciaRelacionada}
-                      </p>
-                      <span className="inline-block text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full mb-2">
-                        {ac.dimension}
-                      </span>
-                      {ac.actividades?.length > 0 && (
-                        <ul className="list-disc list-inside text-xs text-slate-500 space-y-0.5">
-                          {ac.actividades.map((act, j) => (
-                            <li key={j}>{parseMarkdown(act)}</li>
-                          ))}
-                        </ul>
-                      )}
-                      <button
-                        onClick={() => removeAreaComp(i)}
-                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+        {!isSecundariaWizard && (
+          <>
+            {/* ═══════════════════════════════
+                Áreas Complementarias
+                ═══════════════════════════════ */}
+            <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <div className="h-10 w-10 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg flex items-center justify-center">
+                    <Layers className="h-6 w-6 text-white" />
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  Áreas Complementarias
+                  {statusAreas === "done" && <CheckCircle2 className="h-5 w-5 text-green-500 ml-2" />}
+                </CardTitle>
+                {statusAreas === "done" && (
+                  <Button
+                    onClick={() => regenerar("areas-complementarias")}
+                    disabled={isGenerating}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isGenerating ? "animate-spin" : ""}`} />
+                    Regenerar
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {statusAreas === "idle" && (
+                  <Placeholder label="Pendiente de generación" />
+                )}
+                {statusAreas === "generating" && (
+                  <GeneratingSpinner label="Áreas Complementarias" />
+                )}
+                {statusAreas === "error" && (
+                  <ErrorState onRetry={() => regenerar("areas-complementarias")} />
+                )}
+                {statusAreas === "done" && areasComp.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {areasComp.map((ac, i) => (
+                      <div
+                        key={i}
+                        className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 transition-all hover:shadow-lg"
+                      >
+                        <div className={`h-2 bg-gradient-to-r ${AREA_COLORS[i % AREA_COLORS.length]}`} />
+                        <div className="p-4">
+                          <h4 className="font-bold text-base mb-1">{ac.area}</h4>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                            {ac.competenciaRelacionada}
+                          </p>
+                          <span className="inline-block text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full mb-2">
+                            {ac.dimension}
+                          </span>
+                          {ac.actividades?.length > 0 && (
+                            <ul className="list-disc list-inside text-xs text-slate-500 space-y-0.5">
+                              {ac.actividades.map((act, j) => (
+                                <li key={j}>{parseMarkdown(act)}</li>
+                              ))}
+                            </ul>
+                          )}
+                          <button
+                            onClick={() => removeAreaComp(i)}
+                            className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
 
         {/* ═══════════════════════════════
             Enfoques Transversales
@@ -351,6 +545,120 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
             )}
           </CardContent>
         </Card>
+
+        {isSecundariaWizard && (
+          <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <div className="h-10 w-10 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-lg flex items-center justify-center">
+                  <BookOpen className="h-6 w-6 text-white" />
+                </div>
+                Campos Temáticos (Secundaria)
+              </CardTitle>
+              <Button
+                onClick={generarCamposTematicosSecundaria}
+                disabled={isGenerating || generandoCamposTematicos || savingAllCamposTematicos}
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${(isGenerating || generandoCamposTematicos) ? "animate-spin" : ""}`} />
+                {generandoCamposTematicos ? "Generando..." : "Generar campos temáticos"}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {propositosPorGrado.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No hay propósitos por grado disponibles aún.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {dirtyCamposTematicosKeys.length > 0 && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                          Hay {dirtyCamposTematicosKeys.length} campo(s) temático(s) con cambios sin guardar.
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-8 text-xs"
+                          disabled={savingAllCamposTematicos || savingCampoTematicoKey !== null}
+                          onClick={guardarTodosCamposTematicos}
+                        >
+                          {savingAllCamposTematicos ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              Guardando...
+                            </>
+                          ) : (
+                            "Guardar campos temáticos"
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {propositosPorGrado.map((pg) => (
+                    <div
+                      key={pg.gradoId}
+                      className="rounded-lg border border-slate-200 dark:border-slate-700 p-3"
+                    >
+                      <p className="font-semibold text-sm mb-3">{pg.grado}</p>
+                      {(pg.propositos.areasPropositos || []).map((area, aIdx) => (
+                        <div key={`${pg.gradoId}-${aIdx}`} className="mb-3">
+                          <p className="text-xs font-medium text-slate-500 mb-2">{area.area}</p>
+                          <div className="space-y-2">
+                            {(area.competencias || []).map((comp, cIdx) => (
+                              <div
+                                key={`${pg.gradoId}-${aIdx}-${cIdx}`}
+                                className="rounded-md border border-slate-200 dark:border-slate-700 p-2"
+                              >
+                                <p className="text-xs font-semibold mb-1">
+                                  {comp.nombre || (comp as any).competencia || "Competencia"}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={(comp as any).campoTematico || ""}
+                                    onChange={(e) =>
+                                      updateCampoTematico(pg.gradoId, aIdx, cIdx, e.target.value)
+                                    }
+                                    placeholder="Campo temático"
+                                    className="h-8 text-xs"
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="h-8 text-xs shrink-0"
+                                    disabled={
+                                      !dirtyCamposTematicosKeys.includes(
+                                        campoTematicoKey(pg.gradoId, aIdx, cIdx)
+                                      ) || savingCampoTematicoKey !== null || savingAllCamposTematicos
+                                    }
+                                    onClick={() => guardarCampoTematico(pg.gradoId, aIdx, cIdx)}
+                                  >
+                                    {savingCampoTematicoKey ===
+                                    campoTematicoKey(pg.gradoId, aIdx, cIdx) ? (
+                                      <>
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        Guardando...
+                                      </>
+                                    ) : (
+                                      "Guardar"
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* ── Navegación ── */}
         <div className="flex justify-between pb-10">

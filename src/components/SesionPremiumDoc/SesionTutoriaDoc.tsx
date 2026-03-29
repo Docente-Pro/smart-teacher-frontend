@@ -1,5 +1,9 @@
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
 import { DocumentStyles, HtmldocsDocument, HtmldocsFooter } from "@/components/DocTest";
+import {
+  CompetenciasCriteriosSesionSection,
+  splitCriteriosEnDosBloques,
+} from "@/components/DocTest/CompetenciasCriteriosSesionSection";
 import { formatDateOnlyEsPE } from "@/utils/dateOnlyPeru";
 import { parseMarkdown } from "@/utils/parseMarkdown";
 import type { IFasePremium, ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
@@ -99,6 +103,21 @@ export function SesionTutoriaDoc({ data, insigniaUrl }: SesionTutoriaDocProps) {
   const descPresentacion = momentos?.presentacion?.descripcion || "";
   const descDesarrollo = momentos?.desarrollo?.descripcion || "";
   const descCierre = momentos?.cierre?.descripcion || "";
+
+  const criteriosPorCompetencia = (() => {
+    const propositos = Array.isArray((sesion as any).propositoAprendizaje)
+      ? ((sesion as any).propositoAprendizaje as Array<{ criteriosEvaluacion?: string[] }>)
+      : [];
+
+    const primerBloque = (propositos[0]?.criteriosEvaluacion ?? []).filter(Boolean);
+    const segundoBloque = (propositos[1]?.criteriosEvaluacion ?? []).filter(Boolean);
+
+    if (primerBloque.length || segundoBloque.length) {
+      return [primerBloque, segundoBloque];
+    }
+
+    return splitCriteriosEnDosBloques(primerBloque);
+  })();
 
   return (
     <HtmldocsDocument size="A4" orientation="portrait" margin="0.35in">
@@ -248,6 +267,11 @@ export function SesionTutoriaDoc({ data, insigniaUrl }: SesionTutoriaDocProps) {
           </tr>
         </tbody>
       </table>
+
+      <CompetenciasCriteriosSesionSection
+        sectionColor="#dbeafe"
+        criteriosPorCompetencia={criteriosPorCompetencia}
+      />
 
       <table
         style={{

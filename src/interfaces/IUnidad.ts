@@ -34,7 +34,8 @@ export interface IUnidadCreateRequest {
   titulo: string;
   tipo?: TipoUnidad;
   nivelId: number;
-  gradoId: number;
+  gradoId: number | null;
+  gradosSecundaria?: number[];
   numeroUnidad: number;
   duracion: number;
   fechaInicio: string;

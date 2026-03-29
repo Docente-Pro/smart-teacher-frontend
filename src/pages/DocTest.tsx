@@ -9,6 +9,10 @@ import { DocumentStyles } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
 import { DatosGeneralesSection } from "@/components/DocTest/DatosGeneralesSection";
 import { PropositoAprendizajeSection } from "@/components/DocTest/PropositoAprendizajeSection";
+import {
+  CompetenciasCriteriosSesionSection,
+  splitCriteriosEnDosBloques,
+} from "@/components/DocTest/CompetenciasCriteriosSesionSection";
 import { PropositoSesionSection } from "@/components/DocTest/AdditionalSections";
 import { EnfoquesTransversalesSection } from "@/components/DocTest/EnfoquesTransversalesSection";
 import { PreparacionSesionSection } from "@/components/DocTest/PreparacionSesionSection";
@@ -53,6 +57,14 @@ function DocTest() {
       criterios,
       instrumento: p.instrumentoEvaluacion,
     });
+  }, [sesion]);
+
+  const criteriosSesionPorBloque = useMemo(() => {
+    if (!sesion) return [[], []] as [string[], string[]];
+    const criterios = (sesion.propositoAprendizaje.criteriosEvaluacion ?? [])
+      .map((c) => (typeof c === "string" ? c : (c as ICriterioIA).criterioCompleto ?? ""))
+      .filter(Boolean);
+    return splitCriteriosEnDosBloques(criterios);
   }, [sesion]);
   
   const handleFichaAplicacion = async () => {
@@ -257,6 +269,12 @@ function DocTest() {
 
             {/* ANTES DE LA SESIÓN */}
             <PreparacionSesionSection preparacion={sesion.preparacion} sectionColor={areaHex!.light} />
+
+            {/* COMPETENCIAS/CAPACIDADES + CRITERIOS (previo a momentos y tiempos) */}
+            <CompetenciasCriteriosSesionSection
+              sectionColor={areaHex!.light}
+              criteriosPorCompetencia={criteriosSesionPorBloque}
+            />
 
             {/* MOMENTOS Y TIEMPOS */}
             <SecuenciaDidacticaSection secuencia={sesion.secuenciaDidactica} sectionColor={areaHex!.light} />

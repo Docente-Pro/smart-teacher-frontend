@@ -20,6 +20,22 @@ export interface UnidadDatosBase {
   maxMiembros?: number;
   sesionesSemanales?: number;
   codigoCompartido?: string;
+  // ─── Secundaria (wizard por áreas) ───
+  esSecundariaWizard?: boolean;
+  gradesPool?: string[];
+  gradosPorArea?: Record<string, string[]>;
+  tieneTutoria?: boolean;
+  gradosTutoria?: string[];
+  planificacionAreas?: Array<{
+    area: string;
+    totalSemanas: number;
+    totalSesionesUnidad: number;
+    modoDistribucion: "automatica" | "manual";
+    sesionesPorSemana: number[];
+    editable: boolean;
+    reglaAplicada?: string;
+  }>;
+  gradosSecundariaIds?: number[];
 }
 
 // ─── Fases del wizard ───
