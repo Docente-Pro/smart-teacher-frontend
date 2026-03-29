@@ -16,7 +16,7 @@ import {
   adminUpdateUsuario,
 } from "@/services/admin.service";
 import type { IAdminUpdateUsuarioRequest } from "@/services/admin.service";
-import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares, adminArreglarActividades } from "@/services/admin.service";
+import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares, adminArreglarActividades, adminFinalizarUnidad } from "@/services/admin.service";
 import type { IArreglarActividadesResponse } from "@/services/admin.service";
 import { getNiveles } from "@/features/initialForm/services/niveles.service";
 import { getAllGrados } from "@/services/grado.service";
@@ -63,6 +63,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  FlagOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -77,6 +78,11 @@ interface UbigeoDistrito { id: number; distrito: string; ubigeo: string; provinc
 const departamentos: UbigeoDepartamento[] = departamentosData.ubigeo_departamentos;
 const provincias: UbigeoProvincia[] = provinciasData.ubigeo_provincias;
 const distritos: UbigeoDistrito[] = distritosData.ubigeo_distritos;
+
+function isUnidadActivaParaFinalizar(fechaFin?: string | null): boolean {
+  if (fechaFin == null) return true;
+  return new Date(fechaFin).getTime() > Date.now();
+}
 
 export default function AdminUsuarioDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -95,6 +101,7 @@ export default function AdminUsuarioDetalle() {
   const [downloadingWord, setDownloadingWord] = useState<string | null>(null);
   const [generatingWord, setGeneratingWord] = useState<string | null>(null);
   const [generandoFicha, setGenerandoFicha] = useState<string | null>(null);
+  const [finalizandoUnidadId, setFinalizandoUnidadId] = useState<string | null>(null);
 
   // ── Edit profile state ──
   const [editOpen, setEditOpen] = useState(false);
@@ -1345,6 +1352,7 @@ export default function AdminUsuarioDetalle() {
                       )}
                     </td>
                     <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1 items-center max-w-[min(100%,520px)]">
                       <Button
                         size="sm"
                         variant="outline"
@@ -1398,7 +1406,7 @@ export default function AdminUsuarioDetalle() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50 ml-1"
+                        className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
                         disabled={corrigiendoHorario === u.id}
                         onClick={async () => {
                           if (!confirm(`¿Arreglar horario de la unidad "${u.titulo || u.id}"? Se corregirá la secuencia y se regenerará el PDF.`)) return;
@@ -1500,7 +1508,7 @@ export default function AdminUsuarioDetalle() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-50 ml-1"
+                        className="gap-1 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-50"
                         disabled={arreglandoActividades === u.id}
                         onClick={async () => {
                           if (!confirm(`¿Arreglar actividades de la unidad "${u.titulo || u.id}"?\n\nEsto auditará y reparará competencias, actividades, criterios, estándares y la secuencia.\n\nPuede tardar hasta 4 minutos.`)) return;
@@ -1559,6 +1567,56 @@ export default function AdminUsuarioDetalle() {
                         )}
                         {arreglandoActividades === u.id ? "Arreglando…" : "Arreglar Actividades"}
                       </Button>
+                      {isUnidadActivaParaFinalizar(u.fechaFin) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-red-300 text-red-700 hover:bg-red-50"
+                          disabled={finalizandoUnidadId === u.id}
+                          title="Finalizar unidad (admin)"
+                          onClick={async () => {
+                            if (
+                              !confirm(
+                                `¿Finalizar la unidad "${u.titulo || u.id}"?\n\nDejará de contar como activa. El docente podrá crear otra unidad si su plan lo permite. La unidad y sus sesiones/PDFs siguen existiendo.`,
+                              )
+                            )
+                              return;
+                            setFinalizandoUnidadId(u.id);
+                            try {
+                              const res = await adminFinalizarUnidad(u.id);
+                              toast.success(res.message || "Unidad finalizada");
+                              const nuevaFechaFin =
+                                typeof res.data?.fechaFin === "string"
+                                  ? res.data.fechaFin
+                                  : new Date().toISOString();
+                              setUsuario((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  unidades: prev.unidades.map((uni) =>
+                                    uni.id === u.id ? { ...uni, fechaFin: nuevaFechaFin } : uni,
+                                  ),
+                                };
+                              });
+                            } catch (err: any) {
+                              toast.error(
+                                err?.response?.data?.message ||
+                                  "Error al finalizar la unidad",
+                              );
+                            } finally {
+                              setFinalizandoUnidadId(null);
+                            }
+                          }}
+                        >
+                          {finalizandoUnidadId === u.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <FlagOff className="w-3 h-3" />
+                          )}
+                          {finalizandoUnidadId === u.id ? "Finalizando…" : "Finalizar"}
+                        </Button>
+                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
