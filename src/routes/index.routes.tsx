@@ -27,9 +27,11 @@ import GraficosAreasPlayground from "@/pages/GraficosAreasPlayground";
 import { DevRoute } from "@/components/DevRoute";
 import CrearUnidad from "@/pages/CrearUnidad";
 import UnidadResult from "@/pages/UnidadResult";
+import UnidadResultPrueba from "@/pages/UnidadResultPrueba";
 import UnidadSuscriptorResult from "@/pages/UnidadSuscriptorResult";
 import UnirseUnidad from "@/pages/UnirseUnidad";
 import GenerarSesionPremium from "@/pages/GenerarSesionPremium";
+import GenerarSesionSecundaria from "@/pages/GenerarSesionSecundaria";
 import SesionPremiumResult from "@/pages/SesionPremiumResult";
 import SesionSuscriptorResult from "@/pages/SesionSuscriptorResult";
 import FichaAplicacionResult from "@/pages/FichaAplicacionResult";
@@ -121,6 +123,30 @@ export const routes: IRouteToCreate[] = [
     ),
   },
   {
+    path: "/unidad-result-prueba",
+    element: (
+      <ProtectedRoute>
+        <UnidadResultPrueba />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/unidad-prueba-result",
+    element: (
+      <ProtectedRoute>
+        <UnidadResultPrueba />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/unidad-result-secundaria-prueba",
+    element: (
+      <ProtectedRoute>
+        <UnidadResultPrueba />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/unidad-suscriptor-result",
     element: (
       <ProtectedRoute>
@@ -165,6 +191,14 @@ export const routes: IRouteToCreate[] = [
     element: (
       <ProtectedRoute>
         <GenerarSesionPremium />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/generar-sesion-secundaria",
+    element: (
+      <ProtectedRoute>
+        <GenerarSesionSecundaria />
       </ProtectedRoute>
     ),
   },

@@ -28,6 +28,7 @@ import {
   generarSituacionSignificativa,
   generarEvidencias,
   generarPropositos,
+  generarPropositosMultigrado,
   regenerarPasoUnidad,
   generarImagenSituacion,
 } from "@/services/ia-unidad.service";
@@ -40,6 +41,7 @@ import type {
   ISituacionSignificativaResponse,
   IEvidencias,
   IPropositos,
+  IPropositosPorGradoItem,
   IActividadCriterioProposito,
 } from "@/interfaces/IUnidadIA";
 
@@ -52,7 +54,7 @@ interface Props {
 
 type GenerationStatus = "idle" | "generating" | "done" | "error";
 
-type PendingCriterioSlot = { areaIdx: number; compIdx: number; actIdx: number };
+type PendingCriterioSlot = { gradoId?: number; areaIdx: number; compIdx: number; actIdx: number };
 
 function nombreCompetenciaProposito(
   comp: IPropositos["areasPropositos"][number]["competencias"][number]
@@ -63,6 +65,10 @@ function nombreCompetenciaProposito(
 
 function normActividadTxt(t: string): string {
   return t.replace(/\s+/g, " ").trim();
+}
+
+function sameActividadText(a: string, b: string): boolean {
+  return normActividadTxt(a) === normActividadTxt(b);
 }
 
 /**
@@ -112,8 +118,17 @@ function alinearPropositosActividadCriterios(prop: IPropositos): IPropositos {
   };
 }
 
-function competenciaKey(areaIdx: number, compIdx: number): string {
-  return `${areaIdx}-${compIdx}`;
+function alinearPropositosPorGradoActividadCriterios(
+  items: IPropositosPorGradoItem[]
+): IPropositosPorGradoItem[] {
+  return items.map((item) => ({
+    ...item,
+    propositos: alinearPropositosActividadCriterios(item.propositos),
+  }));
+}
+
+function competenciaKey(areaIdx: number, compIdx: number, gradoId?: number): string {
+  return gradoId != null ? `g:${gradoId}:${areaIdx}-${compIdx}` : `p:${areaIdx}-${compIdx}`;
 }
 
 function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveStatus }: Props) {
@@ -137,6 +152,21 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
   const [situacionTexto, setSituacionTexto] = useState(contenido.situacionSignificativa || "");
   const [evidencias, setEvidencias] = useState<IEvidencias | null>(contenido.evidencias || null);
   const [propositos, setPropositos] = useState<IPropositos | null>(contenido.propositos || null);
+  const [propositosPorGrado, setPropositosPorGrado] = useState<IPropositosPorGradoItem[]>(
+    (contenido.propositosPorGrado as IPropositosPorGradoItem[]) || []
+  );
+
+  const getGradosSecundariaIds = useCallback((): number[] => {
+    const fromContenido = Array.isArray((contenido as any)?.gradosSecundaria)
+      ? ((contenido as any).gradosSecundaria as number[])
+      : [];
+    const fromDatosBase = Array.isArray((datosBase as any)?.gradosSecundariaIds)
+      ? ((datosBase as any).gradosSecundariaIds as number[])
+      : [];
+    return Array.from(new Set([...fromContenido, ...fromDatosBase]))
+      .filter((id) => Number.isFinite(id))
+      .sort((a, b) => a - b);
+  }, [contenido, datosBase]);
 
   // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
   useEffect(() => {
@@ -152,6 +182,10 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
       setPropositos(alinearPropositosActividadCriterios(contenido.propositos));
       setStatusPropositos("done");
     }
+    if (Array.isArray(contenido.propositosPorGrado) && contenido.propositosPorGrado.length > 0 && propositosPorGrado.length === 0) {
+      setPropositosPorGrado(contenido.propositosPorGrado as IPropositosPorGradoItem[]);
+      setStatusPropositos("done");
+    }
   }, [contenido.situacionSignificativa, contenido.evidencias, contenido.propositos]);
 
   // Secciones colapsadas
@@ -165,26 +199,50 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
   /** Índices de filas añadidas con "Agregar actividad" que aún deben disparar IA al tener texto */
   const pendingCriteriosActividadRef = useRef<PendingCriterioSlot[]>([]);
 
-  const markCompetenciaDirty = useCallback((areaIdx: number, compIdx: number) => {
-    const k = competenciaKey(areaIdx, compIdx);
+  const upsertPendingSlot = useCallback((slot: PendingCriterioSlot) => {
+    const exists = pendingCriteriosActividadRef.current.some(
+      (s) =>
+        s.gradoId === slot.gradoId &&
+        s.areaIdx === slot.areaIdx &&
+        s.compIdx === slot.compIdx &&
+        s.actIdx === slot.actIdx
+    );
+    if (!exists) pendingCriteriosActividadRef.current.push(slot);
+  }, []);
+
+  const removePendingSlot = useCallback((slot: PendingCriterioSlot) => {
+    pendingCriteriosActividadRef.current = pendingCriteriosActividadRef.current.filter(
+      (s) =>
+        !(
+          s.gradoId === slot.gradoId &&
+          s.areaIdx === slot.areaIdx &&
+          s.compIdx === slot.compIdx &&
+          s.actIdx === slot.actIdx
+        )
+    );
+  }, []);
+
+  const markCompetenciaDirty = useCallback((areaIdx: number, compIdx: number, gradoId?: number) => {
+    const k = competenciaKey(areaIdx, compIdx, gradoId);
     setDirtyCompetenciaKeys((prev) => (prev.includes(k) ? prev : [...prev, k]));
   }, []);
 
-  const clearCompetenciaDirty = useCallback((areaIdx: number, compIdx: number) => {
-    const k = competenciaKey(areaIdx, compIdx);
+  const clearCompetenciaDirty = useCallback((areaIdx: number, compIdx: number, gradoId?: number) => {
+    const k = competenciaKey(areaIdx, compIdx, gradoId);
     setDirtyCompetenciaKeys((prev) => prev.filter((it) => it !== k));
   }, []);
 
   const isCompetenciaDirty = useCallback(
-    (areaIdx: number, compIdx: number) => dirtyCompetenciaKeys.includes(competenciaKey(areaIdx, compIdx)),
+    (areaIdx: number, compIdx: number, gradoId?: number) =>
+      dirtyCompetenciaKeys.includes(competenciaKey(areaIdx, compIdx, gradoId)),
     [dirtyCompetenciaKeys]
   );
 
   const adjustPendingAfterRemove = useCallback(
-    (areaIdx: number, compIdx: number, removedActIdx: number) => {
+    (areaIdx: number, compIdx: number, removedActIdx: number, gradoId?: number) => {
       const next: PendingCriterioSlot[] = [];
       for (const s of pendingCriteriosActividadRef.current) {
-        if (s.areaIdx !== areaIdx || s.compIdx !== compIdx) {
+        if (s.areaIdx !== areaIdx || s.compIdx !== compIdx || s.gradoId !== gradoId) {
           next.push(s);
           continue;
         }
@@ -210,7 +268,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
       const competenciaNombre = nombreCompetenciaProposito(comp);
 
       const pendingForComp = pendingCriteriosActividadRef.current.filter(
-        (s) => s.areaIdx === areaIdx && s.compIdx === compIdx
+        (s) => s.areaIdx === areaIdx && s.compIdx === compIdx && s.gradoId == null
       );
       const nuevasActividades: string[] = [];
       const sentSlots: PendingCriterioSlot[] = [];
@@ -240,7 +298,11 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
         pendingCriteriosActividadRef.current = pendingCriteriosActividadRef.current.filter(
           (s) =>
             !sentSlots.some(
-              (ss) => ss.areaIdx === s.areaIdx && ss.compIdx === s.compIdx && ss.actIdx === s.actIdx
+              (ss) =>
+                ss.areaIdx === s.areaIdx &&
+                ss.compIdx === s.compIdx &&
+                ss.actIdx === s.actIdx &&
+                ss.gradoId === s.gradoId
             )
         );
         const n = res.criteriosGeneradosParaActividades;
@@ -284,6 +346,112 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
     [unidadId, updateContenido, setPropositos, clearCompetenciaDirty]
   );
 
+  // Sincroniza actividades para una competencia específica de un grado (multigrado secundaria).
+  const syncActividadesMultigradoToBackend = useCallback(
+    async (
+      gradoId: number,
+      areaIdx: number,
+      compIdx: number,
+      propositosPorGradoSnapshot?: IPropositosPorGradoItem[]
+    ): Promise<boolean> => {
+      if (!unidadId) return false;
+      const snapshot =
+        propositosPorGradoSnapshot ??
+        ((useUnidadStore.getState().contenido?.propositosPorGrado as IPropositosPorGradoItem[]) || []);
+      const item = snapshot.find((it) => it.gradoId === gradoId);
+      if (!item) return false;
+
+      const area = item.propositos.areasPropositos?.[areaIdx];
+      const comp = area?.competencias?.[compIdx];
+      if (!area || !comp) return false;
+
+      const actividades = comp.actividades ?? [];
+      const competenciaNombre = nombreCompetenciaProposito(comp);
+
+      const pendingForComp = pendingCriteriosActividadRef.current.filter(
+        (s) => s.gradoId === gradoId && s.areaIdx === areaIdx && s.compIdx === compIdx
+      );
+      const nuevasActividades: string[] = [];
+      const sentSlots: PendingCriterioSlot[] = [];
+      for (const slot of pendingForComp) {
+        const t = (actividades[slot.actIdx] ?? "").trim();
+        if (t) {
+          nuevasActividades.push(t);
+          sentSlots.push(slot);
+        }
+      }
+
+      const body = {
+        gradoId,
+        area: area.area,
+        competencia: competenciaNombre,
+        actividades,
+        ...(nuevasActividades.length > 0 ? { nuevasActividades } : {}),
+      };
+
+      const syncKey = competenciaKey(areaIdx, compIdx, gradoId);
+      setSavingActividadesKey(syncKey);
+      if (nuevasActividades.length > 0) setCriteriosActividadSyncKey(syncKey);
+
+      try {
+        const res = await patchPropositosActividades(unidadId, body);
+        if (res.success === false) return false;
+
+        pendingCriteriosActividadRef.current = pendingCriteriosActividadRef.current.filter(
+          (s) =>
+            !sentSlots.some(
+              (ss) =>
+                ss.gradoId === s.gradoId &&
+                ss.areaIdx === s.areaIdx &&
+                ss.compIdx === s.compIdx &&
+                ss.actIdx === s.actIdx
+            )
+        );
+
+        const n = res.criteriosGeneradosParaActividades;
+        if (n != null && n > 0) {
+          handleToaster(
+            n === 1
+              ? "Se generaron criterios para la nueva actividad."
+              : `Se generaron criterios para ${n} actividades nuevas.`,
+            "success"
+          );
+        }
+
+        const unidad = res.data as IUnidad | undefined;
+        const serverItems = unidad?.contenido?.propositosPorGrado as IPropositosPorGradoItem[] | undefined;
+        if (Array.isArray(serverItems) && serverItems.length > 0) {
+          const aligned = alinearPropositosPorGradoActividadCriterios(serverItems);
+          setPropositosPorGrado(aligned);
+          updateContenido({ propositosPorGrado: aligned });
+          if (aligned[0]?.propositos) {
+            setPropositos(aligned[0].propositos);
+            updateContenido({ propositos: aligned[0].propositos });
+          }
+        } else if (propositosPorGradoSnapshot) {
+          const aligned = alinearPropositosPorGradoActividadCriterios(propositosPorGradoSnapshot);
+          setPropositosPorGrado(aligned);
+          updateContenido({ propositosPorGrado: aligned });
+        }
+
+        clearCompetenciaDirty(areaIdx, compIdx, gradoId);
+        return true;
+      } catch (err: any) {
+        console.error("Error al sincronizar actividades (multigrado):", err);
+        handleToaster(
+          err?.response?.data?.message ??
+            "No se pudo guardar las actividades del grado. Revisa la conexión o reintenta.",
+          "error"
+        );
+        return false;
+      } finally {
+        setSavingActividadesKey((k) => (k === syncKey ? null : k));
+        setCriteriosActividadSyncKey((k) => (k === syncKey ? null : k));
+      }
+    },
+    [unidadId, updateContenido, clearCompetenciaDirty]
+  );
+
   // Handler para editar una actividad in-place
   const handleActividadChange = (
     areaIdx: number,
@@ -292,6 +460,10 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
     newValue: string
   ) => {
     if (!propositos) return;
+    const prevComp = propositos.areasPropositos?.[areaIdx]?.competencias?.[compIdx];
+    const prevActividad = prevComp?.actividades?.[actIdx] ?? "";
+    const textoCambio = !sameActividadText(prevActividad, newValue);
+    const nuevoConTexto = Boolean(newValue.trim());
     const updated: IPropositos = {
       ...propositos,
       areasPropositos: propositos.areasPropositos.map((area, aI) =>
@@ -307,15 +479,22 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
                       actividades: comp.actividades.map((act, actI) =>
                         actI !== actIdx ? act : newValue
                       ),
-                      actividadCriterios: (comp.actividadCriterios ?? []).map((ac, acI) =>
-                        acI !== actIdx ? ac : { ...ac, actividad: newValue }
-                      ),
+                      actividadCriterios: (comp.actividadCriterios ?? []).map((ac, acI) => {
+                        if (acI !== actIdx) return ac;
+                        if (textoCambio) return { actividad: newValue, criterios: [] };
+                        return { ...ac, actividad: newValue };
+                      }),
                     }
               ),
             }
       ),
     };
     setPropositos(updated);
+    if (textoCambio && nuevoConTexto) {
+      upsertPendingSlot({ areaIdx, compIdx, actIdx });
+    } else if (!nuevoConTexto) {
+      removePendingSlot({ areaIdx, compIdx, actIdx });
+    }
     markCompetenciaDirty(areaIdx, compIdx);
   };
 
@@ -328,7 +507,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
     if (!comp) return;
     const currentActividades = comp.actividades ?? [];
     const newActIdx = currentActividades.length;
-    pendingCriteriosActividadRef.current.push({ areaIdx, compIdx, actIdx: newActIdx });
+    upsertPendingSlot({ areaIdx, compIdx, actIdx: newActIdx });
     const updated: IPropositos = {
       ...propositos,
       areasPropositos: propositos.areasPropositos.map((a, aI) =>
@@ -385,9 +564,149 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
     markCompetenciaDirty(areaIdx, compIdx);
   };
 
+  const handleActividadChangeMultigrado = (
+    gradoId: number,
+    areaIdx: number,
+    compIdx: number,
+    actIdx: number,
+    newValue: string
+  ) => {
+    const item = propositosPorGrado.find((it) => it.gradoId === gradoId);
+    const prevActividad =
+      item?.propositos.areasPropositos?.[areaIdx]?.competencias?.[compIdx]?.actividades?.[actIdx] ?? "";
+    const textoCambio = !sameActividadText(prevActividad, newValue);
+    const nuevoConTexto = Boolean(newValue.trim());
+    const updatedItems = propositosPorGrado.map((item) => {
+      if (item.gradoId !== gradoId) return item;
+      return {
+        ...item,
+        propositos: {
+          ...item.propositos,
+          areasPropositos: item.propositos.areasPropositos.map((area, aI) =>
+            aI !== areaIdx
+              ? area
+              : {
+                  ...area,
+                  competencias: area.competencias.map((comp, cI) =>
+                    cI !== compIdx
+                      ? comp
+                      : {
+                          ...comp,
+                          actividades: comp.actividades.map((act, actI) =>
+                            actI !== actIdx ? act : newValue
+                          ),
+                          actividadCriterios: (comp.actividadCriterios ?? []).map((ac, acI) => {
+                            if (acI !== actIdx) return ac;
+                            if (textoCambio) return { actividad: newValue, criterios: [] };
+                            return { ...ac, actividad: newValue };
+                          }),
+                        }
+                  ),
+                }
+          ),
+        },
+      };
+    });
+    setPropositosPorGrado(updatedItems);
+    if (textoCambio && nuevoConTexto) {
+      upsertPendingSlot({ gradoId, areaIdx, compIdx, actIdx });
+    } else if (!nuevoConTexto) {
+      removePendingSlot({ gradoId, areaIdx, compIdx, actIdx });
+    }
+    markCompetenciaDirty(areaIdx, compIdx, gradoId);
+  };
+
+  const handleAddActividadMultigrado = (gradoId: number, areaIdx: number, compIdx: number) => {
+    const item = propositosPorGrado.find((it) => it.gradoId === gradoId);
+    const comp = item?.propositos.areasPropositos?.[areaIdx]?.competencias?.[compIdx];
+    if (!comp) return;
+    const currentActividades = comp.actividades ?? [];
+    const newActIdx = currentActividades.length;
+    upsertPendingSlot({ gradoId, areaIdx, compIdx, actIdx: newActIdx });
+
+    const updatedItems = propositosPorGrado.map((it) => {
+      if (it.gradoId !== gradoId) return it;
+      return {
+        ...it,
+        propositos: {
+          ...it.propositos,
+          areasPropositos: it.propositos.areasPropositos.map((area, aI) =>
+            aI !== areaIdx
+              ? area
+              : {
+                  ...area,
+                  competencias: area.competencias.map((c, cI) =>
+                    cI !== compIdx
+                      ? c
+                      : {
+                          ...c,
+                          actividades: [...currentActividades, ""],
+                          actividadCriterios: reconcileActividadCriteriosParaActividades(
+                            [...currentActividades, ""],
+                            c.actividadCriterios
+                          ),
+                        }
+                  ),
+                }
+          ),
+        },
+      };
+    });
+    setPropositosPorGrado(updatedItems);
+    markCompetenciaDirty(areaIdx, compIdx, gradoId);
+  };
+
+  const handleRemoveActividadMultigrado = (
+    gradoId: number,
+    areaIdx: number,
+    compIdx: number,
+    actIdx: number
+  ) => {
+    adjustPendingAfterRemove(areaIdx, compIdx, actIdx, gradoId);
+    const updatedItems = propositosPorGrado.map((item) => {
+      if (item.gradoId !== gradoId) return item;
+      return {
+        ...item,
+        propositos: {
+          ...item.propositos,
+          areasPropositos: item.propositos.areasPropositos.map((area, aI) =>
+            aI !== areaIdx
+              ? area
+              : {
+                  ...area,
+                  competencias: area.competencias.map((comp, cI) => {
+                    if (cI !== compIdx) return comp;
+                    const actividadesNueva = comp.actividades.filter((_, i) => i !== actIdx);
+                    return {
+                      ...comp,
+                      actividades: actividadesNueva,
+                      actividadCriterios: reconcileActividadCriteriosParaActividades(
+                        actividadesNueva,
+                        comp.actividadCriterios
+                      ),
+                    };
+                  }),
+                }
+          ),
+        },
+      };
+    });
+    setPropositosPorGrado(updatedItems);
+    markCompetenciaDirty(areaIdx, compIdx, gradoId);
+  };
+
   const handleGuardarActividades = async (areaIdx: number, compIdx: number) => {
     if (!propositos || !isCompetenciaDirty(areaIdx, compIdx)) return;
     await syncActividadesToBackend(areaIdx, compIdx, propositos);
+  };
+
+  const handleGuardarActividadesMultigrado = async (
+    gradoId: number,
+    areaIdx: number,
+    compIdx: number
+  ) => {
+    if (!isCompetenciaDirty(areaIdx, compIdx, gradoId)) return;
+    await syncActividadesMultigradoToBackend(gradoId, areaIdx, compIdx, propositosPorGrado);
   };
 
   const isGenerating = generandoPaso !== null;
@@ -398,8 +717,10 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
   const generarTodo = useCallback(async () => {
     if (!unidadId) return handleToaster("Error: unidad no creada", "error");
 
+    let pasoEnCurso: "situacion" | "evidencias" | "propositos" | null = null;
     try {
       // 1. Situación Significativa
+      pasoEnCurso = "situacion";
       setStatusSituacion("generating");
       setGenerandoPaso("Situación Significativa");
       const resSit = await generarSituacionSignificativa(unidadId);
@@ -413,6 +734,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
       setStatusSituacion("done");
 
       // 2. Evidencias + Imagen de la situación (en paralelo)
+      pasoEnCurso = "evidencias";
       setStatusEvidencias("generating");
       setGenerandoPaso("Evidencias");
 
@@ -440,13 +762,35 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
       setStatusEvidencias("done");
 
       // 3. Propósitos
+      pasoEnCurso = "propositos";
       setStatusPropositos("generating");
       setGenerandoPaso("Propósitos de Aprendizaje");
-      const contenidoParaProp = useUnidadStore.getState().contenido;
-      const resProp = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>);
-      const propData = alinearPropositosActividadCriterios(resProp.data as IPropositos);
+      const isSecundaria = Boolean((datosBase as any)?.esSecundariaWizard);
+      const gradoIdsSec = getGradosSecundariaIds();
+      let propData: IPropositos;
+      let propositosPorGrado: IPropositosPorGradoItem[] | undefined;
+      if (isSecundaria && gradoIdsSec.length > 0) {
+        const resPropMulti = await generarPropositosMultigrado(unidadId, {
+          gradoIds: gradoIdsSec,
+          maxCompetenciasPorAreaSecundaria: 2,
+        });
+        const lista = Array.isArray(resPropMulti.data) ? resPropMulti.data : [];
+        propositosPorGrado = lista;
+        propData =
+          alinearPropositosActividadCriterios(
+            (lista[0]?.propositos as IPropositos) || (contenido.propositos as IPropositos) || { areasPropositos: [], competenciasTransversales: [] }
+          );
+      } else {
+        const contenidoParaProp = useUnidadStore.getState().contenido;
+        const resProp = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>);
+        propData = alinearPropositosActividadCriterios(resProp.data as IPropositos);
+      }
       setPropositos(propData);
-      updateContenido({ propositos: propData });
+      setPropositosPorGrado(propositosPorGrado ?? []);
+      updateContenido({
+        propositos: propData,
+        ...(propositosPorGrado ? { propositosPorGrado } : {}),
+      });
       pendingCriteriosActividadRef.current = [];
       setDirtyCompetenciaKeys([]);
       setStatusPropositos("done");
@@ -459,10 +803,10 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
     } catch (error: any) {
       console.error("Error al generar:", error);
       setGenerandoPaso(null);
-      // Marcar secciones fallidas
-      if (statusSituacion === "generating") setStatusSituacion("error");
-      if (statusEvidencias === "generating") setStatusEvidencias("error");
-      if (statusPropositos === "generating") setStatusPropositos("error");
+      // Marcar únicamente el paso fallido para habilitar "Reintentar" en ese bloque.
+      if (pasoEnCurso === "situacion") setStatusSituacion("error");
+      if (pasoEnCurso === "evidencias") setStatusEvidencias("error");
+      if (pasoEnCurso === "propositos") setStatusPropositos("error");
       handleToaster(
         error?.response?.data?.message || "Error al generar con IA",
         "error"
@@ -491,9 +835,8 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
     setGenerandoPaso(label);
 
     try {
-      const res = await regenerarPasoUnidad(unidadId, paso);
-
       if (paso === "situacion-significativa") {
+        const res = await regenerarPasoUnidad(unidadId, paso);
         const d = res.data as unknown as ISituacionSignificativaResponse;
         setSituacionTexto(d.situacionSignificativa);
         updateContenido({
@@ -501,10 +844,33 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
           situacionBase: d.situacionBase,
         });
       } else if (paso === "evidencias") {
+        const res = await regenerarPasoUnidad(unidadId, paso);
         const d = res.data as unknown as IEvidencias;
         setEvidencias(d);
         updateContenido({ evidencias: d });
       } else {
+        const isSecundaria = Boolean((datosBase as any)?.esSecundariaWizard);
+        const gradoIdsSec = getGradosSecundariaIds();
+        if (isSecundaria && gradoIdsSec.length > 0) {
+          const resMulti = await generarPropositosMultigrado(unidadId, {
+            gradoIds: gradoIdsSec,
+            maxCompetenciasPorAreaSecundaria: 2,
+          });
+          const lista = Array.isArray(resMulti.data) ? resMulti.data : [];
+          const d = alinearPropositosActividadCriterios(
+            (lista[0]?.propositos as IPropositos) || { areasPropositos: [], competenciasTransversales: [] }
+          );
+          setPropositos(d);
+          setPropositosPorGrado(lista);
+          updateContenido({ propositos: d, propositosPorGrado: lista });
+          pendingCriteriosActividadRef.current = [];
+          setDirtyCompetenciaKeys([]);
+          setStatus("done");
+          setGenerandoPaso(null);
+          handleToaster(`${label} regenerado`, "success");
+          return;
+        }
+        const res = await regenerarPasoUnidad(unidadId, paso);
         const d = alinearPropositosActividadCriterios(res.data as unknown as IPropositos);
         setPropositos(d);
         updateContenido({ propositos: d });
@@ -557,6 +923,8 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
     statusSituacion === "done" &&
     statusEvidencias === "done" &&
     statusPropositos === "done";
+  const isSecundariaWizard = Boolean((datosBase as any)?.esSecundariaWizard);
+  const hasPropositosPorGrado = isSecundariaWizard && propositosPorGrado.length > 0;
 
   const getCriteriosByActividadIndex = useCallback(
     (comp: IPropositos["areasPropositos"][number]["competencias"][number], idx: number) => {
@@ -773,7 +1141,151 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
           isGenerating={isGenerating}
           interactionLocked={uiBlockedPaso2}
         >
-          {statusPropositos === "done" && propositos && (
+          {statusPropositos === "done" && hasPropositosPorGrado && (
+            <div className={`space-y-4 ${uiBlockedPaso2 ? "pointer-events-none select-none opacity-60" : ""}`}>
+              <button
+                type="button"
+                onClick={() => setExpandedPropositos(!expandedPropositos)}
+                disabled={uiBlockedPaso2}
+                className="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-400 hover:underline disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {expandedPropositos ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {propositosPorGrado.length} grado(s) con propósitos
+              </button>
+
+              {expandedPropositos && (
+                <div className="space-y-6">
+                  {propositosPorGrado.map((item, idxGrado) => (
+                    <div
+                      key={`${item.gradoId}-${idxGrado}`}
+                      className="bg-purple-50/50 dark:bg-purple-950/30 rounded-lg p-4 border border-purple-100 dark:border-purple-900"
+                    >
+                      <h4 className="font-bold text-purple-700 dark:text-purple-400 mb-3">
+                        {item.grado}
+                      </h4>
+                      {item.propositos.areasPropositos?.map((area, aIdx) => (
+                        <div
+                          key={`${item.gradoId}-${aIdx}`}
+                          className="mb-4 rounded-md border border-purple-200/70 dark:border-purple-800/60 p-3 bg-white/80 dark:bg-slate-900/30"
+                        >
+                          <p className="font-semibold text-sm text-purple-800 dark:text-purple-300">{area.area}</p>
+                          {area.competencias?.map((comp, cIdx) => (
+                            <div
+                              key={`${item.gradoId}-${aIdx}-${cIdx}`}
+                              className="mt-3 ml-2 pl-3 border-l-2 border-purple-200 dark:border-purple-800"
+                            >
+                              <p className="font-semibold text-sm">{nombreCompetenciaProposito(comp)}</p>
+                              {comp.capacidades?.length > 0 && (
+                                <ul className="list-disc list-inside text-xs space-y-0.5 ml-2 mt-1">
+                                  {comp.capacidades.map((cap, i) => (
+                                    <li key={i}>{parseMarkdown(cap)}</li>
+                                  ))}
+                                </ul>
+                              )}
+                              <div className="mt-2">
+                                <p className="text-xs text-slate-500 font-medium">
+                                  Actividades y criterios agrupados:
+                                </p>
+                                {isCompetenciaDirty(aIdx, cIdx, item.gradoId) && (
+                                  <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                    Hay cambios sin guardar en esta competencia.
+                                  </p>
+                                )}
+                                <div className="space-y-1 ml-2 mt-1">
+                                  {(comp.actividades ?? []).map((act, i) => (
+                                    <div
+                                      key={i}
+                                      className="rounded-md border border-slate-200 dark:border-slate-700 p-2"
+                                    >
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs text-slate-400 shrink-0 w-5">{i + 1}.</span>
+                                        <Input
+                                          value={act}
+                                          disabled={uiBlockedPaso2}
+                                          onChange={(e) =>
+                                            handleActividadChangeMultigrado(
+                                              item.gradoId,
+                                              aIdx,
+                                              cIdx,
+                                              i,
+                                              e.target.value
+                                            )
+                                          }
+                                          className="h-7 text-xs border-slate-200 dark:border-slate-700 focus:border-purple-400 dark:focus:border-purple-500 flex-1"
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 shrink-0 text-slate-400 hover:text-red-500"
+                                          disabled={uiBlockedPaso2}
+                                          onClick={() =>
+                                            handleRemoveActividadMultigrado(item.gradoId, aIdx, cIdx, i)
+                                          }
+                                          title="Quitar actividad"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+
+                                      {getCriteriosByActividadIndex(comp, i).length > 0 && (
+                                        <ul className="list-disc list-inside text-xs space-y-0.5 mt-1 ml-6 text-slate-600 dark:text-slate-300">
+                                          {getCriteriosByActividadIndex(comp, i).map((cr, cIdxLocal) => (
+                                            <li key={cIdxLocal}>{parseMarkdown(cr)}</li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  ))}
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2 h-8 text-xs gap-1.5 border-dashed border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                                    disabled={uiBlockedPaso2}
+                                    onClick={() => handleAddActividadMultigrado(item.gradoId, aIdx, cIdx)}
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Agregar actividad
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="mt-2 ml-2 h-8 text-xs gap-1.5"
+                                    disabled={uiBlockedPaso2 || !isCompetenciaDirty(aIdx, cIdx, item.gradoId)}
+                                    onClick={() =>
+                                      handleGuardarActividadesMultigrado(item.gradoId, aIdx, cIdx)
+                                    }
+                                  >
+                                    {savingActividadesKey === competenciaKey(aIdx, cIdx, item.gradoId) ? (
+                                      <>
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        Guardando...
+                                      </>
+                                    ) : (
+                                      "Guardar"
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                              {comp.instrumento && (
+                                <p className="text-xs mt-1">
+                                  <span className="text-slate-500 font-medium">Instrumento:</span>{" "}
+                                  {parseMarkdown(comp.instrumento)}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {statusPropositos === "done" && !hasPropositosPorGrado && propositos && (
             <div className={`space-y-4 ${uiBlockedPaso2 ? "pointer-events-none select-none opacity-60" : ""}`}>
               {/* Toggle */}
               <button
@@ -1006,7 +1518,11 @@ function IASection({
         {status === "idle" && (
           <div className="text-center py-8 text-slate-400">
             <Wand2 className="h-10 w-10 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Pendiente de generación</p>
+            <p className="text-sm mb-3">Pendiente de generación</p>
+            <Button onClick={onRegenerate} variant="outline" size="sm" disabled={regenDisabled}>
+              <RefreshCw className="h-4 w-4 mr-1.5" />
+              Generar ahora
+            </Button>
           </div>
         )}
 

@@ -20,6 +20,11 @@ interface Props {
   setCurrentStep: Dispatch<SetStateAction<number>>;
 }
 
+function isNivelSoportado(nombre?: string): boolean {
+  const normalized = (nombre || "").toLowerCase();
+  return normalized.includes("primaria") || normalized.includes("secundaria");
+}
+
 function Step1({ state, usuario, setValuesOfUser, setCurrentStep }: Props) {
   const [niveles, setNiveles] = useState<INivel[]>();
   const [todosLosGrados, setTodosLosGrados] = useState<IGrado[]>();
@@ -29,10 +34,10 @@ function Step1({ state, usuario, setValuesOfUser, setCurrentStep }: Props) {
     //obtenemos los niveles de educacion (primaria, secundaria)
 
     getNiveles().then((response) => {
-      const soloprimaria = response.data.data.filter(
-        (nivel: INivel) => nivel.nombre?.toLowerCase().includes("primaria")
+      const nivelesSoportados = response.data.data.filter(
+        (nivel: INivel) => isNivelSoportado(nivel.nombre)
       );
-      setNiveles(soloprimaria);
+      setNiveles(nivelesSoportados);
     });
 
     //obtenemos los grados (1ro, 2do, 3ro, etc)

@@ -16,6 +16,10 @@
 
 import { DocumentStyles, HtmldocsDocument, HtmldocsFooter } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
+import {
+  CompetenciasCriteriosSesionSection,
+  splitCriteriosEnDosBloques,
+} from "@/components/DocTest/CompetenciasCriteriosSesionSection";
 import { getAreaColor, type AreaColorConfig } from "@/constants/areaColors";
 import { InstrumentoEvaluacionSection } from "./InstrumentoEvaluacionSection";
 import { SesionTutoriaDoc } from "./SesionTutoriaDoc";
@@ -990,6 +994,21 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
     return <SesionPlanLectorDoc data={data} insigniaUrl={insigniaUrl} />;
   }
 
+  const criteriosPorCompetencia = (() => {
+    const propositos = Array.isArray(sesion.propositoAprendizaje)
+      ? sesion.propositoAprendizaje
+      : [];
+
+    const primerBloque = (propositos[0]?.criteriosEvaluacion ?? []).filter(Boolean);
+    const segundoBloque = (propositos[1]?.criteriosEvaluacion ?? []).filter(Boolean);
+
+    if (primerBloque.length || segundoBloque.length) {
+      return [primerBloque, segundoBloque];
+    }
+
+    return splitCriteriosEnDosBloques(primerBloque);
+  })();
+
   return (
     <HtmldocsDocument size="A4" orientation="portrait" margin="0.5in">
       <DocumentStyles thBgColor={hex.light} />
@@ -1040,6 +1059,12 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
       {sesion.preparacion && (
         <PreparacionPremium preparacion={sesion.preparacion} hex={hex} />
       )}
+
+      {/* COMPETENCIAS/CAPACIDADES + CRITERIOS (previo a momentos y tiempos) */}
+      <CompetenciasCriteriosSesionSection
+        sectionColor={hex.light}
+        criteriosPorCompetencia={criteriosPorCompetencia}
+      />
 
       {/* MOMENTOS Y TIEMPOS — siempre visible para PDF/Word (Inicio, Desarrollo, Cierre/Desenlace) */}
       <SecuenciaDidacticaPremium

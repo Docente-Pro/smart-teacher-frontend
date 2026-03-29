@@ -21,7 +21,6 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useUnidadPDFGeneration } from "@/hooks/useUnidadPDFGeneration";
 import { useUnidadStore } from "@/store/unidad.store";
-
 import {
   UnidadDocStyles,
   UnidadDocHeader,
@@ -32,6 +31,7 @@ import {
   UnidadDocSecuencia,
   UnidadDocMaterialesReflexiones,
 } from "@/components/UnidadDoc";
+import { UnidadSecundariaFormatoDoc } from "@/components/UnidadDoc/UnidadSecundariaFormatoDoc";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { getInsigniaDataUrl } from "@/utils/insigniaCache";
@@ -217,6 +217,102 @@ function UnidadResult() {
   const docenteNombre = usuario?.nombre || user?.name || "";
   const institucion = usuario?.nombreInstitucion || "";
   const seccion = usuario?.seccion || "";
+  const isSecundariaResult =
+    Boolean((datosBase as any)?.esSecundariaWizard) ||
+    /secundaria/i.test(datosBase.nivel || "") ||
+    Array.isArray((contenido as any)?.propositosPorGrado);
+
+  const formatoSecundaria = (() => {
+    const propositosPorGrado = ((contenido as any)?.propositosPorGrado || []) as Array<any>;
+    const secuenciaPorGrado = ((contenido as any)?.secuenciaPorGrado || []) as Array<any>;
+    const gradosList =
+      propositosPorGrado.map((g) => g?.grado).filter(Boolean) ||
+      secuenciaPorGrado.map((g) => g?.grado).filter(Boolean);
+    const gradoTexto = Array.from(new Set(gradosList)).join(", ") || datosBase.grado || "—";
+    const totalSemanas = Number(datosBase.duracion || 0) || 1;
+    const secuenciaGradosRecord: Record<string, Record<string, string[]>> = {};
+
+    secuenciaPorGrado.forEach((g) => {
+      const nombreGrado = g?.grado || `Grado ${g?.gradoId ?? ""}`.trim();
+      const semanas = (g?.secuencia?.semanasPorSesiones || []) as Array<any>;
+      const bySemana: Record<string, string[]> = {};
+      semanas.forEach((s) => {
+        bySemana[String(s?.semana ?? "")] = (s?.sesiones || [])
+          .map((ses: any) => ses?.actividad)
+          .filter(Boolean);
+      });
+      secuenciaGradosRecord[nombreGrado] = bySemana;
+    });
+
+    return {
+      datosInformativos: {
+        numeroUnidad: Number(datosBase.numeroUnidad || 1),
+        titulo: datosBase.titulo || "",
+        institucionEducativa: institucion || "—",
+        director: usuario?.nombreDirectivo || "—",
+        subdirector: usuario?.nombreSubdirectora || "—",
+        nivel: datosBase.nivel || "—",
+        area: areasNombres[0] || "—",
+        grado: gradoTexto,
+        secciones: seccion || "—",
+        docente: docenteNombre || "—",
+        duracion: Number(datosBase.duracion || 0) || 1,
+      },
+      componentes: {
+        planteamientoSituacionSignificativa: contenido.situacionSignificativa || "—",
+        productoUnidadAprendizajePorGrado:
+          propositosPorGrado.length > 0
+            ? propositosPorGrado.map((pg: any) => ({
+                grado: pg?.grado || "—",
+                producto: contenido?.evidencias?.productoIntegrador || "—",
+              }))
+            : [{ grado: datosBase.grado || "—", producto: contenido?.evidencias?.productoIntegrador || "—" }],
+        enfoquesTransversales: (contenido.enfoques || []).map((e: any) => ({
+          enfoque: e?.enfoque || "—",
+          valor: e?.valor || "—",
+          actitudes: e?.actitudes || "—",
+        })),
+        instrumentoEvaluacion:
+          contenido?.evidencias?.instrumentoEvaluacion ||
+          propositosPorGrado?.[0]?.propositos?.areasPropositos?.[0]?.competencias?.[0]?.instrumento ||
+          "Lista de cotejo",
+        propositosAprendizajePorGrado: propositosPorGrado.map((pg: any) => ({
+          grado: pg?.grado || "—",
+          area: pg?.propositos?.areasPropositos?.[0]?.area || areasNombres[0] || "—",
+          competencias: (pg?.propositos?.areasPropositos || [])
+            .flatMap((a: any) => a?.competencias || [])
+            .map((c: any) => ({
+              competenciaCapacidades: {
+                competencia: c?.nombre || c?.competencia || "—",
+                capacidades: c?.capacidades || [],
+              },
+              estandar: c?.estandar || "—",
+              actividades: c?.actividades || [],
+              campoTematico: c?.campoTematico || "—",
+              criteriosEvaluacion: c?.criterios || [],
+              instrumentoEvaluacion: c?.instrumento || "Lista de cotejo",
+            })),
+        })),
+        competenciasTransversalesPorGrado: propositosPorGrado.map((pg: any) => ({
+          grado: pg?.grado || "—",
+          competencias: (pg?.propositos?.competenciasTransversales || []).map((ct: any) => ({
+            competenciaCapacidades: {
+              competencia: ct?.nombre || "—",
+              capacidades: ct?.capacidades || [],
+            },
+            estandarCiclo: ct?.estandar || "—",
+            criterios: ct?.criterios || [],
+          })),
+        })),
+        secuenciaSesionesPorGrado: {
+          totalSemanas,
+          grados: secuenciaGradosRecord,
+        },
+        recursosMaterialesDidacticos: contenido.materiales || [],
+        bibliografia: (contenido as any)?.bibliografia || [],
+      },
+    };
+  })();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-900 dark:to-slate-800 p-4 sm:p-8">
@@ -394,78 +490,84 @@ function UnidadResult() {
 
         {/* Documento */}
         <div id="print-content" ref={documentRef}>
-          <Document size="A4" orientation="landscape" margin="0.5in">
-            <UnidadDocStyles />
+          <Document size="A4" orientation="landscape" margin={isSecundariaResult ? "0.45in" : "0.5in"}>
+            {isSecundariaResult ? (
+              <UnidadSecundariaFormatoDoc formato={formatoSecundaria as any} />
+            ) : (
+              <>
+                <UnidadDocStyles />
 
-            {/* HEADER */}
-            <UnidadDocHeader
-              titulo={datosBase.titulo}
-              numeroUnidad={datosBase.numeroUnidad}
-              grado={gradoLabel}
-              seccion={seccion}
-              insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)}
-            />
+                {/* HEADER */}
+                <UnidadDocHeader
+                  titulo={datosBase.titulo}
+                  numeroUnidad={datosBase.numeroUnidad}
+                  grado={gradoLabel}
+                  seccion={seccion}
+                  insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)}
+                />
 
-            {/* I. DATOS GENERALES */}
-            <UnidadDocDatosGenerales
-              institucion={institucion}
-              directivo={usuario?.nombreDirectivo || ""}
-              subdirectora={usuario?.nombreSubdirectora || ""}
-              docente={docenteNombre}
-              grado={datosBase.grado}
-              seccion={seccion}
-              nivel={datosBase.nivel}
-              fechaInicio={datosBase.fechaInicio}
-              fechaFin={datosBase.fechaFin}
-              areas={areasNombres}
-              onEditDirectivo={handleEditDirectivo}
-            />
+                {/* I. DATOS GENERALES */}
+                <UnidadDocDatosGenerales
+                  institucion={institucion}
+                  directivo={usuario?.nombreDirectivo || ""}
+                  subdirectora={usuario?.nombreSubdirectora || ""}
+                  docente={docenteNombre}
+                  grado={datosBase.grado}
+                  seccion={seccion}
+                  nivel={datosBase.nivel}
+                  fechaInicio={datosBase.fechaInicio}
+                  fechaFin={datosBase.fechaFin}
+                  areas={areasNombres}
+                  onEditDirectivo={handleEditDirectivo}
+                />
 
-            {/* PLANTEAMIENTO DE LA SITUACIÓN + EVIDENCIAS */}
-            <UnidadDocSituacion
-              situacionSignificativa={contenido.situacionSignificativa || ""}
-              evidencias={contenido.evidencias}
-              grado={gradoLabel}
-              imagenSituacionUrl={contenido.imagenSituacionUrl}
-            />
+                {/* PLANTEAMIENTO DE LA SITUACIÓN + EVIDENCIAS */}
+                <UnidadDocSituacion
+                  situacionSignificativa={contenido.situacionSignificativa || ""}
+                  evidencias={contenido.evidencias}
+                  grado={gradoLabel}
+                  imagenSituacionUrl={contenido.imagenSituacionUrl}
+                />
 
-            {/* II. PROPÓSITO DE APRENDIZAJE */}
-            <UnidadDocPropositos
-              propositos={contenido.propositos}
-              areasComplementarias={contenido.areasComplementarias}
-            />
+                {/* II. PROPÓSITO DE APRENDIZAJE */}
+                <UnidadDocPropositos
+                  propositos={contenido.propositos}
+                  areasComplementarias={contenido.areasComplementarias}
+                />
 
-            {/* III. ENFOQUES TRANSVERSALES */}
-            <UnidadDocEnfoques enfoques={contenido.enfoques} />
+                {/* III. ENFOQUES TRANSVERSALES */}
+                <UnidadDocEnfoques enfoques={contenido.enfoques} />
 
-            {/* IV. SECUENCIA DE ACTIVIDADES */}
-            <UnidadDocSecuencia secuencia={contenido.secuencia} />
+                {/* IV. SECUENCIA DE ACTIVIDADES */}
+                <UnidadDocSecuencia secuencia={contenido.secuencia} />
 
-            {/* V. MATERIALES + VI. REFLEXIONES + FIRMAS */}
-            <UnidadDocMaterialesReflexiones
-              materiales={contenido.materiales}
-              reflexiones={contenido.reflexiones}
-            />
+                {/* V. MATERIALES + VI. REFLEXIONES + FIRMAS */}
+                <UnidadDocMaterialesReflexiones
+                  materiales={contenido.materiales}
+                  reflexiones={contenido.reflexiones}
+                />
 
-            {/* Footer */}
-            <Footer position="bottom-center">
-              {() => (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    width: "100%",
-                    fontSize: "8pt",
-                    borderTop: "1px solid #000",
-                    paddingTop: "0.2rem",
-                  }}
-                >
-                  <span>
-                    Unidad de Aprendizaje N° {datosBase.numeroUnidad} — {datosBase.titulo}
-                  </span>
-                </div>
-              )}
-            </Footer>
+                {/* Footer */}
+                <Footer position="bottom-center">
+                  {() => (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        width: "100%",
+                        fontSize: "8pt",
+                        borderTop: "1px solid #000",
+                        paddingTop: "0.2rem",
+                      }}
+                    >
+                      <span>
+                        Unidad de Aprendizaje N° {datosBase.numeroUnidad} — {datosBase.titulo}
+                      </span>
+                    </div>
+                  )}
+                </Footer>
+              </>
+            )}
           </Document>
         </div>
       </div>

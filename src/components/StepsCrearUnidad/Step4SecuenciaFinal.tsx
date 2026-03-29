@@ -46,6 +46,7 @@ import type { IDistribucionMiembro } from "@/interfaces/IUnidad";
 import type {
   ISecuencia,
   ISecuenciaResponse,
+  ISecuenciaPorGradoItem,
   IMaterialesResponse,
   IReflexionPregunta,
   IReflexionesResponse,
@@ -160,8 +161,15 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     setHorarioStore(horario);
   }, [horario]);
 
+  const isSecundariaWizard = Boolean((datosBase as any)?.esSecundariaWizard);
   const isCompartida = datosBase?.tipo === "COMPARTIDA";
   const cantidadSuscriptores = isCompartida ? Math.max((datosBase?.maxMiembros ?? 2) - 1, 1) : 0;
+  const planificacionAreas = (datosBase?.planificacionAreas ?? []) as Array<{
+    area: string;
+    totalSemanas: number;
+    totalSesionesUnidad: number;
+    sesionesPorSemana: number[];
+  }>;
 
   const [statusSecuencia, setStatusSecuencia] = useState<GenerationStatus>(
     contenido.secuencia ? "done" : "idle"
@@ -174,6 +182,9 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   );
 
   const [secuencia, setSecuencia] = useState<ISecuencia | null>(contenido.secuencia || null);
+  const [secuenciaPorGrado, setSecuenciaPorGrado] = useState<ISecuenciaPorGradoItem[]>(
+    (contenido as any).secuenciaPorGrado || []
+  );
   const [materiales, setMateriales] = useState<string[]>(contenido.materiales || []);
   const [reflexiones, setReflexiones] = useState<IReflexionPregunta[]>(
     contenido.reflexiones || []
@@ -185,6 +196,10 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       setSecuencia(contenido.secuencia);
       setStatusSecuencia("done");
     }
+    if (Array.isArray((contenido as any).secuenciaPorGrado) && (contenido as any).secuenciaPorGrado.length > 0 && secuenciaPorGrado.length === 0) {
+      setSecuenciaPorGrado((contenido as any).secuenciaPorGrado as ISecuenciaPorGradoItem[]);
+      setStatusSecuencia("done");
+    }
     if (contenido.materiales?.length && materiales.length === 0) {
       setMateriales(contenido.materiales);
       setStatusMateriales("done");
@@ -193,7 +208,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       setReflexiones(contenido.reflexiones);
       setStatusReflexiones("done");
     }
-  }, [contenido.secuencia, contenido.materiales, contenido.reflexiones]);
+  }, [contenido.secuencia, (contenido as any).secuenciaPorGrado, contenido.materiales, contenido.reflexiones, secuencia, secuenciaPorGrado.length, materiales.length, reflexiones.length]);
 
   // Semanas expandidas
   const [expandedWeeks, setExpandedWeeks] = useState<Record<number, boolean>>({});
@@ -204,32 +219,81 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
   const isGenerating = generandoPaso !== null;
 
+  // En secundaria no usamos horario escolar para la secuencia.
+  useEffect(() => {
+    if (!isSecundariaWizard) return;
+    if (horarioStore) {
+      setHorario(null);
+      setHorarioStore(null);
+    }
+  }, [isSecundariaWizard, horarioStore]);
+
   /* ═══════════════════════════════════════════
      Generar TODO (pasos 6→7→8)
      ═══════════════════════════════════════════ */
   const generarTodo = useCallback(async () => {
     if (!unidadId) return handleToaster("Error: unidad no creada", "error");
 
+    let pasoEnCurso: "secuencia" | "materiales" | "reflexiones" | null = null;
     try {
       // 6. Secuencia (con horario opcional y contenidoEditado por si el docente editó pasos previos)
+      pasoEnCurso = "secuencia";
       setStatusSecuencia("generating");
       setGenerandoPaso("Secuencia de Actividades");
-      const contenidoParaSec = useUnidadStore.getState().contenido;
-      const horarioActual = useUnidadStore.getState().horario;
+      const contenidoParaSecBase = useUnidadStore.getState().contenido;
+      const mainPlan = ((datosBase as any)?.planificacionAreas ?? [])[0] as
+        | {
+            totalSesionesUnidad?: number;
+            sesionesPorSemana?: number[];
+          }
+        | undefined;
+      const contenidoParaSec = isSecundariaWizard
+        ? {
+            ...contenidoParaSecBase,
+            gradosSecundaria: (datosBase as any)?.gradosSecundariaIds ?? [],
+            planificacionAreas: (datosBase as any)?.planificacionAreas ?? [],
+            duracion: (datosBase as any)?.duracion ?? 0,
+            // Prioridad backend #1: enviar total explícito si el front ya lo conoce.
+            totalSesionesUnidad: Number(mainPlan?.totalSesionesUnidad ?? 0) || undefined,
+            sesionesPorSemana: Array.isArray(mainPlan?.sesionesPorSemana)
+              ? mainPlan?.sesionesPorSemana
+              : undefined,
+          }
+        : contenidoParaSecBase;
+      const horarioActual = isSecundariaWizard ? undefined : useUnidadStore.getState().horario;
       const resSec = await generarSecuencia(unidadId, horarioActual, contenidoParaSec as Record<string, unknown>);
-      const secResp = resSec.data as ISecuenciaResponse;
-      const secData: ISecuencia = {
-        ...secResp,
-        hiloConductor: secResp.hiloConductor ?? "",
-        semanas: secResp.semanas ?? [],
-      };
+      const secRaw = resSec.data as unknown;
+      let secData: ISecuencia;
+      let secByGrade: ISecuenciaPorGradoItem[] = [];
+      if (isSecundariaWizard && Array.isArray(secRaw)) {
+        secByGrade = secRaw as ISecuenciaPorGradoItem[];
+        const first = secByGrade[0]?.secuencia;
+        secData = {
+          ...(first || { hiloConductor: "", semanas: [] }),
+          hiloConductor: first?.hiloConductor ?? "",
+          semanas: first?.semanas ?? [],
+          semanasPorSesiones: first?.semanasPorSesiones ?? [],
+        };
+      } else {
+        const secResp = secRaw as ISecuenciaResponse;
+        secData = {
+          ...secResp,
+          hiloConductor: secResp.hiloConductor ?? "",
+          semanas: secResp.semanas ?? [],
+        };
+      }
       setSecuencia(secData);
-      updateContenido({ secuencia: secData });
+      setSecuenciaPorGrado(isSecundariaWizard ? secByGrade : []);
+      updateContenido({
+        secuencia: secData,
+        ...(isSecundariaWizard ? { secuenciaPorGrado: secByGrade } : {}),
+      });
       setStatusSecuencia("done");
       // Expandir primera semana
       setExpandedWeeks({ 0: true });
 
       // 7. Materiales (contenidoEditado por si el docente editó)
+      pasoEnCurso = "materiales";
       setStatusMateriales("generating");
       setGenerandoPaso("Materiales y Recursos");
       const contenidoParaMat = useUnidadStore.getState().contenido;
@@ -240,6 +304,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       setStatusMateriales("done");
 
       // 8. Reflexiones (contenidoEditado por si el docente editó)
+      pasoEnCurso = "reflexiones";
       setStatusReflexiones("generating");
       setGenerandoPaso("Reflexiones");
       const contenidoParaRef = useUnidadStore.getState().contenido;
@@ -279,15 +344,15 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     } catch (error: any) {
       console.error("Error al generar:", error);
       setGenerandoPaso(null);
-      if (statusSecuencia === "generating") setStatusSecuencia("error");
-      if (statusMateriales === "generating") setStatusMateriales("error");
-      if (statusReflexiones === "generating") setStatusReflexiones("error");
+      if (pasoEnCurso === "secuencia") setStatusSecuencia("error");
+      if (pasoEnCurso === "materiales") setStatusMateriales("error");
+      if (pasoEnCurso === "reflexiones") setStatusReflexiones("error");
       handleToaster(
         error?.response?.data?.message || "Error al generar con IA",
         "error"
       );
     }
-  }, [unidadId]);
+  }, [unidadId, isSecundariaWizard, datosBase]);
 
   /* ─── Regenerar individual ─── */
   async function regenerar(paso: "secuencia" | "materiales" | "reflexiones") {
@@ -310,12 +375,82 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
     try {
       if (paso === "secuencia") {
-        const horarioActual = useUnidadStore.getState().horario;
-        const contenidoActual = useUnidadStore.getState().contenido;
+        const horarioActual = isSecundariaWizard ? undefined : useUnidadStore.getState().horario;
+        const contenidoActualBase = useUnidadStore.getState().contenido;
+        const mainPlan = ((datosBase as any)?.planificacionAreas ?? [])[0] as
+          | {
+              totalSesionesUnidad?: number;
+              sesionesPorSemana?: number[];
+            }
+          | undefined;
+        const contenidoActual = isSecundariaWizard
+          ? {
+              ...contenidoActualBase,
+              gradosSecundaria: (datosBase as any)?.gradosSecundariaIds ?? [],
+              planificacionAreas: (datosBase as any)?.planificacionAreas ?? [],
+              duracion: (datosBase as any)?.duracion ?? 0,
+              totalSesionesUnidad: Number(mainPlan?.totalSesionesUnidad ?? 0) || undefined,
+              sesionesPorSemana: Array.isArray(mainPlan?.sesionesPorSemana)
+                ? mainPlan?.sesionesPorSemana
+                : undefined,
+            }
+          : contenidoActualBase;
         const res = await regenerarSecuencia(unidadId, horarioActual, contenidoActual as Record<string, unknown>);
-        const d = res.data as unknown as ISecuenciaResponse;
-        setSecuencia(d);
-        updateContenido({ secuencia: d });
+        const raw = res.data as unknown;
+        if (isSecundariaWizard && Array.isArray(raw)) {
+          const lista = raw as ISecuenciaPorGradoItem[];
+          const first = lista[0]?.secuencia;
+          const d: ISecuencia = {
+            ...(first || { hiloConductor: "", semanas: [] }),
+            hiloConductor: first?.hiloConductor ?? "",
+            semanas: first?.semanas ?? [],
+            semanasPorSesiones: first?.semanasPorSesiones ?? [],
+          };
+          setSecuencia(d);
+          setSecuenciaPorGrado(lista);
+          updateContenido({ secuencia: d, secuenciaPorGrado: lista });
+        } else {
+          const d = raw as ISecuenciaResponse;
+          setSecuencia(d);
+          setSecuenciaPorGrado([]);
+          updateContenido({ secuencia: d });
+        }
+
+        // En secundaria, al regenerar secuencia también regeneramos materiales y reflexiones
+        // para mantener el flujo equivalente al "generar completo".
+        if (isSecundariaWizard) {
+          try {
+            setStatusMateriales("generating");
+            setGenerandoPaso("Materiales y Recursos");
+            const contenidoParaMat = useUnidadStore.getState().contenido;
+            const resMat = await generarMateriales(
+              unidadId,
+              contenidoParaMat as Record<string, unknown>
+            );
+            const matData = (resMat.data as IMaterialesResponse).materiales;
+            setMateriales(matData);
+            updateContenido({ materiales: matData });
+            setStatusMateriales("done");
+          } catch (matErr) {
+            setStatusMateriales("error");
+          }
+
+          try {
+            setStatusReflexiones("generating");
+            setGenerandoPaso("Reflexiones");
+            const contenidoParaRef = useUnidadStore.getState().contenido;
+            const resRef = await generarReflexiones(
+              unidadId,
+              contenidoParaRef as Record<string, unknown>
+            );
+            const refData = (resRef.data as IReflexionesResponse).reflexiones;
+            setReflexiones(refData);
+            updateContenido({ reflexiones: refData });
+            setStatusReflexiones("done");
+          } catch (refErr) {
+            setStatusReflexiones("error");
+          }
+        }
       } else {
         const res = await regenerarPasoUnidad(unidadId, paso);
         if (paso === "materiales") {
@@ -331,7 +466,12 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
       setStatus("done");
       setGenerandoPaso(null);
-      handleToaster(`${labels[paso]} regenerado`, "success");
+      handleToaster(
+        paso === "secuencia" && isSecundariaWizard
+          ? "Secuencia, materiales y reflexiones regenerados"
+          : `${labels[paso]} regenerado`,
+        "success"
+      );
     } catch (error: any) {
       setStatus("error");
       setGenerandoPaso(null);
@@ -363,6 +503,10 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const semanasGeneradas = secuencia?.semanas?.length ?? 0;
   const duracionPedida = datosBase?.duracion ?? 0;
   const haySemanasExtra = semanasGeneradas > duracionPedida && duracionPedida > 0;
+  const expectedTotalSecundaria = planificacionAreas.reduce(
+    (acc, p) => acc + (Number(p.totalSesionesUnidad) || 0),
+    0
+  );
 
   function recortarSemanasExtra() {
     if (!secuencia || !haySemanasExtra) return;
@@ -464,17 +608,19 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
         </div>
 
         {/* ── Panel Horario Escolar (antes del botón generar) ── */}
-        <HorarioPanel
-          horario={horario}
-          scanning={scanning}
-          confianza={confianza}
-          notas={notas}
-          error={horarioError}
-          onScan={escanearDesdeArchivo}
-          onSlotChange={actualizarSlot}
-          onClear={limpiarHorario}
-          disabled={isGenerating}
-        />
+        {!isSecundariaWizard && (
+          <HorarioPanel
+            horario={horario}
+            scanning={scanning}
+            confianza={confianza}
+            notas={notas}
+            error={horarioError}
+            onScan={escanearDesdeArchivo}
+            onSlotChange={actualizarSlot}
+            onClear={limpiarHorario}
+            disabled={isGenerating}
+          />
+        )}
 
         {/* ── Botón generar ── */}
         {!allDone && (
@@ -528,6 +674,116 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
         >
           {statusSecuencia === "done" && secuencia && (
             <div className="space-y-4">
+              {isSecundariaWizard ? (
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-indigo-200 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950/40 p-4">
+                    <p className="text-sm font-medium text-indigo-800 dark:text-indigo-200">
+                      En secundaria la secuencia se organiza por semanas y por grado (`semanasPorSesiones`).
+                    </p>
+                    <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
+                      No se requiere cargar horario en este paso.
+                    </p>
+                  </div>
+
+                  {secuenciaPorGrado.length > 0 ? (
+                    <div className="space-y-4">
+                      {secuenciaPorGrado.map((item, idx) => {
+                        const semanas = item.secuencia?.semanasPorSesiones ?? [];
+                        const totalGenerado = semanas.reduce(
+                          (acc, s) => acc + (s.sesiones?.length ?? 0),
+                          0
+                        );
+                        const mismatch =
+                          expectedTotalSecundaria > 0 && totalGenerado !== expectedTotalSecundaria;
+                        return (
+                          <div
+                            key={`${item.gradoId}-${idx}`}
+                            className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-white dark:bg-slate-900/30"
+                          >
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white">{item.grado}</p>
+                              <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                Total generado: {totalGenerado} sesiones
+                              </span>
+                            </div>
+
+                            {mismatch && (
+                              <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                                El total generado no coincide con lo planificado en Paso 1
+                                ({expectedTotalSecundaria} sesiones esperadas).
+                              </div>
+                            )}
+
+                            <div className="space-y-3">
+                              {semanas.map((s) => (
+                                <div
+                                  key={`${item.gradoId}-w${s.semana}`}
+                                  className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/30 p-3"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                      Semana {s.semana}
+                                    </p>
+                                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                      {s.sesiones?.length ?? 0} sesiones
+                                    </span>
+                                  </div>
+                                  <ul className="space-y-2">
+                                    {(s.sesiones ?? []).map((sesion) => (
+                                      <li
+                                        key={`${item.gradoId}-w${s.semana}-i${sesion.indiceSesion}`}
+                                        className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-2"
+                                      >
+                                        <p className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+                                          Sesión {sesion.indiceSesion} - {sesion.area}
+                                        </p>
+                                        <p className="text-xs text-slate-700 dark:text-slate-200 mt-0.5">
+                                          {parseMarkdown(sesion.actividad)}
+                                        </p>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="rounded-md border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-600 dark:text-slate-300">
+                        Aún no hay `secuenciaPorGrado` en la respuesta; mostrando distribución planificada.
+                      </div>
+                      {planificacionAreas.map((plan, idx) => (
+                        <div
+                          key={`${plan.area}-${idx}`}
+                          className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-white dark:bg-slate-900/30"
+                        >
+                          <div className="flex items-center justify-between gap-3 mb-3">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">{plan.area}</p>
+                            <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                              Total: {plan.totalSesionesUnidad} sesiones
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            {(plan.sesionesPorSemana ?? []).map((n, i) => (
+                              <span
+                                key={`${plan.area}-w${i}`}
+                                className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                              >
+                                Semana {i + 1}: {n}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
               {/* Hilo conductor — altura limitada con scroll para ver todo el texto */}
               <div className="bg-indigo-50 dark:bg-indigo-950/30 rounded-lg p-4 border border-indigo-100 dark:border-indigo-900">
                 <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-2">
@@ -786,6 +1042,8 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
                   )}
                 </div>
               ))}
+                </>
+              )}
             </div>
           )}
         </SectionCard>

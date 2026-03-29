@@ -91,6 +91,12 @@ export interface IPropositos {
   competenciasTransversales: ICompetenciaTransversal[];
 }
 
+export interface IPropositosPorGradoItem {
+  gradoId: number;
+  grado: string;
+  propositos: IPropositos;
+}
+
 export interface IPropositosRequest extends IUnidadContextoBase {
   situacionSignificativa: string;
   evidencias: IEvidencias;
@@ -183,6 +189,15 @@ export interface IActividadExcluida {
 export interface ISecuencia {
   hiloConductor: string;
   semanas: ISemanaSecuencia[];
+  /** Formato secundaria sin horario (semanas -> sesiones por índice) */
+  semanasPorSesiones?: Array<{
+    semana: number;
+    sesiones: Array<{
+      indiceSesion: number;
+      area: string;
+      actividad: string;
+    }>;
+  }>;
   /** Presente solo si Python excluyó bloques por límite de áreas/día */
   actividadesExcluidas?: IActividadExcluida[];
   /** Presente si se aplicó reprogramación por feriados nacionales */
@@ -197,6 +212,12 @@ export interface ISecuenciaRequest extends IUnidadContextoBase {
 }
 
 export type ISecuenciaResponse = ISecuencia;
+
+export interface ISecuenciaPorGradoItem {
+  gradoId: number;
+  grado: string;
+  secuencia: ISecuencia;
+}
 
 // ─── Paso 7: Materiales y Recursos ───
 
@@ -234,14 +255,17 @@ export type PasoUnidad =
   | "reflexiones";
 
 export interface IUnidadContenido {
+  gradosSecundaria?: number[];
   situacionSignificativa?: string;
   situacionBase?: ISituacionBase;
   imagenSituacionUrl?: string;
   evidencias?: IEvidencias;
   propositos?: IPropositos;
+  propositosPorGrado?: IPropositosPorGradoItem[];
   areasComplementarias?: IAreaComplementaria[];
   enfoques?: IEnfoqueUnidad[];
   secuencia?: ISecuencia;
+  secuenciaPorGrado?: ISecuenciaPorGradoItem[];
   materiales?: string[];
   reflexiones?: IReflexionPregunta[];
 }

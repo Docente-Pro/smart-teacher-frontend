@@ -71,6 +71,26 @@ export interface IUsuario {
     nombre: string;
     descripcion: string;
   };
+  primariaGrados?: Array<{
+    gradoId: number;
+    seccion?: string | null;
+  }> | null;
+  gradosAreas?: Array<{
+    gradoId: number;
+    areaId: number;
+    grado?: {
+      id?: number;
+      nombre?: string;
+      nivel?: {
+        nombre?: string;
+      };
+    };
+    area?: {
+      id?: number;
+      nombre?: string;
+    };
+  }>;
+  primariaAreaIds?: number[];
   tituloUnidadContexto?: string | null;
   situacionSignificativaContexto?: string | null;
   insigniaUrl?: string | null;

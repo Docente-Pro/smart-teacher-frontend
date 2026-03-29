@@ -6,6 +6,7 @@ import type {
   ISituacionSignificativaResponse,
   IEvidenciasResponse,
   IPropositosResponse,
+  IPropositosPorGradoItem,
   IAreasComplementariasResponse,
   IEnfoquesResponse,
   ISecuenciaResponse,
@@ -63,6 +64,42 @@ export async function generarPropositos(
 ): Promise<IPasoUnidadResponse<IPropositosResponse>> {
   const body = contenidoEditado && Object.keys(contenidoEditado).length > 0 ? { contenidoEditado } : undefined;
   const { data } = await instance.post(`${BASE}/${unidadId}/propositos`, body);
+  return data;
+}
+
+export interface IGenerarPropositosMultigradoBody {
+  gradoIds: number[];
+  competenciasDocenteSecundaria?: Array<{
+    area: string;
+    nombre: string;
+    campoTematico?: string;
+  }>;
+  maxCompetenciasPorAreaSecundaria?: number;
+}
+
+export interface IPropositosMultigradoResponse {
+  success: boolean;
+  paso: number;
+  message: string;
+  grados?: Array<{
+    gradoId: number;
+    grado: string;
+    totalAreas?: number;
+    totalCompetencias?: number;
+  }>;
+  data?: IPropositosPorGradoItem[];
+  unidad?: Record<string, unknown>;
+}
+
+/** Paso 3 (Secundaria) — Propósitos por grado */
+export async function generarPropositosMultigrado(
+  unidadId: string,
+  body: IGenerarPropositosMultigradoBody
+): Promise<IPropositosMultigradoResponse> {
+  const { data } = await instance.post<IPropositosMultigradoResponse>(
+    `${BASE}/${unidadId}/propositos-multigrado`,
+    body
+  );
   return data;
 }
 

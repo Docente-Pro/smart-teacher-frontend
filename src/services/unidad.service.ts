@@ -513,6 +513,8 @@ export async function editarContenidoUnidad(
 // ============================================
 
 export interface IPatchPropositosActividadesRequest {
+  /** Opcional para unidades secundarias multigrado */
+  gradoId?: number;
   area: string;
   competencia: string;
   actividades: string[];
@@ -555,6 +557,44 @@ export async function patchPropositosActividades(
       area: normalizarNombreArea(body.area),
     },
     timeout != null ? { timeout } : undefined
+  );
+  return data;
+}
+
+// ============================================
+// POST /api/unidades/campo-tematico-secundaria
+// ============================================
+
+export interface ICampoTematicoSecundariaRequest {
+  unidadId?: string;
+  unidad?: Record<string, unknown>;
+  forzarRegeneracion?: boolean;
+}
+
+export interface ICampoTematicoSecundariaItem {
+  grado: string;
+  area: string;
+  competencia: string;
+  campoTematico: string;
+  fuente?: string;
+}
+
+export interface ICampoTematicoSecundariaResponse {
+  success: boolean;
+  totalCompetencias?: number;
+  totalCamposTematicosGenerados?: number;
+  camposTematicos?: ICampoTematicoSecundariaItem[];
+  observaciones?: string[];
+  guardadoEnBD?: boolean;
+  unidad?: IUnidad;
+}
+
+export async function generarCampoTematicoSecundaria(
+  body: ICampoTematicoSecundariaRequest
+): Promise<ICampoTematicoSecundariaResponse> {
+  const { data } = await instance.post<ICampoTematicoSecundariaResponse>(
+    "/unidades/campo-tematico-secundaria",
+    body
   );
   return data;
 }
