@@ -14,7 +14,13 @@ const getDisplayText = (value: unknown): string => {
 
   if (typeof value === 'object') {
     const obj = value as Record<string, unknown>;
-    const preferred = obj.encabezado ?? obj.texto ?? obj.contenido ?? obj.valor;
+    const preferred =
+      obj.encabezado ??
+      obj.nombre ??
+      obj.texto ??
+      obj.contenido ??
+      obj.valor ??
+      obj.titulo;
     return preferred !== undefined ? getDisplayText(preferred) : String(value);
   }
 
@@ -26,7 +32,13 @@ const getDisplayText = (value: unknown): string => {
     try {
       const normalized = raw.replace(/'/g, '"');
       const parsed = JSON.parse(normalized) as Record<string, unknown>;
-      const preferred = parsed.encabezado ?? parsed.texto ?? parsed.contenido ?? parsed.valor;
+      const preferred =
+        parsed.encabezado ??
+        parsed.nombre ??
+        parsed.texto ??
+        parsed.contenido ??
+        parsed.valor ??
+        parsed.titulo;
       if (preferred !== undefined) return getDisplayText(preferred);
     } catch {
       // Si no se puede parsear, retornamos el valor original
