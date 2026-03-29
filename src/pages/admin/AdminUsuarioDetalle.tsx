@@ -79,6 +79,11 @@ const departamentos: UbigeoDepartamento[] = departamentosData.ubigeo_departament
 const provincias: UbigeoProvincia[] = provinciasData.ubigeo_provincias;
 const distritos: UbigeoDistrito[] = distritosData.ubigeo_distritos;
 
+function isUnidadActivaParaFinalizar(fechaFin?: string | null): boolean {
+  if (fechaFin == null) return true;
+  return new Date(fechaFin).getTime() > Date.now();
+}
+
 export default function AdminUsuarioDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -1562,6 +1567,56 @@ export default function AdminUsuarioDetalle() {
                         )}
                         {arreglandoActividades === u.id ? "Arreglando…" : "Arreglar Actividades"}
                       </Button>
+                      {isUnidadActivaParaFinalizar(u.fechaFin) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-red-300 text-red-700 hover:bg-red-50"
+                          disabled={finalizandoUnidadId === u.id}
+                          title="Finalizar unidad (admin)"
+                          onClick={async () => {
+                            if (
+                              !confirm(
+                                `¿Finalizar la unidad "${u.titulo || u.id}"?\n\nDejará de contar como activa. El docente podrá crear otra unidad si su plan lo permite. La unidad y sus sesiones/PDFs siguen existiendo.`,
+                              )
+                            )
+                              return;
+                            setFinalizandoUnidadId(u.id);
+                            try {
+                              const res = await adminFinalizarUnidad(u.id);
+                              toast.success(res.message || "Unidad finalizada");
+                              const nuevaFechaFin =
+                                typeof res.data?.fechaFin === "string"
+                                  ? res.data.fechaFin
+                                  : new Date().toISOString();
+                              setUsuario((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  unidades: prev.unidades.map((uni) =>
+                                    uni.id === u.id ? { ...uni, fechaFin: nuevaFechaFin } : uni,
+                                  ),
+                                };
+                              });
+                            } catch (err: any) {
+                              toast.error(
+                                err?.response?.data?.message ||
+                                  "Error al finalizar la unidad",
+                              );
+                            } finally {
+                              setFinalizandoUnidadId(null);
+                            }
+                          }}
+                        >
+                          {finalizandoUnidadId === u.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <FlagOff className="w-3 h-3" />
+                          )}
+                          {finalizandoUnidadId === u.id ? "Finalizando…" : "Finalizar"}
+                        </Button>
+                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
