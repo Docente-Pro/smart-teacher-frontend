@@ -4,6 +4,7 @@ import type { IUnidadContenido } from "./IUnidadIA";
 // ─── Tipos ───
 
 export type TipoUnidad = "PERSONAL" | "COMPARTIDA";
+export type ModoSecundaria = "tutoria" | "mono_grado";
 
 export type EstadoPagoUnidad = "PENDIENTE" | "CONFIRMADO" | "RECHAZADO";
 
@@ -36,6 +37,7 @@ export interface IUnidadCreateRequest {
   nivelId: number;
   gradoId: number | null;
   gradosSecundaria?: number[];
+  modoSecundaria?: ModoSecundaria;
   numeroUnidad: number;
   duracion: number;
   fechaInicio: string;

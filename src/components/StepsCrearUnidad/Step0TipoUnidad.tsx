@@ -47,6 +47,8 @@ interface Props {
   onContinue: (tipo: TipoUnidad, maxMiembros: number) => void;
   isPremium: boolean;
   onBack?: () => void;
+  /** Secundaria: solo unidad personal (no compartida). */
+  soloPersonalSecundaria?: boolean;
 }
 
 /**
@@ -57,7 +59,7 @@ interface Props {
  *   → abre whatsappLink → espera WS pago:confirmado { accion: "CREAR_UNIDAD" }
  *   → desbloquea wizard.
  */
-function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
+function Step0TipoUnidad({ onContinue, isPremium, onBack, soloPersonalSecundaria }: Props) {
   const [tipo, setTipo] = useState<TipoUnidad>("PERSONAL");
   const [maxMiembros, setMaxMiembros] = useState(2);
   const [fase, setFase] = useState<"select" | "payment" | "waiting" | "activated" | "error">(
@@ -70,6 +72,10 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
   const cleanupRef = useRef<(() => void) | null>(null);
   const updateUser = useAuthStore((s) => s.updateUser);
   const user = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    if (soloPersonalSecundaria) setTipo("PERSONAL");
+  }, [soloPersonalSecundaria]);
 
   // ── Cargar precios dinámicos ──
   useEffect(() => {
@@ -404,15 +410,21 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
             <span className="text-sm font-semibold tracking-wide">ANTES DE EMPEZAR</span>
           </div>
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-4 tracking-tight">
-            ¿Cómo trabajarás tu unidad?
+            {soloPersonalSecundaria
+              ? "Tu unidad en secundaria es personal"
+              : "¿Cómo trabajarás tu unidad?"}
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Elige el tipo de unidad que deseas crear
+            {soloPersonalSecundaria
+              ? "Las unidades compartidas no aplican en secundaria. Continúa con tu unidad personal."
+              : "Elige el tipo de unidad que deseas crear"}
           </p>
         </div>
 
         {/* ── Selector PERSONAL / COMPARTIDA ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+        <div
+          className={`grid grid-cols-1 gap-6 mb-8 ${soloPersonalSecundaria ? "" : "sm:grid-cols-2"}`}
+        >
           {/* PERSONAL */}
           <div
             onClick={() => setTipo("PERSONAL")}
@@ -480,7 +492,8 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
             </div>
           </div>
 
-          {/* COMPARTIDA */}
+          {/* COMPARTIDA — oculta en secundaria */}
+          {!soloPersonalSecundaria && (
           <div
             onClick={() => setTipo("COMPARTIDA")}
             className={`
@@ -557,6 +570,7 @@ function Step0TipoUnidad({ onContinue, isPremium, onBack }: Props) {
               )}
             </div>
           </div>
+          )}
         </div>
 
         {/* ── Info contextual según tipo ── */}

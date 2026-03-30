@@ -10,6 +10,7 @@ import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import type { IUnidadListItem, IUnidadListMiembroArea } from "@/interfaces/IUnidadList";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
+import { isUnidadListaActiva } from "@/utils/unidadActiva";
 import {
   ArrowLeft,
   BookOpen,
@@ -126,7 +127,8 @@ function GenerarSesionSecundaria() {
     () =>
       unidades.filter((u) => {
         const mb = u.miembros.find((m) => m.usuarioId === userId);
-        return mb?.estadoPago === "CONFIRMADO";
+        if (mb?.estadoPago !== "CONFIRMADO") return false;
+        return isUnidadListaActiva(u.fechaFin);
       }),
     [unidades, userId]
   );
@@ -188,7 +190,11 @@ function GenerarSesionSecundaria() {
       setUnidades(items);
       const sec = items.filter((u) => {
         const mb = u.miembros.find((m) => m.usuarioId === userId);
-        return mb?.estadoPago === "CONFIRMADO" && isUnidadSecundaria(u);
+        return (
+          mb?.estadoPago === "CONFIRMADO" &&
+          isUnidadListaActiva(u.fechaFin) &&
+          isUnidadSecundaria(u)
+        );
       });
       if (sec.length === 1) setSelectedUnidadId(sec[0].id);
     } catch (err: any) {
@@ -201,6 +207,16 @@ function GenerarSesionSecundaria() {
   useEffect(() => {
     cargarUnidades();
   }, [cargarUnidades]);
+
+  useEffect(() => {
+    if (unidadesSecundaria.length === 0) {
+      if (selectedUnidadId !== null) setSelectedUnidadId(null);
+      return;
+    }
+    if (!selectedUnidadId || !unidadesSecundaria.some((u) => u.id === selectedUnidadId)) {
+      setSelectedUnidadId(unidadesSecundaria.length === 1 ? unidadesSecundaria[0].id : null);
+    }
+  }, [unidadesSecundaria, selectedUnidadId]);
 
   useEffect(() => {
     if (!selectedUnidad) return;

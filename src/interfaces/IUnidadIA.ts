@@ -256,6 +256,7 @@ export type PasoUnidad =
 
 export interface IUnidadContenido {
   gradosSecundaria?: number[];
+  modoSecundaria?: "tutoria" | "mono_grado";
   situacionSignificativa?: string;
   situacionBase?: ISituacionBase;
   imagenSituacionUrl?: string;

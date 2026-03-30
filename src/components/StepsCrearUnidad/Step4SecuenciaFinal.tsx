@@ -219,6 +219,21 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
 
   const isGenerating = generandoPaso !== null;
 
+  const inferGradosSecundariaIds = useCallback((baseContenido: any): number[] => {
+    const fromDatosBase = Array.isArray((datosBase as any)?.gradosSecundariaIds)
+      ? ((datosBase as any).gradosSecundariaIds as number[])
+      : [];
+    if (fromDatosBase.length > 0) {
+      return Array.from(new Set(fromDatosBase)).filter((id) => Number.isFinite(id));
+    }
+    const fromPropositos = Array.isArray(baseContenido?.propositosPorGrado)
+      ? (baseContenido.propositosPorGrado as Array<any>)
+          .map((pg) => Number(pg?.gradoId))
+          .filter((id) => Number.isFinite(id))
+      : [];
+    return Array.from(new Set(fromPropositos));
+  }, [datosBase]);
+
   // En secundaria no usamos horario escolar para la secuencia.
   useEffect(() => {
     if (!isSecundariaWizard) return;
@@ -241,6 +256,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       setStatusSecuencia("generating");
       setGenerandoPaso("Secuencia de Actividades");
       const contenidoParaSecBase = useUnidadStore.getState().contenido;
+      const gradosSecIds = inferGradosSecundariaIds(contenidoParaSecBase);
       const mainPlan = ((datosBase as any)?.planificacionAreas ?? [])[0] as
         | {
             totalSesionesUnidad?: number;
@@ -250,7 +266,8 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       const contenidoParaSec = isSecundariaWizard
         ? {
             ...contenidoParaSecBase,
-            gradosSecundaria: (datosBase as any)?.gradosSecundariaIds ?? [],
+            gradosSecundaria: gradosSecIds,
+            modoSecundaria: (datosBase as any)?.modoSecundaria,
             planificacionAreas: (datosBase as any)?.planificacionAreas ?? [],
             duracion: (datosBase as any)?.duracion ?? 0,
             // Prioridad backend #1: enviar total explícito si el front ya lo conoce.
@@ -352,7 +369,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
         "error"
       );
     }
-  }, [unidadId, isSecundariaWizard, datosBase]);
+  }, [unidadId, isSecundariaWizard, datosBase, inferGradosSecundariaIds]);
 
   /* ─── Regenerar individual ─── */
   async function regenerar(paso: "secuencia" | "materiales" | "reflexiones") {
@@ -377,6 +394,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       if (paso === "secuencia") {
         const horarioActual = isSecundariaWizard ? undefined : useUnidadStore.getState().horario;
         const contenidoActualBase = useUnidadStore.getState().contenido;
+        const gradosSecIds = inferGradosSecundariaIds(contenidoActualBase);
         const mainPlan = ((datosBase as any)?.planificacionAreas ?? [])[0] as
           | {
               totalSesionesUnidad?: number;
@@ -386,7 +404,8 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
         const contenidoActual = isSecundariaWizard
           ? {
               ...contenidoActualBase,
-              gradosSecundaria: (datosBase as any)?.gradosSecundariaIds ?? [],
+              gradosSecundaria: gradosSecIds,
+              modoSecundaria: (datosBase as any)?.modoSecundaria,
               planificacionAreas: (datosBase as any)?.planificacionAreas ?? [],
               duracion: (datosBase as any)?.duracion ?? 0,
               totalSesionesUnidad: Number(mainPlan?.totalSesionesUnidad ?? 0) || undefined,

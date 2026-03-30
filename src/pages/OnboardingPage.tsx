@@ -87,6 +87,10 @@ function isTutoriaAreaName(nombre?: string): boolean {
   return normalizeText(nombre).includes("tutoria");
 }
 
+function isPlanLectorAreaName(nombre?: string): boolean {
+  return normalizeText(nombre).includes("plan lector");
+}
+
 function OnboardingPage() {
   const { user: auth0User, isLoading: authLoading } = useAuth0();
   const { user: backendUser, updateUser } = useAuthStore(); // Usar usuario del backend
@@ -113,6 +117,7 @@ function OnboardingPage() {
   const [areasSeleccionadasIds, setAreasSeleccionadasIds] = useState<number[]>([]);
   const [secundariaGradosIds, setSecundariaGradosIds] = useState<number[]>([]);
   const [tutoriaGradoId, setTutoriaGradoId] = useState<number>(0);
+  const [planLectorGradoId, setPlanLectorGradoId] = useState<number>(0);
 
   const nivelSeleccionado = useMemo(
     () => niveles.find((n) => n.id === formData.nivelId),
@@ -123,6 +128,10 @@ function OnboardingPage() {
     () => areas.find((a) => isTutoriaAreaName(a.nombre))?.id,
     [areas],
   );
+  const planLectorAreaId = useMemo(
+    () => areas.find((a) => isPlanLectorAreaName(a.nombre))?.id,
+    [areas],
+  );
   const secundariaAniosSeleccionados = useMemo(
     () => gradosFiltrados.filter((g) => secundariaGradosIds.includes(g.id)).map((g) => g.nombre),
     [gradosFiltrados, secundariaGradosIds],
@@ -130,6 +139,15 @@ function OnboardingPage() {
   const areasSeleccionadasNombres = useMemo(
     () => areas.filter((a) => areasSeleccionadasIds.includes(a.id)).map((a) => a.nombre),
     [areas, areasSeleccionadasIds],
+  );
+  const areasCurriculares = useMemo(
+    () =>
+      areas.filter(
+        (a) =>
+          a.id !== tutoriaAreaId &&
+          a.id !== planLectorAreaId,
+      ),
+    [areas, tutoriaAreaId, planLectorAreaId],
   );
 
   // ── Filtrar provincias y distritos en cascada ──
@@ -210,6 +228,7 @@ function OnboardingPage() {
     if (!isSecundariaSeleccionada) {
       setSecundariaGradosIds([]);
       setTutoriaGradoId(0);
+      setPlanLectorGradoId(0);
       setAreasSeleccionadasIds([]);
     }
   }, [isSecundariaSeleccionada]);
@@ -219,7 +238,16 @@ function OnboardingPage() {
     const validIds = new Set(gradosFiltrados.map((g) => g.id));
     setSecundariaGradosIds((prev) => prev.filter((id) => validIds.has(id)));
     setTutoriaGradoId((prev) => (prev && validIds.has(prev) ? prev : 0));
+    setPlanLectorGradoId((prev) => (prev && validIds.has(prev) ? prev : 0));
   }, [gradosFiltrados, isSecundariaSeleccionada]);
+
+  // Evitar duplicidad visual: Tutoría/Plan Lector se controlan por su selector de grado, no por la grilla de áreas.
+  useEffect(() => {
+    if (!isSecundariaSeleccionada) return;
+    setAreasSeleccionadasIds((prev) =>
+      prev.filter((id) => id !== tutoriaAreaId && id !== planLectorAreaId),
+    );
+  }, [isSecundariaSeleccionada, tutoriaAreaId, planLectorAreaId]);
 
   function toggleAreaSecundaria(areaId: number) {
     setAreasSeleccionadasIds((prev) => {
@@ -247,11 +275,18 @@ function OnboardingPage() {
       if (tutoriaGradoId && !sorted.includes(tutoriaGradoId)) {
         setTutoriaGradoId(0);
       }
+      if (planLectorGradoId && !sorted.includes(planLectorGradoId)) {
+        setPlanLectorGradoId(0);
+      }
       return sorted;
     });
   }
 
   function validateForm(): boolean {
+    const hasAreasFromChecks =
+      areasSeleccionadasIds.length > 0 ||
+      Boolean(tutoriaGradoId && tutoriaAreaId) ||
+      Boolean(planLectorGradoId && planLectorAreaId);
     if (!formData.nombre || formData.nombre.trim().length < 2) {
       return false;
     }
@@ -276,7 +311,7 @@ function OnboardingPage() {
       return false;
     }
 
-    if (isSecundariaSeleccionada && areasSeleccionadasIds.length === 0) {
+    if (isSecundariaSeleccionada && !hasAreasFromChecks) {
       return false;
     }
     if (isSecundariaSeleccionada && areasSeleccionadasIds.length > MAX_AREAS_SECUNDARIA) {
@@ -289,6 +324,23 @@ function OnboardingPage() {
       areasSeleccionadasIds.includes(tutoriaAreaId) &&
       !tutoriaGradoId
     ) {
+      return false;
+    }
+
+    if (isSecundariaSeleccionada && tutoriaGradoId && !tutoriaAreaId) {
+      return false;
+    }
+
+    if (
+      isSecundariaSeleccionada &&
+      planLectorAreaId &&
+      areasSeleccionadasIds.includes(planLectorAreaId) &&
+      !planLectorGradoId
+    ) {
+      return false;
+    }
+
+    if (isSecundariaSeleccionada && planLectorGradoId && !planLectorAreaId) {
       return false;
     }
 
@@ -311,7 +363,13 @@ function OnboardingPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      handleToaster("Por favor, completa todos los campos", "error");
+      if (isSecundariaSeleccionada && tutoriaGradoId && !tutoriaAreaId) {
+        handleToaster("No se encontró el área Tutoría en el catálogo. Revisa /api/area.", "error");
+      } else if (isSecundariaSeleccionada && planLectorGradoId && !planLectorAreaId) {
+        handleToaster("No se encontró el área Plan Lector en el catálogo. Revisa /api/area.", "error");
+      } else {
+        handleToaster("Por favor, completa todos los campos", "error");
+      }
       return;
     }
 
@@ -339,11 +397,24 @@ function OnboardingPage() {
       });
 
       // Paso 2 del contrato: POST asignaciones grado+area (Secundaria)
-      if (isSecundariaSeleccionada && areasSeleccionadasIds.length > 0) {
-        const asignaciones = areasSeleccionadasIds.flatMap((areaId) => {
+      const hasAreasFromChecks =
+        areasSeleccionadasIds.length > 0 ||
+        Boolean(tutoriaGradoId && tutoriaAreaId) ||
+        Boolean(planLectorGradoId && planLectorAreaId);
+      if (isSecundariaSeleccionada && hasAreasFromChecks) {
+        const areaIdsParaAsignar = new Set<number>(areasSeleccionadasIds);
+        // Si el docente eligió año de Tutoría/Plan Lector, asegurar que su areaId también se envíe.
+        if (tutoriaGradoId && tutoriaAreaId) areaIdsParaAsignar.add(tutoriaAreaId);
+        if (planLectorGradoId && planLectorAreaId) areaIdsParaAsignar.add(planLectorAreaId);
+
+        const asignaciones = Array.from(areaIdsParaAsignar).flatMap((areaId) => {
           const isTutoria = tutoriaAreaId ? areaId === tutoriaAreaId : false;
+          const isPlanLector = planLectorAreaId ? areaId === planLectorAreaId : false;
           if (isTutoria) {
             return tutoriaGradoId ? [{ gradoId: tutoriaGradoId, areaId }] : [];
+          }
+          if (isPlanLector) {
+            return planLectorGradoId ? [{ gradoId: planLectorGradoId, areaId }] : [];
           }
           return secundariaGradosIds.map((gradoId) => ({ gradoId, areaId }));
         });
@@ -351,6 +422,10 @@ function OnboardingPage() {
         const dedupMap = new Map<string, { gradoId: number; areaId: number }>();
         asignaciones.forEach((a) => dedupMap.set(`${a.gradoId}-${a.areaId}`, a));
         const dedupAsignaciones = Array.from(dedupMap.values());
+
+        if (import.meta.env.DEV) {
+          console.log("[Onboarding] asignaciones secundaria:", dedupAsignaciones);
+        }
 
         if (dedupAsignaciones.length > 0) {
           await guardarUsuarioGradosAreas(backendUser.id, { asignaciones: dedupAsignaciones });
@@ -649,14 +724,42 @@ function OnboardingPage() {
                 </div>
 
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
-                  <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">
-                    3) Selecciona las áreas que enseñas
+                  <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                    2b) Año de Plan Lector (opcional)
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Puedes elegir hasta {MAX_AREAS_SECUNDARIA} áreas.
+                    Si no llevas Plan Lector, deja “Sin Plan Lector”.
+                  </p>
+                  <Select
+                    value={planLectorGradoId ? planLectorGradoId.toString() : "none"}
+                    onValueChange={(value) => setPlanLectorGradoId(value === "none" ? 0 : parseInt(value))}
+                    disabled={secundariaGradosIds.length === 0}
+                  >
+                    <SelectTrigger className="h-12 text-base">
+                      <SelectValue placeholder="Selecciona año de Plan Lector" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin Plan Lector</SelectItem>
+                      {gradosFiltrados
+                        .filter((g) => secundariaGradosIds.includes(g.id))
+                        .map((grado) => (
+                          <SelectItem key={`plan-lector-${grado.id}`} value={grado.id.toString()}>
+                            {grado.nombre}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
+                  <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">
+                    3) Selecciona las áreas curriculares que enseñas
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    Puedes elegir hasta {MAX_AREAS_SECUNDARIA} áreas curriculares.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {areas.map((area) => {
+                    {areasCurriculares.map((area) => {
                       const selected = areasSeleccionadasIds.includes(area.id);
                       const reachedMax = areasSeleccionadasIds.length >= MAX_AREAS_SECUNDARIA;
                       const disabled = !selected && reachedMax;

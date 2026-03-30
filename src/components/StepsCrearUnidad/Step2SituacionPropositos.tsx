@@ -168,6 +168,13 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
       .sort((a, b) => a - b);
   }, [contenido, datosBase]);
 
+  const getModoSecundaria = useCallback((): string | undefined => {
+    const fromContenido = (contenido as any)?.modoSecundaria;
+    const fromDatosBase = (datosBase as any)?.modoSecundaria;
+    const modo = fromContenido ?? fromDatosBase;
+    return typeof modo === "string" ? modo : undefined;
+  }, [contenido, datosBase]);
+
   // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
   useEffect(() => {
     if (contenido.situacionSignificativa && !situacionTexto) {
@@ -767,9 +774,12 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
       setGenerandoPaso("Propósitos de Aprendizaje");
       const isSecundaria = Boolean((datosBase as any)?.esSecundariaWizard);
       const gradoIdsSec = getGradosSecundariaIds();
+      const modoSecundaria = getModoSecundaria();
+      const isSecundariaMonoOTutoria =
+        modoSecundaria === "tutoria" || modoSecundaria === "mono_grado";
       let propData: IPropositos;
       let propositosPorGrado: IPropositosPorGradoItem[] | undefined;
-      if (isSecundaria && gradoIdsSec.length > 0) {
+      if (isSecundaria && !isSecundariaMonoOTutoria && gradoIdsSec.length > 1) {
         const resPropMulti = await generarPropositosMultigrado(unidadId, {
           gradoIds: gradoIdsSec,
           maxCompetenciasPorAreaSecundaria: 2,
@@ -851,7 +861,10 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
       } else {
         const isSecundaria = Boolean((datosBase as any)?.esSecundariaWizard);
         const gradoIdsSec = getGradosSecundariaIds();
-        if (isSecundaria && gradoIdsSec.length > 0) {
+        const modoSecundaria = getModoSecundaria();
+        const isSecundariaMonoOTutoria =
+          modoSecundaria === "tutoria" || modoSecundaria === "mono_grado";
+        if (isSecundaria && !isSecundariaMonoOTutoria && gradoIdsSec.length > 1) {
           const resMulti = await generarPropositosMultigrado(unidadId, {
             gradoIds: gradoIdsSec,
             maxCompetenciasPorAreaSecundaria: 2,

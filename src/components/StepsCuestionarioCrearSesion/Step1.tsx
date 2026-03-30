@@ -88,32 +88,12 @@ const areaGradients: { [key: string]: string } = {
   "Plan Lector": "from-emerald-500 to-teal-500",
 };
 
-const PREMIUM_EXTRA_AREAS: IArea[] = [
-  {
-    id: -101,
-    nombre: "Tutoría",
-    descripcion: "Sesión complementaria de Tutoría",
-    color: "#ec4899",
-    imagen: "",
-    competencias: [],
-  },
-  {
-    id: -102,
-    nombre: "Plan Lector",
-    descripcion: "Sesión complementaria de Plan Lector",
-    color: "#10b981",
-    imagen: "",
-    competencias: [],
-  },
-];
-
 function Step1({ pagina, setPagina, usuarioFromState }: Props) {
   const { sesion, updateSesion } = useSesionStore();
   const [areas, setAreas] = useState<IArea[]>([]);
   const [areaSeleccionada, setAreaSeleccionada] = useState<string>("");
   const [duracionSeleccionada, setDuracionSeleccionada] = useState<string>("");
   const { showLoading, hideLoading } = useGlobalLoading();
-  const isPremiumUser = !!usuarioFromState?.suscripcion?.activa;
 
   useEffect(() => {
     async function cargarAreas() {
@@ -122,7 +102,14 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
         const response = await getAllAreas();
         const all = response.data.data || response.data;
         const curriculares = all.filter((a: IArea) => isAreaPrimaria(a.nombre));
-        setAreas(isPremiumUser ? [...curriculares, ...PREMIUM_EXTRA_AREAS] : curriculares);
+        const seen = new Set<string>();
+        const dedup = curriculares.filter((a: IArea) => {
+          const key = `${a.id}-${a.nombre.toLowerCase().trim()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setAreas(dedup);
       } catch (error) {
         handleToaster("Error al cargar las áreas", "error");
       } finally {
@@ -131,7 +118,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
     }
 
     cargarAreas();
-  }, [isPremiumUser]);
+  }, []);
 
   // Inicializar desde el store si ya hay datos
   useEffect(() => {
