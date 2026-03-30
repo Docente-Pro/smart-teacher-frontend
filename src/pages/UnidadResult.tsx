@@ -18,7 +18,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useUnidadPDFGeneration } from "@/hooks/useUnidadPDFGeneration";
 import { useUnidadStore } from "@/store/unidad.store";
 import {
@@ -201,12 +201,13 @@ function UnidadResult() {
           <p className="text-slate-600 dark:text-slate-400 mb-6">
             Debes crear una unidad primero en el wizard
           </p>
-          <a
-            href="/crear-unidad"
+          <Link
+            to="/crear-unidad"
+            state={{ iniciarNuevaUnidad: true }}
             className="inline-block px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
           >
             Ir a Crear Unidad
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -322,7 +323,11 @@ function UnidadResult() {
         <div className="no-print flex flex-col gap-4 mb-6">
           <div className="flex items-center gap-2 sm:gap-4">
             <Button
-              onClick={() => navigate("/crear-unidad")}
+              onClick={() =>
+                navigate("/crear-unidad", {
+                  state: { iniciarNuevaUnidad: true },
+                })
+              }
               variant="ghost"
               className="h-10 px-3 flex-shrink-0"
             >

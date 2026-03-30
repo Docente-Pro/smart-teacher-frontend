@@ -245,7 +245,7 @@ function Dashboard() {
   const handleCrearUnidad = () => {
     if (!user) return;
     showLoading("Preparando creación de unidad...");
-    navigate("/crear-unidad");
+    navigate("/crear-unidad", { state: { iniciarNuevaUnidad: true } });
   };
 
   /**

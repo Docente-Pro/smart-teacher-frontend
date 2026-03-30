@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect, useLayoutEffect } from "react";
+import { useNavigate, useLocation } from "react-router";
 import { useAuth0 } from "@/hooks/useAuth0";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { useUnidadStore } from "@/store/unidad.store";
@@ -11,6 +11,8 @@ import { StepIndicator } from "@/components/StepsCuestionarioCrearSesion/StepInd
 import { UnidadDrawer } from "@/components/StepsCrearUnidad/UnidadDrawer";
 import { UnidadRecoveryDialog } from "@/components/StepsCrearUnidad/UnidadRecoveryDialog";
 import Step0TipoUnidad from "@/components/StepsCrearUnidad/Step0TipoUnidad";
+import Step0AreaSecundaria from "@/components/StepsCrearUnidad/Step0AreaSecundaria";
+import { shouldOfferSecundariaAreaStep } from "@/utils/unidadSecundaria";
 import Step1DatosUnidad from "@/components/StepsCrearUnidad/Step1DatosUnidad";
 import Step2SituacionPropositos from "@/components/StepsCrearUnidad/Step2SituacionPropositos";
 import Step3EnfoquesComplementos from "@/components/StepsCrearUnidad/Step3EnfoquesComplementos";
@@ -47,6 +49,7 @@ const STEPS = [
  */
 function CrearUnidad() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth0();
   const { showLoading, hideLoading } = useGlobalLoading();
   const { isPremium, isSuscripcionActiva } = usePermissions();
@@ -70,6 +73,15 @@ function CrearUnidad() {
 
   const contenidoSaveStatus = useAutoSaveContenido(unidadId ?? null);
 
+  /** Nueva unidad desde el dashboard (u otras entradas): limpiar borrador persistido y volver al flujo inicial. */
+  useLayoutEffect(() => {
+    const iniciar = (location.state as { iniciarNuevaUnidad?: boolean } | null)
+      ?.iniciarNuevaUnidad;
+    if (!iniciar) return;
+    resetUnidad();
+    navigate("/crear-unidad", { replace: true });
+  }, [location.state, navigate, resetUnidad]);
+
   // Scroll al tope cada vez que cambia el paso
   useScrollTopOnStep(currentStep);
 
@@ -84,6 +96,16 @@ function CrearUnidad() {
   };
 
   const handleTipoContinue = (tipo: TipoUnidad, miembros: number) => {
+    // Secundaria (con áreas en perfil): tras PERSONAL, elegir área antes del wizard (también tras pago free).
+    if (
+      usuarioData &&
+      shouldOfferSecundariaAreaStep(usuarioData) &&
+      tipo === "PERSONAL" &&
+      useUnidadStore.getState().wizardPhase === "select-type"
+    ) {
+      setWizardPhase("select-area-secundaria");
+      return;
+    }
     setTipoUnidad(tipo, miembros);
   };
 
@@ -168,11 +190,24 @@ function CrearUnidad() {
         const data = response.data.data || response.data;
         setUsuarioData(data);
 
+        // Secundaria con áreas en perfil: elegir área antes que personal/compartida (siempre PERSONAL).
+        const st = useUnidadStore.getState();
+        if (
+          shouldOfferSecundariaAreaStep(data) &&
+          isPremium &&
+          isSuscripcionActiva &&
+          st.wizardPhase === "select-type" &&
+          !st.unidadId &&
+          !st.datosBase
+        ) {
+          setWizardPhase("select-area-secundaria");
+        }
+
         // Verificar si hay una unidad sin completar
         if (hasUnfinishedUnidad()) {
           setShowRecoveryDialog(true);
         }
-        
+
         setIsInitialized(true);
       } catch (error) {
         console.error("Error al cargar usuario:", error);
@@ -184,7 +219,7 @@ function CrearUnidad() {
     }
 
     cargarUsuario();
-  }, [user?.id]);
+  }, [user?.id, isPremium, isSuscripcionActiva]);
 
   // No renderizar hasta que esté inicializado
   if (!isInitialized) {
@@ -200,12 +235,24 @@ function CrearUnidad() {
         onStartNew={handleStartNew}
       />
 
-      {/* ── Pre-paso: elegir tipo de unidad ── */}
+      {/* ── Pre-paso secundaria: elegir área curricular (siempre unidad personal) ── */}
+      {wizardPhase === "select-area-secundaria" && usuarioData && user?.id && (
+        <Step0AreaSecundaria
+          usuario={usuarioData}
+          userId={user.id}
+          onBack={() => navigate("/dashboard")}
+        />
+      )}
+
+      {/* ── Pre-paso: elegir tipo de unidad (primaria u otros) ── */}
       {wizardPhase === "select-type" && (
         <Step0TipoUnidad
           onContinue={handleTipoContinue}
           isPremium={isPremium && isSuscripcionActiva}
           onBack={() => navigate("/dashboard")}
+          soloPersonalSecundaria={
+            !!usuarioData && shouldOfferSecundariaAreaStep(usuarioData)
+          }
         />
       )}
 

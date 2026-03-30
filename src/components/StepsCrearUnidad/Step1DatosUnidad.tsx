@@ -40,7 +40,7 @@ import { getAllAreas, isAreaPrimaria } from "@/services/areas.service";
 import { generarTituloUnidad } from "@/services/ia-unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { IArea } from "@/interfaces/IArea";
-import type { TipoUnidad } from "@/interfaces/IUnidad";
+import type { ModoSecundaria, TipoUnidad } from "@/interfaces/IUnidad";
 
 interface Props {
   pagina: number;
@@ -113,7 +113,8 @@ const duracionesUnidad = [
 ];
 
 function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros }: Props) {
-  const { unidadId: existingUnidadId, setUnidadId, setDatosBase } = useUnidadStore();
+  const { unidadId: existingUnidadId, setUnidadId, setDatosBase, secundariaAreaElegida } =
+    useUnidadStore();
   const updateAuthUser = useAuthStore((s) => s.updateUser);
   const authUser = useAuthStore((s) => s.user as any);
   const { user: userProfile } = useUserStore();
@@ -286,9 +287,27 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     setDuracion(DEFAULT_SECONDARY_WEEKS);
   }, [isSecundaria, duracion]);
 
+  const maxAreasSecundaria = secundariaAreaElegida ? 1 : 2;
+
   function toggleArea(nombre: string) {
-    if (isSecundaria && !areasSeleccionadas.includes(nombre) && areasSeleccionadas.length >= 2) {
-      handleToaster("En secundaria puedes seleccionar máximo 2 áreas por unidad", "error");
+    if (secundariaAreaElegida) {
+      if (nombre !== secundariaAreaElegida.nombre) {
+        handleToaster(
+          "Esta unidad corresponde solo al área que elegiste al inicio.",
+          "error",
+        );
+      }
+      return;
+    }
+    if (
+      isSecundaria &&
+      !areasSeleccionadas.includes(nombre) &&
+      areasSeleccionadas.length >= maxAreasSecundaria
+    ) {
+      handleToaster(
+        `En secundaria puedes seleccionar máximo ${maxAreasSecundaria} área(s) por unidad`,
+        "error",
+      );
       return;
     }
     setAreasSeleccionadas((prev) =>
@@ -315,11 +334,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     setSesionesPorArea((prev) => {
       const next: Record<string, number> = {};
       areasSeleccionadas.forEach((area) => {
-        if (isTutoriaArea(area)) {
-          next[area] = duracion || 0;
-        } else {
-          next[area] = prev[area] || duracion || 0;
-        }
+        next[area] = prev[area] || duracion || 0;
       });
       return next;
     });
@@ -330,7 +345,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     setSesionesSemanalesPorArea((prev) => {
       const next: Record<string, number[]> = { ...prev };
       areasSeleccionadas.forEach((area) => {
-        const totalSesiones = isTutoriaArea(area) ? duracion : (sesionesPorArea[area] || duracion);
+        const totalSesiones = sesionesPorArea[area] || duracion;
         const modo = modoDistribucionPorArea[area] || "automatica";
         if (modo === "automatica" || !next[area] || next[area].length !== duracion) {
           next[area] = calcularDistribucionAutomatica(duracion, totalSesiones);
@@ -376,6 +391,10 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
   }, [areasSeleccionadas, isSecundaria, profileSecondaryYears, profileTutoriaYear, userSecondaryYear, userGradesByArea]);
 
   useEffect(() => {
+    if (secundariaAreaElegida && isSecundaria) {
+      setAreasSeleccionadas([secundariaAreaElegida.nombre]);
+      return;
+    }
     if (!isSecundaria || areas.length === 0 || areasSeleccionadas.length > 0) return;
     const fromUsuario = Array.from(
       new Set(
@@ -386,7 +405,13 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     );
     if (fromUsuario.length === 0) return;
     setAreasSeleccionadas(fromUsuario.slice(0, 2));
-  }, [isSecundaria, areas, areasSeleccionadas.length, usuario.gradosAreas]);
+  }, [
+    isSecundaria,
+    areas,
+    areasSeleccionadas.length,
+    usuario.gradosAreas,
+    secundariaAreaElegida,
+  ]);
 
   function toggleGradoArea(area: string, gradoLabel: string) {
     if (hasConfiguredSecondaryProfile && (userGradesByArea[area] || []).length > 0) return;
@@ -421,7 +446,6 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         if (grados.length === 0) {
           return handleToaster(`Asigna al menos un grado para ${area}`, "error");
         }
-        if (isTutoriaArea(area)) continue;
         const total = sesionesPorArea[area] || 0;
         if (total <= 0) {
           return handleToaster(`Define el total de sesiones para ${area}`, "error");
@@ -453,13 +477,26 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         return handleToaster("No se encontraron grados de secundaria válidos", "error");
       }
 
+      const hasOnlyTutoriaSeleccionada =
+        isSecundaria &&
+        areasSeleccionadas.length === 1 &&
+        isTutoriaArea(areasSeleccionadas[0] || "");
+      const singleGradeSecundaria = isSecundaria && gradosSecundariaIds.length === 1;
+      const modoSecundaria: ModoSecundaria | undefined = hasOnlyTutoriaSeleccionada
+        ? "tutoria"
+        : singleGradeSecundaria
+          ? "mono_grado"
+          : undefined;
+      const gradoIdSecundaria = modoSecundaria ? gradosSecundariaIds[0] : null;
+
       const payload = {
         usuarioId: usuario.id,
         titulo,
         tipo: tipoUnidad,
         nivelId: usuario.nivelId,
-        gradoId: isSecundaria ? null : (usuario.gradoId ?? null),
-        ...(isSecundaria ? { gradosSecundaria: gradosSecundariaIds } : {}),
+        gradoId: isSecundaria ? gradoIdSecundaria : (usuario.gradoId ?? null),
+        ...(isSecundaria && !modoSecundaria ? { gradosSecundaria: gradosSecundariaIds } : {}),
+        ...(isSecundaria && modoSecundaria ? { modoSecundaria } : {}),
         numeroUnidad,
         duracion: isSecundaria ? (duracion || DEFAULT_SECONDARY_WEEKS) : duracion,
         fechaInicio,
@@ -511,24 +548,24 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         ...(isSecundaria
           ? {
               esSecundariaWizard: true,
+              modoSecundaria,
               gradesPool: SECONDARY_GRADES,
               gradosPorArea,
-              gradosSecundariaIds,
+              gradosSecundariaIds: modoSecundaria ? [] : gradosSecundariaIds,
               tieneTutoria: areasSeleccionadas.some(isTutoriaArea),
               gradosTutoria: (areasSeleccionadas.find(isTutoriaArea) ? gradosPorArea[areasSeleccionadas.find(isTutoriaArea)!] : []) || [],
               planificacionAreas: areasSeleccionadas.map((area) => ({
                 area,
                 totalSemanas: duracion,
-                totalSesionesUnidad: isTutoriaArea(area) ? duracion : (sesionesPorArea[area] || duracion),
+                totalSesionesUnidad: sesionesPorArea[area] || duracion,
                 modoDistribucion: modoDistribucionPorArea[area] || "automatica",
                 sesionesPorSemana:
                   sesionesSemanalesPorArea[area] ||
                   calcularDistribucionAutomatica(
                     duracion,
-                    isTutoriaArea(area) ? duracion : (sesionesPorArea[area] || duracion),
+                    sesionesPorArea[area] || duracion,
                   ),
-                editable: !isTutoriaArea(area),
-                reglaAplicada: isTutoriaArea(area) ? "Tutoria semanal" : undefined,
+                editable: true,
               })),
             }
           : {}),
@@ -739,7 +776,9 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
             </CardTitle>
             <CardDescription className="text-base">
               {isSecundaria
-                ? "Selecciona hasta 2 áreas para esta unidad"
+                ? secundariaAreaElegida
+                  ? "Área de esta unidad (definida al iniciar el asistente)"
+                  : "Selecciona hasta 2 áreas para esta unidad"
                 : "Selecciona una o más áreas para integrar en la unidad"}
             </CardDescription>
           </CardHeader>
@@ -750,16 +789,30 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                 const gradient = getGradient(area.nombre);
                 const isSelected = areasSeleccionadas.includes(area.nombre);
 
+                const lockedSingleArea =
+                  Boolean(secundariaAreaElegida) &&
+                  area.nombre !== secundariaAreaElegida?.nombre;
+
                 return (
                   <div
                     key={area.id}
-                    onClick={() => toggleArea(area.nombre)}
+                    onClick={() => {
+                      if (lockedSingleArea) return;
+                      toggleArea(area.nombre);
+                    }}
                     className={`
-                      group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
+                      group relative overflow-hidden rounded-xl transition-all duration-300
+                      ${
+                        lockedSingleArea
+                          ? "opacity-40 cursor-not-allowed border-2 border-slate-200 dark:border-slate-700"
+                          : "cursor-pointer"
+                      }
                       ${
                         isSelected
                           ? "ring-4 ring-violet-500 ring-offset-2 dark:ring-offset-slate-900 scale-105 shadow-2xl"
-                          : "hover:scale-105 hover:shadow-xl border-2 border-slate-200 dark:border-slate-700"
+                          : lockedSingleArea
+                            ? ""
+                            : "hover:scale-105 hover:shadow-xl border-2 border-slate-200 dark:border-slate-700"
                       }
                     `}
                   >
@@ -885,18 +938,14 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
             <CardContent className="space-y-5">
               {areasSeleccionadas.map((area) => {
                 const isTutoria = isTutoriaArea(area);
-                const total = isTutoria ? duracion : (sesionesPorArea[area] || duracion);
+                const total = sesionesPorArea[area] || duracion;
                 const dist = sesionesSemanalesPorArea[area] || calcularDistribucionAutomatica(duracion, total);
                 const modo = modoDistribucionPorArea[area] || "automatica";
                 return (
                   <div key={`sesiones-${area}`} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-bold">{area}</p>
-                      {isTutoria && (
-                        <span className="text-[11px] px-2 py-1 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                          Regla fija: 1 sesión por semana
-                        </span>
-                      )}
+                      {isTutoria && <span className="text-[11px] text-slate-500">Tutoría</span>}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -906,7 +955,6 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                           type="number"
                           min={1}
                           value={total}
-                          disabled={isTutoria}
                           onChange={(e) => {
                             const v = Math.max(0, Number(e.target.value) || 0);
                             setSesionesPorArea((prev) => ({ ...prev, [area]: v }));
@@ -921,7 +969,6 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                             type="button"
                             variant={modo === "automatica" ? "default" : "outline"}
                             size="sm"
-                            disabled={isTutoria}
                             onClick={() =>
                               setModoDistribucionPorArea((prev) => ({ ...prev, [area]: "automatica" }))
                             }

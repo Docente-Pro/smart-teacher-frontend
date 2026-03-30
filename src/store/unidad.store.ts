@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { IUnidadContenido } from "@/interfaces/IUnidadIA";
 import type { HorarioEscolar } from "@/interfaces/IHorario";
+import type { ModoSecundaria } from "@/interfaces/IUnidad";
 
 // ─── Datos base del Paso 1 ───
 
@@ -22,6 +23,7 @@ export interface UnidadDatosBase {
   codigoCompartido?: string;
   // ─── Secundaria (wizard por áreas) ───
   esSecundariaWizard?: boolean;
+  modoSecundaria?: ModoSecundaria;
   gradesPool?: string[];
   gradosPorArea?: Record<string, string[]>;
   tieneTutoria?: boolean;
@@ -39,7 +41,17 @@ export interface UnidadDatosBase {
 }
 
 // ─── Fases del wizard ───
-export type WizardPhase = "select-type" | "wizard" | "completed";
+export type WizardPhase =
+  | "select-type"
+  | "select-area-secundaria"
+  | "wizard"
+  | "completed";
+
+/** Área elegida en el pre-paso solo secundaria (una unidad activa por área). */
+export interface SecundariaAreaElegida {
+  areaId: number;
+  nombre: string;
+}
 
 // ─── State ───
 
@@ -55,6 +67,8 @@ interface UnidadWizardState {
   wizardPhase: WizardPhase;
   tipoUnidad: "PERSONAL" | "COMPARTIDA";
   maxMiembros: number;
+  /** Solo secundaria: área curricular de esta unidad (flujo 1 área = 1 unidad activa). */
+  secundariaAreaElegida: SecundariaAreaElegida | null;
 
   // ─── Horario escolar (opcional, paso 4) ───
   horario: HorarioEscolar | null;
@@ -71,6 +85,8 @@ interface UnidadWizardState {
   advanceStep: (step: number) => void;
   setWizardPhase: (phase: WizardPhase) => void;
   setTipoUnidad: (tipo: "PERSONAL" | "COMPARTIDA", maxMiembros?: number) => void;
+  /** Secundaria: fija PERSONAL, área y entra al wizard (sin pantalla compartida). */
+  enterWizardSecundariaPersonal: (area: SecundariaAreaElegida) => void;
   markCompleted: () => void;
   
   // Utilidades
@@ -96,6 +112,7 @@ export const useUnidadStore = create<UnidadWizardState>()(
       wizardPhase: "select-type",
       tipoUnidad: "PERSONAL",
       maxMiembros: 2,
+      secundariaAreaElegida: null,
 
       // Horario escolar
       horario: null,
@@ -128,6 +145,14 @@ export const useUnidadStore = create<UnidadWizardState>()(
         maxMiembros,
         wizardPhase: "wizard",
       }),
+
+      enterWizardSecundariaPersonal: (area) =>
+        set({
+          secundariaAreaElegida: area,
+          tipoUnidad: "PERSONAL",
+          maxMiembros: 1,
+          wizardPhase: "wizard",
+        }),
       
       markCompleted: () => set({ wizardPhase: "completed" }),
       
@@ -154,6 +179,7 @@ export const useUnidadStore = create<UnidadWizardState>()(
           wizardPhase: "select-type",
           tipoUnidad: "PERSONAL",
           maxMiembros: 2,
+          secundariaAreaElegida: null,
           horario: null,
         }),
 
@@ -171,7 +197,7 @@ export const useUnidadStore = create<UnidadWizardState>()(
     }),
     {
       name: "unidad-wizard-storage",
-      version: 2, // v2: se agregó campo horario
+      version: 3, // v3: secundariaAreaElegida + fase select-area-secundaria
       // Excluir generandoPaso de la persistencia (es estado transitorio)
       partialize: (state) => ({
         unidadId: state.unidadId,
@@ -182,6 +208,7 @@ export const useUnidadStore = create<UnidadWizardState>()(
         wizardPhase: state.wizardPhase,
         tipoUnidad: state.tipoUnidad,
         maxMiembros: state.maxMiembros,
+        secundariaAreaElegida: state.secundariaAreaElegida,
         horario: state.horario,
         // generandoPaso NO se persiste
       }),

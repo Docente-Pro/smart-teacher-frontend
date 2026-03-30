@@ -351,3 +351,76 @@ unidad.contenido.propositosPorGrado.forEach(({ gradoId, grado, propositos }) => 
 ### Para generar el PDF
 
 Llamar `POST /api/ia-unidad/:id/formato-secundaria` (body vacío). El backend guarda `formatoSecundaria` en `contenido`. El frontend usa ese campo para renderizar el documento.
+
+---
+
+## 11. Secundaria: unidad solo Tutoría (o un área en un solo grado)
+
+Un docente puede tener **Matemática en varios grados** (multigrado) **y** **Tutoría en un solo grado**. La unidad de **Tutoría** es siempre **un grado + un área** (no usa `gradosSecundaria` ni `propositos-multigrado`).
+
+### Crear unidad — `POST /api/unidades`
+
+```json
+{
+  "usuarioId": "...",
+  "nivelId": 2,
+  "gradoId": 8,
+  "modoSecundaria": "tutoria",
+  "problematicaId": 5,
+  "titulo": "...",
+  "duracion": 4,
+  "sesionesSemanales": 2,
+  "tipo": "PERSONAL"
+}
+```
+
+| Campo | Valor |
+|-------|--------|
+| `gradoId` | **Obligatorio** — un solo año (ej. `8` = Segundo Año) |
+| `gradosSecundaria` | **No enviar** (vacío o ausente) |
+| `modoSecundaria` | `"tutoria"` o `"mono_grado"` — se guarda en `contenido.modoSecundaria` para que front/Python sepan el modo |
+
+Para una **área curricular en un solo grado** (sin multigrado), mismo patrón con `modoSecundaria: "mono_grado"` o sin el campo si solo envías `gradoId` y no `gradosSecundaria`.
+
+### Errores si mezclas modos
+
+- `modoSecundaria` = `tutoria` o `mono_grado` **y** además `gradosSecundaria` con ítems → **400** (mensaje explicando que uses solo `gradoId`).
+- `modoSecundaria` = `tutoria` o `mono_grado` **sin** `gradoId` → **400**.
+
+### Después de crear
+
+1. `PUT /api/unidades/:unidadId/areas` con **solo** el `areaId` de Tutoría (u otra área única).
+2. Wizard **estándar** de IA: `situacion-significativa`, `evidencias`, **`POST .../propositos`** (no `propositos-multigrado`).
+3. Secuencia: flujo normal o `sinHorarioSecundaria` + `totalSesionesUnidad` / `sesionesPorSemana` como en secundaria de un grado (`sesionesSemanales × duracion` o body explícito).
+
+### Detección en front
+
+```typescript
+const modo = unidad.contenido?.modoSecundaria;
+const esTutoriaOMono = modo === "tutoria" || modo === "mono_grado";
+const esMultigrado = (unidad.contenido?.gradosSecundaria?.length ?? 0) > 0;
+// Tutoría: esTutoriaOMono && !esMultigrado
+```
+
+**Catálogo `Area`:** Tutoría y Plan Lector deben existir como filas en `Area` (mismo uso que Matemática: `areaId` en `UsuarioGradoArea` y en la unidad). Se insertan con la migración Prisma `20260329120000_add_area_tutoria_plan_lector` (`nombre` = `Tutoría` y `Plan Lector`). Si la BD es anterior, ejecutá `npx prisma migrate deploy` (o aplicá el SQL a mano con los mismos `INSERT … WHERE NOT EXISTS`).
+
+---
+
+## Paso 0 (wizard unidad secundaria): áreas y grados del docente
+
+Las combinaciones **grado + área** (Matemática en 1.º, Tutoría en 2.º, etc.) **no** se guardan en el `PATCH /api/usuario/:id` genérico. Se persisten en **`UsuarioGradoArea`** al:
+
+- **`POST /api/usuario/:id/configurar-grados`** (onboarding), o  
+- **`POST /api/usuario/:id/grados-areas`** con `{ asignaciones: [{ gradoId, areaId }, ...] }` (reemplaza todas las filas).
+
+Para el **paso 0** de crear unidad (mostrar qué puede enseñar el docente, con **IDs** para los siguientes pasos):
+
+| Método | Ruta | Notas |
+|--------|------|--------|
+| `GET` | **`/api/usuario/me/grados-areas`** | Token Auth0; no hace falta el UUID interno. Respuesta: `usuarioId`, `data` (filas Prisma con `grado`, `area`, `nivel`) y **`resumenParaUnidad`**: `{ asignacionId, gradoId, gradoNombre, nivelNombre, areaId, areaNombre }[]`. |
+| `GET` | `/api/usuario/:id/grados-areas` | Misma forma; `data` + `resumenParaUnidad`. |
+| `GET` | `/api/usuario/:id` | El usuario incluye **`gradosAreas`** con `areaId` y `gradoId` en cada elemento. |
+
+Cada fila de tutoría o materia es una asignación distinta: mismo docente puede tener varias filas (p. ej. Matemática en varios grados y Tutoría en uno).
+
+> Implementación frontend recomendada: ver `docs/api/FRONTEND_ONBOARDING_AREAS_SECUNDARIA.md`.

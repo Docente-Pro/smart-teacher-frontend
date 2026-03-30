@@ -341,7 +341,11 @@ function MisUnidades() {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/crear-unidad")}
+              onClick={() =>
+                navigate("/crear-unidad", {
+                  state: { iniciarNuevaUnidad: true },
+                })
+              }
               className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -515,7 +519,11 @@ function MisUnidades() {
                   </Button>
                 ) : (
                   <Button
-                    onClick={() => navigate("/crear-unidad")}
+                    onClick={() =>
+                      navigate("/crear-unidad", {
+                        state: { iniciarNuevaUnidad: true },
+                      })
+                    }
                     className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                   >
                     <Plus className="h-4 w-4 mr-2" />

@@ -6,10 +6,9 @@ import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { listarUnidadesByUsuario, sincronizarMiembroUnidad, generarSesionComplementaria } from "@/services/unidad.service";
+import { listarUnidadesByUsuario, sincronizarMiembroUnidad } from "@/services/unidad.service";
 import { isUnidadListaActiva } from "@/utils/unidadActiva";
 import { generarSesionUnidad } from "@/services/sesiones.service";
-import type { TipoSesionComplementaria } from "@/interfaces/ISesionComplementaria";
 import { generarImagenesSesion } from "@/services/ia-sesion.service";
 import { useInstrumentoEvaluacion } from "@/hooks/useInstrumentoEvaluacion";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
@@ -66,19 +65,6 @@ type SlotState = "generada" | "clonada" | "disponible" | "en_espera" | "bloquead
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const DIA_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
-
-/** Nombres de área que corresponden a sesiones complementarias (no curriculares) */
-const TIPOS_COMPLEMENTARIOS: Record<string, TipoSesionComplementaria> = {
-  "tutoría": "Tutoría",
-  "tutoria": "Tutoría",
-  "plan lector": "Plan Lector",
-  "planlector": "Plan Lector",
-};
-
-/** Detecta si un nombre de área es en realidad un tipo complementario */
-function getTipoComplementario(areaName: string): TipoSesionComplementaria | null {
-  return TIPOS_COMPLEMENTARIOS[areaName.toLowerCase().trim()] ?? null;
-}
 
 
 
@@ -594,23 +580,15 @@ function GenerarSesionPremium() {
     areaName: string,
   ) => {
     if (!selectedUnidadId || !currentSemana) return;
-
-    // ─── Detectar si es sesión complementaria (Tutoría / Plan Lector) ───
-    const tipoComplementario = getTipoComplementario(areaName);
-
-    let areaId: number | undefined;
-    if (!tipoComplementario) {
-      // Buscar areaId: primero en áreas del miembro, luego en todas las áreas de la unidad
-      const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
-      areaId = findAreaId(areaName, areasPool);
-
-      if (!areaId) {
-        handleToaster(
-          `No se pudo identificar el área "${areaName}". Intenta recargar la página.`,
-          "error",
-        );
-        return;
-      }
+    // Buscar areaId: primero en áreas del miembro, luego en todas las áreas de la unidad
+    const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
+    const areaId = findAreaId(areaName, areasPool);
+    if (!areaId) {
+      handleToaster(
+        `No se pudo identificar el área "${areaName}". Intenta recargar la página.`,
+        "error",
+      );
+      return;
     }
 
     const key = makeSlotKey(currentSemana.semana, dia, turnoKey);
@@ -619,49 +597,13 @@ function GenerarSesionPremium() {
       // ═══════════════════════════════════════════════════════════════
       // FASE 1: Generar texto de la sesión (rápido, ~20-30s)
       // ═══════════════════════════════════════════════════════════════
-      let resp: any;
-
-      if (tipoComplementario) {
-        // ── Sesión complementaria (Tutoría / Plan Lector) ──
-        const diaData = currentSemana.dias.find((d) => d.dia === dia);
-        const compResp = await generarSesionComplementaria({
-          tipo: tipoComplementario,
-          actividadTitulo: actividad,
-          docente: usuario?.nombre ?? undefined,
-          nivel: selectedUnidad?.nivel?.nombre,
-          grado: selectedUnidad?.grado?.nombre,
-          seccion: usuario?.seccion ?? undefined,
-          fecha: diaData?.fecha || undefined,
-          unidadId: selectedUnidadId,
-          semana: currentSemana.semana,
-          dia,
-          turno: turnoKey,
-          duracionMinutos: tipoComplementario === "Tutoría" ? 90 : 45,
-        });
-        // Normalizar a la misma forma que generarSesionUnidad
-        // El backend guarda recursoNarrativo dentro de `contenido` pero no
-        // lo flattena al nivel raíz; lo extraemos aquí para que el PDF lo vea.
-        const sesionComp = { ...compResp.sesion } as any;
-        if (!sesionComp.recursoNarrativo && sesionComp.contenido?.recursoNarrativo) {
-          sesionComp.recursoNarrativo = sesionComp.contenido.recursoNarrativo;
-        }
-        resp = {
-          success: compResp.success,
-          message: compResp.message,
-          sesion: sesionComp,
-          docente: compResp.docente,
-          institucion: compResp.institucion,
-          seccion: (compResp as any).seccion,
-        } as any;
-      } else {
-        resp = await generarSesionUnidad(selectedUnidadId, {
-          areaId,
-          semana: currentSemana.semana,
-          dia,
-          turno: turnoKey,
-          tituloActividad: actividad,
-        });
-      }
+      const resp = await generarSesionUnidad(selectedUnidadId, {
+        areaId,
+        semana: currentSemana.semana,
+        dia,
+        turno: turnoKey,
+        tituloActividad: actividad,
+      });
       // Si yaExistia === true, la sesión ya fue generada por otro miembro (clonada)
       if ((resp as any).yaExistia) {
         handleToaster(
@@ -762,10 +704,12 @@ function GenerarSesionPremium() {
 
           // ═══════════════════════════════════════════════════════════
           // FASE 3: Generar instrumento de evaluación en background
-          // (solo para sesiones curriculares — las complementarias
-          //  no tienen propositoAprendizaje con criterios de evaluación)
+          // Solo cuando la sesión trae propósito de aprendizaje evaluable.
           // ═══════════════════════════════════════════════════════════
-          if (!tipoComplementario) {
+          const tienePropositoEvaluable = Boolean(
+            (fullResp.sesion as any)?.propositoAprendizaje,
+          );
+          if (tienePropositoEvaluable) {
             generarInstrumento(fullResp.sesion)
               .then((inst) => {
                 if (inst) {
@@ -904,7 +848,11 @@ function GenerarSesionPremium() {
               Necesitas una unidad con pago confirmado para generar sesiones.
             </p>
             <Button
-              onClick={() => navigate("/crear-unidad")}
+              onClick={() =>
+                navigate("/crear-unidad", {
+                  state: { iniciarNuevaUnidad: true },
+                })
+              }
               className="bg-gradient-to-r from-violet-500 to-purple-600 text-white"
             >
               <Plus className="h-4 w-4 mr-2" /> Crear Unidad

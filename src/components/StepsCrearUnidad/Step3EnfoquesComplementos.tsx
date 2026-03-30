@@ -62,6 +62,28 @@ const ENFOQUE_COLORS = [
   "border-l-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30",
 ];
 
+const SECONDARY_GRADE_ID_BY_NAME: Record<string, number> = {
+  "primer ano": 7,
+  "segundo ano": 8,
+  "tercer ano": 9,
+  "cuarto ano": 10,
+  "quinto ano": 11,
+};
+
+function normalizeText(value?: string): string {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function mapSecondaryGradeLabelToId(label?: string): number | null {
+  const key = normalizeText(label);
+  if (!key) return null;
+  return SECONDARY_GRADE_ID_BY_NAME[key] ?? null;
+}
+
 function campoTematicoKey(gradoId: number, areaIdx: number, compIdx: number): string {
   return `${gradoId}-${areaIdx}-${compIdx}`;
 }
@@ -70,6 +92,10 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
   const { unidadId, datosBase, contenido, updateContenido, generandoPaso, setGenerandoPaso } =
     useUnidadStore();
   const isSecundariaWizard = Boolean((datosBase as any)?.esSecundariaWizard);
+  const modoSecundaria = ((contenido as any)?.modoSecundaria ??
+    (datosBase as any)?.modoSecundaria) as string | undefined;
+  const isTutoriaMode = modoSecundaria === "tutoria";
+  const gradosTutoria = ((datosBase as any)?.gradosTutoria || []) as string[];
 
   const [statusAreas, setStatusAreas] = useState<GenerationStatus>(
     contenido.areasComplementarias?.length ? "done" : "idle"
@@ -89,6 +115,19 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
   const [dirtyCamposTematicosKeys, setDirtyCamposTematicosKeys] = useState<string[]>([]);
   const [savingCampoTematicoKey, setSavingCampoTematicoKey] = useState<string | null>(null);
   const [savingAllCamposTematicos, setSavingAllCamposTematicos] = useState(false);
+
+  const limitarATutoria = useCallback(
+    (lista: IPropositosPorGradoItem[]): IPropositosPorGradoItem[] => {
+      if (!isTutoriaMode || lista.length <= 1) return lista;
+      const objetivo = normalizeText(gradosTutoria[0] || "");
+      if (objetivo) {
+        const match = lista.find((pg) => normalizeText(pg.grado) === objetivo);
+        if (match) return [match];
+      }
+      return [lista[0]];
+    },
+    [isTutoriaMode, gradosTutoria],
+  );
 
   // En secundaria no se usan áreas complementarias en este paso.
   useEffect(() => {
@@ -115,9 +154,11 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
       contenido.propositosPorGrado.length > 0 &&
       propositosPorGrado.length === 0
     ) {
-      setPropositosPorGrado(contenido.propositosPorGrado as IPropositosPorGradoItem[]);
+      setPropositosPorGrado(
+        limitarATutoria(contenido.propositosPorGrado as IPropositosPorGradoItem[]),
+      );
     }
-  }, [contenido.areasComplementarias, contenido.enfoques, contenido.propositosPorGrado]);
+  }, [contenido.areasComplementarias, contenido.enfoques, contenido.propositosPorGrado, limitarATutoria]);
 
   const isGenerating = generandoPaso !== null;
 
@@ -157,8 +198,19 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
       updateContenido({ enfoques: enfData });
       setStatusEnfoques("done");
 
+      // Secundaria: tras enfoques, generar campos temáticos automáticamente.
+      if (isSecundariaWizard) {
+        setGenerandoPaso("Campos Temáticos");
+        await generarCamposTematicosSecundaria({ silentSuccessToast: true });
+      }
+
       setGenerandoPaso(null);
-      handleToaster("¡Enfoques y áreas complementarias generados!", "success");
+      handleToaster(
+        isSecundariaWizard
+          ? "¡Enfoques y campos temáticos generados!"
+          : "¡Enfoques y áreas complementarias generados!",
+        "success",
+      );
     } catch (error: any) {
       console.error("Error al generar:", error);
       setGenerandoPaso(null);
@@ -191,11 +243,19 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
         const d = (res.data as unknown as IEnfoquesResponse).enfoques;
         setEnfoques(d);
         updateContenido({ enfoques: d });
+        if (isSecundariaWizard) {
+          setGenerandoPaso("Campos Temáticos");
+          await generarCamposTematicosSecundaria({ silentSuccessToast: true });
+        }
       }
 
       setStatus("done");
       setGenerandoPaso(null);
-      handleToaster(`${label} regenerado`, "success");
+      if (paso === "enfoques" && isSecundariaWizard) {
+        handleToaster("Enfoques y campos temáticos regenerados", "success");
+      } else {
+        handleToaster(`${label} regenerado`, "success");
+      }
     } catch (error: any) {
       setStatus("error");
       setGenerandoPaso(null);
@@ -230,16 +290,54 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
     setPagina(pagina + 1);
   }
 
-  async function generarCamposTematicosSecundaria() {
+  const buildFallbackPropositosPorGrado = useCallback((): IPropositosPorGradoItem[] => {
+    const propositos = (useUnidadStore.getState().contenido?.propositos || contenido.propositos) as any;
+    if (!propositos?.areasPropositos?.length) return [];
+
+    const gradoIdFromDatosBase =
+      Number((datosBase as any)?.gradosSecundariaIds?.[0]) ||
+      mapSecondaryGradeLabelToId((datosBase as any)?.gradosTutoria?.[0]) ||
+      mapSecondaryGradeLabelToId((datosBase as any)?.grado) ||
+      null;
+    const gradoId = typeof gradoIdFromDatosBase === "number" && Number.isFinite(gradoIdFromDatosBase)
+      ? gradoIdFromDatosBase
+      : 8;
+    const gradoNombre =
+      ((datosBase as any)?.gradosTutoria?.[0] as string) ||
+      ((datosBase as any)?.grado as string) ||
+      `Grado ${gradoId}`;
+
+    return [{
+      gradoId,
+      grado: gradoNombre,
+      propositos,
+    }] as IPropositosPorGradoItem[];
+  }, [contenido.propositos, datosBase]);
+
+  async function generarCamposTematicosSecundaria(options?: { silentSuccessToast?: boolean }) {
     if (!unidadId) return;
     if (!isSecundariaWizard) return;
     try {
       setGenerandoCamposTematicos(true);
+      const fallback = buildFallbackPropositosPorGrado();
       const res = await generarCampoTematicoSecundaria({
         unidadId,
         forzarRegeneracion: false,
+        ...(fallback.length > 0
+          ? {
+              unidad: {
+                gradoId: fallback[0]?.gradoId ?? null,
+                contenido: {
+                  ...(useUnidadStore.getState().contenido || contenido),
+                  propositosPorGrado: fallback,
+                  ...(modoSecundaria ? { modoSecundaria } : {}),
+                },
+              },
+            }
+          : {}),
       });
-      const lista = (res.unidad?.contenido?.propositosPorGrado || []) as IPropositosPorGradoItem[];
+      const listaRaw = (res.unidad?.contenido?.propositosPorGrado || []) as IPropositosPorGradoItem[];
+      const lista = limitarATutoria(listaRaw.length > 0 ? listaRaw : fallback);
       setPropositosPorGrado(lista);
       setDirtyCamposTematicosKeys([]);
       updateContenido({
@@ -247,12 +345,14 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
         ...(lista[0]?.propositos ? { propositos: lista[0].propositos } : {}),
       });
       const total = res.totalCamposTematicosGenerados ?? 0;
-      handleToaster(
-        total > 0
-          ? `Campos temáticos generados: ${total}`
-          : "Campos temáticos actualizados para secundaria",
-        "success"
-      );
+      if (!options?.silentSuccessToast) {
+        handleToaster(
+          total > 0
+            ? `Campos temáticos generados: ${total}`
+            : "Campos temáticos actualizados para secundaria",
+          "success",
+        );
+      }
     } catch (error: any) {
       handleToaster(
         error?.response?.data?.message || "No se pudieron generar los campos temáticos",
@@ -311,7 +411,7 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
     setSavingCampoTematicoKey(key);
     try {
       const res = await editarContenidoUnidad(unidadId, {
-        contenido: { propositosPorGrado },
+        contenido: { propositosPorGrado: limitarATutoria(propositosPorGrado) },
       });
       const listaServidor = (res.data?.contenido?.propositosPorGrado || []) as IPropositosPorGradoItem[];
       if (Array.isArray(listaServidor) && listaServidor.length > 0) {
@@ -343,7 +443,7 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
     setSavingAllCamposTematicos(true);
     try {
       const res = await editarContenidoUnidad(unidadId, {
-        contenido: { propositosPorGrado },
+        contenido: { propositosPorGrado: limitarATutoria(propositosPorGrado) },
       });
       const listaServidor = (res.data?.contenido?.propositosPorGrado || []) as IPropositosPorGradoItem[];
       if (Array.isArray(listaServidor) && listaServidor.length > 0) {
@@ -556,7 +656,7 @@ function Step3EnfoquesComplementos({ pagina, setPagina }: Props) {
                 Campos Temáticos (Secundaria)
               </CardTitle>
               <Button
-                onClick={generarCamposTematicosSecundaria}
+                onClick={() => generarCamposTematicosSecundaria()}
                 disabled={isGenerating || generandoCamposTematicos || savingAllCamposTematicos}
                 variant="outline"
                 size="sm"

@@ -831,7 +831,11 @@ function UnidadDetail() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/crear-unidad")}
+                  onClick={() =>
+                    navigate("/crear-unidad", {
+                      state: { iniciarNuevaUnidad: true },
+                    })
+                  }
                   className="mt-2 border-slate-200 dark:border-slate-700"
                 >
                   Crear nueva unidad
