@@ -77,7 +77,7 @@ export const AREA_COLORS: Record<string, AreaColorConfig> = {
 
   /* ── Personal Social: celeste ── */
   "Personal Social": {
-    gradient: "from-sky-400 to-cyan-500",
+    gradient: "from-sky-500 to-cyan-500",
     bg: "bg-sky-50 dark:bg-sky-500/10",
     border: "border-sky-200/70 dark:border-sky-500/25",
     text: "text-sky-700 dark:text-sky-300",
@@ -88,7 +88,7 @@ export const AREA_COLORS: Record<string, AreaColorConfig> = {
 
   /* ── Ciencia y Tecnología: verde ── */
   "Ciencia y Tecnología": {
-    gradient: "from-green-500 to-emerald-500",
+    gradient: "from-emerald-500 to-teal-500",
     bg: "bg-green-50 dark:bg-green-500/10",
     border: "border-green-200/70 dark:border-green-500/25",
     text: "text-green-700 dark:text-green-300",
@@ -121,7 +121,7 @@ export const AREA_COLORS: Record<string, AreaColorConfig> = {
 
   /* ── Arte y Cultura: lila ── */
   "Arte y Cultura": {
-    gradient: "from-purple-400 to-violet-500",
+    gradient: "from-fuchsia-500 to-violet-500",
     bg: "bg-purple-50 dark:bg-purple-500/10",
     border: "border-purple-200/70 dark:border-purple-500/25",
     text: "text-purple-700 dark:text-purple-300",
@@ -132,7 +132,7 @@ export const AREA_COLORS: Record<string, AreaColorConfig> = {
 
   /* ── Educación Física: azul ── */
   "Educación Física": {
-    gradient: "from-blue-500 to-indigo-500",
+    gradient: "from-cyan-500 to-indigo-500",
     bg: "bg-blue-50 dark:bg-blue-500/10",
     border: "border-blue-200/70 dark:border-blue-500/25",
     text: "text-blue-700 dark:text-blue-300",
@@ -143,7 +143,7 @@ export const AREA_COLORS: Record<string, AreaColorConfig> = {
 
   /* ── Inglés: índigo ── */
   "Inglés": {
-    gradient: "from-indigo-400 to-blue-600",
+    gradient: "from-indigo-500 to-fuchsia-500",
     bg: "bg-indigo-50 dark:bg-indigo-500/10",
     border: "border-indigo-200/70 dark:border-indigo-500/25",
     text: "text-indigo-700 dark:text-indigo-300",
@@ -154,7 +154,7 @@ export const AREA_COLORS: Record<string, AreaColorConfig> = {
 
   /* ── Computación: teal ── */
   "Computación": {
-    gradient: "from-teal-500 to-cyan-600",
+    gradient: "from-teal-600 to-sky-500",
     bg: "bg-teal-50 dark:bg-teal-500/10",
     border: "border-teal-200/70 dark:border-teal-500/25",
     text: "text-teal-700 dark:text-teal-300",
@@ -165,13 +165,68 @@ export const AREA_COLORS: Record<string, AreaColorConfig> = {
 
   /* ── Tutoría: cyan ── */
   "Tutoría": {
-    gradient: "from-cyan-400 to-teal-500",
+    gradient: "from-cyan-500 to-blue-500",
     bg: "bg-cyan-50 dark:bg-cyan-500/10",
     border: "border-cyan-200/70 dark:border-cyan-500/25",
     text: "text-cyan-700 dark:text-cyan-300",
     dot: "bg-cyan-500",
     pill: "bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300",
     hex: { primary: "#22D3EE", light: "#ECFEFF", medium: "#A5F3FC", accent: "#0891B2" },
+  },
+
+  /* ── Plan Lector: esmeralda ── */
+  "Plan Lector": {
+    gradient: "from-emerald-500 to-lime-500",
+    bg: "bg-emerald-50 dark:bg-emerald-500/10",
+    border: "border-emerald-200/70 dark:border-emerald-500/25",
+    text: "text-emerald-700 dark:text-emerald-300",
+    dot: "bg-emerald-500",
+    pill: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
+    hex: { primary: "#34D399", light: "#ECFDF5", medium: "#A7F3D0", accent: "#059669" },
+  },
+
+  /* ── Psicomotriz: naranja ── */
+  "Psicomotriz": {
+    gradient: "from-orange-500 to-amber-400",
+    bg: "bg-orange-50 dark:bg-orange-500/10",
+    border: "border-orange-200/70 dark:border-orange-500/25",
+    text: "text-orange-700 dark:text-orange-300",
+    dot: "bg-orange-500",
+    pill: "bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300",
+    hex: { primary: "#FB923C", light: "#FFF7ED", medium: "#FED7AA", accent: "#EA580C" },
+  },
+
+  /* ── Ciencias Sociales: índigo ── */
+  "Ciencias Sociales": {
+    gradient: "from-violet-500 to-indigo-600",
+    bg: "bg-indigo-50 dark:bg-indigo-500/10",
+    border: "border-indigo-200/70 dark:border-indigo-500/25",
+    text: "text-indigo-700 dark:text-indigo-300",
+    dot: "bg-indigo-500",
+    pill: "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300",
+    hex: { primary: "#818CF8", light: "#EEF2FF", medium: "#C7D2FE", accent: "#4F46E5" },
+  },
+
+  /* ── DPCC: azul gris ── */
+  "Desarrollo Personal, Ciudadanía y Cívica": {
+    gradient: "from-slate-500 to-cyan-600",
+    bg: "bg-slate-50 dark:bg-slate-500/10",
+    border: "border-slate-200/70 dark:border-slate-500/25",
+    text: "text-slate-700 dark:text-slate-300",
+    dot: "bg-slate-500",
+    pill: "bg-slate-100 dark:bg-slate-500/20 text-slate-700 dark:text-slate-300",
+    hex: { primary: "#64748B", light: "#F8FAFC", medium: "#CBD5E1", accent: "#334155" },
+  },
+
+  /* ── Educación para el Trabajo: gris profesional ── */
+  "Educación para el Trabajo": {
+    gradient: "from-zinc-500 to-gray-700",
+    bg: "bg-zinc-50 dark:bg-zinc-500/10",
+    border: "border-zinc-200/70 dark:border-zinc-500/25",
+    text: "text-zinc-700 dark:text-zinc-300",
+    dot: "bg-zinc-500",
+    pill: "bg-zinc-100 dark:bg-zinc-500/20 text-zinc-700 dark:text-zinc-300",
+    hex: { primary: "#71717A", light: "#FAFAFA", medium: "#E4E4E7", accent: "#3F3F46" },
   },
 };
 
@@ -200,6 +255,11 @@ export const AREA_ICONS: Record<string, ComponentType<{ className?: string }>> =
   "Educación Religiosa": Church,
   "Computación": Monitor,
   "Tutoría": BookOpen,
+  "Plan Lector": BookOpen,
+  "Psicomotriz": Activity,
+  "Ciencias Sociales": Users,
+  "Desarrollo Personal, Ciudadanía y Cívica": Users,
+  "Educación para el Trabajo": Monitor,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

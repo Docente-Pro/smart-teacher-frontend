@@ -72,6 +72,16 @@ function getTodayISODateLocal(): string {
   return `${y}-${m}-${d}`;
 }
 
+function normalizeCompetenciaName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim();
+}
+
 function Step2Free({ pagina, setPagina, usuarioFromState }: Props) {
   const navigate = useNavigate();
   const { sesion, updateSesion } = useSesionStore();
@@ -80,6 +90,7 @@ function Step2Free({ pagina, setPagina, usuarioFromState }: Props) {
   const [loadingCompetencias, setLoadingCompetencias] = useState(true);
   const [loadingCapacidades, setLoadingCapacidades] = useState(false);
   const [competenciaSeleccionada, setCompetenciaSeleccionada] = useState<string>("");
+  const [competenciaSugeridaId, setCompetenciaSugeridaId] = useState<string | null>(null);
   const [areaId, setAreaId] = useState<number | null>(null);
   const [isGeneratingComplementaria, setIsGeneratingComplementaria] = useState(false);
 
@@ -106,6 +117,7 @@ function Step2Free({ pagina, setPagina, usuarioFromState }: Props) {
         },
       });
     }
+    setCompetenciaSugeridaId(null);
   };
 
   const { sugerencia, loading: loadingSugerencia, clearSugerencia } = useCompetenciaSugerida({
@@ -143,6 +155,7 @@ function Step2Free({ pagina, setPagina, usuarioFromState }: Props) {
     }
     if (temaActual && temaActual !== temaPrevioRef.current) {
       setCompetenciaSeleccionada("");
+      setCompetenciaSugeridaId(null);
       setCapacidadesSeleccionadas([]);
       clearSugerencia();
       updateSesion({
@@ -195,7 +208,23 @@ function Step2Free({ pagina, setPagina, usuarioFromState }: Props) {
       ) {
         return;
       }
-      const competenciaEncontrada = competencias.find((c) => c.nombre === competenciaSeleccionada);
+      const competenciaEncontrada =
+        (competenciaSugeridaId
+          ? competencias.find((c) => {
+              const rawId = String(competenciaSugeridaId);
+              const codigo = String((c as any)?.codigo ?? "");
+              const competenciaIdRaw = String((c as any)?.competenciaId ?? "");
+              return (
+                String(c.id) === rawId ||
+                normalizeCompetenciaName(codigo) === normalizeCompetenciaName(rawId) ||
+                normalizeCompetenciaName(competenciaIdRaw) === normalizeCompetenciaName(rawId)
+              );
+            })
+          : undefined) ||
+        competencias.find(
+          (c) =>
+            normalizeCompetenciaName(c.nombre) === normalizeCompetenciaName(competenciaSeleccionada)
+        );
       if (competenciaEncontrada) {
         setLoadingCapacidades(true);
         try {
@@ -224,11 +253,12 @@ function Step2Free({ pagina, setPagina, usuarioFromState }: Props) {
     if (competenciaSeleccionada && competencias.length > 0) {
       cargarCapacidades();
     }
-  }, [competenciaSeleccionada, competencias]);
+  }, [competenciaSeleccionada, competencias, competenciaSugeridaId]);
 
   useEffect(() => {
     if (sugerencia) {
       setCompetenciaSeleccionada(sugerencia.competenciaNombre);
+      setCompetenciaSugeridaId(String(sugerencia.competenciaId));
       updateSesion({
         ...(sugerencia.situacionTexto && { situacionTexto: sugerencia.situacionTexto }),
         ...(sugerencia.temaCurricular && { temaCurricularObjeto: sugerencia.temaCurricular }),
@@ -298,19 +328,27 @@ function Step2Free({ pagina, setPagina, usuarioFromState }: Props) {
   }
 
   // Derivar si el sistema está "listo" (competencia + capacidades resueltas en background)
+  const hasCapacidades =
+    capacidadesSeleccionadas.length > 0 ||
+    (sesion?.propositoAprendizaje?.capacidades?.length ?? 0) > 0;
+
   const isReady =
     !!sesion?.temaCurricular?.trim() &&
     (esComplementaria
       ? true
       : !!competenciaSeleccionada &&
-        capacidadesSeleccionadas.length > 0 &&
-        !loadingCapacidades);
+        !loadingCapacidades &&
+        (hasCapacidades || !!sugerencia));
 
   // Derivar si está "preparando" en background
   const isPreparing =
     !esComplementaria &&
     !!sesion?.temaCurricular?.trim() &&
-    (!competenciaSeleccionada || loadingCapacidades || loadingSugerencia || loadingCompetencias);
+    (!competenciaSeleccionada ||
+      loadingCapacidades ||
+      loadingSugerencia ||
+      loadingCompetencias ||
+      (!hasCapacidades && !sugerencia));
 
   if (!sesion) return null;
 

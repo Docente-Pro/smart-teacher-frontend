@@ -18,7 +18,7 @@ export interface ICapacidadSugerida {
 }
 
 export interface ICompetenciaSugerida {
-  competenciaId: number;
+  competenciaId: number | string;
   competenciaNombre: string;
   capacidadesSugeridas: ICapacidadSugerida[];
   justificacionGeneral: string;
