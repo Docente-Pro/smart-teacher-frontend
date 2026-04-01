@@ -57,6 +57,7 @@ function CuestionarioSesion() {
         resetSesion();
         const sesionInicial = {
           ...initialStateSesion,
+          gradoId: usuarioData.grado?.id ?? usuarioData.gradoId,
           datosGenerales: {
             ...initialStateSesion.datosGenerales,
             institucion: usuarioData.nombreInstitucion || "I.E. No especificada",

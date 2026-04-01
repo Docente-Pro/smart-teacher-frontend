@@ -28,21 +28,15 @@ function getTemaIdString(tema: ITemaPorCiclo): string | null {
   return String(id);
 }
 
-function normalizeAreaName(area: string): string {
-  return area
+function normalizeTemaText(value: string): string {
+  return value
+    .replace(/^\s*\d+[\.\)\-:]\s*/, "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
     .toLowerCase()
     .trim();
-}
-
-function isAreaComplementaria(area: string): boolean {
-  const normalized = normalizeAreaName(area);
-  return (
-    normalized === "tutoria" ||
-    normalized === "plan lector" ||
-    normalized === "planlector"
-  );
 }
 
 export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
@@ -75,19 +69,10 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
     return undefined;
   };
 
-  // Cargar temas desde el backend
+  // Cargar temas desde el backend (siempre que haya área; grado/ciclo opcionales si el perfil no es primaria)
   useEffect(() => {
     async function cargarTemas() {
-      if (!sesion?.datosGenerales.area || !sesion?.datosGenerales.grado) {
-        return;
-      }
-
-      // Tutoría / Plan Lector no usan catálogo curricular por área/ciclo.
-      // Se trabaja con tema personalizado y no debe mostrar "Área no encontrada".
-      if (isAreaComplementaria(sesion.datosGenerales.area)) {
-        setTemas([]);
-        setTemasFiltrados([]);
-        setLoading(false);
+      if (!sesion?.datosGenerales.area && sesion?.areaId == null) {
         return;
       }
 
@@ -96,33 +81,47 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
         // Obtener el ID del área
         const areasResponse = await getAllAreas();
         const areas = areasResponse.data.data || areasResponse.data;
-        const areaEncontrada = areas.find((a: any) => a.nombre === sesion.datosGenerales.area);
+        const areaEncontrada =
+          areas.find((a: any) => a.nombre === sesion.datosGenerales.area) ??
+          (sesion.areaId != null
+            ? areas.find((a: any) => Number(a.id) === Number(sesion.areaId))
+            : undefined);
 
         if (!areaEncontrada) {
           handleToaster("Área no encontrada", "error");
           return;
         }
 
-        const gradoId = GRADO_MAP[sesion.datosGenerales.grado];
-        const cicloId = getCicloIdPorGrado(sesion.datosGenerales.grado);
+        const gradoNombre = sesion.datosGenerales.grado?.trim() || "";
+        const gradoIdFromNombre = gradoNombre ? GRADO_MAP[gradoNombre] : undefined;
+        const gradoId = sesion.gradoId ?? gradoIdFromNombre;
+        const cicloId = gradoNombre ? getCicloIdPorGrado(gradoNombre) : undefined;
 
-        if (!gradoId || !cicloId) return;
-
-        // Llamar al endpoint con filtros
+        // Siempre llamar al catálogo: con área + grado si está disponible.
+        // En primaria además enviamos ciclo cuando se puede mapear desde el nombre.
         const response = await getTemasPorCiclo({
           areaId: areaEncontrada.id,
-          gradoId,
-          cicloId,
+          ...(gradoId ? { gradoId } : {}),
+          ...(cicloId ? { cicloId } : {}),
         });
 
         const temasData = response.data.data || [];
-        setTemas(temasData);
-        setTemasFiltrados(temasData);
+        const seenTemas = new Set<string>();
+        const temasUnicos = temasData.filter((tema) => {
+          const key = normalizeTemaText(tema.tema || "");
+          if (!key) return false;
+          if (seenTemas.has(key)) return false;
+          seenTemas.add(key);
+          return true;
+        });
+
+        setTemas(temasUnicos);
+        setTemasFiltrados(temasUnicos);
 
         // Si ya hay un tema en el store, seleccionarlo
         if (sesion.temaCurricular) {
           setTemaEditado(sesion.temaCurricular);
-          const temaEncontrado = temasData.find(t => t.tema === sesion.temaCurricular);
+          const temaEncontrado = temasUnicos.find(t => t.tema === sesion.temaCurricular);
           if (temaEncontrado) {
             const temaId = getTemaIdString(temaEncontrado);
             if (temaId) setTemaSeleccionadoId(temaId);
@@ -137,7 +136,7 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
     }
 
     cargarTemas();
-  }, [sesion?.datosGenerales.area, sesion?.datosGenerales.grado]);
+  }, [sesion?.datosGenerales.area, sesion?.datosGenerales.grado, sesion?.areaId]);
 
   // Filtrar temas por búsqueda
   useEffect(() => {
@@ -282,7 +281,7 @@ export function SelectorTemas({ onTemaSeleccionado }: SelectorTemasProps) {
                         .filter((x): x is { tema: ITemaPorCiclo; id: string } => !!x.id)
                         .map(({ tema, id }) => (
                           <SelectItem key={id} value={id}>
-                            {tema.orden}. {tema.tema}
+                            {tema.tema}
                           </SelectItem>
                         ))
                     )}

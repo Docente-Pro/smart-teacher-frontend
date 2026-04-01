@@ -183,6 +183,7 @@ export interface IImagenDisponible {
 export interface ISesionAprendizaje {
   datosGenerales: IDatosGenerales;
   areaId?: number;
+  gradoId?: number;
   titulo: string;
   temaCurricular?: string;
   temaId?: number;

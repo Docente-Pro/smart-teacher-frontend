@@ -1,6 +1,6 @@
 import { IArea } from "@/interfaces/IArea";
 import { IUsuario } from "@/interfaces/IUsuario";
-import { getAllAreas, isAreaPrimaria } from "@/services/areas.service";
+import { getAllAreas } from "@/services/areas.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { useEffect, useState } from "react";
@@ -8,21 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import {
   Users,
-  Activity,
-  Palette,
-  MessageCircle,
-  BookOpen,
-  Globe,
-  Calculator,
-  Microscope,
-  Church,
-  Monitor,
   Clock,
   CheckCircle2,
   ArrowRight,
   Sparkles,
 } from "lucide-react";
 import { useSesionStore } from "@/store/sesion.store";
+import { getAreaColor, getAreaIcon } from "@/constants/areaColors";
 
 interface Props {
   pagina: number;
@@ -60,34 +52,6 @@ const tiemposEstudio = [
   },
 ];
 
-const areaIcons: { [key: string]: any } = {
-  "Personal Social": Users,
-  "Educación Física": Activity,
-  "Arte y Cultura": Palette,
-  Comunicación: MessageCircle,
-  Inglés: Globe,
-  Matemática: Calculator,
-  "Ciencia y Tecnología": Microscope,
-  "Educación Religiosa": Church,
-  Computación: Monitor,
-  Tutoría: Users,
-  "Plan Lector": BookOpen,
-};
-
-const areaGradients: { [key: string]: string } = {
-  "Personal Social": "from-blue-500 to-cyan-500",
-  "Educación Física": "from-green-500 to-emerald-500",
-  "Arte y Cultura": "from-purple-500 to-pink-500",
-  Comunicación: "from-orange-500 to-red-500",
-  Inglés: "from-indigo-500 to-blue-500",
-  Matemática: "from-yellow-500 to-orange-500",
-  "Ciencia y Tecnología": "from-teal-500 to-green-500",
-  "Educación Religiosa": "from-amber-500 to-yellow-500",
-  Computación: "from-teal-500 to-cyan-600",
-  Tutoría: "from-rose-500 to-pink-500",
-  "Plan Lector": "from-emerald-500 to-teal-500",
-};
-
 function Step1({ pagina, setPagina, usuarioFromState }: Props) {
   const { sesion, updateSesion } = useSesionStore();
   const [areas, setAreas] = useState<IArea[]>([]);
@@ -101,9 +65,8 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
       try {
         const response = await getAllAreas();
         const all = response.data.data || response.data;
-        const curriculares = all.filter((a: IArea) => isAreaPrimaria(a.nombre));
         const seen = new Set<string>();
-        const dedup = curriculares.filter((a: IArea) => {
+        const dedup = (all as IArea[]).filter((a: IArea) => {
           const key = `${a.id}-${a.nombre.toLowerCase().trim()}`;
           if (seen.has(key)) return false;
           seen.add(key);
@@ -161,16 +124,6 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
     }
   }
 
-  function getAreaIcon(areaNombre: string) {
-    const key = Object.keys(areaIcons).find((k) => areaNombre.includes(k));
-    return key ? areaIcons[key] : Users;
-  }
-
-  function getAreaGradient(areaNombre: string) {
-    const key = Object.keys(areaGradients).find((k) => areaNombre.includes(k));
-    return key ? areaGradients[key] : "from-dp-blue-500 to-dp-orange-500";
-  }
-
   if (!sesion) return null;
 
   return (
@@ -199,7 +152,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
               <div className="h-10 w-10 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-lg flex items-center justify-center">
                 <Users className="h-6 w-6 text-white" />
               </div>
-              Selecciona el área curricular
+              Selecciona el área
             </CardTitle>
             <CardDescription className="text-base">Elige el área en la que deseas crear tu sesión de aprendizaje</CardDescription>
           </CardHeader>
@@ -207,7 +160,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {areas.map((area) => {
                 const IconComponent = getAreaIcon(area.nombre);
-                const gradient = getAreaGradient(area.nombre);
+                const gradient = getAreaColor(area.nombre).gradient;
                 const isSelected = areaSeleccionada === area.nombre;
 
                 return (

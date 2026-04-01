@@ -21,6 +21,16 @@ interface Props {
   usuarioFromState: IUsuario;
 }
 
+function normalizeCompetenciaName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim();
+}
+
 function Step2({ pagina, setPagina }: Props) {
   const { sesion, updateSesion } = useSesionStore();
   const [competencias, setCompetencias] = useState<ICompetencia[]>([]);
@@ -28,6 +38,7 @@ function Step2({ pagina, setPagina }: Props) {
   const [loadingCompetencias, setLoadingCompetencias] = useState(true);
   const [loadingCapacidades, setLoadingCapacidades] = useState(false);
   const [competenciaSeleccionada, setCompetenciaSeleccionada] = useState<string>("");
+  const [competenciaSugeridaId, setCompetenciaSugeridaId] = useState<string | null>(null);
   const [areaId, setAreaId] = useState<number | null>(null);
 
   // 🔒 Determinar si el tema es personalizado (no tiene temaId del currículo)
@@ -53,6 +64,7 @@ function Step2({ pagina, setPagina }: Props) {
         },
       });
     }
+    setCompetenciaSugeridaId(null);
   };
 
   // Hook para sugerencia de competencia por IA
@@ -100,6 +112,7 @@ function Step2({ pagina, setPagina }: Props) {
     // Si el tema realmente cambió (incluye pasar de vacío a personalizado)
     if (temaActual && temaActual !== temaPrevioRef.current) {
       setCompetenciaSeleccionada("");
+      setCompetenciaSugeridaId(null);
       setCapacidadesSeleccionadas([]);
       clearSugerencia();
 
@@ -152,7 +165,23 @@ function Step2({ pagina, setPagina }: Props) {
         return;
       }
 
-      const competenciaEncontrada = competencias.find(c => c.nombre === competenciaSeleccionada);
+      const competenciaEncontrada =
+        (competenciaSugeridaId
+          ? competencias.find((c) => {
+              const rawId = String(competenciaSugeridaId);
+              const codigo = String((c as any)?.codigo ?? "");
+              const competenciaIdRaw = String((c as any)?.competenciaId ?? "");
+              return (
+                String(c.id) === rawId ||
+                normalizeCompetenciaName(codigo) === normalizeCompetenciaName(rawId) ||
+                normalizeCompetenciaName(competenciaIdRaw) === normalizeCompetenciaName(rawId)
+              );
+            })
+          : undefined) ||
+        competencias.find(
+          (c) =>
+            normalizeCompetenciaName(c.nombre) === normalizeCompetenciaName(competenciaSeleccionada)
+        );
       
       if (competenciaEncontrada) {
         setLoadingCapacidades(true);
@@ -187,12 +216,13 @@ function Step2({ pagina, setPagina }: Props) {
     if (competenciaSeleccionada && competencias.length > 0) {
       cargarCapacidades();
     }
-  }, [competenciaSeleccionada, competencias]);
+  }, [competenciaSeleccionada, competencias, competenciaSugeridaId]);
 
   // Aplicar automáticamente la sugerencia de la IA
   useEffect(() => {
     if (sugerencia) {
       setCompetenciaSeleccionada(sugerencia.competenciaNombre);
+      setCompetenciaSugeridaId(String(sugerencia.competenciaId));
 
       // Guardar temaCurricular y situacionTexto para propagar a todos los pasos IA
       updateSesion({
@@ -210,6 +240,7 @@ function Step2({ pagina, setPagina }: Props) {
     if (sugerencia) {
       clearSugerencia();
     }
+    setCompetenciaSugeridaId(null);
     // Limpiar capacidades al cambiar de competencia
     setCapacidadesSeleccionadas([]);
     setCompetenciaSeleccionada(competenciaNombre);
