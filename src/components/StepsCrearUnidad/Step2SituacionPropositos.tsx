@@ -131,6 +131,7 @@ function competenciaKey(areaIdx: number, compIdx: number, gradoId?: number): str
   return gradoId != null ? `g:${gradoId}:${areaIdx}-${compIdx}` : `p:${areaIdx}-${compIdx}`;
 }
 
+
 function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveStatus }: Props) {
   const { unidadId, datosBase, contenido, updateContenido, setGenerandoPaso, generandoPaso } =
     useUnidadStore();
@@ -779,10 +780,21 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
         modoSecundaria === "tutoria" || modoSecundaria === "mono_grado";
       let propData: IPropositos;
       let propositosPorGrado: IPropositosPorGradoItem[] | undefined;
+      const contenidoParaProp = {
+        ...useUnidadStore.getState().contenido,
+        situacionSignificativa: sitTexto,
+        evidencias: evData,
+      };
       if (isSecundaria && !isSecundariaMonoOTutoria && gradoIdsSec.length > 1) {
+        const planAreas = (datosBase as any)?.planificacionAreas ?? [];
+        const totalSesiones: number =
+          planAreas.reduce((acc: number, p: any) => acc + (Number(p.totalSesionesUnidad) || 0), 0) ||
+          (datosBase?.duracion ?? 4);
         const resPropMulti = await generarPropositosMultigrado(unidadId, {
           gradoIds: gradoIdsSec,
           maxCompetenciasPorAreaSecundaria: 2,
+          totalSesionesUnidad: totalSesiones,
+          contenidoEditado: contenidoParaProp as Record<string, unknown>,
         });
         const lista = Array.isArray(resPropMulti.data) ? resPropMulti.data : [];
         propositosPorGrado = lista;
@@ -791,7 +803,6 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
             (lista[0]?.propositos as IPropositos) || (contenido.propositos as IPropositos) || { areasPropositos: [], competenciasTransversales: [] }
           );
       } else {
-        const contenidoParaProp = useUnidadStore.getState().contenido;
         const resProp = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>);
         propData = alinearPropositosActividadCriterios(resProp.data as IPropositos);
       }
@@ -864,10 +875,21 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
         const modoSecundaria = getModoSecundaria();
         const isSecundariaMonoOTutoria =
           modoSecundaria === "tutoria" || modoSecundaria === "mono_grado";
+        const contenidoRegenProp = {
+          ...useUnidadStore.getState().contenido,
+          ...(situacionTexto.trim() ? { situacionSignificativa: situacionTexto.trim() } : {}),
+          ...(evidencias ? { evidencias } : {}),
+        };
         if (isSecundaria && !isSecundariaMonoOTutoria && gradoIdsSec.length > 1) {
+          const planAreasRegen = (datosBase as any)?.planificacionAreas ?? [];
+          const totalSesionesRegen: number =
+            planAreasRegen.reduce((acc: number, p: any) => acc + (Number(p.totalSesionesUnidad) || 0), 0) ||
+            (datosBase?.duracion ?? 4);
           const resMulti = await generarPropositosMultigrado(unidadId, {
             gradoIds: gradoIdsSec,
             maxCompetenciasPorAreaSecundaria: 2,
+            totalSesionesUnidad: totalSesionesRegen,
+            contenidoEditado: contenidoRegenProp as Record<string, unknown>,
           });
           const lista = Array.isArray(resMulti.data) ? resMulti.data : [];
           const d = alinearPropositosActividadCriterios(
@@ -883,7 +905,12 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
           handleToaster(`${label} regenerado`, "success");
           return;
         }
-        const res = await regenerarPasoUnidad(unidadId, paso);
+        const contenidoParaProp = {
+          ...useUnidadStore.getState().contenido,
+          ...(situacionTexto.trim() ? { situacionSignificativa: situacionTexto.trim() } : {}),
+          ...(evidencias ? { evidencias } : {}),
+        };
+        const res = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>);
         const d = alinearPropositosActividadCriterios(res.data as unknown as IPropositos);
         setPropositos(d);
         updateContenido({ propositos: d });

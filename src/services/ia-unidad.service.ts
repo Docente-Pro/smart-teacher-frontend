@@ -10,7 +10,9 @@ import type {
   IAreasComplementariasResponse,
   IEnfoquesResponse,
   ISecuenciaResponse,
+  IFormatoSecundariaResponse,
   IMaterialesResponse,
+  IMaterialesPorGradoItem,
   IReflexionesResponse,
 } from "@/interfaces/IUnidadIA";
 import type { HorarioEscolar } from "@/interfaces/IHorario";
@@ -75,6 +77,9 @@ export interface IGenerarPropositosMultigradoBody {
     campoTematico?: string;
   }>;
   maxCompetenciasPorAreaSecundaria?: number;
+  /** Total de sesiones de la unidad. El backend calcula actividadesPorCompetencia si no se envía explícitamente. */
+  totalSesionesUnidad?: number;
+  contenidoEditado?: ContenidoEditadoBody;
 }
 
 export interface IPropositosMultigradoResponse {
@@ -141,6 +146,39 @@ export async function generarSecuencia(
   if (horario?.dias?.length) Object.assign(body, horarioToSecuenciaBody(horario));
   if (contenidoEditado && Object.keys(contenidoEditado).length > 0) body.contenidoEditado = contenidoEditado;
   const { data } = await instance.post(`${BASE}/${unidadId}/secuencia`, Object.keys(body).length ? body : undefined);
+  return data;
+}
+
+/**
+ * Paso 5 (Secundaria Multigrado) — Formato Secundaria
+ * POST /api/ia-unidad/:unidadId/formato-secundaria
+ * Body vacío — el backend construye el payload desde contenido (propositosPorGrado, enfoques, etc.)
+ */
+export async function generarFormatoSecundaria(
+  unidadId: string
+): Promise<IFormatoSecundariaResponse> {
+  const { data } = await instance.post<IFormatoSecundariaResponse>(
+    `${BASE}/${unidadId}/formato-secundaria`,
+    {}
+  );
+  return data;
+}
+
+/** Paso 7 (Secundaria Multigrado) — Materiales por grado */
+export interface IMaterialesMultigradoResponse {
+  success: boolean;
+  paso: number;
+  message: string;
+  data: IMaterialesPorGradoItem[];
+  unidad: Record<string, unknown>;
+}
+
+export async function generarMaterialesMultigrado(
+  unidadId: string
+): Promise<IMaterialesMultigradoResponse> {
+  const { data } = await instance.post<IMaterialesMultigradoResponse>(
+    `${BASE}/${unidadId}/materiales-multigrado`
+  );
   return data;
 }
 
