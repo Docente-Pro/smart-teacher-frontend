@@ -71,6 +71,49 @@ function getEstadoPagoBadge(estado?: string) {
   };
 }
 
+function getSesionesSemanalesReales(unidad?: IUnidadListItem | null): string | null {
+  if (!unidad) return null;
+
+  const planAreas = Array.isArray((unidad as any)?.contenido?.planificacionAreas)
+    ? ((unidad as any).contenido.planificacionAreas as Array<any>)
+    : [];
+  const duracion = Number(unidad.duracion || 0);
+
+  if (planAreas.length > 0) {
+    const maxSemanas = Math.max(
+      0,
+      ...planAreas.map((a) => (Array.isArray(a?.sesionesPorSemana) ? a.sesionesPorSemana.length : 0))
+    );
+
+    // Si hay distribución semanal explícita, usarla como fuente de verdad.
+    if (maxSemanas > 0) {
+      const porSemana: number[] = [];
+      for (let i = 0; i < maxSemanas; i++) {
+        const totalSemana = planAreas.reduce(
+          (acc, a) => acc + Number(Array.isArray(a?.sesionesPorSemana) ? a.sesionesPorSemana[i] ?? 0 : 0),
+          0
+        );
+        if (totalSemana > 0) porSemana.push(totalSemana);
+      }
+
+      if (porSemana.length > 0) {
+        const min = Math.min(...porSemana);
+        const max = Math.max(...porSemana);
+        return min === max ? String(min) : `${min}-${max}`;
+      }
+    }
+
+    const totalSesionesUnidad = planAreas.reduce((acc, a) => acc + Number(a?.totalSesionesUnidad ?? 0), 0);
+    if (totalSesionesUnidad > 0 && duracion > 0) {
+      const promedio = totalSesionesUnidad / duracion;
+      return Number.isInteger(promedio) ? String(promedio) : promedio.toFixed(1);
+    }
+  }
+
+  const fallback = Number(unidad.sesionesSemanales || 0);
+  return fallback > 0 ? String(fallback) : null;
+}
+
 // ─── Component ───
 
 function UnidadDetail() {
@@ -356,6 +399,7 @@ function UnidadDetail() {
   const miembroPago = unidad?.miembros?.find((m) => m.usuarioId === authUser?.id);
   const estadoPagoResuelto = miembroPago?.estadoPago ?? unidad?.estadoPago;
   const estadoBadge = getEstadoPagoBadge(estadoPagoResuelto);
+  const sesionesSemanalesReales = getSesionesSemanalesReales(unidad);
   const periodo =
     unidad?.fechaInicio && unidad?.fechaFin
       ? `${formatFechaCorta(unidad.fechaInicio)} — ${formatFechaCorta(unidad.fechaFin)}`
@@ -611,7 +655,7 @@ function UnidadDetail() {
                       )}
 
                       {/* Sesiones semanales */}
-                      {unidad.sesionesSemanales > 0 && (
+                      {sesionesSemanalesReales && (
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center">
                             <BookOpen className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
@@ -621,7 +665,7 @@ function UnidadDetail() {
                               Sesiones semanales
                             </p>
                             <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">
-                              {unidad.sesionesSemanales}
+                              {sesionesSemanalesReales}
                             </p>
                           </div>
                         </div>

@@ -303,17 +303,44 @@ function UnidadResult() {
               instrumentoEvaluacion: c?.instrumento || "Lista de cotejo",
             })),
         })),
-        competenciasTransversalesPorGrado: propositosPorGrado.map((pg: any) => ({
-          grado: pg?.grado || "—",
-          competencias: (pg?.propositos?.competenciasTransversales || []).map((ct: any) => ({
-            competenciaCapacidades: {
-              competencia: ct?.nombre || "—",
-              capacidades: ct?.capacidades || [],
-            },
-            estandarCiclo: ct?.estandar || "—",
-            criterios: ct?.criterios || [],
-          })),
-        })),
+        competenciasTransversalesPorGrado: (() => {
+          const fromFormato = (contenido as any)?.formatoSecundaria?.componentes?.competenciasTransversalesPorGrado;
+          if (Array.isArray(fromFormato) && fromFormato.length > 0) {
+            return fromFormato.map((tg: any) => ({
+              grado: tg?.grado || "—",
+              competencias: (tg?.competencias || []).map((ct: any) => {
+                const criterios = Array.isArray(ct?.criterios)
+                  ? ct.criterios
+                  : Array.isArray(ct?.criteriosEvaluacion)
+                    ? ct.criteriosEvaluacion
+                    : [];
+                return {
+                  competenciaCapacidades: {
+                    competencia: ct?.competenciaCapacidades?.competencia || ct?.nombre || "—",
+                    capacidades: ct?.competenciaCapacidades?.capacidades || ct?.capacidades || [],
+                  },
+                  estandarCiclo: ct?.estandarCiclo || ct?.estandar || "—",
+                  criterios,
+                };
+              }),
+            }));
+          }
+          return propositosPorGrado.map((pg: any) => ({
+            grado: pg?.grado || "—",
+            competencias: (pg?.propositos?.competenciasTransversales || []).map((ct: any) => ({
+              competenciaCapacidades: {
+                competencia: ct?.nombre || "—",
+                capacidades: ct?.capacidades || [],
+              },
+              estandarCiclo: ct?.estandar || "—",
+              criterios: Array.isArray(ct?.criterios)
+                ? ct.criterios
+                : Array.isArray(ct?.criteriosEvaluacion)
+                  ? ct.criteriosEvaluacion
+                  : [],
+            })),
+          }));
+        })(),
         secuenciaSesionesPorGrado: {
           totalSemanas,
           grados: secuenciaGradosRecord,

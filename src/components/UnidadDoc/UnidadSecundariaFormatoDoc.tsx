@@ -273,7 +273,7 @@ export function UnidadSecundariaFormatoDoc({ formato }: Props) {
         </table>
       ))}
 
-      <p className="u-section">2.6.- COMPETENCIAS TRANSVERSALES</p>
+      <p className="u-section">2.6.- COMPETENCIAS TRANSVERSALES POR GRADO</p>
       {c.competenciasTransversalesPorGrado.map((tg, tIdx) => (
         <table key={`${tg.grado}-${tIdx}`}>
           <thead>
@@ -294,7 +294,7 @@ export function UnidadSecundariaFormatoDoc({ formato }: Props) {
                 {renderList(ct.competenciaCapacidades.capacidades)}
                 </td>
                 <td>{text(ct.estandarCiclo)}</td>
-              <td>{renderList(ct.criterios)}</td>
+              <td>{renderList(Array.isArray(ct.criterios) ? ct.criterios : [])}</td>
               </tr>
             ))}
           </tbody>
