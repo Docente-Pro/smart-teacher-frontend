@@ -254,9 +254,66 @@ export type PasoUnidad =
   | "materiales"
   | "reflexiones";
 
+// ─── Paso 5 (Secundaria Multigrado): Formato Secundaria ───
+
+export interface IProductoUnidadPorGrado {
+  grado: string;
+  producto: string;
+}
+
+export interface ICompetenciaTransversalPorGrado {
+  grado: string;
+  competencias: ICompetenciaTransversal[];
+}
+
+export interface IPropositoAprendizajePorGrado {
+  grado: string;
+  propositos: IPropositos;
+}
+
+export interface ISecuenciaSesionesPorGrado {
+  totalSemanas: number;
+  /** grado → semana → actividades */
+  grados: Record<string, Record<string, string[]>>;
+}
+
+export interface IComponentesFormatoSecundaria {
+  planteamientoSituacionSignificativa: string;
+  productoUnidadAprendizajePorGrado: IProductoUnidadPorGrado[];
+  enfoquesTransversales: IEnfoqueUnidad[];
+  instrumentoEvaluacion: string;
+  propositosAprendizajePorGrado: IPropositoAprendizajePorGrado[];
+  competenciasTransversalesPorGrado: ICompetenciaTransversalPorGrado[];
+  secuenciaSesionesPorGrado: ISecuenciaSesionesPorGrado;
+  recursosMaterialesDidacticos: string[];
+  bibliografia: string[];
+}
+
+export interface IFormatoSecundariaDatosInformativos {
+  grado: string;
+  area: string;
+  duracion: number;
+}
+
+export interface IFormatoSecundaria {
+  datosInformativos: IFormatoSecundariaDatosInformativos;
+  componentes: IComponentesFormatoSecundaria;
+}
+
+export interface IFormatoSecundariaResponse {
+  success: boolean;
+  paso: number;
+  message: string;
+  grados: string[];
+  formato: IFormatoSecundaria;
+  unidad: Record<string, unknown>;
+}
+
 export interface IUnidadContenido {
   gradosSecundaria?: number[];
   modoSecundaria?: "tutoria" | "mono_grado";
+  totalSesionesUnidad?: number;
+  actividadesPorCompetencia?: number;
   situacionSignificativa?: string;
   situacionBase?: ISituacionBase;
   imagenSituacionUrl?: string;
@@ -267,8 +324,16 @@ export interface IUnidadContenido {
   enfoques?: IEnfoqueUnidad[];
   secuencia?: ISecuencia;
   secuenciaPorGrado?: ISecuenciaPorGradoItem[];
+  formatoSecundaria?: IFormatoSecundaria;
   materiales?: string[];
+  materialesPorGrado?: IMaterialesPorGradoItem[];
   reflexiones?: IReflexionPregunta[];
+}
+
+export interface IMaterialesPorGradoItem {
+  gradoId: number;
+  grado: string;
+  materiales: string[];
 }
 
 export interface IProgresoUnidadResponse {

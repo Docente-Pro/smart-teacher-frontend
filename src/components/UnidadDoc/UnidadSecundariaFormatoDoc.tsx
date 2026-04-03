@@ -68,8 +68,10 @@ interface FormatoSecundaria {
     competenciasTransversalesPorGrado: CompetenciasTransversalesPorGrado[];
     secuenciaSesionesPorGrado: SecuenciaSesionesPorGrado;
     recursosMaterialesDidacticos: string[];
+    recursosMaterialesPorGrado?: { grado: string; materiales: string[] }[];
     bibliografia: string[];
   };
+  imagenSituacionUrl?: string;
 }
 
 interface Props {
@@ -128,7 +130,7 @@ export function UnidadSecundariaFormatoDoc({ formato }: Props) {
           display: list-item !important;
           list-style-type: disc !important;
         }
-        .unidad-secundaria-formato .firma-wrap { display: flex; justify-content: space-between; margin-top: 1rem; }
+        .unidad-secundaria-formato .firma-wrap { display: flex; justify-content: space-between; margin-top: 10rem; }
         .unidad-secundaria-formato .firma { width: 42%; text-align: center; font-size: 10pt; }
         .unidad-secundaria-formato .linea { border-top: 1px solid #111; margin-bottom: 0.2rem; }
       `}</style>
@@ -172,7 +174,23 @@ export function UnidadSecundariaFormatoDoc({ formato }: Props) {
 
       <p className="u-section">II. - COMPONENTES:</p>
       <p className="u-section">2.1.- PLANTEAMIENTO DE LA SITUACIÓN SIGNIFICATIVA.</p>
-      <div className="box">{text(c.planteamientoSituacionSignificativa)}</div>
+      <div className="box" style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+        <div style={{ flex: 1 }}>{text(c.planteamientoSituacionSignificativa)}</div>
+        {formato.imagenSituacionUrl && (
+          <img
+            src={formato.imagenSituacionUrl}
+            alt="Ilustración de la situación significativa"
+            crossOrigin="anonymous"
+            style={{
+              width: "200px",
+              height: "200px",
+              objectFit: "cover",
+              borderRadius: "8px",
+              flexShrink: 0,
+            }}
+          />
+        )}
+      </div>
 
       <p className="u-section">2.2.- PRODUCTO DE LA UNIDAD DE APRENDIZAJE POR GRADO</p>
       <table>
@@ -311,10 +329,16 @@ export function UnidadSecundariaFormatoDoc({ formato }: Props) {
       </table>
 
       <p className="u-section">III.- RECURSOS Y MATERIALES DIDÁCTICOS:</p>
-      <div className="box">{renderList(c.recursosMaterialesDidacticos)}</div>
-
-      <p className="u-section">IV.- BIBLIOGRAFÍA.</p>
-      <div className="box">{renderList(c.bibliografia)}</div>
+      {c.recursosMaterialesPorGrado && c.recursosMaterialesPorGrado.length > 0 ? (
+        c.recursosMaterialesPorGrado.map((g, idx) => (
+          <div key={idx} style={{ marginBottom: "0.4rem" }}>
+            <p style={{ fontSize: "9pt", fontWeight: "bold", marginBottom: "0.1rem" }}>{g.grado}</p>
+            <div className="box">{renderList(g.materiales)}</div>
+          </div>
+        ))
+      ) : (
+        <div className="box">{renderList(c.recursosMaterialesDidacticos)}</div>
+      )}
 
       <div className="firma-wrap">
         <div className="firma">

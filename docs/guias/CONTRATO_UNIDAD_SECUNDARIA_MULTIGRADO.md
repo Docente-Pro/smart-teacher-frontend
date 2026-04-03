@@ -87,7 +87,13 @@ POST /api/ia-unidad/:id/evidencias                 ← paso 2 (igual que primari
 POST /api/ia-unidad/:id/propositos-multigrado      ← paso 3 (llama Python N veces en paralelo)
 POST /api/ia-unidad/:id/enfoques                   ← paso 4 (igual que primaria)
 POST /api/ia-unidad/:id/formato-secundaria         ← paso 5 (genera documento consolidado)
+POST /api/ia-unidad/:id/secuencia                  ← paso 6 (detecta multigrado y hace fan-out por grado)
+POST /api/ia-unidad/:id/materiales-multigrado      ← paso 7 (genera materiales por grado en paralelo)
+POST /api/ia-unidad/:id/reflexiones                ← paso 8 (igual que primaria)
 ```
+
+> **Importante:** El paso 6 (secuencia) debe ejecutarse ANTES del paso 5 (formato-secundaria) si se quiere que `secuenciaSesionesPorGrado` tenga datos en el formato. De lo contrario, `totalSemanas: 0`.
+> El paso 7 usa `/materiales-multigrado` (NO `/materiales`) porque necesita `secuenciaPorGrado[]` en vez de `secuencia`.
 
 ---
 
@@ -110,17 +116,30 @@ POST /api/ia-unidad/:id/formato-secundaria         ← paso 5 (genera documento 
       "campoTematico": "Estadística descriptiva"
     }
   ],
-  "maxCompetenciasPorAreaSecundaria": 2
+  "maxCompetenciasPorAreaSecundaria": 2,
+  "totalSesionesUnidad": 8,
+  "actividadesPorCompetencia": 4
 }
 ```
 
 > Node resuelve los IDs a nombres (`"Segundo Año"`, `"Tercer Año"`, `"Cuarto Año"`) para enviarlos a Python, y además actualiza `contenido.gradosSecundaria` con los IDs.
+>
+> Nuevos parámetros dinámicos:
+> - `totalSesionesUnidad` (opcional): objetivo total de actividades por grado.
+> - `actividadesPorCompetencia` (opcional): fuerza una cantidad fija de actividades por competencia.
+>
+> Regla:
+> - Si viene `actividadesPorCompetencia`, tiene prioridad.
+> - Si no viene, y viene `totalSesionesUnidad`, Node distribuye ese total entre las competencias.
+> - Node normaliza la respuesta para que `actividades` y `actividadCriterios` queden consistentes con el objetivo final.
 
 ### Qué guarda en `contenido`
 
 ```json
 {
   "gradosSecundaria": [8, 9, 10],
+  "totalSesionesUnidad": 8,
+  "actividadesPorCompetencia": 4,
   "situacionSignificativa": "...",
   "evidencias": { "reto": "...", "proposito": "...", ... },
   "propositosPorGrado": [
@@ -142,14 +161,18 @@ POST /api/ia-unidad/:id/formato-secundaria         ← paso 5 (genera documento 
               }
             ]
           }
-        ]
+        ],
+        "competenciasTransversales": [...],
+        "productoIntegradorGrado": "Feria Científica..., presentado mediante un plan de acción argumentado con metas, responsables y estrategias de seguimiento"
       }
     },
-    { "gradoId": 9, "grado": "Tercer Año",  "propositos": { ... } },
-    { "gradoId": 10, "grado": "Cuarto Año", "propositos": { ... } }
+    { "gradoId": 9, "grado": "Tercer Año",  "propositos": { "...", "productoIntegradorGrado": "Feria Científica..., presentado mediante un proyecto ciudadano..." } },
+    { "gradoId": 10, "grado": "Cuarto Año", "propositos": { "...", "productoIntegradorGrado": "Feria Científica..., presentado mediante una propuesta integral..." } }
   ],
   "propositos": { ... }
 }
+
+> **`productoIntegradorGrado`** (string | null): Python lo genera automáticamente para Secundaria. Contiene el producto base + formato diferenciado según el grado. Si no existe, usar `contenido.evidencias.productoIntegrador` como fallback.
 ```
 
 ### Respuesta
@@ -230,11 +253,86 @@ Body vacío — Node construye el payload leyendo `contenido.propositosPorGrado`
 
 ---
 
+## 6b. Paso 6 — `POST /api/ia-unidad/:unidadId/secuencia`
+
+Body estándar (igual que primaria). Node detecta `contenido.gradosSecundaria` y entra en modo multigrado automáticamente.
+
+```json
+{}
+```
+
+### Qué guarda en `contenido`
+
+```json
+{
+  "secuencia": { "...del primer grado..." },
+  "secuenciaPorGrado": [
+    { "gradoId": 8,  "grado": "Segundo Año", "secuencia": { "semanas": [...] } },
+    { "gradoId": 9,  "grado": "Tercer Año",  "secuencia": { "semanas": [...] } },
+    { "gradoId": 10, "grado": "Cuarto Año",  "secuencia": { "semanas": [...] } }
+  ]
+}
+```
+
+> `secuencia` (singular) = primer grado (compatibilidad). `secuenciaPorGrado` = array completo.
+
+---
+
+## 6c. Paso 7 — `POST /api/ia-unidad/:unidadId/materiales-multigrado`
+
+Body vacío — Node lee `contenido.secuenciaPorGrado` y llama a Python `/api/unidad/materiales` una vez por cada grado en paralelo.
+
+```json
+{}
+```
+
+> **No usar** `/materiales` (el endpoint estándar) para multigrado. Ese valida `contenido.secuencia` que puede no existir en este flujo.
+
+### Qué guarda en `contenido`
+
+```json
+{
+  "materiales": { "materiales": ["...del primer grado..."] },
+  "materialesPorGrado": [
+    { "gradoId": 8,  "grado": "Segundo Año", "materiales": { "materiales": ["..."] } },
+    { "gradoId": 9,  "grado": "Tercer Año",  "materiales": { "materiales": ["..."] } },
+    { "gradoId": 10, "grado": "Cuarto Año",  "materiales": { "materiales": ["..."] } }
+  ]
+}
+```
+
+### Respuesta
+
+```json
+{
+  "success": true,
+  "paso": 7,
+  "message": "Materiales generados para 3 grado(s)",
+  "grados": [
+    { "gradoId": 8,  "grado": "Segundo Año", "totalMateriales": 5 },
+    { "gradoId": 9,  "grado": "Tercer Año",  "totalMateriales": 5 },
+    { "gradoId": 10, "grado": "Cuarto Año",  "totalMateriales": 5 }
+  ],
+  "data": [...],
+  "unidad": { ... }
+}
+```
+
+---
+
+## 6d. Paso 8 — `POST /api/ia-unidad/:unidadId/reflexiones`
+
+Igual que primaria. No requiere adaptación multigrado.
+
+---
+
 ## 7. Estructura final de `contenido` para una Unidad Secundaria
 
 ```json
 {
   "gradosSecundaria": [8, 9, 10],
+  "totalSesionesUnidad": 8,
+  "actividadesPorCompetencia": 4,
   "situacionSignificativa": "En la comunidad educativa...",
   "evidencias": {
     "reto": "...",
@@ -243,12 +341,25 @@ Body vacío — Node construye el payload leyendo `contenido.propositosPorGrado`
     "instrumentoEvaluacion": "Lista de cotejo"
   },
   "propositosPorGrado": [
-    { "gradoId": 8,  "grado": "Segundo Año", "propositos": { ... } },
-    { "gradoId": 9,  "grado": "Tercer Año",  "propositos": { ... } },
-    { "gradoId": 10, "grado": "Cuarto Año",  "propositos": { ... } }
+    { "gradoId": 8,  "grado": "Segundo Año", "propositos": { "areasPropositos": [...], "productoIntegradorGrado": "..." } },
+    { "gradoId": 9,  "grado": "Tercer Año",  "propositos": { "areasPropositos": [...], "productoIntegradorGrado": "..." } },
+    { "gradoId": 10, "grado": "Cuarto Año",  "propositos": { "areasPropositos": [...], "productoIntegradorGrado": "..." } }
   ],
   "propositos": { ... },
   "enfoques": { ... },
+  "secuencia": { ... },
+  "secuenciaPorGrado": [
+    { "gradoId": 8,  "grado": "Segundo Año", "secuencia": { "semanas": [...] } },
+    { "gradoId": 9,  "grado": "Tercer Año",  "secuencia": { "semanas": [...] } },
+    { "gradoId": 10, "grado": "Cuarto Año",  "secuencia": { "semanas": [...] } }
+  ],
+  "materiales": { "materiales": ["..."] },
+  "materialesPorGrado": [
+    { "gradoId": 8,  "grado": "Segundo Año", "materiales": { "materiales": ["..."] } },
+    { "gradoId": 9,  "grado": "Tercer Año",  "materiales": { "materiales": ["..."] } },
+    { "gradoId": 10, "grado": "Cuarto Año",  "materiales": { "materiales": ["..."] } }
+  ],
+  "reflexiones": { "reflexiones": [{ "pregunta": "..." }] },
   "formatoSecundaria": {
     "datosInformativos": { ... },
     "componentes": {
@@ -284,6 +395,8 @@ Node llama una vez por cada grado, resolviendo el ID a nombre:
   "situacionSignificativa": "...",
   "evidencias": { ... },
   "maxCompetenciasPorAreaSecundaria": 2,
+  "totalSesionesUnidad": 8,
+  "actividadesPorCompetencia": 4,
   "competenciasDocenteSecundaria": [...]
 }
 ```
@@ -346,6 +459,34 @@ const body = {
 unidad.contenido.propositosPorGrado.forEach(({ gradoId, grado, propositos }) => {
   // renderizar tab para cada grado
 });
+```
+
+### Producto diferenciado por grado (tabla 2.2)
+
+```typescript
+// ❌ ANTES: mismo producto para todos los grados
+const producto = contenido.evidencias.productoIntegrador;
+
+// ✅ AHORA: producto específico por grado con fallback
+for (const pg of contenido.propositosPorGrado) {
+  const producto =
+    pg.propositos?.productoIntegradorGrado    // diferenciado por grado
+    || contenido.evidencias.productoIntegrador; // fallback global
+  renderFilaTabla(pg.grado, producto);
+}
+```
+
+### Materiales multigrado
+
+```typescript
+// Para secundaria multigrado usar:
+await api.post(`/api/ia-unidad/${unidadId}/materiales-multigrado`);
+
+// NO usar /materiales (falla porque no encuentra contenido.secuencia)
+// Resultado: contenido.materialesPorGrado[] — iterar por grado
+for (const mg of contenido.materialesPorGrado) {
+  renderMateriales(mg.grado, mg.materiales.materiales);
+}
 ```
 
 ### Para generar el PDF

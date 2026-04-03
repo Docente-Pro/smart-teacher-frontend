@@ -261,13 +261,22 @@ function UnidadResult() {
       },
       componentes: {
         planteamientoSituacionSignificativa: contenido.situacionSignificativa || "—",
-        productoUnidadAprendizajePorGrado:
-          propositosPorGrado.length > 0
-            ? propositosPorGrado.map((pg: any) => ({
-                grado: pg?.grado || "—",
-                producto: contenido?.evidencias?.productoIntegrador || "—",
-              }))
-            : [{ grado: datosBase.grado || "—", producto: contenido?.evidencias?.productoIntegrador || "—" }],
+        productoUnidadAprendizajePorGrado: (() => {
+          const fromFormato = (contenido as any)?.formatoSecundaria?.componentes?.productoUnidadAprendizajePorGrado;
+          if (Array.isArray(fromFormato) && fromFormato.length > 0) {
+            return fromFormato.map((pg: any) => ({
+              grado: pg?.grado || "—",
+              producto: pg?.producto || contenido?.evidencias?.productoIntegrador || "—",
+            }));
+          }
+          if (propositosPorGrado.length > 0) {
+            return propositosPorGrado.map((pg: any) => ({
+              grado: pg?.grado || "—",
+              producto: pg?.propositos?.productoIntegradorGrado || contenido?.evidencias?.productoIntegrador || "—",
+            }));
+          }
+          return [{ grado: datosBase.grado || "—", producto: contenido?.evidencias?.productoIntegrador || "—" }];
+        })(),
         enfoquesTransversales: (contenido.enfoques || []).map((e: any) => ({
           enfoque: e?.enfoque || "—",
           valor: e?.valor || "—",
@@ -309,9 +318,27 @@ function UnidadResult() {
           totalSemanas,
           grados: secuenciaGradosRecord,
         },
-        recursosMaterialesDidacticos: contenido.materiales || [],
+        recursosMaterialesDidacticos: Array.isArray(contenido.materiales)
+          ? contenido.materiales
+          : Array.isArray((contenido.materiales as any)?.materiales)
+            ? (contenido.materiales as any).materiales
+            : [],
+        recursosMaterialesPorGrado: ((contenido as any)?.materialesPorGrado || []).map((g: any) => {
+          let mats: string[] = [];
+          const raw = g?.materiales;
+          if (Array.isArray(raw)) {
+            mats = raw.filter((m: any) => typeof m === "string");
+          } else if (raw && typeof raw === "object" && Array.isArray(raw.materiales)) {
+            mats = raw.materiales.filter((m: any) => typeof m === "string");
+          }
+          return {
+            grado: g?.grado || `Grado ${g?.gradoId ?? ""}`.trim(),
+            materiales: mats,
+          };
+        }),
         bibliografia: (contenido as any)?.bibliografia || [],
       },
+      imagenSituacionUrl: contenido.imagenSituacionUrl || undefined,
     };
   })();
 

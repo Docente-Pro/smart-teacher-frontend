@@ -10,7 +10,7 @@ import { IGrado } from "@/interfaces/IGrado";
 import { getNiveles } from "@/features/initialForm/services/niveles.service";
 import { getAllGrados } from "@/services/grado.service";
 import { getAllAreas } from "@/services/areas.service";
-import { guardarUsuarioGradosAreas, getUsuarioById, updateUsuario } from "@/services/usuarios.service";
+import { configurarUsuarioGrados, getUsuarioById, updateUsuario } from "@/services/usuarios.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { GlobalLoading } from "@/components/GlobalLoading";
@@ -64,7 +64,9 @@ interface AreaItem {
   nombre: string;
 }
 
-const MAX_AREAS_SECUNDARIA = 2;
+const MAX_GRADOS_TUTORIA = 2;
+const MAX_GRADOS_PLAN_LECTOR = 3;
+const SECCIONES_DISPONIBLES = ["A", "B", "C", "D", "E", "F"];
 
 function isNivelSoportado(nombre?: string): boolean {
   const normalized = (nombre || "").toLowerCase();
@@ -116,8 +118,9 @@ function OnboardingPage() {
   const [areas, setAreas] = useState<AreaItem[]>([]);
   const [areasSeleccionadasIds, setAreasSeleccionadasIds] = useState<number[]>([]);
   const [secundariaGradosIds, setSecundariaGradosIds] = useState<number[]>([]);
-  const [tutoriaGradoId, setTutoriaGradoId] = useState<number>(0);
-  const [planLectorGradoId, setPlanLectorGradoId] = useState<number>(0);
+  const [tutoriaGradoIds, setTutoriaGradoIds] = useState<number[]>([]);
+  const [planLectorGradoIds, setPlanLectorGradoIds] = useState<number[]>([]);
+  const [seccionesPorAreaGrado, setSeccionesPorAreaGrado] = useState<Record<string, string[]>>({});
 
   const nivelSeleccionado = useMemo(
     () => niveles.find((n) => n.id === formData.nivelId),
@@ -227,9 +230,10 @@ function OnboardingPage() {
   useEffect(() => {
     if (!isSecundariaSeleccionada) {
       setSecundariaGradosIds([]);
-      setTutoriaGradoId(0);
-      setPlanLectorGradoId(0);
+      setTutoriaGradoIds([]);
+      setPlanLectorGradoIds([]);
       setAreasSeleccionadasIds([]);
+      setSeccionesPorAreaGrado({});
     }
   }, [isSecundariaSeleccionada]);
 
@@ -237,8 +241,8 @@ function OnboardingPage() {
     if (!isSecundariaSeleccionada) return;
     const validIds = new Set(gradosFiltrados.map((g) => g.id));
     setSecundariaGradosIds((prev) => prev.filter((id) => validIds.has(id)));
-    setTutoriaGradoId((prev) => (prev && validIds.has(prev) ? prev : 0));
-    setPlanLectorGradoId((prev) => (prev && validIds.has(prev) ? prev : 0));
+    setTutoriaGradoIds((prev) => prev.filter((id) => validIds.has(id)));
+    setPlanLectorGradoIds((prev) => prev.filter((id) => validIds.has(id)));
   }, [gradosFiltrados, isSecundariaSeleccionada]);
 
   // Evitar duplicidad visual: Tutoría/Plan Lector se controlan por su selector de grado, no por la grilla de áreas.
@@ -249,14 +253,62 @@ function OnboardingPage() {
     );
   }, [isSecundariaSeleccionada, tutoriaAreaId, planLectorAreaId]);
 
+  function toggleSeccion(areaId: number, gradoId: number, seccion: string) {
+    const key = `${areaId}-${gradoId}`;
+    setSeccionesPorAreaGrado((prev) => {
+      const current = prev[key] || [];
+      const next = current.includes(seccion)
+        ? current.filter((s) => s !== seccion)
+        : [...current, seccion].sort();
+      return { ...prev, [key]: next };
+    });
+  }
+
+  function toggleTutoriaGrado(gradoId: number) {
+    setTutoriaGradoIds((prev) => {
+      if (prev.includes(gradoId)) {
+        if (tutoriaAreaId) {
+          const key = `${tutoriaAreaId}-${gradoId}`;
+          setSeccionesPorAreaGrado((s) => { const c = { ...s }; delete c[key]; return c; });
+        }
+        return prev.filter((id) => id !== gradoId);
+      }
+      if (prev.length >= MAX_GRADOS_TUTORIA) {
+        handleToaster(`Tutoría: máximo ${MAX_GRADOS_TUTORIA} grados`, "error");
+        return prev;
+      }
+      return [...prev, gradoId].sort((a, b) => a - b);
+    });
+  }
+
+  function togglePlanLectorGrado(gradoId: number) {
+    setPlanLectorGradoIds((prev) => {
+      if (prev.includes(gradoId)) {
+        if (planLectorAreaId) {
+          const key = `${planLectorAreaId}-${gradoId}`;
+          setSeccionesPorAreaGrado((s) => { const c = { ...s }; delete c[key]; return c; });
+        }
+        return prev.filter((id) => id !== gradoId);
+      }
+      if (prev.length >= MAX_GRADOS_PLAN_LECTOR) {
+        handleToaster(`Plan Lector: máximo ${MAX_GRADOS_PLAN_LECTOR} grados`, "error");
+        return prev;
+      }
+      return [...prev, gradoId].sort((a, b) => a - b);
+    });
+  }
+
   function toggleAreaSecundaria(areaId: number) {
     setAreasSeleccionadasIds((prev) => {
       if (prev.includes(areaId)) {
+        setSeccionesPorAreaGrado((s) => {
+          const copy = { ...s };
+          for (const k of Object.keys(copy)) {
+            if (k.startsWith(`${areaId}-`)) delete copy[k];
+          }
+          return copy;
+        });
         return prev.filter((id) => id !== areaId);
-      }
-      if (prev.length >= MAX_AREAS_SECUNDARIA) {
-        handleToaster(`Puedes seleccionar máximo ${MAX_AREAS_SECUNDARIA} áreas`, "error");
-        return prev;
       }
       return [...prev, areaId];
     });
@@ -272,11 +324,16 @@ function OnboardingPage() {
         // Conservamos un grado base por compatibilidad backend
         gradoId: sorted[0] || 0,
       }));
-      if (tutoriaGradoId && !sorted.includes(tutoriaGradoId)) {
-        setTutoriaGradoId(0);
-      }
-      if (planLectorGradoId && !sorted.includes(planLectorGradoId)) {
-        setPlanLectorGradoId(0);
+      setTutoriaGradoIds((prev) => prev.filter((id) => sorted.includes(id)));
+      setPlanLectorGradoIds((prev) => prev.filter((id) => sorted.includes(id)));
+      if (exists) {
+        setSeccionesPorAreaGrado((prev) => {
+          const copy = { ...prev };
+          for (const k of Object.keys(copy)) {
+            if (k.endsWith(`-${gradoId}`)) delete copy[k];
+          }
+          return copy;
+        });
       }
       return sorted;
     });
@@ -285,8 +342,8 @@ function OnboardingPage() {
   function validateForm(): boolean {
     const hasAreasFromChecks =
       areasSeleccionadasIds.length > 0 ||
-      Boolean(tutoriaGradoId && tutoriaAreaId) ||
-      Boolean(planLectorGradoId && planLectorAreaId);
+      Boolean(tutoriaGradoIds.length > 0 && tutoriaAreaId) ||
+      Boolean(planLectorGradoIds.length > 0 && planLectorAreaId);
     if (!formData.nombre || formData.nombre.trim().length < 2) {
       return false;
     }
@@ -314,34 +371,27 @@ function OnboardingPage() {
     if (isSecundariaSeleccionada && !hasAreasFromChecks) {
       return false;
     }
-    if (isSecundariaSeleccionada && areasSeleccionadasIds.length > MAX_AREAS_SECUNDARIA) {
+    if (isSecundariaSeleccionada && tutoriaGradoIds.length > 0 && !tutoriaAreaId) {
       return false;
     }
 
-    if (
-      isSecundariaSeleccionada &&
-      tutoriaAreaId &&
-      areasSeleccionadasIds.includes(tutoriaAreaId) &&
-      !tutoriaGradoId
-    ) {
+    if (isSecundariaSeleccionada && planLectorGradoIds.length > 0 && !planLectorAreaId) {
       return false;
     }
 
-    if (isSecundariaSeleccionada && tutoriaGradoId && !tutoriaAreaId) {
-      return false;
-    }
-
-    if (
-      isSecundariaSeleccionada &&
-      planLectorAreaId &&
-      areasSeleccionadasIds.includes(planLectorAreaId) &&
-      !planLectorGradoId
-    ) {
-      return false;
-    }
-
-    if (isSecundariaSeleccionada && planLectorGradoId && !planLectorAreaId) {
-      return false;
+    if (isSecundariaSeleccionada) {
+      const pairs: { areaId: number; gradoId: number }[] = [];
+      for (const aId of areasSeleccionadasIds) {
+        for (const gId of secundariaGradosIds) pairs.push({ areaId: aId, gradoId: gId });
+      }
+      if (tutoriaAreaId && tutoriaGradoIds.length > 0) {
+        for (const gId of tutoriaGradoIds) pairs.push({ areaId: tutoriaAreaId, gradoId: gId });
+      }
+      if (planLectorAreaId && planLectorGradoIds.length > 0) {
+        for (const gId of planLectorGradoIds) pairs.push({ areaId: planLectorAreaId, gradoId: gId });
+      }
+      const sinSeccion = pairs.some((p) => !(seccionesPorAreaGrado[`${p.areaId}-${p.gradoId}`]?.length > 0));
+      if (sinSeccion) return false;
     }
 
     if (!formData.departamento) {
@@ -363,10 +413,35 @@ function OnboardingPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      if (isSecundariaSeleccionada && tutoriaGradoId && !tutoriaAreaId) {
+      if (isSecundariaSeleccionada && tutoriaGradoIds.length > 0 && !tutoriaAreaId) {
         handleToaster("No se encontró el área Tutoría en el catálogo. Revisa /api/area.", "error");
-      } else if (isSecundariaSeleccionada && planLectorGradoId && !planLectorAreaId) {
+      } else if (isSecundariaSeleccionada && planLectorGradoIds.length > 0 && !planLectorAreaId) {
         handleToaster("No se encontró el área Plan Lector en el catálogo. Revisa /api/area.", "error");
+      } else if (isSecundariaSeleccionada) {
+        const missing: string[] = [];
+        const checkPairs = (areaId: number, areaNombre: string, gIds: number[]) => {
+          for (const gId of gIds) {
+            if (!(seccionesPorAreaGrado[`${areaId}-${gId}`]?.length > 0)) {
+              const gNombre = gradosFiltrados.find((g) => g.id === gId)?.nombre || `Grado ${gId}`;
+              missing.push(`${areaNombre} - ${gNombre}`);
+            }
+          }
+        };
+        for (const aId of areasSeleccionadasIds) {
+          const a = areas.find((x) => x.id === aId);
+          if (a) checkPairs(a.id, a.nombre, secundariaGradosIds);
+        }
+        if (tutoriaAreaId && tutoriaGradoIds.length > 0) {
+          const a = areas.find((x) => x.id === tutoriaAreaId);
+          if (a) checkPairs(a.id, a.nombre, tutoriaGradoIds);
+        }
+        if (planLectorAreaId && planLectorGradoIds.length > 0) {
+          const a = areas.find((x) => x.id === planLectorAreaId);
+          if (a) checkPairs(a.id, a.nombre, planLectorGradoIds);
+        }
+        if (missing.length > 0) {
+          handleToaster(`Selecciona secciones para: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "..." : ""}`, "error");
+        }
       } else {
         handleToaster("Por favor, completa todos los campos", "error");
       }
@@ -399,36 +474,57 @@ function OnboardingPage() {
       // Paso 2 del contrato: POST asignaciones grado+area (Secundaria)
       const hasAreasFromChecks =
         areasSeleccionadasIds.length > 0 ||
-        Boolean(tutoriaGradoId && tutoriaAreaId) ||
-        Boolean(planLectorGradoId && planLectorAreaId);
+        Boolean(tutoriaGradoIds.length > 0 && tutoriaAreaId) ||
+        Boolean(planLectorGradoIds.length > 0 && planLectorAreaId);
       if (isSecundariaSeleccionada && hasAreasFromChecks) {
         const areaIdsParaAsignar = new Set<number>(areasSeleccionadasIds);
-        // Si el docente eligió año de Tutoría/Plan Lector, asegurar que su areaId también se envíe.
-        if (tutoriaGradoId && tutoriaAreaId) areaIdsParaAsignar.add(tutoriaAreaId);
-        if (planLectorGradoId && planLectorAreaId) areaIdsParaAsignar.add(planLectorAreaId);
+        if (tutoriaGradoIds.length > 0 && tutoriaAreaId) areaIdsParaAsignar.add(tutoriaAreaId);
+        if (planLectorGradoIds.length > 0 && planLectorAreaId) areaIdsParaAsignar.add(planLectorAreaId);
 
         const asignaciones = Array.from(areaIdsParaAsignar).flatMap((areaId) => {
           const isTutoria = tutoriaAreaId ? areaId === tutoriaAreaId : false;
           const isPlanLector = planLectorAreaId ? areaId === planLectorAreaId : false;
-          if (isTutoria) {
-            return tutoriaGradoId ? [{ gradoId: tutoriaGradoId, areaId }] : [];
-          }
-          if (isPlanLector) {
-            return planLectorGradoId ? [{ gradoId: planLectorGradoId, areaId }] : [];
-          }
-          return secundariaGradosIds.map((gradoId) => ({ gradoId, areaId }));
+          const gradoIds = isTutoria
+            ? tutoriaGradoIds
+            : isPlanLector
+              ? planLectorGradoIds
+              : secundariaGradosIds;
+          return gradoIds.map((gradoId) => ({
+            gradoId,
+            areaId,
+            secciones: seccionesPorAreaGrado[`${areaId}-${gradoId}`] || [],
+          }));
         });
 
-        const dedupMap = new Map<string, { gradoId: number; areaId: number }>();
+        const dedupMap = new Map<string, { gradoId: number; areaId: number; secciones?: string[] }>();
         asignaciones.forEach((a) => dedupMap.set(`${a.gradoId}-${a.areaId}`, a));
         const dedupAsignaciones = Array.from(dedupMap.values());
 
+        const allGradoIds = new Set([
+          ...secundariaGradosIds,
+          ...tutoriaGradoIds,
+          ...planLectorGradoIds,
+        ]);
+        const seccionesPayload = Array.from(allGradoIds).map((gId) => ({
+          gradoId: gId,
+          nivelId: formData.nivelId,
+          secciones: [...new Set(
+            Object.entries(seccionesPorAreaGrado)
+              .filter(([key]) => key.endsWith(`-${gId}`))
+              .flatMap(([, secs]) => secs)
+          )].sort(),
+        })).filter((s) => s.secciones.length > 0);
+
         if (import.meta.env.DEV) {
           console.log("[Onboarding] asignaciones secundaria:", dedupAsignaciones);
+          console.log("[Onboarding] secciones:", seccionesPayload);
         }
 
         if (dedupAsignaciones.length > 0) {
-          await guardarUsuarioGradosAreas(backendUser.id, { asignaciones: dedupAsignaciones });
+          await configurarUsuarioGrados(backendUser.id, {
+            asignaciones: dedupAsignaciones,
+            ...(seccionesPayload.length > 0 ? { secciones: seccionesPayload } : {}),
+          });
         }
       }
 
@@ -440,7 +536,9 @@ function OnboardingPage() {
       const secundariaGradosNombres = gradosFiltrados
         .filter((g) => secundariaGradosIds.includes(g.id))
         .map((g) => g.nombre);
-      const tutoriaGradoNombre = gradosFiltrados.find((g) => g.id === tutoriaGradoId)?.nombre || null;
+      const tutoriaGradoNombre = tutoriaGradoIds.length > 0
+        ? gradosFiltrados.filter((g) => tutoriaGradoIds.includes(g.id)).map((g) => g.nombre).join(", ")
+        : null;
       updateUser({
         perfilCompleto: true,
         genero: formData.genero,
@@ -697,58 +795,66 @@ function OnboardingPage() {
 
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
                   <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                    2) Año de Tutoría (opcional)
+                    2) Grados de Tutoría (opcional)
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Si no llevas Tutoría, deja “Sin tutoría”.
+                    Selecciona hasta {MAX_GRADOS_TUTORIA} grados. Si no llevas Tutoría, no selecciones ninguno.
                   </p>
-                  <Select
-                    value={tutoriaGradoId ? tutoriaGradoId.toString() : "none"}
-                    onValueChange={(value) => setTutoriaGradoId(value === "none" ? 0 : parseInt(value))}
-                    disabled={secundariaGradosIds.length === 0}
-                  >
-                    <SelectTrigger className="h-12 text-base">
-                      <SelectValue placeholder="Selecciona año de tutoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin tutoría</SelectItem>
-                      {gradosFiltrados
-                        .filter((g) => secundariaGradosIds.includes(g.id))
-                        .map((grado) => (
-                          <SelectItem key={`tutoria-${grado.id}`} value={grado.id.toString()}>
-                            {grado.nombre}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {gradosFiltrados.map((grado) => {
+                      const selected = tutoriaGradoIds.includes(grado.id);
+                      const reachedMax = tutoriaGradoIds.length >= MAX_GRADOS_TUTORIA;
+                      return (
+                        <button
+                          type="button"
+                          key={`tutoria-${grado.id}`}
+                          onClick={() => toggleTutoriaGrado(grado.id)}
+                          disabled={!selected && reachedMax}
+                          className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all
+                            ${selected
+                              ? "border-purple-500 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-400 shadow-sm"
+                              : reachedMax
+                                ? "border-gray-200 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
+                                : "border-gray-200 bg-white text-gray-600 hover:border-purple-300 hover:bg-purple-50/50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-purple-600"
+                            }`}
+                        >
+                          {grado.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
                   <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                    2b) Año de Plan Lector (opcional)
+                    2b) Grados de Plan Lector (opcional)
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Si no llevas Plan Lector, deja “Sin Plan Lector”.
+                    Selecciona hasta {MAX_GRADOS_PLAN_LECTOR} grados. Si no llevas Plan Lector, no selecciones ninguno.
                   </p>
-                  <Select
-                    value={planLectorGradoId ? planLectorGradoId.toString() : "none"}
-                    onValueChange={(value) => setPlanLectorGradoId(value === "none" ? 0 : parseInt(value))}
-                    disabled={secundariaGradosIds.length === 0}
-                  >
-                    <SelectTrigger className="h-12 text-base">
-                      <SelectValue placeholder="Selecciona año de Plan Lector" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin Plan Lector</SelectItem>
-                      {gradosFiltrados
-                        .filter((g) => secundariaGradosIds.includes(g.id))
-                        .map((grado) => (
-                          <SelectItem key={`plan-lector-${grado.id}`} value={grado.id.toString()}>
-                            {grado.nombre}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {gradosFiltrados.map((grado) => {
+                      const selected = planLectorGradoIds.includes(grado.id);
+                      const reachedMax = planLectorGradoIds.length >= MAX_GRADOS_PLAN_LECTOR;
+                      return (
+                        <button
+                          type="button"
+                          key={`plan-lector-${grado.id}`}
+                          onClick={() => togglePlanLectorGrado(grado.id)}
+                          disabled={!selected && reachedMax}
+                          className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all
+                            ${selected
+                              ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 dark:border-green-400 shadow-sm"
+                              : reachedMax
+                                ? "border-gray-200 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
+                                : "border-gray-200 bg-white text-gray-600 hover:border-green-300 hover:bg-green-50/50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-green-600"
+                            }`}
+                        >
+                          {grado.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
@@ -756,20 +862,15 @@ function OnboardingPage() {
                     3) Selecciona las áreas curriculares que enseñas
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Puedes elegir hasta {MAX_AREAS_SECUNDARIA} áreas curriculares.
+                    Selecciona las áreas curriculares que enseñas.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {areasCurriculares.map((area) => {
                       const selected = areasSeleccionadasIds.includes(area.id);
-                      const reachedMax = areasSeleccionadasIds.length >= MAX_AREAS_SECUNDARIA;
-                      const disabled = !selected && reachedMax;
                       let areaButtonClass =
                         "min-h-[52px] px-4 py-2 rounded-xl text-sm font-semibold border text-center transition-all";
                       if (selected) {
                         areaButtonClass += " bg-blue-600 text-white border-blue-600 shadow-md";
-                      } else if (disabled) {
-                        areaButtonClass +=
-                          " bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-gray-800 dark:text-gray-500 dark:border-gray-700";
                       } else {
                         areaButtonClass +=
                           " bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:border-blue-400";
@@ -779,7 +880,6 @@ function OnboardingPage() {
                           type="button"
                           key={`area-sec-${area.id}`}
                           onClick={() => toggleAreaSecundaria(area.id)}
-                          disabled={disabled}
                           className={areaButtonClass}
                         >
                           {area.nombre}
@@ -803,6 +903,75 @@ function OnboardingPage() {
                     )}
                   </div>
                 </div>
+
+                {/* 4) Secciones por área y grado */}
+                {(() => {
+                  const entries: { areaId: number; areaNombre: string; gradoIds: number[] }[] = [];
+                  for (const aId of areasSeleccionadasIds) {
+                    const a = areas.find((x) => x.id === aId);
+                    if (a) entries.push({ areaId: a.id, areaNombre: a.nombre, gradoIds: secundariaGradosIds });
+                  }
+                  if (tutoriaAreaId && tutoriaGradoIds.length > 0) {
+                    const a = areas.find((x) => x.id === tutoriaAreaId);
+                    if (a) entries.push({ areaId: a.id, areaNombre: a.nombre, gradoIds: tutoriaGradoIds });
+                  }
+                  if (planLectorAreaId && planLectorGradoIds.length > 0) {
+                    const a = areas.find((x) => x.id === planLectorAreaId);
+                    if (a) entries.push({ areaId: a.id, areaNombre: a.nombre, gradoIds: planLectorGradoIds });
+                  }
+                  if (entries.length === 0) return null;
+                  return (
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
+                      <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-1">
+                        4) Secciones por área y grado
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        Para cada área, selecciona las secciones que enseñas en cada grado.
+                      </p>
+                      <div className="space-y-5">
+                        {entries.map((entry) => (
+                          <div key={`area-sec-block-${entry.areaId}`}>
+                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                              {entry.areaNombre}
+                            </p>
+                            <div className="space-y-2 pl-2">
+                              {gradosFiltrados
+                                .filter((g) => entry.gradoIds.includes(g.id))
+                                .map((grado) => {
+                                  const key = `${entry.areaId}-${grado.id}`;
+                                  const selected = seccionesPorAreaGrado[key] || [];
+                                  return (
+                                    <div key={key} className="flex flex-wrap items-center gap-2">
+                                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-28 shrink-0">
+                                        {grado.nombre}:
+                                      </span>
+                                      {SECCIONES_DISPONIBLES.map((sec) => {
+                                        const isActive = selected.includes(sec);
+                                        return (
+                                          <button
+                                            type="button"
+                                            key={`${key}-${sec}`}
+                                            onClick={() => toggleSeccion(entry.areaId, grado.id, sec)}
+                                            className={`w-9 h-9 rounded-lg text-xs font-bold border-2 transition-all
+                                              ${isActive
+                                                ? "border-blue-500 bg-blue-500 text-white shadow-sm"
+                                                : "border-gray-200 bg-white text-gray-500 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                                              }`}
+                                          >
+                                            {sec}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>

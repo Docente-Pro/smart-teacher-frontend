@@ -28,6 +28,7 @@ function putUsuario(id: string, data: IUsuarioToUpdate) {
 interface IAsignacionGradoArea {
   gradoId: number;
   areaId: number;
+  secciones?: string[];
 }
 
 export interface IResumenUsuarioGradoArea {
@@ -59,7 +60,11 @@ function getUsuarioMeGradosAreas() {
 
 function configurarUsuarioGrados(
   id: string,
-  data: { asignaciones: IAsignacionGradoArea[]; aulas?: Array<{ gradoId: number; nombre?: string }> },
+  data: {
+    asignaciones: IAsignacionGradoArea[];
+    aulas?: Array<{ gradoId: number; nombre?: string }>;
+    secciones?: Array<{ gradoId: number; nivelId: number; secciones: string[] }>;
+  },
 ) {
   return instance.post(`/usuario/${id}/configurar-grados`, data);
 }
