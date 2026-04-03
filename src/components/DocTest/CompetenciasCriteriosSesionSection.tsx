@@ -66,7 +66,7 @@ export function CompetenciasCriteriosSesionSection({
       <tbody>
         <tr>
           <th style={{ width: "55%", backgroundColor: sectionColor }}>
-            COMPETENCIA Y CAPACIDADES
+            COMPETENCIAS TRANSVERSALES
           </th>
           <th style={{ width: "45%", backgroundColor: sectionColor }}>CRITERIOS</th>
         </tr>

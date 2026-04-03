@@ -86,6 +86,20 @@ export function SesionPlanLectorDoc({ data, insigniaUrl }: SesionPlanLectorDocPr
   const descCierre = momentos?.cierre?.descripcion || "";
 
   const criteriosPorCompetencia = (() => {
+    const transversales = (sesion as any)?.competenciasTransversalesSesion
+      ?? (sesion as any)?.contenido?.competenciasTransversalesSesion;
+    if (Array.isArray(transversales) && transversales.length > 0) {
+      const criteriosTransversales = transversales
+        .slice(0, 2)
+        .map((ct: any) => {
+          const raw = ct?.criteriosEvaluacion ?? ct?.criterios;
+          return Array.isArray(raw) ? raw.filter(Boolean) : [];
+        });
+      if (criteriosTransversales.some((bloque: string[]) => bloque.length > 0)) {
+        return criteriosTransversales;
+      }
+    }
+
     const propositos = Array.isArray((sesion as any).propositoAprendizaje)
       ? ((sesion as any).propositoAprendizaje as Array<{ criteriosEvaluacion?: string[] }>)
       : [];

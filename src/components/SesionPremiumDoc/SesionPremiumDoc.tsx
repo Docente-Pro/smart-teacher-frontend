@@ -995,6 +995,22 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
   }
 
   const criteriosPorCompetencia = (() => {
+    const transversales =
+      (sesion as any)?.competenciasTransversalesSesion ??
+      (sesion as any)?.contenido?.competenciasTransversalesSesion ??
+      (sesion as any)?.contenido?.contenido?.competenciasTransversalesSesion;
+    if (Array.isArray(transversales) && transversales.length > 0) {
+      const criteriosTransversales = transversales
+        .slice(0, 2)
+        .map((ct: any) => {
+          const raw = ct?.criteriosEvaluacion ?? ct?.criterios;
+          return Array.isArray(raw) ? raw.filter(Boolean) : [];
+        });
+      if (criteriosTransversales.some((bloque: string[]) => bloque.length > 0)) {
+        return criteriosTransversales;
+      }
+    }
+
     const propositos = Array.isArray(sesion.propositoAprendizaje)
       ? sesion.propositoAprendizaje
       : [];

@@ -840,6 +840,12 @@ function EditarSesionPremium() {
               raw.recursoNarrativo || contenido.recursoNarrativo,
           }
         : {}),
+
+      competenciasTransversalesSesion:
+        raw.competenciasTransversalesSesion ??
+        contenido?.competenciasTransversalesSesion ??
+        (contenido as any)?.contenido?.competenciasTransversalesSesion ??
+        [],
     };
 
     const areaNormalized = normalizeAreaName(
@@ -1344,8 +1350,8 @@ function EditarSesionPremium() {
               className="ec"
               style={{ padding: "0.5rem 0.6rem", lineHeight: 1.6 }}
             >
-              {/* Título del proceso */}
-              <div style={{ marginBottom: "0.5rem" }}>
+              {/* Formato compacto: Proceso: contenido (igual a vista final) */}
+              <div style={{ marginBottom: "0.35rem" }}>
                 <input
                   type="text"
                   value={p.proceso}
@@ -1356,60 +1362,32 @@ function EditarSesionPremium() {
                     fontWeight: "bold",
                     fontSize: "10pt",
                     width: "100%",
+                    marginBottom: "0.2rem",
                   }}
                   placeholder="Nombre del proceso"
                 />
-              </div>
-
-              {/* Estrategias */}
-              <div style={{ marginBottom: "0.5rem" }}>
-                <strong style={{ fontSize: "9pt" }}>Estrategias:</strong>
-                <textarea
-                  value={p.estrategias}
-                  onChange={(e) =>
-                    updateFaseProceso(
-                      fase,
-                      i,
-                      "estrategias",
-                      e.target.value,
-                    )
-                  }
-                  rows={Math.max(4, p.estrategias.split("\n").length + 1)}
-                  style={{
-                    width: "100%",
-                    marginTop: "4px",
-                    whiteSpace: "pre-wrap",
-                  }}
-                  placeholder="Describe las estrategias y actividades..."
-                />
-              </div>
-
-              {/* Recursos */}
-              <div style={{ marginBottom: "0.3rem" }}>
-                <strong style={{ fontSize: "9pt" }}>Recursos:</strong>{" "}
-                <input
-                  type="text"
-                  value={p.recursos}
-                  onChange={(e) =>
-                    updateFaseProceso(fase, i, "recursos", e.target.value)
-                  }
-                  style={{ width: "calc(100% - 70px)" }}
-                  placeholder="Recursos didácticos"
-                />
-              </div>
-
-              {/* Tiempo */}
-              <div>
-                <strong style={{ fontSize: "9pt" }}>Tiempo:</strong>{" "}
-                <input
-                  type="text"
-                  value={p.tiempo}
-                  onChange={(e) =>
-                    updateFaseProceso(fase, i, "tiempo", e.target.value)
-                  }
-                  style={{ width: "100px" }}
-                  placeholder="15 min"
-                />
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "0.25rem" }}>
+                  <strong style={{ fontSize: "9pt", whiteSpace: "nowrap", paddingTop: "4px" }}>
+                    {(p.proceso || "Proceso").trim()}:
+                  </strong>
+                  <textarea
+                    value={p.estrategias}
+                    onChange={(e) =>
+                      updateFaseProceso(
+                        fase,
+                        i,
+                        "estrategias",
+                        e.target.value,
+                      )
+                    }
+                    rows={Math.max(3, p.estrategias.split("\n").length + 1)}
+                    style={{
+                      width: "100%",
+                      whiteSpace: "pre-wrap",
+                    }}
+                    placeholder="Contenido del proceso..."
+                  />
+                </div>
               </div>
             </td>
           </tr>

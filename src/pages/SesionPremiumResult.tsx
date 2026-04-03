@@ -11,6 +11,7 @@ import { generarFichaAplicacion, obtenerFichasPorSesion } from "@/services/ficha
 import { editarContenidoSesion } from "@/services/sesiones.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { dateOnlyToInputValue } from "@/utils/dateOnlyPeru";
+import { buildInstrumentoLocal } from "@/utils/buildInstrumentoFromSesion";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 import type { IFichaAlmacenada } from "@/interfaces/IFichaAplicacion";
@@ -63,6 +64,66 @@ function SesionPremiumResult() {
       },
     };
   }, [premiumData, fechaSesion]);
+
+  // Fallback robusto: si el instrumento no llega por navigation state,
+  // construirlo desde propositoAprendizaje (instrumento/instrumentoEvaluacion).
+  const instrumentoFinal = useMemo((): IInstrumentoEvaluacion | null => {
+    if (instrumento) return instrumento;
+    if (!premiumData?.sesion) return null;
+
+    const sesion = premiumData.sesion as any;
+    const contenido = sesion.contenido;
+    let parsedContenido: Record<string, any> = {};
+    try {
+      const c = typeof contenido === "string" ? JSON.parse(contenido) : contenido;
+      if (c && typeof c === "object") parsedContenido = c;
+    } catch {
+      /* ignore */
+    }
+
+    const toLabel = (v: unknown) =>
+      !v ? "" : typeof v === "string" ? v : (v as any)?.nombre ?? (v as any)?.name ?? String(v);
+    const area = toLabel(sesion.area) || "—";
+    const grado = toLabel(sesion.grado) || "—";
+    const propositos = sesion.propositoAprendizaje ?? [];
+    const esPlanLectorOTutoria =
+      /plan\s*lector|tutor[ií]a/i.test(area) ||
+      !!(sesion.recursoNarrativo || parsedContenido?.recursoNarrativo);
+
+    if (Array.isArray(propositos) && propositos.length > 0) {
+      const first =
+        propositos.find(
+          (p: any) =>
+            (p.instrumento?.trim() || p.instrumentoEvaluacion?.trim() || p.evidencia?.trim() || p.competencia?.trim()),
+        ) ?? propositos[0];
+      const criteriosRaw = first.criteriosEvaluacion ?? first.criterios;
+      const criteriosList = Array.isArray(criteriosRaw)
+        ? criteriosRaw.map((c: any) => (typeof c === "string" ? c : c?.criterioCompleto ?? "")).filter(Boolean)
+        : (typeof first.criterios === "string" ? first.criterios.split("\n").map((s: string) => s.trim()).filter(Boolean) : []);
+      return buildInstrumentoLocal({
+        area,
+        grado,
+        competencia: first.competencia ?? "—",
+        evidencia: first.evidencia ?? first.evidenciaAprendizaje ?? "—",
+        criterios: criteriosList.length > 0 ? criteriosList : ["—"],
+        instrumento: first.instrumento?.trim() || first.instrumentoEvaluacion?.trim() || "Lista de cotejo",
+      });
+    }
+
+    if (esPlanLectorOTutoria) {
+      const propositoSesion = sesion.propositoSesion ?? parsedContenido?.propositoSesion ?? "";
+      return buildInstrumentoLocal({
+        area,
+        grado,
+        competencia: propositoSesion || "—",
+        evidencia: "—",
+        criterios: ["—"],
+        instrumento: "Lista de cotejo",
+      });
+    }
+
+    return null;
+  }, [instrumento, premiumData]);
 
   const handleGuardarFecha = async () => {
     const id = premiumData?.sesion?.id;
@@ -315,7 +376,7 @@ function SesionPremiumResult() {
 
         {/* Documento para captura PDF */}
         <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumento} insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)} />
+          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumentoFinal} insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)} />
         </div>
       </div>
     </div>
