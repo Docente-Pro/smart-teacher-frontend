@@ -10,11 +10,11 @@ interface PricingProps {
 function Pricing({ onUpgradeClick, isLoading = false }: PricingProps) {
   const plans = [
     {
-      name: "Personal",
+      name: "Personal Primaria",
       icon: User,
       price: "20",
       period: "mes",
-      description: "Para un docente individual",
+      description: "Para docentes de nivel primaria",
       features: [
         "Crear unidades y sesiones semanales",
         "Asistente IA avanzado",
@@ -23,10 +23,29 @@ function Pricing({ onUpgradeClick, isLoading = false }: PricingProps) {
         "Soporte prioritario",
       ],
       highlighted: false,
-      buttonText: "Elegir Plan Personal",
+      buttonText: "Elegir Plan Primaria",
       buttonVariant: "default" as const,
       badge: null,
       planId: "premium_personal",
+    },
+    {
+      name: "Personal Secundaria",
+      icon: User,
+      price: "25",
+      period: "mes",
+      description: "Para docentes de nivel secundaria",
+      features: [
+        "Crear unidades y sesiones semanales",
+        "Asistente IA avanzado",
+        "Exportar a PDF",
+        "Plantillas personalizadas",
+        "Soporte prioritario",
+      ],
+      highlighted: true,
+      buttonText: "Elegir Plan Secundaria",
+      buttonVariant: "default" as const,
+      badge: "NUEVO",
+      planId: "premium_personal_secundaria",
     },
     {
       name: "Equipo",
@@ -34,7 +53,7 @@ function Pricing({ onUpgradeClick, isLoading = false }: PricingProps) {
       price: "30",
       period: "mes",
       description: "Para ti + 1 docente adicional",
-      priceBreakdown: "S/ 20 base + S/ 10 por docente extra",
+      priceBreakdown: "Primaria S/ 20 base · Secundaria S/ 25 base + S/ 10 por docente extra",
       features: [
         "Crear unidades y sesiones semanales",
         "Asistente IA avanzado",
@@ -43,10 +62,10 @@ function Pricing({ onUpgradeClick, isLoading = false }: PricingProps) {
         "Soporte prioritario",
         "Incluye 1 docente adicional",
       ],
-      highlighted: true,
+      highlighted: false,
       buttonText: "Elegir Plan Equipo",
       buttonVariant: "default" as const,
-      badge: "RECOMENDADO",
+      badge: null,
       planId: "premium_equipo",
     },
   ];
@@ -69,7 +88,7 @@ function Pricing({ onUpgradeClick, isLoading = false }: PricingProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => {
             const Icon = plan.icon;
             return (
