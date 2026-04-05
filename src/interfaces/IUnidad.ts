@@ -135,7 +135,7 @@ export interface IPagoUnidad {
 // ─── Precios dinámicos (/api/unidades/precios) ───
 
 export interface IUnidadPrecios {
-  propietario: number;   // S/.20
+  propietario: number;   // Primaria S/.20, Secundaria S/.25
   suscriptor: number;    // S/.10
 }
 
