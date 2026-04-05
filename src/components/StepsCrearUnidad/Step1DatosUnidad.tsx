@@ -940,7 +940,6 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                 const isTutoria = isTutoriaArea(area);
                 const total = sesionesPorArea[area] || duracion;
                 const dist = sesionesSemanalesPorArea[area] || calcularDistribucionAutomatica(duracion, total);
-                const modo = modoDistribucionPorArea[area] || "automatica";
                 return (
                   <div key={`sesiones-${area}`} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between gap-3">
@@ -967,22 +966,11 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                         <div className="flex gap-2">
                           <Button
                             type="button"
-                            variant={modo === "automatica" ? "default" : "outline"}
+                            variant="default"
                             size="sm"
-                            onClick={() =>
-                              setModoDistribucionPorArea((prev) => ({ ...prev, [area]: "automatica" }))
-                            }
+                            className="cursor-default"
                           >
                             Automática
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={modo === "manual" ? "default" : "outline"}
-                            size="sm"
-                            disabled
-                            title="Manual se habilita en siguiente iteración"
-                          >
-                            Manual
                           </Button>
                         </div>
                       </div>
@@ -1229,10 +1217,34 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
               Fechas de la Unidad
             </CardTitle>
             <CardDescription className="text-base">
-              La fecha de fin se calcula automáticamente según la duración
+              {isSecundaria
+                ? "Selecciona la duración en semanas y la fecha de inicio"
+                : "La fecha de fin se calcula automáticamente según la duración"}
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {isSecundaria && (
+              <div className="mb-6">
+                <Label htmlFor="duracionSecundaria" className="text-sm font-medium mb-1.5 block">
+                  Duración (semanas)
+                </Label>
+                <Input
+                  id="duracionSecundaria"
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={duracion || ""}
+                  onChange={(e) => {
+                    const v = Math.max(1, Math.min(12, Number(e.target.value) || 1));
+                    setDuracion(v);
+                  }}
+                  className="h-12 text-base max-w-[200px]"
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Las sesiones se distribuirán automáticamente en {duracion || DEFAULT_SECONDARY_WEEKS} semana(s)
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="fechaInicio" className="text-sm font-medium mb-1.5 block">
