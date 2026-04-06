@@ -20,7 +20,6 @@ import type {
   IListarUsuariosParams,
   IListarUsuariosResponse,
   IUsuarioDetalleResponse,
-  IDowngradeUsuarioResponse,
   IEliminarUsuarioResponse,
 } from "@/interfaces/IAdmin";
 
@@ -291,21 +290,6 @@ export async function getUsuarioDetalle(
 ): Promise<IUsuarioDetalleResponse> {
   const { data } = await instance.get<IUsuarioDetalleResponse>(
     `/admin/usuarios/${usuarioId}`,
-    { headers: getAdminHeaders() }
-  );
-  return data;
-}
-
-/**
- * 4.3 PATCH /api/admin/usuarios/:usuarioId/downgrade
- * Bajar a un usuario a plan free.
- */
-export async function downgradeUsuario(
-  usuarioId: string
-): Promise<IDowngradeUsuarioResponse> {
-  const { data } = await instance.patch<IDowngradeUsuarioResponse>(
-    `/admin/usuarios/${usuarioId}/downgrade`,
-    {},
     { headers: getAdminHeaders() }
   );
   return data;

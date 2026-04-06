@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   getUsuarioDetalle,
-  downgradeUsuario,
   eliminarUsuario,
   resetUsuario,
   upgradePremium,
@@ -16,7 +15,7 @@ import {
   adminUpdateUsuario,
 } from "@/services/admin.service";
 import type { IAdminUpdateUsuarioRequest } from "@/services/admin.service";
-import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares, adminArreglarActividades, adminFinalizarUnidad } from "@/services/admin.service";
+import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares, adminArreglarActividades, adminFinalizarUnidad, revocarSuscripcion } from "@/services/admin.service";
 import type { IArreglarActividadesResponse } from "@/services/admin.service";
 import { getNiveles } from "@/features/initialForm/services/niveles.service";
 import { getAllGrados } from "@/services/grado.service";
@@ -379,7 +378,7 @@ export default function AdminUsuarioDetalle() {
       return;
     setActionLoading("downgrade");
     try {
-      const res = await downgradeUsuario(id!);
+      const res = await revocarSuscripcion(id!);
       toast.success(res.message || "Usuario bajado a free");
       cargarDetalle();
     } catch (err: any) {
