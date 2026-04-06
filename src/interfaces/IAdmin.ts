@@ -395,25 +395,6 @@ export interface IUsuarioDetalleResponse {
   data: IUsuarioDetalle;
 }
 
-/** Downgrade a free */
-export interface IDowngradeUsuarioResponse {
-  success: boolean;
-  message: string;
-  data: {
-    usuario: {
-      id: string;
-      nombre: string;
-      email: string;
-    };
-    suscripcion: {
-      planAnterior: string;
-      planActual: "free";
-      activa: false;
-      fechaFin: string;
-    };
-  };
-}
-
 /** Eliminar usuario */
 export interface IEliminarUsuarioResponse {
   success: boolean;
