@@ -464,7 +464,8 @@ export interface IFinalizarUnidadResponse {
 
 /**
  * Marca la unidad como finalizada (pone fechaFin = ahora).
- * Solo puede hacerlo el propietario. La unidad debe tener estadoPago = CONFIRMADO.
+ * Solo puede hacerlo el propietario (PERSONAL) o quien tenga rol PROPIETARIO en UnidadMiembro (COMPARTIDA).
+ * No se requiere estadoPago = CONFIRMADO.
  * POST /api/unidades/:id/finalizar
  */
 export async function finalizarUnidad(

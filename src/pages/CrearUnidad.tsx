@@ -27,11 +27,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { X, RotateCcw, Loader2, Check, AlertCircle } from "lucide-react";
+import { X, RotateCcw, Loader2, Check, AlertCircle, Save } from "lucide-react";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { TipoUnidad } from "@/interfaces/IUnidad";
 import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
-import { useAutoSaveContenido } from "@/hooks/useAutoSaveContenido";
+import { useManualSaveContenido } from "@/hooks/useAutoSaveContenido";
 
 const STEPS = [
   { number: 1, title: "Datos Generales", description: "Configuración" },
@@ -71,7 +71,7 @@ function CrearUnidad() {
     softResetUnidad,
   } = useUnidadStore();
 
-  const contenidoSaveStatus = useAutoSaveContenido(unidadId ?? null);
+  const { status: contenidoSaveStatus, isDirty: contenidoDirty, save: saveContenido } = useManualSaveContenido(unidadId ?? null);
 
   /** Nueva unidad desde el dashboard (u otras entradas): limpiar borrador persistido y volver al flujo inicial. */
   useLayoutEffect(() => {
@@ -280,26 +280,38 @@ function CrearUnidad() {
                   <span className="hidden xs:inline">Cerrar</span>
                 </button>
                 {unidadId && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    {contenidoSaveStatus === "saving" && (
-                      <>
+                  <>
+                    <button
+                      onClick={saveContenido}
+                      disabled={contenidoSaveStatus === "saving" || (!contenidoDirty && contenidoSaveStatus !== "error")}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                        contenidoSaveStatus === "error"
+                          ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 hover:bg-red-100"
+                          : contenidoDirty
+                            ? "text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+                            : "text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                      }`}
+                    >
+                      {contenidoSaveStatus === "saving" ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Guardando...
-                      </>
-                    )}
+                      ) : contenidoSaveStatus === "error" ? (
+                        <AlertCircle className="w-3.5 h-3.5" />
+                      ) : (
+                        <Save className="w-3.5 h-3.5" />
+                      )}
+                      {contenidoSaveStatus === "saving"
+                        ? "Guardando…"
+                        : contenidoSaveStatus === "error"
+                          ? "Reintentar"
+                          : "Guardar"}
+                    </button>
                     {contenidoSaveStatus === "saved" && (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-green-600" />
+                      <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" />
                         Guardado
-                      </>
+                      </span>
                     )}
-                    {contenidoSaveStatus === "error" && (
-                      <>
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                        Error al guardar
-                      </>
-                    )}
-                  </span>
+                  </>
                 )}
               </div>
 
