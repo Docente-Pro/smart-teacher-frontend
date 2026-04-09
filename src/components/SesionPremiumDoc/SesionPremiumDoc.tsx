@@ -584,9 +584,116 @@ function ProcesoPremiumRow({
           </div>
         )}
 
-        {/* Gráfico educativo (Math o Área) */}
-        {proceso.grafico && esGraficoRenderable(proceso.grafico) && (
-          <div style={{
+        {/* ─── Gráficos y Problema Matemático ─── */}
+        {(proceso as any).problemaMatematico && (() => {
+          const esOtrosProblemas = /otros\s+problemas/i.test(proceso.proceso || "");
+          return (
+            <>
+              {/* Gráfico del problema — oculto en "otros problemas" */}
+              {!esOtrosProblemas && proceso.grafico && esGraficoRenderable(proceso.grafico) && (
+                <div className="no-break" style={{
+                  marginTop: "0.6rem",
+                  marginBottom: "0.6rem",
+                  padding: "0.6rem 0.8rem",
+                  backgroundColor: "#f0f9ff",
+                  borderRadius: "8px",
+                  border: "1px solid #bae6fd",
+                  textAlign: "center",
+                  overflow: "visible",
+                }}>
+                  <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#0369a1", margin: "0 0 0.5rem 0" }}>
+                    📝 Problema Matemático:
+                  </p>
+                  <div style={{
+                    maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 340,
+                    width: "100%",
+                    margin: "0 auto",
+                    minWidth: 0,
+                  }}>
+                    <GraficoRenderer grafico={proceso.grafico as any} mostrarErrores={false} />
+                  </div>
+                </div>
+              )}
+
+              {/* Texto del problema */}
+              <div className="no-break" style={{
+                marginTop: "0.6rem",
+                marginBottom: "0.6rem",
+                padding: "0.7rem 1rem",
+                backgroundColor: "#f0f9ff",
+                borderRadius: "8px",
+                borderLeft: "4px solid #0284c7",
+              }}>
+                {esOtrosProblemas && (
+                  <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#0369a1", margin: "0 0 0.3rem 0" }}>
+                    📝 Problema Matemático:
+                  </p>
+                )}
+                <p style={{ fontSize: "9pt", lineHeight: "1.6", margin: 0 }}>
+                  {(proceso as any).problemaMatematico}
+                </p>
+              </div>
+
+              {/* Operación matemática — gráfico o texto según sección */}
+              {(proceso as any).graficoOperacion && esGraficoRenderable((proceso as any).graficoOperacion) && (
+                esOtrosProblemas ? (
+                  <div style={{
+                    marginTop: "0.5rem",
+                    marginBottom: "0.5rem",
+                    backgroundColor: "#faf5ff",
+                    padding: "0.5rem 0.9rem",
+                    borderRadius: "8px",
+                    borderLeft: "4px solid #d8b4fe",
+                  }}>
+                    <span style={{ fontSize: "8pt", fontWeight: "bold", color: "#7c3aed" }}>🔢 Operación Matemática: </span>
+                    <span style={{ fontSize: "9.5pt", fontWeight: "600", color: "#1e293b" }}>
+                      {(() => {
+                        const g = (proceso as any).graficoOperacion as Record<string, unknown>;
+                        const t = g.titulo ? String(g.titulo) : "";
+                        const d = g.descripcion ? String(g.descripcion) : "";
+                        const sym: Record<string, string> = { suma: "+", resta: "−", multiplicacion: "×", division: "÷" };
+                        let exp = "";
+                        if (g.tipoGrafico === "operacion_vertical" && Array.isArray(g.operandos) && (g.operandos as number[]).length >= 2) {
+                          const s = sym[String(g.operacion ?? "suma")] ?? "+";
+                          const ops = g.operandos as number[];
+                          exp = `${ops[0]} ${s} ${ops.slice(1).join(` ${s} `)} = ${g.resultado != null ? g.resultado : "___"}`;
+                        }
+                        return [t, exp, d].filter(Boolean).join(" — ");
+                      })()}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="no-break" style={{
+                    marginTop: "0.5rem",
+                    marginBottom: "0.5rem",
+                    padding: "0.6rem 0.8rem",
+                    backgroundColor: "#faf5ff",
+                    borderRadius: "8px",
+                    border: "2px solid #d8b4fe",
+                    textAlign: "center",
+                    overflow: "visible",
+                  }}>
+                    <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#7c3aed", margin: "0 0 0.5rem 0" }}>
+                      🔢 Operación Matemática:
+                    </p>
+                    <div style={{
+                      maxWidth: esGraficoAnchoCompleto((proceso as any).graficoOperacion as Record<string, unknown>) ? "100%" : 340,
+                      width: "100%",
+                      margin: "0 auto",
+                      minWidth: 0,
+                    }}>
+                      <GraficoRenderer grafico={(proceso as any).graficoOperacion as any} mostrarErrores={false} />
+                    </div>
+                  </div>
+                )
+              )}
+            </>
+          );
+        })()}
+
+        {/* Gráfico standalone (sin problemaMatematico) */}
+        {proceso.grafico && esGraficoRenderable(proceso.grafico) && !(proceso as any).problemaMatematico && (
+          <div className="no-break" style={{
             marginTop: "0.6rem",
             marginBottom: "0.6rem",
             padding: "0.6rem 0.8rem",
@@ -607,35 +714,9 @@ function ProcesoPremiumRow({
           </div>
         )}
 
-        {/* Gráfico de operación */}
-        {(proceso as any).graficoOperacion && esGraficoRenderable((proceso as any).graficoOperacion) && (
-          <div style={{
-            marginTop: "0.5rem",
-            marginBottom: "0.5rem",
-            backgroundColor: "#faf5ff",
-            padding: "0.6rem 0.8rem",
-            borderRadius: "8px",
-            border: "2px solid #d8b4fe",
-            overflow: "visible",
-          }}>
-            <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#7c3aed", marginBottom: "0.3rem", margin: 0 }}>
-              🔢 Operación / Recurso:
-            </p>
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "0.3rem", minWidth: 0 }}>
-              <div style={{ 
-                maxWidth: esGraficoAnchoCompleto((proceso as any).graficoOperacion) ? "100%" : 340, 
-                width: "100%",
-                minWidth: 0,
-              }}>
-                <GraficoRenderer grafico={(proceso as any).graficoOperacion} mostrarErrores={false} />
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Respuestas del docente (transversal — todas las áreas) */}
         {(proceso as any).respuestasDocente && (proceso as any).respuestasDocente.length > 0 && (
-          <div style={{
+          <div className="no-break" style={{
             marginTop: "0.8rem",
             marginBottom: "0.8rem",
             backgroundColor: "#fffbeb",
@@ -1143,6 +1224,22 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
       )}
 
       {/* FUENTES MINEDU — deshabilitado, no se renderiza en el PDF */}
+
+      {/* Firmas — Docente y Directivo */}
+      <table style={{ marginTop: "2.2rem" }}>
+        <tbody>
+          <tr>
+            <td style={{ width: "50%", textAlign: "center", border: "none", paddingTop: "2.2rem" }}>
+              <div style={{ borderTop: "1px solid #000", width: "70%", margin: "0 auto 0.4rem auto" }} />
+              Docente
+            </td>
+            <td style={{ width: "50%", textAlign: "center", border: "none", paddingTop: "2.2rem" }}>
+              <div style={{ borderTop: "1px solid #000", width: "70%", margin: "0 auto 0.4rem auto" }} />
+              Directivo
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* Footer — con color del área */}
       <HtmldocsFooter position="bottom-center">

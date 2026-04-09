@@ -1,21 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useUnidadStore } from "@/store/unidad.store";
 import { editarContenidoUnidad } from "@/services/unidad.service";
 
-const DEBOUNCE_MS = 1500;
-
 export type ContenidoSaveStatus = "idle" | "saving" | "saved" | "error";
 
+export interface ManualSaveContenido {
+  status: ContenidoSaveStatus;
+  isDirty: boolean;
+  save: () => Promise<void>;
+}
+
 /**
- * Auto-guarda el contenido de la unidad en BD con debounce (1.5s) cada vez que
- * el docente edita un paso. Muestra estado "Guardando..." / "Guardado".
- * Solo hace PATCH cuando hay unidadId y contenido tiene al menos una clave.
+ * Tracks whether the unit content has unsaved changes and exposes a manual
+ * `save()` function. The teacher must click "Guardar" to persist — there is
+ * no automatic debounce timer.
  */
-export function useAutoSaveContenido(unidadId: string | null): ContenidoSaveStatus {
+export function useManualSaveContenido(unidadId: string | null): ManualSaveContenido {
   const contenido = useUnidadStore((s) => s.contenido);
   const [status, setStatus] = useState<ContenidoSaveStatus>("idle");
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const savedRef = useRef(false);
+  const [isDirty, setIsDirty] = useState(false);
   const isFirstRunRef = useRef(true);
 
   useEffect(() => {
@@ -24,32 +27,26 @@ export function useAutoSaveContenido(unidadId: string | null): ContenidoSaveStat
       isFirstRunRef.current = false;
       return;
     }
+    const keys = contenido && typeof contenido === "object" ? Object.keys(contenido) : [];
+    if (keys.length === 0) return;
+    setIsDirty(true);
+  }, [unidadId, contenido]);
 
+  const save = useCallback(async () => {
+    if (!unidadId) return;
     const keys = contenido && typeof contenido === "object" ? Object.keys(contenido) : [];
     if (keys.length === 0) return;
 
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
-    timeoutRef.current = setTimeout(() => {
-      timeoutRef.current = null;
-      setStatus("saving");
-      editarContenidoUnidad(unidadId, { contenido: contenido as Record<string, unknown> })
-        .then(() => {
-          setStatus("saved");
-          savedRef.current = true;
-          setTimeout(() => {
-            if (savedRef.current) setStatus("idle");
-          }, 2000);
-        })
-        .catch(() => {
-          setStatus("error");
-        });
-    }, DEBOUNCE_MS);
-
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
+    setStatus("saving");
+    try {
+      await editarContenidoUnidad(unidadId, { contenido: contenido as Record<string, unknown> });
+      setStatus("saved");
+      setIsDirty(false);
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch {
+      setStatus("error");
+    }
   }, [unidadId, contenido]);
 
-  return status;
+  return { status, isDirty, save };
 }

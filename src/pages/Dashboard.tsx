@@ -203,7 +203,14 @@ function Dashboard() {
             const sesTotal = items.reduce((sum, u) => sum + (u.sesiones?.length ?? 0), 0);
             setTotalSesiones(sesTotal);
             if (items.length > 0) {
-              const sorted = [...items].sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+              const ahora = Date.now();
+              // Active unit = fechaFin is null/empty OR fechaFin is in the future
+              const activas = items.filter(
+                (u) => !u.fechaFin || new Date(u.fechaFin).getTime() > ahora
+              );
+              // Pick the active unit with the highest number; fall back to newest by createdAt
+              const candidates = activas.length > 0 ? activas : items;
+              const sorted = [...candidates].sort((a, b) => b.numeroUnidad - a.numeroUnidad);
               setUnidadActiva({ titulo: sorted[0].titulo, numero: sorted[0].numeroUnidad });
               if (!gradoNombre && sorted[0].grado?.nombre) setGradoNombre(sorted[0].grado.nombre);
               if (!nivelNombre && sorted[0].nivel?.nombre) setNivelNombre(sorted[0].nivel.nombre);

@@ -546,14 +546,14 @@ export async function adminUpdateUsuario(
 }
 
 /**
- * 4.4 DELETE /api/admin/usuarios/:usuarioId
- * Eliminar usuario y todos sus datos. Acción irreversible.
+ * 4.4 DELETE /api/usuario/:id
+ * Eliminar usuario y todos sus datos (sesiones, fichas, unidades, suscripción, Auth0). Acción irreversible.
  */
 export async function eliminarUsuario(
   usuarioId: string
 ): Promise<IEliminarUsuarioResponse> {
   const { data } = await instance.delete<IEliminarUsuarioResponse>(
-    `/admin/usuarios/${usuarioId}`,
+    `/usuario/${usuarioId}`,
     { headers: getAdminHeaders() }
   );
   return data;

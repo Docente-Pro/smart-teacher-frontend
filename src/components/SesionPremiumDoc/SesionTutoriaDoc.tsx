@@ -312,14 +312,16 @@ export function SesionTutoriaDoc({ data, insigniaUrl }: SesionTutoriaDocProps) {
         </tbody>
       </table>
 
-      <table style={{ marginTop: "0.9rem" }}>
+      <table style={{ marginTop: "2.2rem" }}>
         <tbody>
           <tr>
-            <td style={{ width: "50%", textAlign: "center", border: "none", paddingTop: "1.2rem", fontSize: "8.5pt" }}>
-              TUTOR RESPONSABLE
+            <td style={{ width: "50%", textAlign: "center", border: "none", paddingTop: "2.2rem" }}>
+              <div style={{ borderTop: "1px solid #000", width: "70%", margin: "0 auto 0.4rem auto" }} />
+              Docente
             </td>
-            <td style={{ width: "50%", textAlign: "center", border: "none", paddingTop: "1.2rem", fontSize: "8.5pt" }}>
-              {nombreDirectivo ? "DIRECTIVO" : "DIRECTIVO"}
+            <td style={{ width: "50%", textAlign: "center", border: "none", paddingTop: "2.2rem" }}>
+              <div style={{ borderTop: "1px solid #000", width: "70%", margin: "0 auto 0.4rem auto" }} />
+              Directivo
             </td>
           </tr>
         </tbody>
