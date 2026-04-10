@@ -440,6 +440,36 @@ export async function adminFinalizarUnidad(
   return data;
 }
 
+/** POST /api/admin/unidad/:unidadId/reset — Reinicia contenido IA sin eliminar la unidad */
+export interface IAdminResetUnidadRequest {
+  titulo?: string;
+  numeroUnidad?: number;
+  nivelId?: number;
+  gradoId?: number;
+  problematicaId?: number;
+  duracion?: number;
+  fechaInicio?: string;
+  fechaFin?: string;
+}
+
+export interface IAdminResetUnidadResponse {
+  success: boolean;
+  message: string;
+  data: Record<string, unknown>;
+}
+
+export async function adminResetUnidad(
+  unidadId: string,
+  body: IAdminResetUnidadRequest = {},
+): Promise<IAdminResetUnidadResponse> {
+  const { data } = await instance.post<IAdminResetUnidadResponse>(
+    `/admin/unidad/${unidadId}/reset`,
+    body,
+    { headers: getAdminHeaders() },
+  );
+  return data;
+}
+
 interface IAdminGenerarWordResponse {
   success: boolean;
   jobId: string;

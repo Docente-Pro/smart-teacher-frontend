@@ -15,7 +15,7 @@ import {
   adminUpdateUsuario,
 } from "@/services/admin.service";
 import type { IAdminUpdateUsuarioRequest } from "@/services/admin.service";
-import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares, adminArreglarActividades, adminFinalizarUnidad, revocarSuscripcion } from "@/services/admin.service";
+import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares, adminArreglarActividades, adminFinalizarUnidad, adminResetUnidad, revocarSuscripcion } from "@/services/admin.service";
 import type { IArreglarActividadesResponse } from "@/services/admin.service";
 import { getNiveles } from "@/features/initialForm/services/niveles.service";
 import { getAllGrados } from "@/services/grado.service";
@@ -101,6 +101,7 @@ export default function AdminUsuarioDetalle() {
   const [generatingWord, setGeneratingWord] = useState<string | null>(null);
   const [generandoFicha, setGenerandoFicha] = useState<string | null>(null);
   const [finalizandoUnidadId, setFinalizandoUnidadId] = useState<string | null>(null);
+  const [reiniciandoUnidadId, setReiniciandoUnidadId] = useState<string | null>(null);
 
   // ── Edit profile state ──
   const [editOpen, setEditOpen] = useState(false);
@@ -1565,6 +1566,51 @@ export default function AdminUsuarioDetalle() {
                           <ListChecks className="w-3 h-3" />
                         )}
                         {arreglandoActividades === u.id ? "Arreglando…" : "Arreglar Actividades"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs h-7 border-orange-300 text-orange-700 hover:bg-orange-50"
+                        disabled={reiniciandoUnidadId === u.id}
+                        title="Reiniciar contenido IA de la unidad"
+                        onClick={async () => {
+                          if (
+                            !confirm(
+                              `¿Reiniciar la unidad "${u.titulo || u.id}"?\n\nSe limpiará el contenido IA, PDF y Word. El docente deberá rehacer el wizard desde el paso 1.\n\nLa unidad, pagos y sesiones existentes se conservan.`,
+                            )
+                          )
+                            return;
+                          setReiniciandoUnidadId(u.id);
+                          try {
+                            const res = await adminResetUnidad(u.id);
+                            toast.success(res.message || "Unidad reiniciada");
+                            setUsuario((prev) => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                unidades: prev.unidades.map((uni) =>
+                                  uni.id === u.id
+                                    ? { ...uni, pdfUrl: null, wordUrl: null, wordGeneradoAt: null }
+                                    : uni,
+                                ),
+                              };
+                            });
+                          } catch (err: any) {
+                            toast.error(
+                              err?.response?.data?.message ||
+                                "Error al reiniciar la unidad",
+                            );
+                          } finally {
+                            setReiniciandoUnidadId(null);
+                          }
+                        }}
+                      >
+                        {reiniciandoUnidadId === u.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-3 h-3" />
+                        )}
+                        {reiniciandoUnidadId === u.id ? "Reiniciando…" : "Reiniciar"}
                       </Button>
                       {isUnidadActivaParaFinalizar(u.fechaFin) && (
                         <Button
