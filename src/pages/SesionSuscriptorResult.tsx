@@ -250,6 +250,18 @@ function SesionSuscriptorResult() {
           ...(raw.recursoNarrativo || contenido.recursoNarrativo
             ? { recursoNarrativo: raw.recursoNarrativo || contenido.recursoNarrativo }
             : {}),
+          ...(raw.tipo || contenido.tipo
+            ? { tipo: raw.tipo || contenido.tipo }
+            : {}),
+          ...(raw.formatoFrontTutoria || contenido.formatoFrontTutoria
+            ? { formatoFrontTutoria: raw.formatoFrontTutoria || contenido.formatoFrontTutoria }
+            : {}),
+          ...(raw.formatoFrontPlanLector || contenido.formatoFrontPlanLector
+            ? { formatoFrontPlanLector: raw.formatoFrontPlanLector || contenido.formatoFrontPlanLector }
+            : {}),
+          ...(raw.dimension || contenido.dimension
+            ? { dimension: raw.dimension || contenido.dimension }
+            : {}),
         };
 
         const nombreDirectivo =

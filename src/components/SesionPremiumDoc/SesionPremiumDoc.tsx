@@ -1064,8 +1064,26 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
-  const isTutoria = areaNormalized.includes("tutoria");
-  const isPlanLector = areaNormalized.includes("plan lector") || areaNormalized.includes("planlector");
+
+  // Detección robusta: checar area, tipo, y formatoFront* para no depender
+  // solo del string de área (que puede venir como "Comunicación" desde la BD).
+  const s = sesion as any;
+  const tipoNormalized = (s.tipo ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  const isTutoria =
+    areaNormalized.includes("tutoria") ||
+    tipoNormalized.includes("tutoria") ||
+    !!s.formatoFrontTutoria;
+  const isPlanLector =
+    !isTutoria &&
+    (areaNormalized.includes("plan lector") ||
+      areaNormalized.includes("planlector") ||
+      tipoNormalized.includes("plan lector") ||
+      tipoNormalized.includes("planlector") ||
+      !!s.formatoFrontPlanLector);
 
   if (isTutoria) {
     return <SesionTutoriaDoc data={data} insigniaUrl={insigniaUrl} />;
