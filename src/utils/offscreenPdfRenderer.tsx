@@ -112,6 +112,14 @@ export function buildSesionPremiumData(
     ...(contenido.recursoNarrativo
       ? { recursoNarrativo: contenido.recursoNarrativo }
       : {}),
+    ...(contenido.tipo ? { tipo: contenido.tipo } : {}),
+    ...(contenido.formatoFrontTutoria
+      ? { formatoFrontTutoria: contenido.formatoFrontTutoria }
+      : {}),
+    ...(contenido.formatoFrontPlanLector
+      ? { formatoFrontPlanLector: contenido.formatoFrontPlanLector }
+      : {}),
+    ...(contenido.dimension ? { dimension: contenido.dimension } : {}),
   };
 
   return {

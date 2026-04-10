@@ -1,4 +1,4 @@
-# Contrato de API — Membresía, Usuarios y Unidades
+****# Contrato de API — Membresía, Usuarios y Unidades
 
 > **Base URL:** `https://<host>/api`
 > **Autenticación:** Bearer token Auth0 en el header `Authorization` de todos los endpoints.
@@ -10,7 +10,7 @@
 Revoca la suscripción premium de un usuario y la regresa al plan free.
 
 ```
-PATCH /api/suscripcion/usuario/:usuarioId/revocar
+PATCH /api/suscripcion/usuario/:usuarioId/**revocar**
 ```
 
 **Rol requerido:** `Admin`
@@ -254,7 +254,7 @@ No se requiere `estadoPago === "CONFIRMADO"` para poder finalizar.
 
 ## 5. Finalizar unidad (Admin)
 
-Versión admin sin restricciones de propiedad ni de `fechaFin`. Útil para soporte.
+Versión admin sin restricciones de propiedad, pago ni plan. Marca la unidad como concluida (`fechaFin = ahora`) para que el docente pueda crear una nueva.
 
 ```
 POST /api/admin/unidad/:unidadId/finalizar
@@ -262,28 +262,201 @@ POST /api/admin/unidad/:unidadId/finalizar
 
 **Rol requerido:** `Admin`
 
+**Headers**
+
+```
+Authorization: Bearer <token_admin>
+```
+
 **Path params**
 
 | Param | Tipo | Descripción |
 |---|---|---|
-| `unidadId` | `string (uuid)` | ID de la unidad |
+| `unidadId` | `string (uuid)` | ID de la unidad a finalizar |
 
-**Body:** ninguno
+**Body:** ninguno (no enviar body)
 
-**Respuesta 200**
+### Respuesta exitosa (200)
 
 ```json
 {
   "success": true,
   "message": "Unidad finalizada por administración. El docente puede crear una nueva unidad si su plan lo permite.",
-  "data": { }
+  "data": {
+    "id": "uuid",
+    "numeroUnidad": 1,
+    "titulo": "Exploramos nuestras raíces culturales",
+    "usuarioId": "uuid",
+    "tipo": "PERSONAL",
+    "estadoPago": "PENDIENTE",
+    "fechaInicio": "2026-03-15T00:00:00.000Z",
+    "fechaFin": "2026-04-06T17:30:00.000Z",
+    "duracion": 4,
+    "maxMiembros": 1,
+    "sesionesSemanales": 10,
+    "createdAt": "2026-03-15T00:00:00.000Z",
+    "updatedAt": "2026-04-06T17:30:00.000Z",
+    "usuario": {
+      "id": "uuid",
+      "nombre": "María Hinojo",
+      "email": "maria@gmail.com"
+    },
+    "nivel": { "id": 1, "nombre": "Primaria" },
+    "grado": { "id": 5, "nombre": "Quinto Grado" },
+    "problematica": { "id": 3, "nombre": "..." },
+    "sesiones": [
+      { "id": "uuid", "titulo": "Sesión 1 - ...", "areaId": 1 }
+    ],
+    "miembros": []
+  }
 }
 ```
 
-**Errores**
+### Errores
 
-| Status | Condición |
+| Status | `success` | `message` | Cuándo ocurre |
+|---|---|---|---|
+| `400` | `false` | `"La unidad ya está finalizada"` | `fechaFin` ya pasó |
+| `404` | `false` | `"Unidad no encontrada"` | UUID inválido o no existe |
+| `500` | `false` | `"Error al finalizar la unidad"` | Error interno |
+
+### Ejemplo con fetch (para Orlando)
+
+```typescript
+const finalizarUnidad = async (unidadId: string, token: string) => {
+  const res = await fetch(
+    `${API_BASE}/api/admin/unidad/${unidadId}/finalizar`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return res.json();
+};
+```
+
+### Notas para el frontend
+
+- Después de una respuesta exitosa, la unidad aparecerá con `fechaFin` en el pasado.
+- El docente podrá crear una nueva unidad de inmediato (el backend ya no la cuenta como activa).
+- Se puede usar desde el detalle del usuario o desde el detalle de la unidad en el admin.
+- No requiere que la unidad tenga pago confirmado ni que sea de un tipo específico (funciona con PERSONAL y COMPARTIDA).
+
+---
+
+## 6. Reiniciar unidad (Admin)
+
+Limpia el contenido generado por IA de una unidad para que el docente pueda rehacer el wizard desde el paso 1. **No elimina** la unidad, sus pagos ni las sesiones asociadas.
+
+```
+POST /api/admin/unidad/:unidadId/reset
+```
+
+**Rol requerido:** `Admin`
+
+**Headers**
+
+```
+Authorization: Bearer <token_admin>
+Content-Type: application/json
+```
+
+**Path params**
+
+| Param | Tipo | Descripción |
+|---|---|---|
+| `unidadId` | `string (uuid)` | ID de la unidad a reiniciar |
+
+**Body (todo opcional — enviar `{}` para un reset limpio)**
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `titulo` | `string` | Nuevo título (si el docente quiere cambiarlo) |
+| `numeroUnidad` | `number` | Nuevo número de unidad |
+| `nivelId` | `number` | Cambiar nivel |
+| `gradoId` | `number` | Cambiar grado |
+| `problematicaId` | `number` | Cambiar problemática |
+| `duracion` | `number` | Cambiar duración en semanas |
+| `fechaInicio` | `string (ISO)` | Cambiar fecha de inicio |
+| `fechaFin` | `string (ISO)` | Cambiar fecha de fin |
+
+### Qué se limpia
+
+| Campo | Valor después del reset |
 |---|---|
-| `400` | La unidad ya está finalizada |
-| `404` | Unidad no encontrada |
-| `500` | Error interno |
+| `contenido` | `null` |
+| `pdfUrl` | `null` |
+| `pdfGeneradoAt` | `null` |
+| `wordUrl` | `null` |
+| `wordGeneradoAt` | `null` |
+| Miembros: `contenidoPersonalizado` | `null` |
+| Miembros: `pdfUrl` | `null` |
+| Miembros: `pdfGeneradoAt` | `null` |
+
+### Qué se preserva
+
+- La unidad en sí (id, pagos, tipo, código compartido, miembros)
+- Las sesiones ya generadas
+- El historial de `PagoUnidad`
+
+### Respuesta exitosa (200)
+
+```json
+{
+  "success": true,
+  "message": "Unidad \"Exploramos nuestras raíces\" reiniciada. El docente puede rehacer el wizard desde el paso 1.",
+  "data": {
+    "id": "uuid",
+    "numeroUnidad": 1,
+    "titulo": "Exploramos nuestras raíces culturales",
+    "contenido": null,
+    "pdfUrl": null,
+    "wordUrl": null,
+    "tipo": "PERSONAL",
+    "estadoPago": "CONFIRMADO",
+    "fechaFin": null,
+    "usuario": { "id": "uuid", "nombre": "...", "email": "..." },
+    "nivel": { "id": 1, "nombre": "Primaria" },
+    "grado": { "id": 5, "nombre": "Quinto Grado" },
+    "problematica": { "id": 3, "nombre": "..." },
+    "sesiones": [],
+    "miembros": []
+  }
+}
+```
+
+### Errores
+
+| Status | `success` | `message` | Cuándo ocurre |
+|---|---|---|---|
+| `404` | `false` | `"Unidad no encontrada"` | UUID inválido o no existe |
+| `500` | `false` | `"Error al reiniciar la unidad"` | Error interno |
+
+### Ejemplo con fetch (para Orlando)
+
+```typescript
+const resetUnidad = async (unidadId: string, token: string) => {
+  const res = await fetch(
+    `${API_BASE}/api/admin/unidad/${unidadId}/reset`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    }
+  );
+  return res.json();
+};
+```
+
+### Diferencia entre Finalizar y Reiniciar
+
+| Acción | Endpoint | Qué hace | La unidad sigue activa? |
+|---|---|---|---|
+| **Finalizar** | `POST .../finalizar` | Pone `fechaFin = ahora`, libera slot | No — ya no cuenta como activa |
+| **Reiniciar** | `POST .../reset` | Limpia contenido IA, el docente rehace el wizard | Sí — sigue activa |
