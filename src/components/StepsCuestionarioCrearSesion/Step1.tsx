@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ArrowRight,
   Sparkles,
+  GraduationCap,
 } from "lucide-react";
 import { useSesionStore } from "@/store/sesion.store";
 import { getAreaColor, getAreaIcon } from "@/constants/areaColors";
@@ -20,6 +21,7 @@ interface Props {
   pagina: number;
   setPagina: (pagina: number) => void;
   usuarioFromState: IUsuario;
+  gradosDisponibles?: Array<{ id: number; nombre: string }>;
 }
 
 const tiemposEstudio = [
@@ -52,12 +54,15 @@ const tiemposEstudio = [
   },
 ];
 
-function Step1({ pagina, setPagina, usuarioFromState }: Props) {
+function Step1({ pagina, setPagina, usuarioFromState, gradosDisponibles = [] }: Props) {
   const { sesion, updateSesion } = useSesionStore();
   const [areas, setAreas] = useState<IArea[]>([]);
   const [areaSeleccionada, setAreaSeleccionada] = useState<string>("");
   const [duracionSeleccionada, setDuracionSeleccionada] = useState<string>("");
+  const [gradoSeleccionado, setGradoSeleccionado] = useState<number | null>(null);
   const { showLoading, hideLoading } = useGlobalLoading();
+
+  const requiereSeleccionGrado = gradosDisponibles.length > 1;
 
   useEffect(() => {
     async function cargarAreas() {
@@ -88,8 +93,24 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
     if (sesion) {
       setAreaSeleccionada(sesion.datosGenerales.area || "");
       setDuracionSeleccionada(sesion.datosGenerales.duracion || "");
+      if (sesion.gradoId) {
+        setGradoSeleccionado(sesion.gradoId);
+      }
     }
   }, [sesion]);
+
+  function handleGradoClick(gradoId: number, gradoNombre: string) {
+    setGradoSeleccionado(gradoId);
+    if (sesion) {
+      updateSesion({
+        gradoId: gradoId,
+        datosGenerales: {
+          ...sesion.datosGenerales,
+          grado: gradoNombre,
+        },
+      });
+    }
+  }
 
   function handleAreaClick(areaNombre: string, id?: number) {
     setAreaSeleccionada(areaNombre);
@@ -117,6 +138,10 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
   }
 
   function handleNextStep() {
+    if (requiereSeleccionGrado && !gradoSeleccionado) {
+      handleToaster("Por favor selecciona el grado", "error");
+      return;
+    }
     if (areaSeleccionada && duracionSeleccionada) {
       setPagina(pagina + 1);
     } else {
@@ -144,6 +169,68 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
             personalizada para ti
           </p>
         </div>
+
+        {/* Selección de Grado (solo secundaria con múltiples grados) */}
+        {requiereSeleccionGrado && (
+          <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <div className="h-10 w-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
+                  <GraduationCap className="h-6 w-6 text-white" />
+                </div>
+                Selecciona el grado
+              </CardTitle>
+              <CardDescription className="text-base">
+                Elige el grado para el cual deseas crear tu sesión de aprendizaje
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {gradosDisponibles.map((grado) => {
+                  const isSelected = gradoSeleccionado === grado.id;
+
+                  return (
+                    <div
+                      key={grado.id}
+                      onClick={() => handleGradoClick(grado.id, grado.nombre)}
+                      className={`
+                        group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
+                        ${
+                          isSelected
+                            ? "ring-4 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-900 scale-105 shadow-2xl"
+                            : "hover:scale-105 hover:shadow-xl border-2 border-slate-200 dark:border-slate-700"
+                        }
+                      `}
+                    >
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 transition-opacity duration-300 ${
+                          isSelected ? "opacity-100" : "opacity-80 group-hover:opacity-90"
+                        }`}
+                      />
+
+                      <div className="relative p-6 flex flex-col items-center gap-3 text-white">
+                        <div
+                          className={`p-3 bg-white/20 backdrop-blur-sm rounded-lg transition-transform duration-300 ${
+                            isSelected ? "scale-110" : "group-hover:scale-110"
+                          }`}
+                        >
+                          <GraduationCap className="h-8 w-8" />
+                        </div>
+                        <p className="text-sm font-bold text-center leading-tight">{grado.nombre}</p>
+
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-lg">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Selección de Área */}
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
@@ -295,7 +382,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
         <div className="flex justify-end">
           <Button
             onClick={handleNextStep}
-            disabled={!areaSeleccionada || !duracionSeleccionada}
+            disabled={!areaSeleccionada || !duracionSeleccionada || (requiereSeleccionGrado && !gradoSeleccionado)}
             className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continuar

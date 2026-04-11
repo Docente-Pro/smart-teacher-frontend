@@ -44,11 +44,13 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
       const duracionNum = parseInt(duracionStr, 10) || 90;
 
       // PASO 0 — Crear la sesión en la BD
+      // Preferir gradoId de la sesión (seleccionado en Step1 para secundaria)
+      const gradoIdFinal = sesion.gradoId ?? usuario.gradoId ?? 1;
       const respuestaCrear = await crearSesion({
         titulo: sesion.titulo || "Sesión de aprendizaje",
         usuarioId,
         nivelId: usuario.nivelId ?? 1,
-        gradoId: usuario.gradoId ?? 1,
+        gradoId: gradoIdFinal,
         problematicaId: usuario.problematicaId ?? 1,
         duracion: duracionNum,
         ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
