@@ -9,6 +9,7 @@ import {
   Loader2,
   Pencil,
   Eye,
+  ExternalLink,
   Save,
   Printer,
   ListChecks,
@@ -1134,7 +1135,7 @@ function EditarSesionPremium() {
 
   /** Completar lista de cotejo: toma alumnos del storage, guarda en sesión (listaAlumnos) y actualiza PDF */
   const handleCompletarListaCotejo = useCallback(async () => {
-    const alumnos = getSavedAlumnos();
+    const alumnos = getSavedAlumnos((rawSesion as any)?.gradoId);
     if (!alumnos?.length) {
       toast.error("No hay lista de alumnos. Sube tu lista desde el dashboard (Modificar lista de alumnos).");
       return;
@@ -1233,7 +1234,13 @@ function EditarSesionPremium() {
   };
 
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
-  const handleDownloadWord = async () => {
+  const [wordUrl, setWordUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if ((rawSesion as any)?.wordUrl) setWordUrl((rawSesion as any).wordUrl);
+  }, [rawSesion]);
+
+  const handleGenerateWord = async () => {
     if (!sesionId) {
       toast.error("No se encontró el ID de la sesión");
       return;
@@ -1241,16 +1248,15 @@ function EditarSesionPremium() {
 
     setIsGeneratingWord(true);
     try {
-      // Prefer server-side conversion from existing S3 PDF
       const hasPdf = !!(rawSesion as any)?.pdfUrl;
       if (hasPdf) {
         const { generarWordDesdePDFExistente } = await import("@/services/pdfToWord.service");
-        await generarWordDesdePDFExistente(sesionId);
-        toast.success("Word generado y guardado");
+        const url = await generarWordDesdePDFExistente(sesionId);
+        setWordUrl(url);
+        toast.success("Word generado correctamente");
         return;
       }
 
-      // Fallback: render preview, generate PDF locally, upload
       const premData = buildPremiumData();
       if (!premData) return;
       setView("preview");
@@ -1260,12 +1266,24 @@ function EditarSesionPremium() {
         return;
       }
       const { generateAndUploadWord } = await import("@/services/htmldocs.service");
-      await generateAndUploadWord(documentRef.current, sesionId);
-      toast.success("Word generado y guardado");
+      const url = await generateAndUploadWord(documentRef.current, sesionId);
+      if (url) setWordUrl(url);
+      toast.success("Word generado correctamente");
     } catch (err: any) {
       toast.error(err?.message || "Error al generar Word");
     } finally {
       setIsGeneratingWord(false);
+    }
+  };
+
+  const handleVerWord = async () => {
+    if (!sesionId) return;
+    try {
+      const { obtenerDownloadUrlWord } = await import("@/services/pdfToWord.service");
+      const url = await obtenerDownloadUrlWord(sesionId);
+      window.open(url, "_blank");
+    } catch {
+      toast.error("Error al obtener el Word");
     }
   };
 
@@ -1516,18 +1534,30 @@ function EditarSesionPremium() {
                   <FileDown className="h-4 w-4" />
                   <span className="hidden sm:inline">Descargar PDF</span>
                 </Button>
-                <Button
-                  onClick={handleDownloadWord}
-                  disabled={isGeneratingWord}
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {isGeneratingWord ? "Generando Word..." : "Descargar Word"}
-                  </span>
-                </Button>
+                {wordUrl ? (
+                  <Button
+                    onClick={handleVerWord}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span className="hidden sm:inline">Ver Word</span>
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleGenerateWord}
+                    disabled={isGeneratingWord}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      {isGeneratingWord ? "Generando Word..." : "Generar Word"}
+                    </span>
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -2413,7 +2443,7 @@ function EditarSesionPremium() {
                 <InstrumentoEvaluacionSection
                   instrumento={instrumentoPreview ?? INSTRUMENTO_LISTA_COTEJO_VACIA}
                   hex={hex}
-                  alumnos={getSavedAlumnos()}
+                  alumnos={getSavedAlumnos((rawSesion as any)?.gradoId)}
                 />
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { Document, Footer } from "@htmldocs/react";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer, Cloud, CloudOff, Loader2, Home, ClipboardList } from "lucide-react";
+import { FileDown, Printer, Cloud, CloudOff, Loader2, Home, ClipboardList, Pencil, CheckCircle2 } from "lucide-react";
 import { useRef, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { usePDFGeneration } from "@/hooks/usePDFGeneration";
@@ -40,7 +40,7 @@ function DocTest() {
   // ── Derivar colores del área ────────────────────────────────────
   const areaHex = sesion ? getAreaColor(sesion.datosGenerales.area).hex : null;
   // ── Alumnos guardados en localStorage ──────────────────────────────
-  const alumnos = useMemo(() => getSavedAlumnos(), []);
+  const alumnos = useMemo(() => getSavedAlumnos(sesion?.gradoId), [sesion?.gradoId]);
 
   // ── Construir instrumento de evaluación desde datos de la sesión ────
   const instrumento = useMemo(() => {
@@ -166,13 +166,12 @@ function DocTest() {
       <style>{printStyles}</style>
       <div className="max-w-6xl mx-auto">
         {/* Header con botones */}
-        <div className="no-print flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h1 className="text-xl sm:text-[1.875rem] font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+        <div className="no-print flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             Vista Previa - Sesión de Aprendizaje
           </h1>
           <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
-            {/* Indicador de guardado en la nube */}
-            <div className="flex items-center gap-1 text-xs" style={{color: isSaved ? "#16a34a" : isSaving ? "#2563eb" : "#94a3b8"}}>
+            <div className="flex items-center gap-1.5 text-sm font-medium mr-1" style={{color: isSaved ? "#16a34a" : isSaving ? "#2563eb" : "#94a3b8"}}>
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -190,21 +189,21 @@ function DocTest() {
                 </>
               )}
             </div>
-            <Button 
-              onClick={() => navigate('/dashboard')} 
-              variant="outline" 
+            <Button
+              onClick={() => navigate('/dashboard')}
+              variant="outline"
               size="sm"
-              className="gap-1.5"
+              className="gap-1.5 h-9"
             >
               <Home className="h-4 w-4" />
               <span className="hidden sm:inline">Inicio</span>
             </Button>
-            <Button 
-              onClick={handlePrint} 
+            <Button
+              onClick={handlePrint}
               disabled={isGenerating}
-              variant="outline" 
+              variant="outline"
               size="sm"
-              className="gap-1.5"
+              className="gap-1.5 h-9"
             >
               <Printer className="h-4 w-4" />
               <span className="hidden sm:inline">Imprimir</span>
@@ -215,7 +214,7 @@ function DocTest() {
                 disabled={isGeneratingFicha || !isSaved}
                 size="sm"
                 variant="outline"
-                className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950"
+                className="gap-1.5 h-9 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950"
               >
                 {isGeneratingFicha ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -230,11 +229,11 @@ function DocTest() {
                 </span>
               </Button>
             )}
-            <Button 
-              onClick={handleDownloadPDF} 
+            <Button
+              onClick={handleDownloadPDF}
               disabled={isGenerating}
               size="sm"
-              className="gap-1.5 bg-gradient-to-r from-blue-600 to-cyan-600"
+              className="gap-1.5 h-9 bg-gradient-to-r from-blue-600 to-cyan-600"
             >
               <FileDown className="h-4 w-4" />
               <span className="hidden sm:inline">{isGenerating ? "Generando PDF..." : "Descargar PDF"}</span>
@@ -242,6 +241,52 @@ function DocTest() {
             </Button>
           </div>
         </div>
+
+        {/* Banner de éxito con acciones claras */}
+        {isSaved && savedSesionId && (
+          <div className="no-print mb-6 rounded-xl border border-green-200 dark:border-green-800/40 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-500/5 dark:to-emerald-500/5 p-4 sm:p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-base font-semibold text-green-800 dark:text-green-300">
+                  ¡Tu sesión se guardó correctamente!
+                </p>
+                <p className="text-sm text-green-700/80 dark:text-green-400/70 mt-0.5">
+                  Ya puedes editar el contenido, descargar el PDF o volver al inicio.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                onClick={() => navigate(`/editar-sesion/${savedSesionId}`)}
+                size="lg"
+                className="gap-2 h-12 px-6 text-base font-semibold bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all"
+              >
+                <Pencil className="h-5 w-5" />
+                Editar contenido
+              </Button>
+              <Button
+                onClick={handleDownloadPDF}
+                disabled={isGenerating}
+                variant="outline"
+                size="lg"
+                className="gap-2 h-12 px-6 text-base font-semibold border-2"
+              >
+                <FileDown className="h-5 w-5" />
+                {isGenerating ? "Generando PDF..." : "Descargar PDF"}
+              </Button>
+              <Button
+                onClick={() => navigate('/dashboard')}
+                variant="outline"
+                size="lg"
+                className="gap-2 h-12 px-6 text-base font-semibold border-2"
+              >
+                <Home className="h-5 w-5" />
+                Volver al Inicio
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Documento */}
         <div id="print-content" ref={documentRef}>

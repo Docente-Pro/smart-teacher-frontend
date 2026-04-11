@@ -1055,6 +1055,7 @@ interface SesionPremiumDocProps {
  */
 export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremiumDocProps) {
   const { sesion, docente, institucion, seccion, nombreDirectivo } = data;
+  const _gradoId = (sesion as any).gradoId ?? (typeof sesion.grado === "object" && sesion.grado ? (sesion.grado as any).id : undefined);
 
   // ── Derivar colores del área ────────────────────────────────────
   const areaName = toLabel(sesion.area);
@@ -1204,7 +1205,7 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
 
       {/* INSTRUMENTO DE EVALUACIÓN — siempre en el PDF (con o sin datos; celdas vacías si no hay estudiantes) */}
       {instrumento ? (
-        <InstrumentoEvaluacionSection instrumento={instrumento} hex={hex} alumnos={getSavedAlumnos()} />
+        <InstrumentoEvaluacionSection instrumento={instrumento} hex={hex} alumnos={getSavedAlumnos(_gradoId)} />
       ) : (
         <table style={{ marginBottom: "0.5rem", width: "100%", fontSize: "9pt", borderCollapse: "collapse" }}>
           <tbody>

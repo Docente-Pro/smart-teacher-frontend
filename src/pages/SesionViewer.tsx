@@ -141,7 +141,7 @@ function SesionViewer() {
           /* ignore */
         }
         const tieneListaAlumnos = Array.isArray(contenido.listaAlumnos) && contenido.listaAlumnos.length > 0;
-        const alumnosStorage = getSavedAlumnos();
+        const alumnosStorage = getSavedAlumnos(data.gradoId);
         if (!tieneListaAlumnos && alumnosStorage.length > 0) {
           try {
             const listaAlumnos = alumnosStorage.map((a) => ({
