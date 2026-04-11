@@ -29,6 +29,7 @@ function CuestionarioSesion() {
   const [usuarioFromState, setUsuarioFromState] = useState<IUsuario | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [maxStepReached, setMaxStepReached] = useState<number>(1);
+  const [gradosDisponibles, setGradosDisponibles] = useState<Array<{ id: number; nombre: string }>>([]);
 
   // Scroll al tope cada vez que cambia el paso
   useScrollTopOnStep(currentStep);
@@ -53,17 +54,38 @@ function CuestionarioSesion() {
         const usuarioData = response.data.data || response.data;
         setUsuarioFromState(usuarioData);
 
+        // Extraer grados únicos de gradosAreas para docentes de secundaria
+        const esSecundaria = usuarioData.nivel?.nombre?.toLowerCase().includes("secundaria");
+        const gradosFromAreas = (usuarioData.gradosAreas || [])
+          .filter((ga: any) => ga.grado?.id && ga.grado?.nombre)
+          .reduce((acc: Array<{ id: number; nombre: string }>, ga: any) => {
+            if (!acc.some((g) => g.id === ga.grado.id)) {
+              acc.push({ id: ga.grado.id, nombre: ga.grado.nombre });
+            }
+            return acc;
+          }, []);
+        setGradosDisponibles(gradosFromAreas);
+
+        // Para secundaria con múltiples grados, no pre-seleccionar (el docente elegirá en Step1)
+        const tieneMultiplesGrados = esSecundaria && gradosFromAreas.length > 1;
+        const gradoIdInicial = tieneMultiplesGrados
+          ? undefined
+          : (usuarioData.grado?.id ?? usuarioData.gradoId);
+        const gradoNombreInicial = tieneMultiplesGrados
+          ? ""
+          : (usuarioData.grado?.nombre || "");
+
         // SIEMPRE resetear e inicializar sesión limpia al entrar
         resetSesion();
         const sesionInicial = {
           ...initialStateSesion,
-          gradoId: usuarioData.grado?.id ?? usuarioData.gradoId,
+          gradoId: gradoIdInicial,
           datosGenerales: {
             ...initialStateSesion.datosGenerales,
             institucion: usuarioData.nombreInstitucion || "I.E. No especificada",
             docente: usuarioData.nombre || "Docente no especificado",
             nivel: usuarioData.nivel?.nombre || "",
-            grado: usuarioData.grado?.nombre || "",
+            grado: gradoNombreInicial,
           },
           firmas: {
             docente: {
@@ -105,7 +127,7 @@ function CuestionarioSesion() {
       {/* Main Content */}
       <div className="mx-auto">
         {currentStep === 1 && usuarioFromState && sesion && (
-          <Step1 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} />
+          <Step1 pagina={currentStep} setPagina={handleSetStep} usuarioFromState={usuarioFromState} gradosDisponibles={gradosDisponibles} />
         )}
 
         {currentStep === 2 && usuarioFromState && sesion && (
