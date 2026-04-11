@@ -20,7 +20,7 @@ import {
   CalendarDays,
   Layers,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -120,6 +120,7 @@ function PremiumBlockIllustration({ className }: { className?: string }) {
 function Dashboard() {
   const { logout } = useAuth0();
   const { user } = useAuthStore();
+  const { user: usuarioBD } = useUserStore();
   const permissions = usePermissions();
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useGlobalLoading();
@@ -127,7 +128,7 @@ function Dashboard() {
   const [showProblematicaIndividual, setShowProblematicaIndividual] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAlumnosModal, setShowAlumnosModal] = useState(false);
-  const [alumnosSubidos, setAlumnosSubidos] = useState(() => hasUploadedAlumnos());
+  const [alumnosSubidos, setAlumnosSubidos] = useState(() => hasUploadedAlumnos(user?.gradoId));
   const [showInsigniaModal, setShowInsigniaModal] = useState(false);
   const [insigniaUrl, setInsigniaUrl] = useState<string | null>(null);
   const [hasSuscripcionUnidad, setHasSuscripcionUnidad] = useState(false);
@@ -137,6 +138,19 @@ function Dashboard() {
   const [gradoNombre, setGradoNombre] = useState<string | null>(null);
   const [nivelNombre, setNivelNombre] = useState<string | null>(null);
   const [unidadActiva, setUnidadActiva] = useState<{ titulo: string; numero: number } | null>(null);
+
+  const gradosDisponibles = useMemo(() => {
+    const esSecundaria = usuarioBD.nivel?.nombre?.toLowerCase().includes("secundaria");
+    if (!esSecundaria) return [];
+    return (usuarioBD.gradosAreas || [])
+      .filter((ga) => ga.grado?.id && ga.grado?.nombre)
+      .reduce((acc: Array<{ id: number; nombre: string }>, ga) => {
+        if (!acc.some((g) => g.id === ga.grado!.id!)) {
+          acc.push({ id: ga.grado!.id!, nombre: ga.grado!.nombre! });
+        }
+        return acc;
+      }, []);
+  }, [usuarioBD.gradosAreas, usuarioBD.nivel?.nombre]);
 
   useEffect(() => {
     async function cargarDashboard() {
@@ -676,8 +690,10 @@ function Dashboard() {
         isOpen={showAlumnosModal}
         onClose={() => {
           setShowAlumnosModal(false);
-          setAlumnosSubidos(hasUploadedAlumnos());
+          setAlumnosSubidos(hasUploadedAlumnos(user?.gradoId));
         }}
+        gradoId={user?.gradoId}
+        gradosDisponibles={gradosDisponibles}
       />
 
       {/* Modal de Subir Insignia */}

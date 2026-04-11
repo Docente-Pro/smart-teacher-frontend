@@ -1,3 +1,5 @@
+import { clearAllAlumnosStorage } from "@/utils/alumnosStorage";
+
 /**
  * Limpia selectivamente las claves de localStorage relacionadas con el usuario,
  * preservando las claves de administración (admin_token, admin-auth-storage)
@@ -7,15 +9,15 @@
  * que al cerrar sesión de usuario se destruya la sesión de admin.
  */
 export function clearUserStorage() {
+  // Limpiar todas las keys de alumnos (genéricas + por grado)
+  clearAllAlumnosStorage();
+
   // Claves de Zustand stores del usuario
   const userKeys = [
     "auth-storage",
     "user-storage",
     "unidad-wizard-storage",
     "sesion-storage",
-    // Cache y datos por docente (deben limpiarse al cerrar sesión)
-    "dp_alumnos_subidos",
-    "dp_alumnos_data",
     "insignia_base64",
   ];
 

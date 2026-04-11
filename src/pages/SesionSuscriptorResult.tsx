@@ -144,7 +144,7 @@ function SesionSuscriptorResult() {
 
         // Si la sesión no tiene lista de alumnos pero el docente tiene en localStorage, actualizar en silencio y recargar
         const tieneListaAlumnos = Array.isArray(contenido.listaAlumnos) && contenido.listaAlumnos.length > 0;
-        const alumnosStorage = getSavedAlumnos();
+        const alumnosStorage = getSavedAlumnos(raw.gradoId ?? data.gradoId);
         if (!tieneListaAlumnos && alumnosStorage.length > 0) {
           try {
             const listaAlumnos = alumnosStorage.map((a) => ({
