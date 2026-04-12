@@ -19,7 +19,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 // ── Rutas donde NO se muestra el botón ── 
-const HIDDEN_ROUTES = ["/", "/login", "/register", "/onboarding", "/planes"];
+const HIDDEN_ROUTES = ["/", "/login", "/register", "/onboarding"];
 
 /**
  * Botón flotante de WhatsApp que induce a la compra Premium.

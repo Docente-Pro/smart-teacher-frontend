@@ -2,9 +2,11 @@ import { useNavigate } from "react-router";
 import { XCircle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { usePaymentSocket } from "@/hooks/usePaymentSocket";
 
 export default function PagoFallidoPage() {
   const navigate = useNavigate();
+  const { startPaymentFlow } = usePaymentSocket();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dp-error-50 via-white to-dp-gray-50 flex items-center justify-center p-4">
@@ -58,12 +60,12 @@ export default function PagoFallidoPage() {
         {/* Botones */}
         <div className="space-y-3">
           <Button
-            onClick={() => navigate('/planes')}
+            onClick={() => startPaymentFlow()}
             className="w-full bg-dp-orange-500 hover:bg-dp-orange-600 text-white font-semibold"
             size="lg"
           >
             <RefreshCw className="w-5 h-5 mr-2" />
-            Reintentar Pago
+            Reintentar por WhatsApp
           </Button>
 
           <Button
