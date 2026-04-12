@@ -12,6 +12,7 @@ function getAreaById(id: number) {
  * Areas that do NOT belong to primary level (Primaria).
  * Psicomotriz → Inicial only
  * Ciencias Sociales, Desarrollo Personal/Ciudadanía/Cívica, Educación para el Trabajo → Secundaria only
+ * Plan Lector, Tutoría → Secundaria only
  */
 const NON_PRIMARY_AREA_KEYWORDS = [
     "psicomotriz",
@@ -19,6 +20,8 @@ const NON_PRIMARY_AREA_KEYWORDS = [
     "desarrollo personal",
     "ciudadan",
     "educación para el trabajo",
+    "plan lector",
+    "tutoría",
 ];
 
 function isAreaPrimaria(nombre: string): boolean {
