@@ -52,25 +52,21 @@ function ExportButton() {
 // ===========================================
 import { useAuth0 } from "@/hooks/useAuth0";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useNavigate } from "react-router";
+import { usePaymentSocket } from "@/hooks/usePaymentSocket";
 
 function AdvancedFeature() {
-  const navigate = useNavigate();
   const { user } = useAuth0();
   const userId = (user as any)?.sub;
   
   const { isPremium, canCreateSession, sessionsUsed, sessionsLimit } = useSubscription(userId);
+  const { startPaymentFlow } = usePaymentSocket();
 
   const handleAction = () => {
-    // Verificar si es Premium antes de ejecutar acción
     if (!isPremium) {
-      navigate('/planes', { 
-        state: { message: 'Esta función requiere Premium' } 
-      });
+      startPaymentFlow();
       return;
     }
 
-    // Ejecutar acción
     console.log('Acción ejecutada');
   };
 
@@ -79,7 +75,7 @@ function AdvancedFeature() {
       {isPremium ? (
         <button onClick={handleAction}>Función Avanzada</button>
       ) : (
-        <button onClick={() => navigate('/planes')}>
+        <button onClick={() => startPaymentFlow()}>
           🔒 Actualizar a Premium
         </button>
       )}
@@ -111,17 +107,16 @@ function UserProfile() {
 }
 
 // ===========================================
-// 5. EJEMPLO: Redirigir a Planes desde Link
+// 5. EJEMPLO: Botón de Upgrade por WhatsApp
 // ===========================================
-import { useNavigate } from "react-router";
 
 function Navbar() {
-  const navigate = useNavigate();
+  const { startPaymentFlow } = usePaymentSocket();
 
   return (
     <nav>
-      <button onClick={() => navigate('/planes')}>
-        💎 Ver Planes
+      <button onClick={() => startPaymentFlow()}>
+        💎 Ser Premium
       </button>
     </nav>
   );
@@ -204,8 +199,7 @@ function ProtectedComponent() {
 
   useEffect(() => {
     if (!isLoading && !isPremium) {
-      // Redirigir si no es Premium
-      navigate('/planes');
+      navigate('/dashboard');
     }
   }, [isPremium, isLoading, navigate]);
 
@@ -241,7 +235,7 @@ import { UpgradePrompt } from "@/components/Pricing/UpgradePrompt";
 function DashboardWithBanner() {
   const { user } = useAuth0();
   const userId = (user as any)?.sub;
-  const navigate = useNavigate();
+  const { startPaymentFlow } = usePaymentSocket();
   const { 
     isPremium, 
     sessionsUsed, 
@@ -260,7 +254,7 @@ function DashboardWithBanner() {
           message="Esta es tu última sesión gratuita"
           sessionsUsed={sessionsUsed}
           sessionsLimit={sessionsLimit}
-          onUpgrade={() => navigate('/planes')}
+          onUpgrade={() => startPaymentFlow()}
           variant="banner"
         />
       )}
@@ -294,12 +288,6 @@ import RouteProtector from "@/auth/RouteProtector";
 function App() {
   return (
     <Routes>
-      <Route path="/planes" element={
-        <RouteProtector>
-          <Planes />
-        </RouteProtector>
-      } />
-      
       <Route path="/pago-exitoso" element={
         <RouteProtector>
           <PagoExitoso />

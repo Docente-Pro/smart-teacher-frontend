@@ -1,3 +1,4 @@
+import { Navigate } from "react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GuestRoute } from "@/components/GuestRoute";
 import Areas from "@/pages/Areas";
@@ -6,7 +7,7 @@ import CuestionarioInicial from "@/pages/CuestionarioInicial";
 import CuestionarioSesion from "@/pages/CuestionarioSesion";
 import LandingPage from "@/pages/LandingPage";
 import Dashboard from "@/pages/Dashboard";
-import Planes from "@/pages/Planes";
+
 import PagoExitoso from "@/pages/PagoExitoso";
 import PagoFallido from "@/pages/PagoFallido";
 import PagoPendiente from "@/pages/PagoPendiente";
@@ -220,11 +221,7 @@ export const routes: IRouteToCreate[] = [
   },
   {
     path: "/planes",
-    element: (
-      <ProtectedRoute>
-        <Planes />
-      </ProtectedRoute>
-    ),
+    element: <Navigate to="/dashboard" replace />,
   },
   {
     path: "/pago-exitoso",

@@ -6,6 +6,7 @@ import { SessionCounter } from "@/components/Pricing/SessionCounter";
 import { SubscriptionBadge } from "@/components/Pricing/SubscriptionBadge";
 import { useAuth0 } from "@/hooks/useAuth0";
 import { useSubscription } from "@/hooks/useSubscription";
+import { usePaymentSocket } from "@/hooks/usePaymentSocket";
 import { PlusCircle, Lock } from "lucide-react";
 
 /**
@@ -27,6 +28,7 @@ export const CreateSessionButton = () => {
     plan,
     isLoading 
   } = useSubscription(userId);
+  const { startPaymentFlow } = usePaymentSocket();
 
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
@@ -58,10 +60,10 @@ export const CreateSessionButton = () => {
         <Button
           variant="link"
           size="sm"
-          onClick={() => navigate('/planes')}
+          onClick={() => startPaymentFlow()}
           className="text-dp-blue-500 hover:text-dp-blue-600"
         >
-          Ver planes
+          Ser Premium
         </Button>
       </div>
 
@@ -104,7 +106,7 @@ export const CreateSessionButton = () => {
               message={`Has usado tus ${sessionsLimit} sesiones gratuitas`}
               sessionsUsed={sessionsUsed}
               sessionsLimit={sessionsLimit}
-              onUpgrade={() => navigate('/planes')}
+              onUpgrade={() => startPaymentFlow()}
               variant="card"
             />
             <Button
@@ -125,7 +127,7 @@ export const CreateSessionButton = () => {
             message="Esta es tu última sesión gratuita"
             sessionsUsed={sessionsUsed}
             sessionsLimit={sessionsLimit}
-            onUpgrade={() => navigate('/planes')}
+            onUpgrade={() => startPaymentFlow()}
             variant="banner"
           />
         </div>

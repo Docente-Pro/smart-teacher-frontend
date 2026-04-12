@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertTriangle, RefreshCw, CreditCard } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { usePaymentSocket } from "@/hooks/usePaymentSocket";
 
 /**
  * Página que se muestra cuando la suscripción Premium ha vencido
@@ -10,6 +11,7 @@ import { useAuthStore } from "@/store/auth.store";
 export default function SuscripcionVencidaPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { startPaymentFlow } = usePaymentSocket();
   const userData = user as any;
 
   const planName = userData?.plan === 'premium_mensual' ? 'Premium Mensual' : 'Premium Anual';
@@ -66,12 +68,12 @@ export default function SuscripcionVencidaPage() {
         {/* Botones */}
         <div className="space-y-3">
           <Button
-            onClick={() => navigate('/planes')}
+            onClick={() => startPaymentFlow()}
             className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold"
             size="lg"
           >
             <RefreshCw className="w-5 h-5 mr-2" />
-            Renovar Suscripción
+            Renovar por WhatsApp
           </Button>
 
           <Button

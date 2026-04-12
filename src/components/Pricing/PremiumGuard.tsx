@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router";
 import { useAuth0 } from "@/hooks/useAuth0";
 import { useSubscription } from "@/hooks/useSubscription";
+import { usePaymentSocket } from "@/hooks/usePaymentSocket";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
@@ -25,10 +25,10 @@ export const PremiumGuard = ({
   feature = "esta función",
   fallback 
 }: PremiumGuardProps) => {
-  const navigate = useNavigate();
   const { user } = useAuth0();
   const userId = (user as any)?.sub || null;
   const { isPremium, isLoading } = useSubscription(userId);
+  const { startPaymentFlow } = usePaymentSocket();
 
   if (isLoading) {
     return (
@@ -60,7 +60,7 @@ export const PremiumGuard = ({
             {feature} está disponible solo para usuarios Premium
           </p>
           <Button
-            onClick={() => navigate('/planes')}
+            onClick={() => startPaymentFlow()}
             className="bg-dp-orange-500 hover:bg-dp-orange-600 text-white"
             size="sm"
           >
@@ -85,18 +85,13 @@ export const PremiumGuard = ({
  * }
  */
 export const usePremiumFeature = () => {
-  const navigate = useNavigate();
   const { user } = useAuth0();
   const userId = (user as any)?.sub || null;
   const { isPremium } = useSubscription(userId);
+  const { startPaymentFlow } = usePaymentSocket();
 
-  const showUpgradePrompt = (feature: string) => {
-    // Puedes mostrar un toast o redirigir a /planes
-    navigate('/planes', { 
-      state: { 
-        message: `${feature} requiere suscripción Premium` 
-      } 
-    });
+  const showUpgradePrompt = (_feature: string) => {
+    startPaymentFlow();
   };
 
   return {
