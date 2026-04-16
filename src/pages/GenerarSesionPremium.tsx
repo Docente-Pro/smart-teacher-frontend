@@ -10,6 +10,7 @@ import { listarUnidadesByUsuario, sincronizarMiembroUnidad } from "@/services/un
 import { isUnidadListaActiva } from "@/utils/unidadActiva";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import { generarImagenesSesion } from "@/services/ia-sesion.service";
+import { getAllAreas } from "@/services/areas.service";
 import { useInstrumentoEvaluacion } from "@/hooks/useInstrumentoEvaluacion";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 import type { IUnidadListItem, IUnidadListMiembroArea } from "@/interfaces/IUnidadList";
@@ -311,6 +312,26 @@ function GenerarSesionPremium() {
   const [instrumentosMap, setInstrumentosMap] = useState<Map<SlotKey, IInstrumentoEvaluacion>>(new Map());
   /** Slots que fueron clonados (otro miembro creó la sesión) */
   const [clonedSlots, setClonedSlots] = useState<Set<SlotKey>>(new Set());
+  /** Catálogo completo de áreas (fallback cuando el área no está en miembros) */
+  const [catalogAreas, setCatalogAreas] = useState<IUnidadListMiembroArea[]>([]);
+
+  useEffect(() => {
+    getAllAreas()
+      .then((res) => {
+        const raw = res.data.data || res.data;
+        setCatalogAreas(
+          (raw as any[]).map((a) => ({
+            id: 0,
+            unidadMiembroId: "",
+            areaId: a.id,
+            maxSesionesSemana: 0,
+            createdAt: "",
+            area: { id: a.id, nombre: a.nombre, descripcion: a.descripcion ?? "", color: a.color ?? "", imagen: a.imagen ?? "" },
+          })),
+        );
+      })
+      .catch(() => {});
+  }, []);
 
   // ─── Derived ───
   /** Pago confirmado + unidad activa (no finalizada por fechaFin) — p. ej. varias unidades en secundaria */
@@ -580,9 +601,10 @@ function GenerarSesionPremium() {
     areaName: string,
   ) => {
     if (!selectedUnidadId || !currentSemana) return;
-    // Buscar areaId: primero en áreas del miembro, luego en todas las áreas de la unidad
+    // Buscar areaId: primero en áreas del miembro, luego en todas las áreas de la unidad,
+    // y finalmente en el catálogo completo (para áreas complementarias como Tutoría / Plan Lector)
     const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
-    const areaId = findAreaId(areaName, areasPool);
+    const areaId = findAreaId(areaName, areasPool) ?? findAreaId(areaName, catalogAreas);
     if (!areaId) {
       handleToaster(
         `No se pudo identificar el área "${areaName}". Intenta recargar la página.`,
