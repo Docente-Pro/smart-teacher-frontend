@@ -8,6 +8,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { generarSesionUnidad } from "@/services/sesiones.service";
+import { getAllAreas } from "@/services/areas.service";
 import type { IUnidadListItem, IUnidadListMiembroArea } from "@/interfaces/IUnidadList";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import { isUnidadListaActiva } from "@/utils/unidadActiva";
@@ -181,6 +182,26 @@ function GenerarSesionSecundaria() {
     return all;
   }, [selectedUnidad]);
 
+  const [catalogAreas, setCatalogAreas] = useState<IUnidadListMiembroArea[]>([]);
+
+  useEffect(() => {
+    getAllAreas()
+      .then((res) => {
+        const raw = res.data.data || res.data;
+        setCatalogAreas(
+          (raw as any[]).map((a: any) => ({
+            id: 0,
+            unidadMiembroId: "",
+            areaId: a.id,
+            maxSesionesSemana: 0,
+            createdAt: "",
+            area: { id: a.id, nombre: a.nombre, descripcion: a.descripcion ?? "", color: a.color ?? "", imagen: a.imagen ?? "" },
+          })),
+        );
+      })
+      .catch(() => {});
+  }, []);
+
   const cargarUnidades = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
@@ -257,7 +278,7 @@ function GenerarSesionSecundaria() {
     setGeneratingSlot(key);
     try {
       const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
-      const areaId = findAreaId(areaName, areasPool);
+      const areaId = findAreaId(areaName, areasPool) ?? findAreaId(areaName, catalogAreas);
       if (!areaId) {
         handleToaster(`No se pudo identificar el área "${areaName}"`, "error");
         return;
