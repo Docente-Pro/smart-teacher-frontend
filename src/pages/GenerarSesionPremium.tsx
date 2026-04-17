@@ -59,7 +59,7 @@ interface ISemanaData {
 }
 
 type SlotKey = string;
-type SlotState = "generada" | "clonada" | "disponible" | "en_espera" | "bloqueada";
+type SlotState = "generada" | "clonada" | "disponible" | "en_espera";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -423,58 +423,24 @@ function GenerarSesionPremium() {
 
   // ─── Slot states ───
   const isCurrentWeek = displayWeek === semanaActualReal;
-  const isPastWeek = displayWeek < semanaActualReal;
-  const isFutureWeek = displayWeek > semanaActualReal;
 
   const slotStates = useMemo<Map<SlotKey, SlotState>>(() => {
     const map = new Map<SlotKey, SlotState>();
     if (!currentSemana) return map;
     const wk = currentSemana.semana;
 
-    // Collect all slots in order
-    const allSlots: { key: SlotKey; order: number; area: string }[] = [];
     currentSemana.dias.forEach((d) => {
-      d.bloques.forEach((bloque, idx) => {
-        allSlots.push({
-          key: makeSlotKey(wk, d.dia, bloque.turnoKey),
-          order: getSlotOrderInWeek(d.dia, idx),
-          area: bloque.area,
-        });
+      d.bloques.forEach((bloque) => {
+        const key = makeSlotKey(wk, d.dia, bloque.turnoKey);
+        if (generatedSlots.has(key)) {
+          map.set(key, clonedSlots.has(key) ? "clonada" : "generada");
+        } else {
+          map.set(key, "disponible");
+        }
       });
     });
-    allSlots.sort((a, b) => a.order - b.order);
-
-    // Future weeks → all blocked
-    if (isFutureWeek) {
-      for (const slot of allSlots) {
-        map.set(slot.key, "bloqueada");
-      }
-      return map;
-    }
-
-    // Past weeks → generated/clonada stay as-is; ungenerated are still available
-    // (teacher may have missed them and wants to catch up)
-    if (isPastWeek) {
-      for (const slot of allSlots) {
-        if (generatedSlots.has(slot.key)) {
-          map.set(slot.key, clonedSlots.has(slot.key) ? "clonada" : "generada");
-        } else {
-          map.set(slot.key, "disponible");
-        }
-      }
-      return map;
-    }
-
-    // Current week → slots disponibles, generados o clonados
-    for (const slot of allSlots) {
-      if (generatedSlots.has(slot.key)) {
-        map.set(slot.key, clonedSlots.has(slot.key) ? "clonada" : "generada");
-      } else {
-        map.set(slot.key, "disponible");
-      }
-    }
     return map;
-  }, [currentSemana, generatedSlots, clonedSlots, isCurrentWeek, isPastWeek, isFutureWeek]);
+  }, [currentSemana, generatedSlots, clonedSlots]);
 
   // ─── Progress ───
   const weekProgress = useMemo(() => {
@@ -988,23 +954,12 @@ function GenerarSesionPremium() {
                       <ChevronRight className="h-5 w-5 text-slate-600 dark:text-slate-300" />
                     </button>
 
-                    {displayWeek === semanaActualReal && (
+                    {isCurrentWeek && (
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300">
                         Actual
                       </span>
                     )}
-                    {displayWeek > semanaActualReal && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                        <Lock className="h-2.5 w-2.5" />
-                        Bloqueada
-                      </span>
-                    )}
-                    {displayWeek < semanaActualReal && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-400 dark:text-slate-500">
-                        Pasada
-                      </span>
-                    )}
-                    {displayWeek !== semanaActualReal && (
+                    {!isCurrentWeek && (
                       <button
                         onClick={goToCurrentWeek}
                         className="text-xs text-violet-600 dark:text-violet-400 hover:underline ml-1"
@@ -1025,29 +980,6 @@ function GenerarSesionPremium() {
                   </div>
                 </div>
 
-                {/* ─── Blocked week overlay message ─── */}
-                {isFutureWeek && (
-                  <div className="mb-5 flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50">
-                    <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700/50">
-                      <Lock className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Semana no disponible</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Esta semana aún no comienza. Se habilitará el sábado a las 00:00 h.</p>
-                    </div>
-                  </div>
-                )}
-                {isPastWeek && (
-                  <div className="mb-5 flex items-center gap-3 p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-500/5 border border-amber-200/60 dark:border-amber-500/20">
-                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-500/20">
-                      <Calendar className="h-4 w-4 text-amber-500 dark:text-amber-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Semana pasada</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Esta semana ya pasó. Puedes seguir generando las sesiones que te faltaron.</p>
-                    </div>
-                  </div>
-                )}
 
                 {/* ─── Progress bar ─── */}
                 {weekProgress.total > 0 && isCurrentWeek && (
@@ -1272,7 +1204,6 @@ function BloqueCard({
   const isGenerated = state === "generada";
   const isClonada = state === "clonada";
   const isWaiting = state === "en_espera";
-  const isBlocked = state === "bloqueada";
 
   return (
     <div
@@ -1291,10 +1222,6 @@ function BloqueCard({
       } ${
         isWaiting
           ? `${theme.bg} opacity-70 border-slate-200/40 dark:border-slate-700/30`
-          : ""
-      } ${
-        isBlocked
-          ? `${theme.bg} opacity-50 border-slate-200/30 dark:border-slate-700/20`
           : ""
       } ${
         isClonada
@@ -1419,14 +1346,6 @@ function BloqueCard({
         <div className="w-full flex items-center justify-center gap-1 py-1 text-[10px] text-slate-400 dark:text-slate-500">
           <Lock className="h-2.5 w-2.5" />
           En espera
-        </div>
-      )}
-
-      {/* Bloqueada */}
-      {isBlocked && (
-        <div className="w-full flex items-center justify-center gap-1 py-1 text-[10px] text-slate-400 dark:text-slate-500">
-          <Lock className="h-2.5 w-2.5" />
-          Bloqueada
         </div>
       )}
 
