@@ -386,6 +386,9 @@ function Step8({ pagina, setPagina }: Props) {
           },
           preparacion: preparacionFinal,
           ...(enfoquesMapeados && { enfoquesTransversales: enfoquesMapeados }),
+          ...(Array.isArray(data.data?.competenciasTransversalesSesion) && {
+            competenciasTransversalesSesion: data.data.competenciasTransversalesSesion,
+          }),
           ...(data.imagenes_disponibles && { imagenes_disponibles: data.imagenes_disponibles }),
           ...(respAreaId ? { areaId: Number(respAreaId) } : {}),
         });
@@ -608,31 +611,27 @@ function Step8({ pagina, setPagina }: Props) {
               </div>
 
               <div className="space-y-4 ml-11">
-                {/* Problema matemático */}
+                {/* Problema matemático — texto arriba, gráfico abajo (alineado con Premium) */}
                 {(proc as any).problemaMatematico && (() => {
                   const esOtrosProblemas = /otros\s+problemas/i.test(proc.proceso);
                   const esSocializacion = /socializaci[oó]n/i.test(proc.proceso);
                   const ocultarGrafico = esOtrosProblemas || esSocializacion;
                   return (
                     <div className="space-y-3">
-                      {/* Gráfico del problema — oculto en "otros problemas" y socialización */}
+                      {/* Texto del problema (primero) */}
+                      <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-l-4 border-blue-500">
+                        <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-1">Planteamiento del problema:</p>
+                        <p className="text-slate-700 dark:text-slate-300">{(proc as any).problemaMatematico}</p>
+                      </div>
+
+                      {/* Gráfico del problema (debajo del texto) — oculto en "otros problemas" y socialización */}
                       {!ocultarGrafico && ((proc as any).grafico || (proc as any).graficoProblema) && (
                         <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
-                          <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-2">📝 Problema Matemático:</p>
                           <div className="flex justify-center">
                             <GraficoRenderer grafico={(proc as any).grafico || (proc as any).graficoProblema} />
                           </div>
                         </div>
                       )}
-
-                      {/* Texto del problema */}
-                      <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-l-4 border-blue-500">
-                        {ocultarGrafico && (
-                          <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-1">📝 Problema Matemático:</p>
-                        )}
-                        <p className="text-slate-700 dark:text-slate-300">{(proc as any).problemaMatematico}</p>
-                      </div>
-
                     </div>
                   );
                 })()}

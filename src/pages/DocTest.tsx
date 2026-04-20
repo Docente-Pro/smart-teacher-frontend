@@ -61,6 +61,16 @@ function DocTest() {
 
   const criteriosSesionPorBloque = useMemo(() => {
     if (!sesion) return [[], []] as [string[], string[]];
+
+    const transversales = (sesion as any).competenciasTransversalesSesion;
+    if (Array.isArray(transversales) && transversales.length > 0) {
+      const bloques = transversales.slice(0, 2).map((ct: any) => {
+        const raw = ct?.criteriosEvaluacion ?? ct?.criterios;
+        return Array.isArray(raw) ? raw.filter(Boolean) : [];
+      });
+      if (bloques.some((b: string[]) => b.length > 0)) return bloques;
+    }
+
     const criterios = (sesion.propositoAprendizaje.criteriosEvaluacion ?? [])
       .map((c) => (typeof c === "string" ? c : (c as ICriterioIA).criterioCompleto ?? ""))
       .filter(Boolean);
