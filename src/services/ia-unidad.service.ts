@@ -62,10 +62,13 @@ export async function generarEvidencias(
 /** Paso 3 — Propósitos de Aprendizaje (requiere pasos 1, 2) */
 export async function generarPropositos(
   unidadId: string,
-  contenidoEditado?: ContenidoEditadoBody
+  contenidoEditado?: ContenidoEditadoBody,
+  horario?: HorarioEscolar | null,
 ): Promise<IPasoUnidadResponse<IPropositosResponse>> {
-  const body = contenidoEditado && Object.keys(contenidoEditado).length > 0 ? { contenidoEditado } : undefined;
-  const { data } = await instance.post(`${BASE}/${unidadId}/propositos`, body);
+  const body: Record<string, unknown> = {};
+  if (contenidoEditado && Object.keys(contenidoEditado).length > 0) body.contenidoEditado = contenidoEditado;
+  if (horario?.dias?.length) body.horario = horario;
+  const { data } = await instance.post(`${BASE}/${unidadId}/propositos`, Object.keys(body).length ? body : undefined);
   return data;
 }
 

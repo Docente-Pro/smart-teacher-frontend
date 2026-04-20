@@ -803,7 +803,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
             (lista[0]?.propositos as IPropositos) || (contenido.propositos as IPropositos) || { areasPropositos: [], competenciasTransversales: [] }
           );
       } else {
-        const resProp = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>);
+        const resProp = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>, useUnidadStore.getState().horario);
         propData = alinearPropositosActividadCriterios(resProp.data as IPropositos);
       }
       setPropositos(propData);
@@ -910,7 +910,7 @@ function Step2SituacionPropositos({ pagina, setPagina, usuario, contenidoSaveSta
           ...(situacionTexto.trim() ? { situacionSignificativa: situacionTexto.trim() } : {}),
           ...(evidencias ? { evidencias } : {}),
         };
-        const res = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>);
+        const res = await generarPropositos(unidadId, contenidoParaProp as Record<string, unknown>, useUnidadStore.getState().horario);
         const d = alinearPropositosActividadCriterios(res.data as unknown as IPropositos);
         setPropositos(d);
         updateContenido({ propositos: d });

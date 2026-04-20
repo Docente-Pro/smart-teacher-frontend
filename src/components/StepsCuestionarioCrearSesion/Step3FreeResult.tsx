@@ -227,10 +227,12 @@ function ProcesoCard({
       {/* ─── Gráficos y Problema Matemático ─── */}
       {proceso.problemaMatematico && (() => {
         const esOtrosProblemas = /otros\s+problemas/i.test(proceso.proceso);
+        const esSocializacion = /socializaci[oó]n/i.test(proceso.proceso);
+        const ocultarGrafico = esOtrosProblemas || esSocializacion;
         return (
           <div className="mt-2 space-y-3">
-            {/* Gráfico del problema — oculto en "otros problemas" */}
-            {!esOtrosProblemas && ((proceso as any).grafico || (proceso as any).graficoProblema) && (
+            {/* Gráfico del problema — oculto en "otros problemas" y socialización */}
+            {!ocultarGrafico && ((proceso as any).grafico || (proceso as any).graficoProblema) && (
               <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
                 <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-2">📝 Problema Matemático:</p>
                 <div className="flex justify-center">
@@ -241,7 +243,7 @@ function ProcesoCard({
 
             {/* Texto del problema — editable */}
             <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border-l-4 border-blue-500">
-              {esOtrosProblemas && (
+              {ocultarGrafico && (
                 <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">📝 Problema Matemático:</p>
               )}
               <InlineEdit
@@ -252,69 +254,29 @@ function ProcesoCard({
               />
             </div>
 
-            {/* Gráfico de la solución — oculto en "otros problemas" */}
-            {!esOtrosProblemas && (proceso as any).graficoSolucion && (
-              <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
-                <p className="text-xs font-bold text-green-700 dark:text-green-400 mb-2">✅ Solución:</p>
-                <div className="flex justify-center">
-                  <GraficoRenderer grafico={(proceso as any).graficoSolucion} />
-                </div>
-              </div>
-            )}
-
-            {/* Texto de la solución */}
-            {(proceso as any).solucionProblema && (
-              <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border-l-4 border-green-500">
-                <p className="text-xs font-bold text-green-700 dark:text-green-400 mb-1">✅ Solución:</p>
-                <InlineEdit
-                  value={(proceso as any).solucionProblema}
-                  onSave={(v) => onUpdate({ solucionProblema: v } as any)}
-                  multiline
-                  className="text-sm text-slate-700 dark:text-slate-300"
-                />
-              </div>
-            )}
-
-            {/* Gráfico de la operación — oculto en "otros problemas" */}
-            {!esOtrosProblemas && (proceso as any).graficoOperacion && (
-              <div className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg border-2 border-purple-300 dark:border-purple-700 overflow-x-auto max-w-full">
-                <p className="text-xs font-bold text-purple-700 dark:text-purple-400 mb-2">🔢 Operación Matemática:</p>
-                <div className="flex justify-center">
-                  <GraficoRenderer grafico={(proceso as any).graficoOperacion} />
-                </div>
-              </div>
-            )}
-
-            {/* Operación — texto compacto solo en "otros problemas" */}
-            {esOtrosProblemas && (proceso as any).graficoOperacion && (() => {
-              const g = (proceso as any).graficoOperacion as Record<string, unknown>;
-              const titulo = g.titulo ? String(g.titulo) : "";
-              const descripcion = g.descripcion ? String(g.descripcion) : "";
-              const simbolos: Record<string, string> = { suma: "+", resta: "−", multiplicacion: "×", division: "÷" };
-              let expresion = "";
-              if (g.tipoGrafico === "operacion_vertical" && Array.isArray(g.operandos) && (g.operandos as number[]).length >= 2) {
-                const simbolo = simbolos[String(g.operacion ?? "suma")] ?? "+";
-                const ops = g.operandos as number[];
-                expresion = `${ops[0]} ${simbolo} ${ops.slice(1).join(` ${simbolo} `)} = ${g.resultado != null ? g.resultado : "___"}`;
-              }
-              const texto = [titulo, expresion, descripcion].filter(Boolean).join(" — ");
-              return texto ? (
-                <div className="px-3 py-2 bg-purple-50 dark:bg-purple-950 rounded-lg border-l-4 border-purple-400">
-                  <span className="text-xs font-bold text-purple-700 dark:text-purple-400">🔢 Operación: </span>
-                  <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{texto}</span>
-                </div>
-              ) : null;
-            })()}
           </div>
         );
       })()}
 
-      {/* Gráfico standalone (sin problemaMatematico) */}
-      {!proceso.problemaMatematico && (proceso as any).grafico && (
+      {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización */}
+      {!proceso.problemaMatematico && (proceso as any).grafico && !/socializaci[oó]n/i.test(proceso.proceso) && (
         <div className="mt-2 bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full">
           <div className="flex justify-center">
             <GraficoRenderer grafico={(proceso as any).grafico} />
           </div>
+        </div>
+      )}
+
+      {/* Texto de la solución */}
+      {(proceso as any).solucionProblema && (
+        <div className="mt-2 p-3 bg-green-50 dark:bg-green-950 rounded-lg border-l-4 border-green-500">
+          <p className="text-xs font-bold text-green-700 dark:text-green-400 mb-1">✅ Solución:</p>
+          <InlineEdit
+            value={(proceso as any).solucionProblema}
+            onSave={(v) => onUpdate({ solucionProblema: v } as any)}
+            multiline
+            className="text-sm text-slate-700 dark:text-slate-300"
+          />
         </div>
       )}
 
