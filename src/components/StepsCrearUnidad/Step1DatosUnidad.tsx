@@ -41,6 +41,8 @@ import { generarTituloUnidad } from "@/services/ia-unidad.service";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { IArea } from "@/interfaces/IArea";
 import type { ModoSecundaria, TipoUnidad } from "@/interfaces/IUnidad";
+import { useHorario } from "@/hooks/useHorario";
+import HorarioPanel from "./HorarioPanel";
 
 interface Props {
   pagina: number;
@@ -113,7 +115,8 @@ const duracionesUnidad = [
 ];
 
 function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros }: Props) {
-  const { unidadId: existingUnidadId, setUnidadId, setDatosBase, secundariaAreaElegida } =
+  const { unidadId: existingUnidadId, setUnidadId, setDatosBase, secundariaAreaElegida,
+    horario: horarioStore, setHorario: setHorarioStore } =
     useUnidadStore();
   const updateAuthUser = useAuthStore((s) => s.updateUser);
   const authUser = useAuthStore((s) => s.user as any);
@@ -151,6 +154,40 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     fechaFin: string;
     tipo: string;
   } | null>(null);
+
+  // Horario escolar (solo primaria)
+  const {
+    horario, scanning: horarioScanning, confianza: horarioConfianza,
+    notas: horarioNotas, error: horarioError,
+    escanearDesdeArchivo, actualizarSlot, limpiarHorario,
+  } = useHorario(horarioStore);
+
+  useEffect(() => {
+    setHorarioStore(horario);
+  }, [horario]);
+
+  const handleScanHorario = async (file: File) => {
+    const result = await escanearDesdeArchivo(file);
+    if (result?.horario?.dias) {
+      const detected = new Set<string>();
+      for (const dia of result.horario.dias) {
+        for (const slot of dia.horas ?? []) {
+          if (slot.area) detected.add(slot.area.trim().toLowerCase());
+        }
+      }
+      if (detected.size > 0) {
+        const strip = (s: string) => s.replace(/^área de\s+/i, "").trim().toLowerCase();
+        const matched = areas
+          .filter((a) => detected.has(strip(a.nombre)))
+          .map((a) => a.nombre);
+        if (matched.length > 0) {
+          setAreasSeleccionadas(matched);
+          handleToaster(`${matched.length} área(s) detectada(s) y seleccionada(s)`, "success");
+        }
+      }
+    }
+    return result;
+  };
 
   // IA — generar título
   const [generandoTitulo, setGenerandoTitulo] = useState(false);
@@ -764,6 +801,21 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
             setShowProblematicaModal(false);
           }}
         />
+
+        {/* ── Horario Escolar (solo primaria, antes de áreas) ── */}
+        {!isSecundaria && (
+          <HorarioPanel
+            horario={horario}
+            scanning={horarioScanning}
+            confianza={horarioConfianza}
+            notas={horarioNotas}
+            error={horarioError}
+            onScan={handleScanHorario}
+            onSlotChange={actualizarSlot}
+            onClear={limpiarHorario}
+            disabled={false}
+          />
+        )}
 
                 {/* ── Selección de Áreas (multi) ── */}
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">

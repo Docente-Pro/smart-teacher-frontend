@@ -611,10 +611,12 @@ function Step8({ pagina, setPagina }: Props) {
                 {/* Problema matemático */}
                 {(proc as any).problemaMatematico && (() => {
                   const esOtrosProblemas = /otros\s+problemas/i.test(proc.proceso);
+                  const esSocializacion = /socializaci[oó]n/i.test(proc.proceso);
+                  const ocultarGrafico = esOtrosProblemas || esSocializacion;
                   return (
                     <div className="space-y-3">
-                      {/* Gráfico del problema — oculto en "otros problemas" */}
-                      {!esOtrosProblemas && ((proc as any).grafico || (proc as any).graficoProblema) && (
+                      {/* Gráfico del problema — oculto en "otros problemas" y socialización */}
+                      {!ocultarGrafico && ((proc as any).grafico || (proc as any).graficoProblema) && (
                         <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
                           <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-2">📝 Problema Matemático:</p>
                           <div className="flex justify-center">
@@ -625,72 +627,32 @@ function Step8({ pagina, setPagina }: Props) {
 
                       {/* Texto del problema */}
                       <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-l-4 border-blue-500">
-                        {esOtrosProblemas && (
+                        {ocultarGrafico && (
                           <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-1">📝 Problema Matemático:</p>
                         )}
                         <p className="text-slate-700 dark:text-slate-300">{(proc as any).problemaMatematico}</p>
                       </div>
 
-                      {/* Gráfico de la solución — oculto en "otros problemas" */}
-                      {!esOtrosProblemas && (proc as any).graficoSolucion && (
-                        <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
-                          <p className="text-sm font-bold text-green-700 dark:text-green-400 mb-2">✅ Solución:</p>
-                          <div className="flex justify-center">
-                            <GraficoRenderer grafico={(proc as any).graficoSolucion} />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Texto de la solución */}
-                      {(proc as any).solucionProblema && (
-                        <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border-l-4 border-green-500">
-                          <p className="text-sm font-bold text-green-700 dark:text-green-400 mb-1">✅ Solución:</p>
-                          <pre className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-sans text-sm">
-                            {(proc as any).solucionProblema}
-                          </pre>
-                        </div>
-                      )}
-
-                      {/* Gráfico de la operación — oculto en "otros problemas" */}
-                      {!esOtrosProblemas && (proc as any).graficoOperacion && (
-                        <div className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg border-2 border-purple-300 dark:border-purple-700 overflow-x-auto max-w-full">
-                          <p className="text-sm font-bold text-purple-700 dark:text-purple-400 mb-2">🔢 Operación Matemática:</p>
-                          <div className="flex justify-center">
-                            <GraficoRenderer grafico={(proc as any).graficoOperacion} />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Operación — texto compacto solo en "otros problemas" */}
-                      {esOtrosProblemas && (proc as any).graficoOperacion && (() => {
-                        const g = (proc as any).graficoOperacion as Record<string, unknown>;
-                        const titulo = g.titulo ? String(g.titulo) : "";
-                        const descripcion = g.descripcion ? String(g.descripcion) : "";
-                        const simbolos: Record<string, string> = { suma: "+", resta: "−", multiplicacion: "×", division: "÷" };
-                        let expresion = "";
-                        if (g.tipoGrafico === "operacion_vertical" && Array.isArray(g.operandos) && (g.operandos as number[]).length >= 2) {
-                          const simbolo = simbolos[String(g.operacion ?? "suma")] ?? "+";
-                          const ops = g.operandos as number[];
-                          expresion = `${ops[0]} ${simbolo} ${ops.slice(1).join(` ${simbolo} `)} = ${g.resultado != null ? g.resultado : "___"}`;
-                        }
-                        const texto = [titulo, expresion, descripcion].filter(Boolean).join(" — ");
-                        return texto ? (
-                          <div className="bg-purple-50 dark:bg-purple-950 px-3 py-2 rounded-lg border-l-4 border-purple-400">
-                            <span className="text-sm font-bold text-purple-700 dark:text-purple-400">🔢 Operación: </span>
-                            <span className="text-slate-700 dark:text-slate-300 font-medium">{texto}</span>
-                          </div>
-                        ) : null;
-                      })()}
                     </div>
                   );
                 })()}
 
-                {/* Gráfico standalone (sin problemaMatematico) */}
-                {!(proc as any).problemaMatematico && (proc as any).grafico && (
+                {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización */}
+                {!(proc as any).problemaMatematico && (proc as any).grafico && !/socializaci[oó]n/i.test(proc.proceso) && (
                   <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-center overflow-x-auto max-w-full">
                     <div className="flex justify-center">
                       <GraficoRenderer grafico={(proc as any).grafico} />
                     </div>
+                  </div>
+                )}
+
+                {/* Texto de la solución */}
+                {(proc as any).solucionProblema && (
+                  <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border-l-4 border-green-500">
+                    <p className="text-sm font-bold text-green-700 dark:text-green-400 mb-1">✅ Solución:</p>
+                    <pre className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-sans text-sm">
+                      {(proc as any).solucionProblema}
+                    </pre>
                   </div>
                 )}
 

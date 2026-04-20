@@ -40,9 +40,7 @@ import {
   regenerarPasoUnidad,
   regenerarSecuencia,
 } from "@/services/ia-unidad.service";
-import { HorarioPanel } from "./HorarioPanel";
 import { SortableSlotsList } from "./SortableSlotsList";
-import { useHorario } from "@/hooks/useHorario";
 import type { IUsuario } from "@/interfaces/IUsuario";
 import type { IDistribucionMiembro } from "@/interfaces/IUnidad";
 import type {
@@ -163,17 +161,6 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const { unidadId, datosBase, contenido, updateContenido, generandoPaso, setGenerandoPaso, markCompleted,
     horario: horarioStore, setHorario: setHorarioStore } =
     useUnidadStore();
-
-  // ── Hook de horario (inicializa desde el store si hay uno guardado) ──
-  const {
-    horario, scanning, confianza, notas, error: horarioError,
-    escanearDesdeArchivo, actualizarSlot, limpiarHorario, setHorario,
-  } = useHorario(horarioStore);
-
-  // Sincronizar cambios del hook al store (persistencia)
-  useEffect(() => {
-    setHorarioStore(horario);
-  }, [horario]);
 
   const isSecundariaWizard = Boolean((datosBase as any)?.esSecundariaWizard);
   const modoSecundaria =
@@ -301,7 +288,6 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   useEffect(() => {
     if (!isSecundariaWizard) return;
     if (horarioStore) {
-      setHorario(null);
       setHorarioStore(null);
     }
   }, [isSecundariaWizard, horarioStore]);
@@ -746,21 +732,6 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
             Calendario semanal de actividades, materiales necesarios y preguntas de reflexión
           </p>
         </div>
-
-        {/* ── Panel Horario Escolar (antes del botón generar) ── */}
-        {!isSecundariaWizard && (
-          <HorarioPanel
-            horario={horario}
-            scanning={scanning}
-            confianza={confianza}
-            notas={notas}
-            error={horarioError}
-            onScan={escanearDesdeArchivo}
-            onSlotChange={actualizarSlot}
-            onClear={limpiarHorario}
-            disabled={isGenerating}
-          />
-        )}
 
         {/* ── Botón generar ── */}
         {!allDone && (

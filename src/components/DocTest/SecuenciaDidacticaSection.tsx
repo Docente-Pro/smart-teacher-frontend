@@ -170,10 +170,12 @@ function renderProcesoRow(proceso: any, idx: number) {
         {/* ─── Gráficos y Problema Matemático ─── */}
         {proceso.problemaMatematico && (() => {
           const esOtrosProblemas = /otros\s+problemas/i.test(proceso.proceso || "");
+          const esSocializacion = /socializaci[oó]n/i.test(proceso.proceso || "");
+          const ocultarGrafico = esOtrosProblemas || esSocializacion;
           return (
             <>
-              {/* Gráfico del problema — oculto en "otros problemas" */}
-              {!esOtrosProblemas && (proceso.grafico || proceso.graficoProblema) && (
+              {/* Gráfico del problema — oculto en "otros problemas" y socialización */}
+              {!ocultarGrafico && (proceso.grafico || proceso.graficoProblema) && (
                 <div className="no-break" style={{
                   marginTop: "0.8rem",
                   marginBottom: "0.8rem",
@@ -199,7 +201,7 @@ function renderProcesoRow(proceso: any, idx: number) {
                 borderRadius: "8px",
                 borderLeft: "4px solid #0284c7",
               }}>
-                {esOtrosProblemas && (
+                {ocultarGrafico && (
                   <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#0369a1", margin: "0 0 0.3rem 0" }}>
                     📝 Problema Matemático:
                   </p>
@@ -209,57 +211,12 @@ function renderProcesoRow(proceso: any, idx: number) {
                 </p>
               </div>
 
-              {/* Operación matemática — gráfico o texto según sección */}
-              {proceso.graficoOperacion && (
-                esOtrosProblemas ? (
-                  <div style={{
-                    marginTop: "0.8rem",
-                    marginBottom: "0.8rem",
-                    backgroundColor: "#faf5ff",
-                    padding: "0.5rem 0.9rem",
-                    borderRadius: "8px",
-                    borderLeft: "4px solid #d8b4fe",
-                  }}>
-                    <span style={{ fontSize: "8pt", fontWeight: "bold", color: "#7c3aed" }}>🔢 Operación Matemática: </span>
-                    <span style={{ fontSize: "9.5pt", fontWeight: "600", color: "#1e293b" }}>
-                      {(() => {
-                        const g = proceso.graficoOperacion as Record<string, unknown>;
-                        const t = g.titulo ? String(g.titulo) : "";
-                        const d = g.descripcion ? String(g.descripcion) : "";
-                        const sym: Record<string, string> = { suma: "+", resta: "−", multiplicacion: "×", division: "÷" };
-                        let exp = "";
-                        if (g.tipoGrafico === "operacion_vertical" && Array.isArray(g.operandos) && (g.operandos as number[]).length >= 2) {
-                          const s = sym[String(g.operacion ?? "suma")] ?? "+";
-                          const ops = g.operandos as number[];
-                          exp = `${ops[0]} ${s} ${ops.slice(1).join(` ${s} `)} = ${g.resultado != null ? g.resultado : "___"}`;
-                        }
-                        return [t, exp, d].filter(Boolean).join(" — ");
-                      })()}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="no-break" style={{
-                    marginTop: "0.8rem",
-                    marginBottom: "0.8rem",
-                    padding: "0.8rem",
-                    backgroundColor: "#faf5ff",
-                    borderRadius: "8px",
-                    border: "2px solid #d8b4fe",
-                    textAlign: "center",
-                  }}>
-                    <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#7c3aed", margin: "0 0 0.5rem 0" }}>
-                      🔢 Operación Matemática:
-                    </p>
-                    <GraficoRenderer grafico={proceso.graficoOperacion} />
-                  </div>
-                )
-              )}
             </>
           );
         })()}
 
-        {/* Gráfico standalone (sin problemaMatematico) */}
-        {proceso.grafico && !proceso.problemaMatematico && (
+        {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización */}
+        {proceso.grafico && !proceso.problemaMatematico && !/socializaci[oó]n/i.test(proceso.proceso || "") && (
           <div className="no-break" style={{
             marginTop: "0.8rem",
             marginBottom: "0.8rem",
@@ -297,35 +254,6 @@ function renderProcesoRow(proceso: any, idx: number) {
           </div>
         )}
 
-        {/* Gráfico de la solución (Rough.js) */}
-        {proceso.solucionProblema && proceso.graficoSolucion && (
-          <div style={{ marginBottom: "1rem" }}>
-            <div style={{
-              padding: "0.5rem",
-              backgroundColor: "#f0fdf4",
-              borderRadius: "4px",
-              marginBottom: "0.5rem",
-              fontWeight: "bold"
-            }}>
-              ✅ Solución:
-            </div>
-            <div style={{ textAlign: "center", marginBottom: "0.8rem" }}>
-              <GraficoRenderer grafico={proceso.graficoSolucion} />
-            </div>
-          </div>
-        )}
-
-        {/* Fallback: Imagen de la solución (legacy) */}
-        {proceso.solucionProblema && !proceso.graficoSolucion && proceso.imagenSolucion && proceso.imagenSolucion !== "GENERATE_IMAGE" && (
-          <div style={{ textAlign: "center", marginBottom: "0.8rem" }}>
-            <img
-              src={proceso.imagenSolucion}
-              alt="Solución del problema"
-              style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }}
-            />
-          </div>
-        )}
-
         {/* Texto de la solución */}
         {proceso.solucionProblema && (
           <div style={{
@@ -335,6 +263,9 @@ function renderProcesoRow(proceso: any, idx: number) {
             borderLeft: "4px solid #16a34a",
             marginBottom: "0.8rem"
           }}>
+            <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#15803d", margin: "0 0 0.3rem 0" }}>
+              ✅ Solución:
+            </p>
             <div style={{ whiteSpace: "pre-wrap", fontSize: "9pt", lineHeight: "1.6" }}>
               {proceso.solucionProblema}
             </div>
