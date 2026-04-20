@@ -99,21 +99,23 @@ function SesionSuscriptorResult() {
         if (cancelled) return;
 
         // Extraer nombre del docente e institución
+        const currentUsuario = useUserStore.getState().user;
+        const currentUser = useAuthStore.getState().user;
         const sesionUsuario = data.usuario as
           | { nombre?: string; nombreInstitucion?: string; seccion?: string }
           | undefined;
         const docente =
           sesionUsuario?.nombre ||
-          usuario?.nombre ||
-          user?.name ||
+          currentUsuario?.nombre ||
+          currentUser?.name ||
           "";
         const institucion =
           sesionUsuario?.nombreInstitucion ||
-          usuario?.nombreInstitucion ||
+          currentUsuario?.nombreInstitucion ||
           "";
         const seccion =
           sesionUsuario?.seccion ||
-          usuario?.seccion ||
+          currentUsuario?.seccion ||
           "";
 
         // ─── Extraer contenido pedagógico ───────────────────────────────
@@ -297,7 +299,7 @@ function SesionSuscriptorResult() {
     return () => {
       cancelled = true;
     };
-  }, [sesionId, usuario, user]);
+  }, [sesionId]);
 
   // Lista de cotejo / instrumento de evaluación para el PDF (suscriptor ve lo mismo que el propietario)
   const instrumento = useMemo((): IInstrumentoEvaluacion | null => {

@@ -212,6 +212,9 @@ export function useAutoGenerarSesion() {
           },
           preparacion: preparacionFinal,
           ...(enfoquesMapeados && { enfoquesTransversales: enfoquesMapeados }),
+          ...(Array.isArray(data.competenciasTransversalesSesion) && {
+            competenciasTransversalesSesion: data.competenciasTransversalesSesion,
+          }),
           ...(secuenciaRes.data.imagenes_disponibles && {
             imagenes_disponibles: secuenciaRes.data.imagenes_disponibles,
           }),

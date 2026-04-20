@@ -156,6 +156,12 @@ export interface ISecuenciaDidactica {
   cierre: IFaseCierre;
 }
 
+export interface ICompetenciaTransversalSesion {
+  nombre: string;
+  capacidades: string[];
+  criteriosEvaluacion: string[];
+}
+
 export interface IReflexionAprendizaje {
   avancesEstudiantes: string;
   dificultadesExperimentadas: string;
@@ -197,6 +203,8 @@ export interface ISesionAprendizaje {
   secuenciaDidactica: ISecuenciaDidactica;
   reflexiones: IReflexionAprendizaje;
   firmas: IFirmas;
+  /** Competencias transversales con criterios de evaluación generados por IA */
+  competenciasTransversalesSesion?: ICompetenciaTransversalSesion[];
   /** Lista completa de imágenes disponibles que se ofreció a GPT (referencia/debug) */
   imagenes_disponibles?: IImagenDisponible[];
 }

@@ -410,18 +410,20 @@ function EditarSesionPremium() {
 
         setRawSesion(data);
 
+        const currentUsuario = useUserStore.getState().user;
+        const currentUser = useAuthStore.getState().user;
         const sesionUsuario = data.usuario as
           | { nombre?: string; nombreInstitucion?: string; seccion?: string }
           | undefined;
         setDocente(
-          sesionUsuario?.nombre || usuario?.nombre || user?.name || "",
+          sesionUsuario?.nombre || currentUsuario?.nombre || currentUser?.name || "",
         );
         setInstitucion(
           sesionUsuario?.nombreInstitucion ||
-            usuario?.nombreInstitucion ||
+            currentUsuario?.nombreInstitucion ||
             "",
         );
-        setSeccion(sesionUsuario?.seccion || usuario?.seccion || "");
+        setSeccion(sesionUsuario?.seccion || currentUsuario?.seccion || "");
 
         const raw = data as any;
         let contenido: Record<string, any> = {};
@@ -733,7 +735,7 @@ function EditarSesionPremium() {
     return () => {
       cancelled = true;
     };
-  }, [sesionId, usuario, user]);
+  }, [sesionId]);
 
   // ═════════════════════════════════════════════════════════════════════════
   // Construir ISesionPremiumResponse desde el estado de edición
@@ -1050,6 +1052,8 @@ function EditarSesionPremium() {
         contenidoPatch.reflexiones = sesion.reflexiones;
       if (fechaSesion) contenidoPatch.fechaSesion = fechaSesion;
       if (sesion.area !== undefined) contenidoPatch.area = sesion.area;
+      if (sesion.competenciasTransversalesSesion)
+        contenidoPatch.competenciasTransversalesSesion = sesion.competenciasTransversalesSesion;
 
       const rawUnidadId: string | undefined = (rawSesion as any)?.unidadId ?? undefined;
       const rawAreaId: number | undefined = (rawSesion as any)?.areaId ?? undefined;

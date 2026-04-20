@@ -178,6 +178,19 @@ function ProcesoCard({
         />
       </div>
 
+      {/* ─── Planteamiento del problema (antes de estrategias, alineado con Premium) ─── */}
+      {proceso.problemaMatematico && (
+        <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border-l-4 border-blue-500">
+          <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">Planteamiento del problema:</p>
+          <InlineEdit
+            value={proceso.problemaMatematico}
+            onSave={(v) => onUpdate({ problemaMatematico: v })}
+            multiline
+            className="text-sm text-blue-800 dark:text-blue-200"
+          />
+        </div>
+      )}
+
       {/* Estrategias */}
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
@@ -224,38 +237,18 @@ function ProcesoCard({
         />
       )}
 
-      {/* ─── Gráficos y Problema Matemático ─── */}
+      {/* ─── Gráfico del problema (debajo de estrategias, alineado con Premium) ─── */}
       {proceso.problemaMatematico && (() => {
         const esOtrosProblemas = /otros\s+problemas/i.test(proceso.proceso);
         const esSocializacion = /socializaci[oó]n/i.test(proceso.proceso);
         const ocultarGrafico = esOtrosProblemas || esSocializacion;
-        return (
-          <div className="mt-2 space-y-3">
-            {/* Gráfico del problema — oculto en "otros problemas" y socialización */}
-            {!ocultarGrafico && ((proceso as any).grafico || (proceso as any).graficoProblema) && (
-              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
-                <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-2">📝 Problema Matemático:</p>
-                <div className="flex justify-center">
-                  <GraficoRenderer grafico={(proceso as any).grafico || (proceso as any).graficoProblema} />
-                </div>
-              </div>
-            )}
-
-            {/* Texto del problema — editable */}
-            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border-l-4 border-blue-500">
-              {ocultarGrafico && (
-                <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">📝 Problema Matemático:</p>
-              )}
-              <InlineEdit
-                value={proceso.problemaMatematico}
-                onSave={(v) => onUpdate({ problemaMatematico: v })}
-                multiline
-                className="text-sm text-blue-800 dark:text-blue-200"
-              />
+        return !ocultarGrafico && ((proceso as any).grafico || (proceso as any).graficoProblema) ? (
+          <div className="mt-2 bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
+            <div className="flex justify-center">
+              <GraficoRenderer grafico={(proceso as any).grafico || (proceso as any).graficoProblema} />
             </div>
-
           </div>
-        );
+        ) : null;
       })()}
 
       {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización */}
