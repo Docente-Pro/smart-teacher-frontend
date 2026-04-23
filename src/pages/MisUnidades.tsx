@@ -94,9 +94,12 @@ function isUnidadFinalizada(fechaFin?: string | null): boolean {
 }
 
 /** Solo propietarios con pago CONFIRMADO y unidad activa pueden finalizar */
-function puedeFinalizarUnidad(unidad: IUnidadListItem): boolean {
+function puedeFinalizarUnidad(unidad: IUnidadListItem, userId?: string): boolean {
+  const esPropietario =
+    unidad._rol === "PROPIETARIO" ||
+    (unidad.tipo === "PERSONAL" && !!userId && unidad.usuarioId === userId);
   return (
-    unidad._rol === "PROPIETARIO" &&
+    esPropietario &&
     unidad.estadoPago === "CONFIRMADO" &&
     !isUnidadFinalizada(unidad.fechaFin)
   );
@@ -703,7 +706,7 @@ function MisUnidades() {
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    {puedeFinalizarUnidad(unidad) && (
+                    {puedeFinalizarUnidad(unidad, userId) && (
                       <Button
                         variant="outline"
                         size="sm"
