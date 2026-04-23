@@ -98,9 +98,13 @@ function puedeFinalizarUnidad(unidad: IUnidadListItem, userId?: string): boolean
   const esPropietario =
     unidad._rol === "PROPIETARIO" ||
     (unidad.tipo === "PERSONAL" && !!userId && unidad.usuarioId === userId);
+  const miembroPago = userId
+    ? unidad.miembros?.find((m) => m.usuarioId === userId)
+    : undefined;
+  const estadoPago = miembroPago?.estadoPago ?? unidad.estadoPago;
   return (
     esPropietario &&
-    unidad.estadoPago === "CONFIRMADO" &&
+    estadoPago === "CONFIRMADO" &&
     !isUnidadFinalizada(unidad.fechaFin)
   );
 }
