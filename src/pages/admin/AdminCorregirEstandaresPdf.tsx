@@ -12,12 +12,33 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { subirPDFaS3 } from "@/services/sesiones.service";
-import { confirmarUploadUnidad, solicitarUploadUrlUnidad } from "@/services/unidad.service";
+import { instance } from "@/services/instance";
 import type {
   ICorregirEstandaresResponse,
   ICorregirEstandaresMiembroUpload,
 } from "@/services/unidad.service";
+import type {
+  IUnidadUploadUrlResponse,
+  IUnidadConfirmarUploadResponse,
+  IUnidadConfirmarUploadRequest,
+  IUnidadUploadUrlRequest,
+} from "@/interfaces/IUnidad";
 import { adminGenerarWordUnidad } from "@/services/admin.service";
+
+function getAdminHeaders() {
+  const token = localStorage.getItem("admin_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function solicitarUploadUrlUnidadAdmin(data: IUnidadUploadUrlRequest): Promise<IUnidadUploadUrlResponse> {
+  const { data: res } = await instance.post<IUnidadUploadUrlResponse>("/unidad/upload-url", data, { headers: getAdminHeaders() });
+  return res;
+}
+
+async function confirmarUploadUnidadAdmin(data: IUnidadConfirmarUploadRequest): Promise<IUnidadConfirmarUploadResponse> {
+  const { data: res } = await instance.post<IUnidadConfirmarUploadResponse>("/unidad/confirmar-upload", data, { headers: getAdminHeaders() });
+  return res;
+}
 import {
   UnidadDocStyles,
   UnidadDocHeader,
@@ -28,6 +49,7 @@ import {
   UnidadDocSecuencia,
   UnidadDocMaterialesReflexiones,
 } from "@/components/UnidadDoc";
+import { UnidadSecundariaFormatoDoc } from "@/components/UnidadDoc/UnidadSecundariaFormatoDoc";
 
 // ─── Helpers para parsear contenido (igual que EditarUnidad / UnidadSuscriptorResult) ───
 
@@ -197,6 +219,158 @@ export default function AdminCorregirEstandaresPdf() {
     (a: any) => a.area ?? a.nombre ?? "",
   );
 
+  const isSecundaria =
+    /secundaria/i.test(navState?.nivel || "") ||
+    Array.isArray((contenido as any)?.propositosPorGrado);
+
+  const formatoSecundaria = (() => {
+    if (!isSecundaria) return null;
+
+    const propositosPorGrado = ((contenido as any)?.propositosPorGrado || []) as Array<any>;
+    const secuenciaPorGrado = ((contenido as any)?.secuenciaPorGrado || []) as Array<any>;
+    const gradosList =
+      propositosPorGrado.map((g: any) => g?.grado).filter(Boolean) ||
+      secuenciaPorGrado.map((g: any) => g?.grado).filter(Boolean);
+    const gradoTexto = Array.from(new Set(gradosList)).join(", ") || navState?.grado || "—";
+    const totalSemanas = Number((contenido as any)?.duracion || 0) || 1;
+    const secuenciaGradosRecord: Record<string, Record<string, string[]>> = {};
+
+    secuenciaPorGrado.forEach((g: any) => {
+      const nombreGrado = g?.grado || `Grado ${g?.gradoId ?? ""}`.trim();
+      const semanas = (g?.secuencia?.semanasPorSesiones || []) as Array<any>;
+      const bySemana: Record<string, string[]> = {};
+      semanas.forEach((s: any) => {
+        bySemana[String(s?.semana ?? "")] = (s?.sesiones || [])
+          .map((ses: any) => ses?.actividad)
+          .filter(Boolean);
+      });
+      secuenciaGradosRecord[nombreGrado] = bySemana;
+    });
+
+    return {
+      datosInformativos: {
+        numeroUnidad: Number(navState?.numeroUnidad || 1),
+        titulo: navState?.titulo || "",
+        institucionEducativa: navState?.institucion || "—",
+        director: navState?.nombreDirectivo || "—",
+        subdirector: navState?.nombreSubdirectora || "—",
+        nivel: navState?.nivel || "—",
+        area: areasNombres[0] || "—",
+        grado: gradoTexto,
+        secciones: navState?.seccion || "—",
+        docente: navState?.docente || "—",
+        duracion: totalSemanas,
+      },
+      componentes: {
+        planteamientoSituacionSignificativa: situacionSignificativa || "—",
+        productoUnidadAprendizajePorGrado: (() => {
+          const fromFormato = (contenido as any)?.formatoSecundaria?.componentes?.productoUnidadAprendizajePorGrado;
+          if (Array.isArray(fromFormato) && fromFormato.length > 0) {
+            return fromFormato.map((pg: any) => ({
+              grado: pg?.grado || "—",
+              producto: pg?.producto || evidencias?.productoIntegrador || "—",
+            }));
+          }
+          if (propositosPorGrado.length > 0) {
+            return propositosPorGrado.map((pg: any) => ({
+              grado: pg?.grado || "—",
+              producto: pg?.propositos?.productoIntegradorGrado || evidencias?.productoIntegrador || "—",
+            }));
+          }
+          return [{ grado: navState?.grado || "—", producto: evidencias?.productoIntegrador || "—" }];
+        })(),
+        enfoquesTransversales: (enfoques || []).map((e: any) => ({
+          enfoque: e?.enfoque || "—",
+          valor: e?.valor || "—",
+          actitudes: e?.actitudes || "—",
+        })),
+        instrumentoEvaluacion:
+          evidencias?.instrumentoEvaluacion ||
+          propositosPorGrado?.[0]?.propositos?.areasPropositos?.[0]?.competencias?.[0]?.instrumento ||
+          "Lista de cotejo",
+        propositosAprendizajePorGrado: propositosPorGrado.map((pg: any) => ({
+          grado: pg?.grado || "—",
+          area: pg?.propositos?.areasPropositos?.[0]?.area || areasNombres[0] || "—",
+          competencias: (pg?.propositos?.areasPropositos || [])
+            .flatMap((a: any) => a?.competencias || [])
+            .map((c: any) => ({
+              competenciaCapacidades: {
+                competencia: c?.nombre || c?.competencia || "—",
+                capacidades: c?.capacidades || [],
+              },
+              estandar: c?.estandar || "—",
+              actividades: c?.actividades || [],
+              campoTematico: c?.campoTematico || "—",
+              criteriosEvaluacion: c?.criterios || [],
+              instrumentoEvaluacion: c?.instrumento || "Lista de cotejo",
+            })),
+        })),
+        competenciasTransversalesPorGrado: (() => {
+          const fromFormato = (contenido as any)?.formatoSecundaria?.componentes?.competenciasTransversalesPorGrado;
+          if (Array.isArray(fromFormato) && fromFormato.length > 0) {
+            return fromFormato.map((tg: any) => ({
+              grado: tg?.grado || "—",
+              competencias: (tg?.competencias || []).map((ct: any) => {
+                const criterios = Array.isArray(ct?.criterios)
+                  ? ct.criterios
+                  : Array.isArray(ct?.criteriosEvaluacion)
+                    ? ct.criteriosEvaluacion
+                    : [];
+                return {
+                  competenciaCapacidades: {
+                    competencia: ct?.competenciaCapacidades?.competencia || ct?.nombre || "—",
+                    capacidades: ct?.competenciaCapacidades?.capacidades || ct?.capacidades || [],
+                  },
+                  estandarCiclo: ct?.estandarCiclo || ct?.estandar || "—",
+                  criterios,
+                };
+              }),
+            }));
+          }
+          return propositosPorGrado.map((pg: any) => ({
+            grado: pg?.grado || "—",
+            competencias: (pg?.propositos?.competenciasTransversales || []).map((ct: any) => ({
+              competenciaCapacidades: {
+                competencia: ct?.nombre || "—",
+                capacidades: ct?.capacidades || [],
+              },
+              estandarCiclo: ct?.estandar || "—",
+              criterios: Array.isArray(ct?.criterios)
+                ? ct.criterios
+                : Array.isArray(ct?.criteriosEvaluacion)
+                  ? ct.criteriosEvaluacion
+                  : [],
+            })),
+          }));
+        })(),
+        secuenciaSesionesPorGrado: {
+          totalSemanas,
+          grados: secuenciaGradosRecord,
+        },
+        recursosMaterialesDidacticos: Array.isArray(materiales)
+          ? materiales
+          : Array.isArray((materiales as any)?.materiales)
+            ? (materiales as any).materiales
+            : [],
+        recursosMaterialesPorGrado: ((contenido as any)?.materialesPorGrado || []).map((g: any) => {
+          let mats: string[] = [];
+          const raw = g?.materiales;
+          if (Array.isArray(raw)) {
+            mats = raw.filter((m: any) => typeof m === "string");
+          } else if (raw && typeof raw === "object" && Array.isArray(raw.materiales)) {
+            mats = raw.materiales.filter((m: any) => typeof m === "string");
+          }
+          return {
+            grado: g?.grado || `Grado ${g?.gradoId ?? ""}`.trim(),
+            materiales: mats,
+          };
+        }),
+        bibliografia: (contenido as any)?.bibliografia || [],
+      },
+      imagenSituacionUrl: imagenSituacionUrl || undefined,
+    };
+  })();
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Generar PDF + subir a S3
   // ═══════════════════════════════════════════════════════════════════════════
@@ -223,7 +397,7 @@ export default function AdminCorregirEstandaresPdf() {
 
       if (!uploadPresignedUrl) {
         setEstado("Solicitando URL de subida…");
-        const urlRes = await solicitarUploadUrlUnidad({ unidadId, usuarioId });
+        const urlRes = await solicitarUploadUrlUnidadAdmin({ unidadId, usuarioId });
         uploadPresignedUrl = urlRes.data.uploadUrl;
         uploadS3Key = urlRes.data.key;
       }
@@ -234,7 +408,7 @@ export default function AdminCorregirEstandaresPdf() {
 
         // ── Confirmar subida ──
         setEstado("Confirmando subida…");
-        await confirmarUploadUnidad({
+        await confirmarUploadUnidadAdmin({
           unidadId,
           usuarioId,
           key: uploadS3Key,
@@ -248,7 +422,7 @@ export default function AdminCorregirEstandaresPdf() {
         for (const miembro of miembros) {
           try {
             await subirPDFaS3(miembro.presignedUrl, pdfBlob);
-            await confirmarUploadUnidad({
+            await confirmarUploadUnidadAdmin({
               unidadId,
               usuarioId: miembro.usuarioId,
               key: miembro.s3Key,
@@ -445,51 +619,57 @@ export default function AdminCorregirEstandaresPdf() {
 
         {/* ── Documento para captura PDF ── */}
         <div ref={documentRef}>
-          <Document size="A4" orientation="landscape" margin="0.5in">
-            <UnidadDocStyles />
+          <Document size="A4" orientation="landscape" margin={isSecundaria ? "0.45in" : "0.5in"}>
+            {isSecundaria && formatoSecundaria ? (
+              <UnidadSecundariaFormatoDoc formato={formatoSecundaria} />
+            ) : (
+              <>
+                <UnidadDocStyles />
 
-            <UnidadDocHeader
-              titulo={navState.titulo}
-              numeroUnidad={navState.numeroUnidad}
-              grado={navState.grado}
-              seccion={navState.seccion}
-            />
+                <UnidadDocHeader
+                  titulo={navState.titulo}
+                  numeroUnidad={navState.numeroUnidad}
+                  grado={navState.grado}
+                  seccion={navState.seccion}
+                />
 
-            <UnidadDocDatosGenerales
-              institucion={navState.institucion}
-              directivo={navState.nombreDirectivo}
-              subdirectora={navState.nombreSubdirectora}
-              docente={navState.docente}
-              grado={navState.grado}
-              seccion={navState.seccion}
-              nivel={navState.nivel}
-              fechaInicio={navState.fechaInicio}
-              fechaFin={navState.fechaFin}
-              areas={areasNombres}
-            />
+                <UnidadDocDatosGenerales
+                  institucion={navState.institucion}
+                  directivo={navState.nombreDirectivo}
+                  subdirectora={navState.nombreSubdirectora}
+                  docente={navState.docente}
+                  grado={navState.grado}
+                  seccion={navState.seccion}
+                  nivel={navState.nivel}
+                  fechaInicio={navState.fechaInicio}
+                  fechaFin={navState.fechaFin}
+                  areas={areasNombres}
+                />
 
-            <UnidadDocSituacion
-              situacionSignificativa={situacionSignificativa}
-              evidencias={evidencias}
-              grado={navState.grado}
-              imagenSituacionUrl={imagenSituacionUrl}
-            />
+                <UnidadDocSituacion
+                  situacionSignificativa={situacionSignificativa}
+                  evidencias={evidencias}
+                  grado={navState.grado}
+                  imagenSituacionUrl={imagenSituacionUrl}
+                />
 
-            {propositos && (
-              <UnidadDocPropositos
-                propositos={propositos}
-                areasComplementarias={areasComplementarias}
-              />
+                {propositos && (
+                  <UnidadDocPropositos
+                    propositos={propositos}
+                    areasComplementarias={areasComplementarias}
+                  />
+                )}
+
+                <UnidadDocEnfoques enfoques={enfoques} />
+
+                {secuencia && <UnidadDocSecuencia secuencia={secuencia} />}
+
+                <UnidadDocMaterialesReflexiones
+                  materiales={materiales}
+                  reflexiones={reflexiones}
+                />
+              </>
             )}
-
-            <UnidadDocEnfoques enfoques={enfoques} />
-
-            {secuencia && <UnidadDocSecuencia secuencia={secuencia} />}
-
-            <UnidadDocMaterialesReflexiones
-              materiales={materiales}
-              reflexiones={reflexiones}
-            />
 
             <Footer position="bottom-center">
               {() => (
