@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { listarUnidadesByUsuario, obtenerDownloadUrlUnidad, sincronizarMiembroUnidad, finalizarUnidad } from "@/services/unidad.service";
+import {
+  listarUnidadesByUsuario,
+  obtenerDownloadUrlUnidad,
+  sincronizarMiembroUnidad,
+  finalizarUnidad,
+} from "@/services/unidad.service";
 import { buildCdnPdfUrl } from "@/utils/cdn";
 import type { IUnidadListItem } from "@/interfaces/IUnidadList";
 import {
@@ -35,6 +40,7 @@ import {
   FlagOff,
   CheckCircle2,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 // ─────────────────── Helpers ───────────────────
 
@@ -94,7 +100,10 @@ function isUnidadFinalizada(fechaFin?: string | null): boolean {
 }
 
 /** Solo propietarios con pago CONFIRMADO y unidad activa pueden finalizar */
-function puedeFinalizarUnidad(unidad: IUnidadListItem, userId?: string): boolean {
+function puedeFinalizarUnidad(
+  unidad: IUnidadListItem,
+  userId?: string,
+): boolean {
   const esPropietario =
     unidad._rol === "PROPIETARIO" ||
     (unidad.tipo === "PERSONAL" && !!userId && unidad.usuarioId === userId);
@@ -110,7 +119,8 @@ function puedeFinalizarUnidad(unidad: IUnidadListItem, userId?: string): boolean
 }
 
 function getTipoBadgeClasses(tipo?: string) {
-  const base = "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border";
+  const base =
+    "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border";
   if (tipo === "COMPARTIDA") {
     return `${base} bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-100 dark:border-sky-700/50`;
   }
@@ -118,7 +128,8 @@ function getTipoBadgeClasses(tipo?: string) {
 }
 
 function getEstadoPagoBadgeClasses(estado?: string) {
-  const base = "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border";
+  const base =
+    "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border";
   if (estado === "CONFIRMADO") {
     return `${base} bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-700/50`;
   }
@@ -134,15 +145,14 @@ function MisUnidades() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
-  const [unidades, setUnidades] = useState<IUnidadListItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [finalizandoId, setFinalizandoId] = useState<string | null>(null);
-  const [confirmFinalizarId, setConfirmFinalizarId] = useState<string | null>(null);
+  const [confirmFinalizarId, setConfirmFinalizarId] = useState<string | null>(
+    null,
+  );
 
   const userId = user?.id;
 
@@ -167,54 +177,41 @@ function MisUnidades() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // ─── Cargar unidades ───
-  const cargarUnidades = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      let items = await listarUnidadesByUsuario(userId);
+  const { data, isFetching, isError, error, refetch } = useQuery({
+    queryKey: ["units", userId],
+    queryFn: () => listarUnidadesByUsuario(userId!),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!userId,
+  });
 
-      // Sincronizar suscriptores que necesitan contenido personalizado actualizado
-      const needSync = items.filter(
-        (u) => u._rol === "SUSCRIPTOR" && u.necesitaSincronizacion === true,
-      );
-      if (needSync.length > 0) {
-        setSincronizando(true);
-        try {
-          await Promise.all(
-            needSync.map(async (u) => {
-              try {
-                await sincronizarMiembroUnidad(u.id);
-              } catch (syncErr) {
-                // Error sincronizando unidad
-              }
-            }),
-          );
-          // Recargar lista con datos actualizados
-          items = await listarUnidadesByUsuario(userId);
-        } finally {
-          setSincronizando(false);
-        }
-      }
+  // Derivar unidades ordenadas desde la query
+  const unidades = useMemo(() => {
+    if (!data) return [];
+    return [...data].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [data]);
 
-      // Ordenar por fecha más reciente
-      items.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setUnidades(items);
-    } catch (err: any) {
-      console.error("Error al cargar unidades:", err);
-      const msg = err?.response?.data?.message || err?.message || "Error desconocido";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
+  // Sincronizar suscriptores que necesitan contenido personalizado
   useEffect(() => {
-    cargarUnidades();
-  }, [cargarUnidades]);
+    if (!data) return;
+    const needSync = data.filter(
+      (u) => u._rol === "SUSCRIPTOR" && u.necesitaSincronizacion === true,
+    );
+    if (needSync.length === 0) return;
+    let cancelled = false;
+    setSincronizando(true);
+    Promise.all(
+      needSync.map((u) => sincronizarMiembroUnidad(u.id).catch(() => {})),
+    ).finally(() => {
+      if (!cancelled) {
+        setSincronizando(false);
+        refetch();
+      }
+    });
+    return () => { cancelled = true; };
+  }, [data]);
 
   // ─── Filtrar ───
   const filteredUnidades = unidades.filter((u) => {
@@ -236,12 +233,7 @@ function MisUnidades() {
     const esSuscriptor = unidad?._rol === "SUSCRIPTOR";
 
     // Suscriptor sin PDF pero con contenido → generar PDF primero
-    if (
-      unidad &&
-      esSuscriptor &&
-      !unidad.pdfUrl &&
-      unidad.contenido
-    ) {
+    if (unidad && esSuscriptor && !unidad.pdfUrl && unidad.contenido) {
       navigate("/unidad-suscriptor-result", { state: { unidad } });
       return;
     }
@@ -277,7 +269,10 @@ function MisUnidades() {
         const bust = unidad?.pdfGeneradoAt
           ? new Date(unidad.pdfGeneradoAt).getTime()
           : Date.now();
-        window.open(`${cdnUrl}${cdnUrl.includes("?") ? "&" : "?"}v=${bust}`, "_blank");
+        window.open(
+          `${cdnUrl}${cdnUrl.includes("?") ? "&" : "?"}v=${bust}`,
+          "_blank",
+        );
         handleToaster("PDF descargado", "success");
         return;
       }
@@ -285,9 +280,10 @@ function MisUnidades() {
       handleToaster("No se encontró la URL de descarga", "error");
     } catch (err: any) {
       console.error("Error al descargar:", err);
-      const msg = err?.response?.status === 404
-        ? "Esta unidad aún no tiene PDF generado"
-        : "Error al obtener la descarga";
+      const msg =
+        err?.response?.status === 404
+          ? "Esta unidad aún no tiene PDF generado"
+          : "Error al obtener la descarga";
       handleToaster(msg, "error");
     } finally {
       setDownloadingId(null);
@@ -300,8 +296,11 @@ function MisUnidades() {
     setFinalizandoId(unidadId);
     try {
       const res = await finalizarUnidad(unidadId);
-      handleToaster(res.message || "Unidad finalizada correctamente", "success");
-      await cargarUnidades();
+      handleToaster(
+        res.message || "Unidad finalizada correctamente",
+        "success",
+      );
+      await refetch();
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -318,9 +317,13 @@ function MisUnidades() {
   const unidadesEsteMes = unidades.filter((u) => {
     const d = new Date(u.createdAt);
     const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return (
+      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    );
   }).length;
-  const unidadesCompartidas = unidades.filter((u) => u.tipo === "COMPARTIDA").length;
+  const unidadesCompartidas = unidades.filter(
+    (u) => u.tipo === "COMPARTIDA",
+  ).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -370,8 +373,12 @@ function MisUnidades() {
                 <FolderOpen className="h-5 w-5 text-violet-600 dark:text-violet-400" />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Total</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalUnidades}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Total
+                </p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {totalUnidades}
+                </p>
               </div>
             </div>
           </div>
@@ -382,8 +389,12 @@ function MisUnidades() {
                 <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Este mes</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{unidadesEsteMes}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Este mes
+                </p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {unidadesEsteMes}
+                </p>
               </div>
             </div>
           </div>
@@ -394,8 +405,12 @@ function MisUnidades() {
                 <Share2 className="h-5 w-5 text-sky-600 dark:text-sky-400" />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Compartidas</p>
-                <p className="text-2xl font-bold text-sky-600 dark:text-sky-400">{unidadesCompartidas}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Compartidas
+                </p>
+                <p className="text-2xl font-bold text-sky-600 dark:text-sky-400">
+                  {unidadesCompartidas}
+                </p>
               </div>
             </div>
           </div>
@@ -423,11 +438,13 @@ function MisUnidades() {
           </div>
           <Button
             variant="outline"
-            onClick={cargarUnidades}
-            disabled={loading}
+            onClick={() => refetch()}
+            disabled={isFetching}
             className="h-11 px-5 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`}
+            />
             Actualizar
           </Button>
         </div>
@@ -437,13 +454,14 @@ function MisUnidades() {
           <div className="mb-4 p-4 rounded-xl border border-violet-200 dark:border-violet-700/50 bg-violet-50 dark:bg-violet-500/10 flex items-center gap-3">
             <Loader2 className="h-5 w-5 text-violet-500 animate-spin flex-shrink-0" />
             <p className="text-sm text-violet-700 dark:text-violet-300">
-              Sincronizando contenido personalizado de tus unidades compartidas...
+              Sincronizando contenido personalizado de tus unidades
+              compartidas...
             </p>
           </div>
         )}
 
         {/* ─── Content ─── */}
-        {loading ? (
+        {isFetching ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[...Array(6)].map((_, i) => (
               <div
@@ -472,7 +490,7 @@ function MisUnidades() {
               </div>
             ))}
           </div>
-        ) : error ? (
+        ) : isError ? (
           <Card className="border-red-200/60 dark:border-red-800/30 bg-white dark:bg-slate-800/50 overflow-hidden">
             <CardContent className="py-16 text-center relative">
               <div className="absolute inset-0 bg-gradient-to-b from-red-50/50 to-transparent dark:from-red-900/10 dark:to-transparent" />
@@ -483,10 +501,12 @@ function MisUnidades() {
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                   Error al cargar unidades
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">{error}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
+                  {(error as any)?.message || "Error desconocido"}
+                </p>
                 <Button
                   variant="outline"
-                  onClick={cargarUnidades}
+                  onClick={() => refetch()}
                   className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 transition-all"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -578,17 +598,21 @@ function MisUnidades() {
                         <GraduationCap className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
                         <span className="truncate">
                           {unidad.nivel.nombre}
-                          {unidad.grado?.nombre ? ` — ${unidad.grado.nombre}` : ""}
+                          {unidad.grado?.nombre
+                            ? ` — ${unidad.grado.nombre}`
+                            : ""}
                         </span>
                       </div>
                     )}
                     {unidad.problematica?.nombre && (
                       <div className="flex items-center gap-2">
                         <BookOpen className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-                        <span className="truncate">{unidad.problematica.nombre}</span>
+                        <span className="truncate">
+                          {unidad.problematica.nombre}
+                        </span>
                       </div>
                     )}
-                    {(unidad.fechaInicio && unidad.fechaFin) && (
+                    {unidad.fechaInicio && unidad.fechaFin && (
                       <div className="flex items-center gap-2">
                         <Clock className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
                         <span className="truncate">
@@ -609,25 +633,35 @@ function MisUnidades() {
                       )}
                       {unidad.tipo === "COMPARTIDA" ? "Compartida" : "Personal"}
                     </span>
-                    {unidad.tipo === "COMPARTIDA" && unidad.miembros?.length > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-700/40 text-xs text-slate-600 dark:text-slate-300 font-medium border border-slate-100 dark:border-slate-700/50">
-                        <Users className="h-3 w-3" />
-                        {unidad.miembros.length} miembro{unidad.miembros.length !== 1 ? "s" : ""}
-                      </span>
-                    )}
-                    {unidad.tipo === "COMPARTIDA" && unidad.codigoCompartido && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-xs text-emerald-700 dark:text-emerald-300 font-mono font-semibold border border-emerald-100 dark:border-emerald-700/50">
-                        <Share2 className="h-3 w-3" />
-                        {unidad.codigoCompartido}
-                      </span>
-                    )}
+                    {unidad.tipo === "COMPARTIDA" &&
+                      unidad.miembros?.length > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-700/40 text-xs text-slate-600 dark:text-slate-300 font-medium border border-slate-100 dark:border-slate-700/50">
+                          <Users className="h-3 w-3" />
+                          {unidad.miembros.length} miembro
+                          {unidad.miembros.length !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    {unidad.tipo === "COMPARTIDA" &&
+                      unidad.codigoCompartido && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-xs text-emerald-700 dark:text-emerald-300 font-mono font-semibold border border-emerald-100 dark:border-emerald-700/50">
+                          <Share2 className="h-3 w-3" />
+                          {unidad.codigoCompartido}
+                        </span>
+                      )}
                     {(() => {
-                      const miembroPago = unidad.miembros?.find((m) => m.usuarioId === userId);
-                      const estado = miembroPago?.estadoPago ?? unidad.estadoPago;
+                      const miembroPago = unidad.miembros?.find(
+                        (m) => m.usuarioId === userId,
+                      );
+                      const estado =
+                        miembroPago?.estadoPago ?? unidad.estadoPago;
                       if (!estado) return null;
                       return (
                         <span className={getEstadoPagoBadgeClasses(estado)}>
-                          {estado === "CONFIRMADO" ? "Pagado" : estado === "PENDIENTE" ? "Pendiente" : "Rechazado"}
+                          {estado === "CONFIRMADO"
+                            ? "Pagado"
+                            : estado === "PENDIENTE"
+                              ? "Pendiente"
+                              : "Rechazado"}
                         </span>
                       );
                     })()}
@@ -646,7 +680,12 @@ function MisUnidades() {
                         variant="outline"
                         size="sm"
                         className="h-8 text-xs border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-500/10 transition-all"
-                        onClick={() => handleCopiarCodigo(unidad.id, unidad.codigoCompartido!)}
+                        onClick={() =>
+                          handleCopiarCodigo(
+                            unidad.id,
+                            unidad.codigoCompartido!,
+                          )
+                        }
                       >
                         {copiedId === unidad.id ? (
                           <>
@@ -663,7 +702,12 @@ function MisUnidades() {
                       <Button
                         size="sm"
                         className="h-8 text-xs bg-[#25D366] hover:bg-[#1DA851] text-white shadow-sm"
-                        onClick={() => handleCompartirWhatsApp(unidad.titulo, unidad.codigoCompartido!)}
+                        onClick={() =>
+                          handleCompartirWhatsApp(
+                            unidad.titulo,
+                            unidad.codigoCompartido!,
+                          )
+                        }
                       >
                         <MessageCircle className="h-3 w-3 mr-1" />
                         WhatsApp
@@ -679,7 +723,9 @@ function MisUnidades() {
                       className="flex-1 text-sm h-9 border-slate-200 dark:border-slate-700 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 dark:hover:bg-violet-500/10 dark:hover:text-violet-400 transition-all"
                       onClick={() => {
                         if (unidad._rol === "SUSCRIPTOR") {
-                          navigate(`/unidad/${unidad.id}`, { state: { rol: "SUSCRIPTOR" } });
+                          navigate(`/unidad/${unidad.id}`, {
+                            state: { rol: "SUSCRIPTOR" },
+                          });
                         } else {
                           navigate(`/unidad/${unidad.id}`);
                         }
@@ -735,69 +781,74 @@ function MisUnidades() {
       </div>
 
       {/* ─── Modal confirmar finalizar ─── */}
-      {confirmFinalizarId && (() => {
-        const unidadTarget = unidades.find((u) => u.id === confirmFinalizarId);
-        return (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-            onClick={() => setConfirmFinalizarId(null)}
-          >
+      {confirmFinalizarId &&
+        (() => {
+          const unidadTarget = unidades.find(
+            (u) => u.id === confirmFinalizarId,
+          );
+          return (
             <div
-              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-700"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+              onClick={() => setConfirmFinalizarId(null)}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-500/20">
-                  <FlagOff className="h-5 w-5 text-red-600 dark:text-red-400" />
+              <div
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-700"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-500/20">
+                    <FlagOff className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Finalizar unidad
+                  </h3>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Finalizar unidad
-                </h3>
-              </div>
 
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                ¿Estás seguro que deseas finalizar{" "}
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  "{unidadTarget?.titulo}"
-                </span>
-                ?
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                La unidad quedará cerrada. Seguirá existiendo con todas sus sesiones y PDFs, pero dejará de contar como activa, lo que te permitirá crear una nueva unidad.
-              </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                  ¿Estás seguro que deseas finalizar{" "}
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    "{unidadTarget?.titulo}"
+                  </span>
+                  ?
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                  La unidad quedará cerrada. Seguirá existiendo con todas sus
+                  sesiones y PDFs, pero dejará de contar como activa, lo que te
+                  permitirá crear una nueva unidad.
+                </p>
 
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setConfirmFinalizarId(null)}
-                  disabled={finalizandoId === confirmFinalizarId}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleFinalizar(confirmFinalizarId)}
-                  disabled={finalizandoId === confirmFinalizarId}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  {finalizandoId === confirmFinalizarId ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                      Finalizando...
-                    </>
-                  ) : (
-                    <>
-                      <FlagOff className="h-4 w-4 mr-1.5" />
-                      Sí, finalizar
-                    </>
-                  )}
-                </Button>
+                <div className="flex justify-end gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmFinalizarId(null)}
+                    disabled={finalizandoId === confirmFinalizarId}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleFinalizar(confirmFinalizarId)}
+                    disabled={finalizandoId === confirmFinalizarId}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    {finalizandoId === confirmFinalizarId ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                        Finalizando...
+                      </>
+                    ) : (
+                      <>
+                        <FlagOff className="h-4 w-4 mr-1.5" />
+                        Sí, finalizar
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
     </div>
   );
 }

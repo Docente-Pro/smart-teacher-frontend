@@ -29,7 +29,9 @@ import ProblematicaModal from "@/components/Shared/Modal/ProblematicaModal";
 import UpgradePremiumModal from "@/components/Shared/Modal/UpgradePremiumModal";
 import SubirAlumnosModal from "@/components/Shared/Modal/SubirAlumnosModal";
 import SubirInsigniaModal from "@/components/Shared/Modal/SubirInsigniaModal";
-import WelcomeGuideModal, { hasSeenWelcomeGuide } from "@/components/Shared/Modal/WelcomeGuideModal";
+import WelcomeGuideModal, {
+  hasSeenWelcomeGuide,
+} from "@/components/Shared/Modal/WelcomeGuideModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { clearUserStorage } from "@/utils/clearUserStorage";
 import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
@@ -37,6 +39,7 @@ import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { getUsuarioById } from "@/services/usuarios.service";
 import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import { useUserStore } from "@/store/user.store";
+import { useQuery } from "@tanstack/react-query";
 
 /**
  * Tries to load an image URL via img+canvas and cache as base64 in localStorage.
@@ -55,9 +58,13 @@ function convertUrlToBase64(url: string) {
       ctx.drawImage(img, 0, 0);
       const dataUrl = canvas.toDataURL("image/png");
       localStorage.setItem("insignia_base64", dataUrl);
-    } catch { /* CORS tainted canvas — ignore */ }
+    } catch {
+      /* CORS tainted canvas — ignore */
+    }
   };
-  img.onerror = () => { /* CORS blocked load — ignore */ };
+  img.onerror = () => {
+    /* CORS blocked load — ignore */
+  };
   img.src = url;
 }
 
@@ -75,17 +82,44 @@ function WelcomeIllustration({ className }: { className?: string }) {
       <circle cx="100" cy="42" r="24" fill="#C7D2FE" />
       <circle cx="100" cy="40" r="14" fill="#E0E7FF" />
       {/* Torso */}
-      <path d="M68 62 L68 108 Q68 118 100 118 Q132 118 132 108 L132 62 Z" fill="#818CF8" />
-      <path d="M72 66 L72 104 Q72 112 100 112 Q128 112 128 104 L128 66 Z" fill="#6366F1" />
+      <path
+        d="M68 62 L68 108 Q68 118 100 118 Q132 118 132 108 L132 62 Z"
+        fill="#818CF8"
+      />
+      <path
+        d="M72 66 L72 104 Q72 112 100 112 Q128 112 128 104 L128 66 Z"
+        fill="#6366F1"
+      />
       {/* Libro */}
-      <rect x="82" y="78" width="36" height="28" rx="3" fill="#C7D2FE" stroke="#A5B4FC" strokeWidth="1.5" />
-      <line x1="100" y1="78" x2="100" y2="106" stroke="#A5B4FC" strokeWidth="1.2" />
+      <rect
+        x="82"
+        y="78"
+        width="36"
+        height="28"
+        rx="3"
+        fill="#C7D2FE"
+        stroke="#A5B4FC"
+        strokeWidth="1.5"
+      />
+      <line
+        x1="100"
+        y1="78"
+        x2="100"
+        y2="106"
+        stroke="#A5B4FC"
+        strokeWidth="1.2"
+      />
       <circle cx="94" cy="90" r="2" fill="#818CF8" />
       <circle cx="94" cy="98" r="2" fill="#818CF8" />
       {/* Bombilla (idea) */}
       <circle cx="148" cy="38" r="16" fill="#FDE68A" />
       <path d="M142 38 L148 32 L154 38 L148 44 Z" fill="#FCD34D" />
-      <path d="M148 50 L148 54 M144 52 L152 52" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M148 50 L148 54 M144 52 L152 52"
+        stroke="#F59E0B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
       {/* Formas decorativas */}
       <circle cx="42" cy="85" r="12" fill="#A5B4FC" opacity="0.6" />
       <circle cx="158" cy="75" r="10" fill="#C7D2FE" opacity="0.6" />
@@ -109,7 +143,10 @@ function PremiumBlockIllustration({ className }: { className?: string }) {
         stroke="#F59E0B"
         strokeWidth="2"
       />
-      <path d="M60 35 L63 42 L70 43 L64 48 L66 55 L60 51 L54 55 L56 48 L50 43 L57 42 Z" fill="#F59E0B" />
+      <path
+        d="M60 35 L63 42 L70 43 L64 48 L66 55 L60 51 L54 55 L56 48 L50 43 L57 42 Z"
+        fill="#F59E0B"
+      />
       <circle cx="25" cy="70" r="8" fill="#FBCFE8" opacity="0.9" />
       <circle cx="95" cy="75" r="6" fill="#C4B5FD" opacity="0.9" />
       <circle cx="60" cy="88" r="5" fill="#A5B4FC" opacity="0.7" />
@@ -125,10 +162,13 @@ function Dashboard() {
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useGlobalLoading();
   const [showProblematicaModal, setShowProblematicaModal] = useState(false);
-  const [showProblematicaIndividual, setShowProblematicaIndividual] = useState(false);
+  const [showProblematicaIndividual, setShowProblematicaIndividual] =
+    useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAlumnosModal, setShowAlumnosModal] = useState(false);
-  const [alumnosSubidos, setAlumnosSubidos] = useState(() => hasUploadedAlumnos(user?.gradoId));
+  const [alumnosSubidos, setAlumnosSubidos] = useState(() =>
+    hasUploadedAlumnos(user?.gradoId),
+  );
   const [showInsigniaModal, setShowInsigniaModal] = useState(false);
   const [insigniaUrl, setInsigniaUrl] = useState<string | null>(null);
   const [hasSuscripcionUnidad, setHasSuscripcionUnidad] = useState(false);
@@ -137,10 +177,15 @@ function Dashboard() {
   const [totalSesiones, setTotalSesiones] = useState(0);
   const [gradoNombre, setGradoNombre] = useState<string | null>(null);
   const [nivelNombre, setNivelNombre] = useState<string | null>(null);
-  const [unidadActiva, setUnidadActiva] = useState<{ titulo: string; numero: number } | null>(null);
+  const [unidadActiva, setUnidadActiva] = useState<{
+    titulo: string;
+    numero: number;
+  } | null>(null);
 
   const gradosDisponibles = useMemo(() => {
-    const esSecundaria = usuarioBD.nivel?.nombre?.toLowerCase().includes("secundaria");
+    const esSecundaria = usuarioBD.nivel?.nombre
+      ?.toLowerCase()
+      .includes("secundaria");
     if (!esSecundaria) return [];
     return (usuarioBD.gradosAreas || [])
       .filter((ga) => ga.grado?.id && ga.grado?.nombre)
@@ -152,105 +197,148 @@ function Dashboard() {
       }, []);
   }, [usuarioBD.gradosAreas, usuarioBD.nivel?.nombre]);
 
+  const { data: freshUserData, isLoading: isLoadingUserData } = useQuery({
+    queryKey: ["user", user?.id],
+    queryFn: () => getUsuarioById(user!.id!),
+    enabled: !!user,
+    staleTime: 100 * 60 * 60 * 24 * 30, // 1 Mes
+  });
+
+  const { data: userUnitsData, isLoading: isLoadingUserUnitsData } = useQuery({
+    queryKey: ["userUnits", user?.id],
+    queryFn: () => listarUnidadesByUsuario(user!.id!),
+    enabled: !!user,
+    staleTime: 100 * 60 * 60 * 24 * 30, // 1 Mes
+  });
+
   useEffect(() => {
-    async function cargarDashboard() {
-      if (!user) return;
+    if (!isLoadingUserData) {
+      cargarDashboard();
+    }
+  }, [user?.id, isLoadingUserData]);
+
+  useEffect(() => {
+    if (isLoadingUserUnitsData || isLoadingUserData) {
       showLoading("Cargando dashboard...");
-      try {
-        // Refrescar datos del usuario desde el backend (sesionesUsadas, sesionesRestantes, etc.)
-        if (user.id) {
-          const res = await getUsuarioById(user.id);
-          const freshUser = res.data?.data || res.data;
-          if (freshUser) {
-            // El endpoint GET /usuario/:id puede devolver los campos en la raíz
-            // O anidados dentro de "suscripcion". Intentamos ambos.
-            const updatePayload: Partial<Record<string, unknown>> = {};
+    } else {
+      hideLoading();
+    }
+  }, [isLoadingUserUnitsData, isLoadingUserData]);
 
-            const sesUsadas = freshUser.sesionesUsadas ?? freshUser.cantidadSesionesUsadas;
-            const sesRestantes = freshUser.sesionesRestantes ?? freshUser.cantidadSesionesRestantes;
-            const plan = freshUser.plan ?? freshUser.suscripcion?.plan;
-            const suscActiva = freshUser.suscripcionActiva ?? freshUser.suscripcion?.activa;
-            const genero = freshUser.genero;
-            const nivelId = freshUser.nivelId;
-            const gradoId = freshUser.gradoId;
+  async function cargarDashboard() {
+    if (!user) return;
+    showLoading("Cargando dashboard...");
+    try {
+      // Refrescar datos del usuario desde el backend (sesionesUsadas, sesionesRestantes, etc.)
+      if (user.id) {
+        if (freshUserData) {
+          const freshUser = freshUserData.data.data;
 
-            if (sesUsadas !== undefined) updatePayload.sesionesUsadas = sesUsadas;
-            if (sesRestantes !== undefined) updatePayload.sesionesRestantes = sesRestantes;
-            if (plan !== undefined) updatePayload.plan = plan;
-            if (suscActiva !== undefined) updatePayload.suscripcionActiva = suscActiva;
-            if (genero) updatePayload.genero = genero;
-            if (nivelId !== undefined) updatePayload.nivelId = nivelId;
-            if (gradoId !== undefined) updatePayload.gradoId = gradoId;
+          // El end|point GET /usuario/:id puede devolver los campos en la raíz
+          // O anidados dentro de "suscripcion". Intentamos ambos.
+          const updatePayload: Partial<Record<string, unknown>> = {};
 
-            if (freshUser.insigniaUrl) {
-              const effectiveUrl = getInsigniaDataUrl(freshUser.insigniaUrl);
-              setInsigniaUrl(effectiveUrl);
-              updatePayload.insigniaUrl = effectiveUrl;
+          const sesUsadas =
+            freshUser.sesionesUsadas ?? freshUser.cantidadSesionesUsadas;
+          const sesRestantes =
+            freshUser.sesionesRestantes ?? freshUser.cantidadSesionesRestantes;
+          const plan = freshUser.plan ?? freshUser.suscripcion?.plan;
+          const suscActiva =
+            freshUser.suscripcionActiva ?? freshUser.suscripcion?.activa;
+          const genero = freshUser.genero;
+          const nivelId = freshUser.nivelId;
+          const gradoId = freshUser.gradoId;
 
-              // If no cached base64 yet, try to convert the S3 URL
-              if (!effectiveUrl?.startsWith("data:")) {
-                convertUrlToBase64(freshUser.insigniaUrl);
-              }
+          if (sesUsadas !== undefined) updatePayload.sesionesUsadas = sesUsadas;
+          if (sesRestantes !== undefined)
+            updatePayload.sesionesRestantes = sesRestantes;
+          if (plan !== undefined) updatePayload.plan = plan;
+          if (suscActiva !== undefined)
+            updatePayload.suscripcionActiva = suscActiva;
+          if (genero) updatePayload.genero = genero;
+          if (nivelId !== undefined) updatePayload.nivelId = nivelId;
+          if (gradoId !== undefined) updatePayload.gradoId = gradoId;
+
+          if (freshUser.insigniaUrl) {
+            const effectiveUrl = getInsigniaDataUrl(freshUser.insigniaUrl);
+            setInsigniaUrl(effectiveUrl);
+            updatePayload.insigniaUrl = effectiveUrl;
+
+            // If no cached base64 yet, try to convert the S3 URL
+            if (!effectiveUrl?.startsWith("data:")) {
+              convertUrlToBase64(freshUser.insigniaUrl);
             }
-            if (freshUser.grado?.nombre) setGradoNombre(freshUser.grado.nombre);
-            if (freshUser.nivel?.nombre) setNivelNombre(freshUser.nivel.nombre);
-
-            if (Object.keys(updatePayload).length > 0) {
-              useAuthStore.getState().updateUser(updatePayload);
-            }
-
-            // Also populate useUserStore so ProblematicaModal can read context fields
-            useUserStore.getState().setUsuario(freshUser);
           }
-        }
+          if (freshUser.grado?.nombre) setGradoNombre(freshUser.grado.nombre);
+          if (freshUser.nivel?.nombre) setNivelNombre(freshUser.nivel.nombre);
 
-        // Cargar unidades y datos derivados
-        if (user.id) {
-          try {
-            const items = await listarUnidadesByUsuario(user.id);
-            setTotalUnidades(items.length);
-            const tieneSuscripcion = items.some((u) => {
-              const miembro = u.miembros?.find((m) => m.usuarioId === user.id);
-              return miembro?.rol === "SUSCRIPTOR" && miembro?.estadoPago === "CONFIRMADO";
-            });
-            setHasSuscripcionUnidad(tieneSuscripcion);
-            const sesTotal = items.reduce((sum, u) => sum + (u.sesiones?.length ?? 0), 0);
-            setTotalSesiones(sesTotal);
-            if (items.length > 0) {
-              const ahora = Date.now();
-              // Active unit = fechaFin is null/empty OR fechaFin is in the future
-              const activas = items.filter(
-                (u) => !u.fechaFin || new Date(u.fechaFin).getTime() > ahora
-              );
-              // Pick the active unit with the highest number; fall back to newest by createdAt
-              const candidates = activas.length > 0 ? activas : items;
-              const sorted = [...candidates].sort((a, b) => b.numeroUnidad - a.numeroUnidad);
-              setUnidadActiva({ titulo: sorted[0].titulo, numero: sorted[0].numeroUnidad });
-              if (!gradoNombre && sorted[0].grado?.nombre) setGradoNombre(sorted[0].grado.nombre);
-              if (!nivelNombre && sorted[0].nivel?.nombre) setNivelNombre(sorted[0].nivel.nombre);
-            }
-          } catch {
-            // No se pudieron cargar unidades
+          if (Object.keys(updatePayload).length > 0) {
+            useAuthStore.getState().updateUser(updatePayload);
           }
-        }
-      } catch (error: any) {
-        console.error("Error al cargar dashboard:", error);
-        handleToaster("Error al cargar el dashboard", "error");
-      } finally {
-        hideLoading();
 
-        // Mostrar guía de bienvenida a usuarios free sin sesiones creadas
-        // Se ejecuta en finally para garantizar que siempre se evalúe
-        const currentUser = useAuthStore.getState().user;
-        const totalUsadas = Number(currentUser?.sesionesUsadas ?? 0);
-        const esFree = !currentUser?.plan || currentUser.plan === "free";
-        if (esFree && totalUsadas === 0 && !hasSeenWelcomeGuide()) {
-          setShowWelcomeGuide(true);
+          // Also populate useUserStore so ProblematicaModal can read context fields
+          useUserStore.getState().setUsuario(freshUser);
         }
       }
+
+      // Cargar unidades y datos derivados
+      user.id && (await handleUserLearningUnits(user.id));
+    } catch (error: any) {
+      console.error("Error al cargar dashboard:", error);
+      handleToaster("Error al cargar el dashboard", "error");
+    } finally {
+      hideLoading();
+
+      // Mostrar guía de bienvenida a usuarios free sin sesiones creadas
+      // Se ejecuta en finally para garantizar que siempre se evalúe
+      const currentUser = useAuthStore.getState().user;
+      const totalUsadas = Number(currentUser?.sesionesUsadas ?? 0);
+      const esFree = !currentUser?.plan || currentUser.plan === "free";
+      if (esFree && totalUsadas === 0 && !hasSeenWelcomeGuide()) {
+        setShowWelcomeGuide(true);
+      }
     }
-    cargarDashboard();
-  }, [user?.id]);
+  }
+
+  async function handleUserLearningUnits(id: string) {
+    if (!user) return;
+    if (userUnitsData && user.id) {
+      const items = userUnitsData;
+      setTotalUnidades(items.length);
+      const tieneSuscripcion = items.some((u) => {
+        const miembro = u.miembros?.find((m) => m.usuarioId === id);
+        return (
+          miembro?.rol === "SUSCRIPTOR" && miembro?.estadoPago === "CONFIRMADO"
+        );
+      });
+      setHasSuscripcionUnidad(tieneSuscripcion);
+      const sesTotal = items.reduce(
+        (sum, u) => sum + (u.sesiones?.length ?? 0),
+        0,
+      );
+      setTotalSesiones(sesTotal);
+      if (items.length > 0) {
+        const ahora = Date.now();
+        // Active unit = fechaFin is null/empty OR fechaFin is in the future
+        const activas = items.filter(
+          (u) => !u.fechaFin || new Date(u.fechaFin).getTime() > ahora,
+        );
+        // Pick the active unit with the highest number; fall back to newest by createdAt
+        const candidates = activas.length > 0 ? activas : items;
+        const sorted = [...candidates].sort(
+          (a, b) => b.numeroUnidad - a.numeroUnidad,
+        );
+        setUnidadActiva({
+          titulo: sorted[0].titulo,
+          numero: sorted[0].numeroUnidad,
+        });
+        if (!gradoNombre && sorted[0].grado?.nombre)
+          setGradoNombre(sorted[0].grado.nombre);
+        if (!nivelNombre && sorted[0].nivel?.nombre)
+          setNivelNombre(sorted[0].nivel.nombre);
+      }
+    }
+  }
 
   const handleLogout = () => {
     clearUserStorage();
@@ -419,12 +507,16 @@ function Dashboard() {
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
               <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white">DocentePro</h1>
-            <span className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2.5 py-0.5 rounded-full flex-shrink-0 ${
-              isPremium
-                ? "bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-500/20 dark:to-yellow-500/20 text-amber-700 dark:text-amber-300"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-            }`}>
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white">
+              DocentePro
+            </h1>
+            <span
+              className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2.5 py-0.5 rounded-full flex-shrink-0 ${
+                isPremium
+                  ? "bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-500/20 dark:to-yellow-500/20 text-amber-700 dark:text-amber-300"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              }`}
+            >
               {planLabel}
             </span>
           </div>
@@ -434,7 +526,9 @@ function Dashboard() {
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-medium">
                 {firstName.charAt(0)}
               </div>
-              <span className="font-medium text-slate-700 dark:text-slate-300">{user?.name}</span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {user?.name}
+              </span>
             </div>
             <Button
               onClick={handleLogout}
@@ -459,12 +553,19 @@ function Dashboard() {
                 <span className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 dark:from-white dark:via-indigo-100 dark:to-slate-300 bg-clip-text text-transparent">
                   ¡{saludo}, {firstName}!
                 </span>{" "}
-                <span className="inline-block animate-[wave_1.5s_ease-in-out_1]">👋</span>
+                <span className="inline-block animate-[wave_1.5s_ease-in-out_1]">
+                  👋
+                </span>
               </h2>
-              <p className="text-xs sm:text-base text-slate-600 dark:text-slate-400">¿Qué te gustaría hacer hoy?</p>
+              <p className="text-xs sm:text-base text-slate-600 dark:text-slate-400">
+                ¿Qué te gustaría hacer hoy?
+              </p>
               {unidadActiva && (
                 <p className="text-xs sm:text-sm text-indigo-500/80 dark:text-indigo-400/60 mt-1 sm:mt-2 font-medium">
-                  Trabajando en: <span className="text-indigo-700 dark:text-indigo-300">Unidad {unidadActiva.numero} — {unidadActiva.titulo}</span>
+                  Trabajando en:{" "}
+                  <span className="text-indigo-700 dark:text-indigo-300">
+                    Unidad {unidadActiva.numero} — {unidadActiva.titulo}
+                  </span>
                 </p>
               )}
             </div>
@@ -486,7 +587,9 @@ function Dashboard() {
                 className="group relative flex items-center sm:flex-col sm:items-start gap-4 sm:gap-0 p-4 sm:p-6 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm hover:shadow-lg transition-all duration-300 text-left overflow-hidden"
               >
                 {/* Top accent bar (desktop) */}
-                <div className={`hidden sm:block absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                <div
+                  className={`hidden sm:block absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                />
 
                 {/* Premium badge */}
                 {feature.premium && (
@@ -505,8 +608,12 @@ function Dashboard() {
                   </div>
                 )}
 
-                <div className={`p-3 sm:p-3.5 rounded-xl ${feature.bgLight} flex-shrink-0 sm:mb-4 group-hover:scale-105 transition-transform duration-300`}>
-                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${feature.iconColor}`} />
+                <div
+                  className={`p-3 sm:p-3.5 rounded-xl ${feature.bgLight} flex-shrink-0 sm:mb-4 group-hover:scale-105 transition-transform duration-300`}
+                >
+                  <Icon
+                    className={`w-5 h-5 sm:w-6 sm:h-6 ${feature.iconColor}`}
+                  />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -526,21 +633,39 @@ function Dashboard() {
 
         {/* Summary Cards — below actions on mobile, above on desktop */}
         <div className="order-3 sm:order-2 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-8">
-          <div className={`flex items-center gap-2 px-3 py-2 sm:py-2.5 rounded-xl border shadow-sm ${
-            isPremium
-              ? "bg-gradient-to-r from-amber-50 to-orange-50/80 dark:from-amber-950/40 dark:to-orange-950/20 border-amber-200/80 dark:border-amber-600/30"
-              : "bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50"
-          }`}>
-            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-              isPremium ? "bg-gradient-to-br from-amber-400 to-orange-500" : "bg-amber-50 dark:bg-amber-500/10"
-            }`}>
-              {isPremium ? <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" /> : <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />}
+          <div
+            className={`flex items-center gap-2 px-3 py-2 sm:py-2.5 rounded-xl border shadow-sm ${
+              isPremium
+                ? "bg-gradient-to-r from-amber-50 to-orange-50/80 dark:from-amber-950/40 dark:to-orange-950/20 border-amber-200/80 dark:border-amber-600/30"
+                : "bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50"
+            }`}
+          >
+            <div
+              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                isPremium
+                  ? "bg-gradient-to-br from-amber-400 to-orange-500"
+                  : "bg-amber-50 dark:bg-amber-500/10"
+              }`}
+            >
+              {isPremium ? (
+                <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+              ) : (
+                <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />
+              )}
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Plan</p>
-              <p className={`text-xs sm:text-sm font-bold leading-tight truncate ${
-                isPremium ? "text-amber-700 dark:text-amber-300" : "text-slate-900 dark:text-white"
-              }`}>{planLabel}</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">
+                Plan
+              </p>
+              <p
+                className={`text-xs sm:text-sm font-bold leading-tight truncate ${
+                  isPremium
+                    ? "text-amber-700 dark:text-amber-300"
+                    : "text-slate-900 dark:text-white"
+                }`}
+              >
+                {planLabel}
+              </p>
             </div>
           </div>
 
@@ -549,8 +674,12 @@ function Dashboard() {
               <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600 dark:text-violet-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Grado</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">{gradoNombre || "—"}</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">
+                Grado
+              </p>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">
+                {gradoNombre || "—"}
+              </p>
             </div>
           </div>
 
@@ -559,8 +688,12 @@ function Dashboard() {
               <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">Unidades</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">{totalUnidades}</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">
+                Unidades
+              </p>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                {totalUnidades}
+              </p>
             </div>
           </div>
 
@@ -572,7 +705,9 @@ function Dashboard() {
               <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium leading-none mb-0.5">
                 {isPremium ? "Sesiones" : "Restantes"}
               </p>
-              <p className={`text-xs sm:text-sm font-bold leading-tight ${isPremium ? "text-slate-900 dark:text-white" : "text-emerald-600 dark:text-emerald-400"}`}>
+              <p
+                className={`text-xs sm:text-sm font-bold leading-tight ${isPremium ? "text-slate-900 dark:text-white" : "text-emerald-600 dark:text-emerald-400"}`}
+              >
                 {isPremium ? totalSesiones : (user?.sesionesRestantes ?? 0)}
               </p>
             </div>
@@ -602,7 +737,9 @@ function Dashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                      {alumnosSubidos ? "Modificar lista de alumnos" : "Subir lista de alumnos"}
+                      {alumnosSubidos
+                        ? "Modificar lista de alumnos"
+                        : "Subir lista de alumnos"}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 hidden sm:block">
                       {alumnosSubidos
@@ -619,14 +756,20 @@ function Dashboard() {
                 >
                   <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 shadow-lg shadow-purple-500/25 flex-shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
                     {insigniaUrl ? (
-                      <img src={insigniaUrl} alt="Insignia" className="w-4 h-4 sm:w-5 sm:h-5 object-contain rounded" />
+                      <img
+                        src={insigniaUrl}
+                        alt="Insignia"
+                        className="w-4 h-4 sm:w-5 sm:h-5 object-contain rounded"
+                      />
                     ) : (
                       <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                      {insigniaUrl ? "Cambiar insignia" : "Subir insignia del colegio"}
+                      {insigniaUrl
+                        ? "Cambiar insignia"
+                        : "Subir insignia del colegio"}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 hidden sm:block">
                       {insigniaUrl
