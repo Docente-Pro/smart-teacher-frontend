@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,12 +6,15 @@ import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import { getAllAreas } from "@/services/areas.service";
-import type { IUnidadListItem, IUnidadListMiembroArea } from "@/interfaces/IUnidadList";
+import { useUserUnidades } from "@/hooks/useUserUnidades";
+import { isUnidadActiva } from "@/utils/unidadUtils";
+import type {
+  IUnidadListItem,
+  IUnidadListMiembroArea,
+} from "@/interfaces/IUnidadList";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
-import { isUnidadListaActiva } from "@/utils/unidadActiva";
 import {
   ArrowLeft,
   BookOpen,
@@ -43,19 +46,29 @@ interface GradoPlanItem {
 
 type SlotKey = string;
 
-function isUnidadSecundaria(unidad: IUnidadListItem | null | undefined): boolean {
+function isUnidadSecundaria(
+  unidad: IUnidadListItem | null | undefined,
+): boolean {
   if (!unidad) return false;
   const contenido = (unidad as any).contenido ?? {};
-  if (Array.isArray(contenido?.secuenciaPorGrado) && contenido.secuenciaPorGrado.length > 0) {
+  if (
+    Array.isArray(contenido?.secuenciaPorGrado) &&
+    contenido.secuenciaPorGrado.length > 0
+  ) {
     return true;
   }
-  if (Array.isArray(contenido?.gradosSecundaria) && contenido.gradosSecundaria.length > 0) {
+  if (
+    Array.isArray(contenido?.gradosSecundaria) &&
+    contenido.gradosSecundaria.length > 0
+  ) {
     return true;
   }
   return /secundaria/i.test(unidad?.nivel?.nombre ?? "");
 }
 
-function parseSecuenciaPorGrado(unidad: IUnidadListItem | null): GradoPlanItem[] {
+function parseSecuenciaPorGrado(
+  unidad: IUnidadListItem | null,
+): GradoPlanItem[] {
   if (!unidad) return [];
   const contenido = (unidad as any).contenido ?? {};
   const secuenciaPorGrado = Array.isArray(contenido?.secuenciaPorGrado)
@@ -80,7 +93,11 @@ function parseSecuenciaPorGrado(unidad: IUnidadListItem | null): GradoPlanItem[]
   }));
 }
 
-function makeSlotKey(gradoId: number, semana: number, indiceSesion: number): SlotKey {
+function makeSlotKey(
+  gradoId: number,
+  semana: number,
+  indiceSesion: number,
+): SlotKey {
   return `${gradoId}-${semana}-${indiceSesion}`;
 }
 
@@ -90,11 +107,20 @@ function normalizeTurnoKey(turno: string): string {
   return turno;
 }
 
-function findAreaId(areaName: string, areas: IUnidadListMiembroArea[]): number | undefined {
+function findAreaId(
+  areaName: string,
+  areas: IUnidadListMiembroArea[],
+): number | undefined {
   if (!areaName || !areas.length) return undefined;
-  const stripPrefix = (s: string) => s.toLowerCase().replace(/^área de\s*/i, "").trim();
+  const stripPrefix = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/^área de\s*/i, "")
+      .trim();
   const normalized = stripPrefix(areaName);
-  const exact = areas.find((a) => stripPrefix(a.area?.nombre || "") === normalized);
+  const exact = areas.find(
+    (a) => stripPrefix(a.area?.nombre || "") === normalized,
+  );
   if (exact) return exact.areaId;
   const partial = areas.find((a) => {
     const clean = stripPrefix(a.area?.nombre || "");
@@ -110,9 +136,8 @@ function GenerarSesionSecundaria() {
   const permissions = usePermissions();
 
   const userId = user?.id;
-  const [unidades, setUnidades] = useState<IUnidadListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: unidades = [], isFetching: loading, isError: hasError, error: queryError, refetch } = useUserUnidades();
+  const error = hasError ? ((queryError as any)?.message || "Error al cargar unidades") : null;
   const [selectedUnidadId, setSelectedUnidadId] = useState<string | null>(null);
   const [displayWeek, setDisplayWeek] = useState(1);
   const [generatingSlot, setGeneratingSlot] = useState<SlotKey | null>(null);
@@ -120,31 +145,34 @@ function GenerarSesionSecundaria() {
   const [generatedSesiones, setGeneratedSesiones] = useState<
     Map<SlotKey, { id: string; titulo: string }>
   >(new Map());
-  const [premiumResponses, setPremiumResponses] = useState<Map<SlotKey, ISesionPremiumResponse>>(
-    new Map()
-  );
+  const [premiumResponses, setPremiumResponses] = useState<
+    Map<SlotKey, ISesionPremiumResponse>
+  >(new Map());
 
   const unidadesActivas = useMemo(
     () =>
       unidades.filter((u) => {
         const mb = u.miembros.find((m) => m.usuarioId === userId);
         if (mb?.estadoPago !== "CONFIRMADO") return false;
-        return isUnidadListaActiva(u.fechaFin);
+        return isUnidadActiva(u);
       }),
-    [unidades, userId]
+    [unidades, userId],
   );
 
   const unidadesSecundaria = useMemo(
     () => unidadesActivas.filter((u) => isUnidadSecundaria(u)),
-    [unidadesActivas]
+    [unidadesActivas],
   );
 
   const selectedUnidad = useMemo(
     () => unidadesSecundaria.find((u) => u.id === selectedUnidadId) ?? null,
-    [unidadesSecundaria, selectedUnidadId]
+    [unidadesSecundaria, selectedUnidadId],
   );
 
-  const secuenciaPorGrado = useMemo(() => parseSecuenciaPorGrado(selectedUnidad), [selectedUnidad]);
+  const secuenciaPorGrado = useMemo(
+    () => parseSecuenciaPorGrado(selectedUnidad),
+    [selectedUnidad],
+  );
 
   const totalWeeks = useMemo(() => {
     let max = 0;
@@ -164,7 +192,9 @@ function GenerarSesionSecundaria() {
 
   const miembroAreas = useMemo<IUnidadListMiembroArea[]>(() => {
     if (!selectedUnidad || !userId) return [];
-    return selectedUnidad.miembros.find((m) => m.usuarioId === userId)?.areas ?? [];
+    return (
+      selectedUnidad.miembros.find((m) => m.usuarioId === userId)?.areas ?? []
+    );
   }, [selectedUnidad, userId]);
 
   const allUnidadAreas = useMemo<IUnidadListMiembroArea[]>(() => {
@@ -182,7 +212,9 @@ function GenerarSesionSecundaria() {
     return all;
   }, [selectedUnidad]);
 
-  const [catalogAreas, setCatalogAreas] = useState<IUnidadListMiembroArea[]>([]);
+  const [catalogAreas, setCatalogAreas] = useState<IUnidadListMiembroArea[]>(
+    [],
+  );
 
   useEffect(() => {
     getAllAreas()
@@ -195,47 +227,38 @@ function GenerarSesionSecundaria() {
             areaId: a.id,
             maxSesionesSemana: 0,
             createdAt: "",
-            area: { id: a.id, nombre: a.nombre, descripcion: a.descripcion ?? "", color: a.color ?? "", imagen: a.imagen ?? "" },
+            area: {
+              id: a.id,
+              nombre: a.nombre,
+              descripcion: a.descripcion ?? "",
+              color: a.color ?? "",
+              imagen: a.imagen ?? "",
+            },
           })),
         );
       })
       .catch(() => {});
   }, []);
 
-  const cargarUnidades = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const items = await listarUnidadesByUsuario(userId);
-      setUnidades(items);
-      const sec = items.filter((u) => {
-        const mb = u.miembros.find((m) => m.usuarioId === userId);
-        return (
-          mb?.estadoPago === "CONFIRMADO" &&
-          isUnidadListaActiva(u.fechaFin) &&
-          isUnidadSecundaria(u)
-        );
-      });
-      if (sec.length === 1) setSelectedUnidadId(sec[0].id);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Error al cargar unidades");
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
+  // Auto-seleccionar si hay una sola unidad secundaria
   useEffect(() => {
-    cargarUnidades();
-  }, [cargarUnidades]);
+    if (unidadesSecundaria.length === 1 && !selectedUnidadId) {
+      setSelectedUnidadId(unidadesSecundaria[0].id);
+    }
+  }, [unidadesSecundaria, selectedUnidadId]);
 
   useEffect(() => {
     if (unidadesSecundaria.length === 0) {
       if (selectedUnidadId !== null) setSelectedUnidadId(null);
       return;
     }
-    if (!selectedUnidadId || !unidadesSecundaria.some((u) => u.id === selectedUnidadId)) {
-      setSelectedUnidadId(unidadesSecundaria.length === 1 ? unidadesSecundaria[0].id : null);
+    if (
+      !selectedUnidadId ||
+      !unidadesSecundaria.some((u) => u.id === selectedUnidadId)
+    ) {
+      setSelectedUnidadId(
+        unidadesSecundaria.length === 1 ? unidadesSecundaria[0].id : null,
+      );
     }
   }, [unidadesSecundaria, selectedUnidadId]);
 
@@ -244,7 +267,9 @@ function GenerarSesionSecundaria() {
     const restoredSlots = new Set<SlotKey>();
     const restoredMap = new Map<SlotKey, { id: string; titulo: string }>();
 
-    const sesiones = Array.isArray(selectedUnidad.sesiones) ? (selectedUnidad.sesiones as any[]) : [];
+    const sesiones = Array.isArray(selectedUnidad.sesiones)
+      ? (selectedUnidad.sesiones as any[])
+      : [];
     for (const ses of sesiones) {
       const semana = Number(ses?.semana ?? 0);
       const turnoNorm = normalizeTurnoKey(String(ses?.turno ?? ""));
@@ -271,21 +296,24 @@ function GenerarSesionSecundaria() {
     semana: number,
     indiceSesion: number,
     areaName: string,
-    actividad: string
+    actividad: string,
   ) => {
     if (!selectedUnidadId) return;
     const key = makeSlotKey(gradoId, semana, indiceSesion);
     setGeneratingSlot(key);
     try {
       const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
-      const areaId = findAreaId(areaName, areasPool) ?? findAreaId(areaName, catalogAreas);
+      const areaId =
+        findAreaId(areaName, areasPool) ?? findAreaId(areaName, catalogAreas);
       if (!areaId) {
         handleToaster(`No se pudo identificar el área "${areaName}"`, "error");
         return;
       }
 
       // Secundaria no trae día/turno en secuencia; mapeamos sesión N -> bloque-N.
-      const diaFallback = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"][(indiceSesion - 1) % 5];
+      const diaFallback = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"][
+        (indiceSesion - 1) % 5
+      ];
       const turno = `bloque-${indiceSesion}`;
 
       const resp = await generarSesionUnidad(selectedUnidadId, {
@@ -303,7 +331,10 @@ function GenerarSesionSecundaria() {
 
       setGeneratedSlots((prev) => new Set(prev).add(key));
       setGeneratedSesiones((prev) =>
-        new Map(prev).set(key, { id: resp.sesion!.id, titulo: resp.sesion!.titulo })
+        new Map(prev).set(key, {
+          id: resp.sesion!.id,
+          titulo: resp.sesion!.titulo,
+        }),
       );
 
       const fullResp = resp as unknown as ISesionPremiumResponse;
@@ -311,14 +342,20 @@ function GenerarSesionSecundaria() {
         setPremiumResponses((prev) =>
           new Map(prev).set(key, {
             ...fullResp,
-            nombreDirectivo: fullResp.nombreDirectivo ?? usuario?.nombreDirectivo ?? "",
-          })
+            nombreDirectivo:
+              fullResp.nombreDirectivo ?? usuario?.nombreDirectivo ?? "",
+          }),
         );
       }
 
       handleToaster(resp.message || "Sesión generada con éxito", "success");
     } catch (err: any) {
-      handleToaster(err?.response?.data?.message || err?.message || "Error al generar sesión", "error");
+      handleToaster(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Error al generar sesión",
+        "error",
+      );
     } finally {
       setGeneratingSlot(null);
     }
@@ -341,7 +378,11 @@ function GenerarSesionSecundaria() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-3 -ml-2">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/dashboard")}
+            className="mb-3 -ml-2"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Dashboard
           </Button>
@@ -364,7 +405,12 @@ function GenerarSesionSecundaria() {
         {error && (
           <div className="rounded-xl border border-red-200 bg-white p-5 mb-4 text-sm text-red-700">
             {error}
-            <Button variant="outline" size="sm" className="ml-3" onClick={cargarUnidades}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-3"
+              onClick={() => refetch()}
+            >
               <RefreshCw className="h-4 w-4 mr-1" />
               Reintentar
             </Button>
@@ -376,7 +422,10 @@ function GenerarSesionSecundaria() {
             <p className="text-slate-600 dark:text-slate-300 mb-4">
               No tienes unidades secundarias activas con secuencia por grado.
             </p>
-            <Button onClick={() => navigate("/generar-sesion")} variant="outline">
+            <Button
+              onClick={() => navigate("/generar-sesion")}
+              variant="outline"
+            >
               Ir a vista general
             </Button>
           </div>
@@ -398,7 +447,9 @@ function GenerarSesionSecundaria() {
                           : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40"
                       }`}
                     >
-                      <p className="font-semibold text-slate-900 dark:text-white">{u.titulo}</p>
+                      <p className="font-semibold text-slate-900 dark:text-white">
+                        {u.titulo}
+                      </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         {u.nivel?.nombre} · {u.duracion} semanas
                       </p>
@@ -413,7 +464,9 @@ function GenerarSesionSecundaria() {
                 <div className="mb-4 p-4 rounded-xl border border-violet-200/60 dark:border-violet-700/40 bg-violet-50/50 dark:bg-violet-500/5">
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                    <p className="font-semibold text-slate-900 dark:text-white">{selectedUnidad.titulo}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">
+                      {selectedUnidad.titulo}
+                    </p>
                   </div>
                 </div>
 
@@ -434,7 +487,9 @@ function GenerarSesionSecundaria() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setDisplayWeek((w) => Math.min(totalWeeks, w + 1))}
+                      onClick={() =>
+                        setDisplayWeek((w) => Math.min(totalWeeks, w + 1))
+                      }
                       disabled={displayWeek >= totalWeeks}
                     >
                       Siguiente
@@ -444,10 +499,15 @@ function GenerarSesionSecundaria() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {sesionesSemanaActual.map((g) => (
-                    <div key={g.gradoId} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40 p-4">
+                    <div
+                      key={g.gradoId}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40 p-4"
+                    >
                       <div className="flex items-center gap-2 mb-3">
                         <GraduationCap className="h-4 w-4 text-indigo-500" />
-                        <p className="font-semibold text-slate-900 dark:text-white">{g.grado}</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">
+                          {g.grado}
+                        </p>
                       </div>
                       <div className="space-y-2">
                         {g.sesiones.length === 0 && (
@@ -456,7 +516,11 @@ function GenerarSesionSecundaria() {
                           </p>
                         )}
                         {g.sesiones.map((s) => {
-                          const key = makeSlotKey(g.gradoId, displayWeek, s.indiceSesion);
+                          const key = makeSlotKey(
+                            g.gradoId,
+                            displayWeek,
+                            s.indiceSesion,
+                          );
                           const generated = generatedSlots.has(key);
                           const sessionInfo = generatedSesiones.get(key);
                           const isGenerating = generatingSlot === key;
@@ -484,7 +548,7 @@ function GenerarSesionSecundaria() {
                                         displayWeek,
                                         s.indiceSesion,
                                         s.area,
-                                        s.actividad
+                                        s.actividad,
                                       )
                                     }
                                   >
@@ -509,7 +573,10 @@ function GenerarSesionSecundaria() {
                                       const prem = premiumResponses.get(key);
                                       if (prem) {
                                         navigate("/sesion-premium-result", {
-                                          state: { premiumData: prem, instrumento: null },
+                                          state: {
+                                            premiumData: prem,
+                                            instrumento: null,
+                                          },
                                         });
                                       } else {
                                         navigate(`/sesion/${sessionInfo.id}`);
@@ -543,4 +610,3 @@ function GenerarSesionSecundaria() {
 }
 
 export default GenerarSesionSecundaria;
-

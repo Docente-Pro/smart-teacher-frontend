@@ -12,7 +12,6 @@ import {
   obtenerUrlDescarga,
   eliminarSesionPDF,
 } from "@/services/sesiones.service";
-import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { buildCdnPdfUrl } from "@/utils/cdn";
 import { getAreaColor } from "@/constants/areaColors";
 import { ISesion } from "@/interfaces/ISesion";
@@ -41,6 +40,7 @@ import {
 import { AdobePdfEmbed } from "@/components/AdobePdfEmbed";
 import ReusableModal from "@/components/Shared/Modal/ReusableModal";
 import { useQuery } from "@tanstack/react-query";
+import { useUserUnidades } from "@/hooks/useUserUnidades";
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -543,11 +543,7 @@ function MisSesiones() {
     data: unidadesData,
     isFetching: loadingUnidades,
     refetch: refetchUnidades,
-  } = useQuery({
-    queryKey: ["unitsOnSessions", userId],
-    queryFn: () => listarUnidadesByUsuario(userId),
-    staleTime: 1000 * 60 * 2, // 2 minutes
-  });
+  } = useUserUnidades();
 
   // ─── Data fetching ───
   const cargarSesiones = useCallback(async () => {
