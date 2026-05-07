@@ -1,3 +1,4 @@
+import { Navigate } from "react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GuestRoute } from "@/components/GuestRoute";
 import Areas from "@/pages/Areas";
@@ -6,7 +7,7 @@ import CuestionarioInicial from "@/pages/CuestionarioInicial";
 import CuestionarioSesion from "@/pages/CuestionarioSesion";
 import LandingPage from "@/pages/LandingPage";
 import Dashboard from "@/pages/Dashboard";
-import Planes from "@/pages/Planes";
+
 import PagoExitoso from "@/pages/PagoExitoso";
 import PagoFallido from "@/pages/PagoFallido";
 import PagoPendiente from "@/pages/PagoPendiente";
@@ -27,9 +28,11 @@ import GraficosAreasPlayground from "@/pages/GraficosAreasPlayground";
 import { DevRoute } from "@/components/DevRoute";
 import CrearUnidad from "@/pages/CrearUnidad";
 import UnidadResult from "@/pages/UnidadResult";
+import UnidadResultPrueba from "@/pages/UnidadResultPrueba";
 import UnidadSuscriptorResult from "@/pages/UnidadSuscriptorResult";
 import UnirseUnidad from "@/pages/UnirseUnidad";
 import GenerarSesionPremium from "@/pages/GenerarSesionPremium";
+import GenerarSesionSecundaria from "@/pages/GenerarSesionSecundaria";
 import SesionPremiumResult from "@/pages/SesionPremiumResult";
 import SesionSuscriptorResult from "@/pages/SesionSuscriptorResult";
 import FichaAplicacionResult from "@/pages/FichaAplicacionResult";
@@ -121,6 +124,30 @@ export const routes: IRouteToCreate[] = [
     ),
   },
   {
+    path: "/unidad-result-prueba",
+    element: (
+      <ProtectedRoute>
+        <UnidadResultPrueba />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/unidad-prueba-result",
+    element: (
+      <ProtectedRoute>
+        <UnidadResultPrueba />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/unidad-result-secundaria-prueba",
+    element: (
+      <ProtectedRoute>
+        <UnidadResultPrueba />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/unidad-suscriptor-result",
     element: (
       <ProtectedRoute>
@@ -169,6 +196,14 @@ export const routes: IRouteToCreate[] = [
     ),
   },
   {
+    path: "/generar-sesion-secundaria",
+    element: (
+      <ProtectedRoute>
+        <GenerarSesionSecundaria />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/competencias",
     element: (
       <ProtectedRoute>
@@ -186,11 +221,7 @@ export const routes: IRouteToCreate[] = [
   },
   {
     path: "/planes",
-    element: (
-      <ProtectedRoute>
-        <Planes />
-      </ProtectedRoute>
-    ),
+    element: <Navigate to="/dashboard" replace />,
   },
   {
     path: "/pago-exitoso",

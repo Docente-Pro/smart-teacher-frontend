@@ -1,6 +1,7 @@
 import React from 'react';
 import type { GraficoOrganizadorKVL } from '../../../domain/types/graficos-areas.types';
 import { resolveColor } from '../../hooks/useRoughSVG';
+import { normalizarEtiquetaGrafico } from '@/utils/normalizarEtiquetaGrafico';
 
 interface Props {
   data: GraficoOrganizadorKVL;
@@ -36,7 +37,7 @@ export const OrganizadorKVL: React.FC<Props> = ({ data }) => {
               style={{ background: c, color: '#fff' }}
             >
               <span className="text-xl">{col.icono}</span>
-              <h4 className="font-bold text-sm">{col.encabezado}</h4>
+              <h4 className="font-bold text-sm">{normalizarEtiquetaGrafico(col)}</h4>
             </div>
 
             {/* Items */}

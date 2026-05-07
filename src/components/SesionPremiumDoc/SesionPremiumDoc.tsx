@@ -14,11 +14,16 @@
  * aplicado a cabeceras de sección, th, header y footer.
  */
 
-import { Document, Footer } from "@htmldocs/react";
-import { DocumentStyles } from "@/components/DocTest";
+import { DocumentStyles, HtmldocsDocument, HtmldocsFooter } from "@/components/DocTest";
 import { DocumentHeader } from "@/components/DocTest/DocumentHeader";
+import {
+  CompetenciasCriteriosSesionSection,
+  splitCriteriosEnDosBloques,
+} from "@/components/DocTest/CompetenciasCriteriosSesionSection";
 import { getAreaColor, type AreaColorConfig } from "@/constants/areaColors";
 import { InstrumentoEvaluacionSection } from "./InstrumentoEvaluacionSection";
+import { SesionTutoriaDoc } from "./SesionTutoriaDoc";
+import { SesionPlanLectorDoc } from "./SesionPlanLectorDoc";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 import { parseMarkdown } from "@/utils/parseMarkdown";
@@ -446,13 +451,6 @@ function ProcesoPremiumRow({
       ? proceso.estrategias.join("\n")
       : proceso.estrategias || "";
 
-  // Soporta "recursos" (v2) y "recursosDidacticos" (v1)
-  const recursosRaw = proceso.recursos ?? proceso.recursosDidacticos;
-  const recursosTexto =
-    Array.isArray(recursosRaw)
-      ? recursosRaw.join(", ")
-      : recursosRaw || "";
-
   // Normalizar imágenes: soporta imagen singular (v2), imagenes array (v1)
   // e imagenContenido (contenido didáctico: tabla, gráfico, mapa, etc.)
   const baseImagenes = proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
@@ -463,190 +461,216 @@ function ProcesoPremiumRow({
   const imgJunto = imagenes.filter((img) => img.posicion === "junto");
   const imgDespues = imagenes.filter((img) => img.posicion === "despues" || img.posicion === "debajo" || (!img.posicion && img.posicion !== "antes" && img.posicion !== "junto"));
 
+  const tituloProc = proceso.proceso || "";
+  const tieneProblema = Boolean((proceso as any).problemaMatematico);
+  const esOtrosProblemas = /otros\s+problemas/i.test(tituloProc);
+  const esSocializacion = /socializaci[oó]n/i.test(tituloProc);
+  const ocultarGrafico = esOtrosProblemas || esSocializacion;
+
+  /** Bloque reutilizable: lista de imágenes */
+  const renderImageBlock = (imgs: typeof imagenes) =>
+    imgs.length > 0 ? (
+      <div style={{ marginBottom: "0.6rem", textAlign: "center" }}>
+        {imgs.map((img, imgIdx) => (
+          <div key={(img as any).id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
+            <img src={img.url} alt={img.descripcion || ""} crossOrigin="anonymous" style={{ maxWidth: "260px", maxHeight: "220px" }} />
+            {(img as any).texto_overlay && (
+              <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+                {(img as any).texto_overlay}
+              </div>
+            )}
+            {img.descripcion && (
+              <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>{img.descripcion}</div>
+            )}
+          </div>
+        ))}
+      </div>
+    ) : null;
+
+  /** Bloque reutilizable: estrategias como lista o texto */
+  const renderEstrategias = () =>
+    Array.isArray(proceso.estrategias) && proceso.estrategias.length > 1 ? (
+      <ul style={{ marginLeft: "1rem", marginTop: "0.3rem", lineHeight: 1.6 }}>
+        {proceso.estrategias.map((e, i) => (
+          <li key={i} style={{ marginBottom: "0.2rem" }}>{parseMarkdown(e)}</li>
+        ))}
+      </ul>
+    ) : (
+      <span>{parseMarkdown(estrategiasTexto)}</span>
+    );
+
   return (
     <tr key={idx}>
       <td style={{ fontSize: "9pt", padding: "0.8rem", lineHeight: "1.6" }}>
-        {/* Título del proceso */}
-        {proceso.proceso && (
-          <div
-            style={{
-              fontSize: "10pt",
-              fontWeight: "bold",
-              marginBottom: "0.8rem",
-              color: "#1e293b",
-            }}
-          >
-            {proceso.proceso}
-          </div>
-        )}
 
-        {/* Imágenes con posicion "antes" */}
-        {imgAntes.length > 0 && (
-          <div style={{ marginBottom: "0.6rem", textAlign: "center" }}>
-            {imgAntes.map((img, imgIdx) => (
-              <div key={(img as any).id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
-                <img
-                  src={img.url}
-                  alt={img.descripcion || ""}
-                  crossOrigin="anonymous"
-                  style={{ maxWidth: "350px", maxHeight: "300px" }}
-                />
-                {(img as any).texto_overlay && (
-                  <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
-                    {(img as any).texto_overlay}
-                  </div>
-                )}
-                {img.descripcion && (
-                  <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
-                    {img.descripcion}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        {/* ═══ Layout cuando HAY problemaMatematico: texto arriba del gráfico ═══ */}
+        {tieneProblema ? (
+          <>
+            {/* Título + Problema + Estrategias en un solo bloque con imagen "junto" */}
+            {imgJunto.length > 0 ? (
+              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
+                <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
+                  {tituloProc && <strong>{tituloProc}: </strong>}
 
-        {/* Estrategias — con o sin imágenes "junto" */}
-        {estrategiasTexto && imgJunto.length > 0 ? (
-          <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
-            <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
-              <strong>Estrategias:</strong>{" "}
-              {Array.isArray(proceso.estrategias) && proceso.estrategias.length > 1 ? (
-                <ul style={{ marginLeft: "1rem", marginTop: "0.3rem", lineHeight: 1.6 }}>
-                  {proceso.estrategias.map((e, i) => (
-                    <li key={i} style={{ marginBottom: "0.2rem" }}>{parseMarkdown(e)}</li>
-                  ))}
-                </ul>
-              ) : (
-                <span>{parseMarkdown(estrategiasTexto)}</span>
-              )}
-            </div>
-            <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              {imgJunto.map((img, imgIdx) => (
-                <div key={(img as any).id ?? imgIdx} style={{ textAlign: "center" }}>
-                  <img
-                    src={img.url}
-                    alt={img.descripcion || ""}
-                    crossOrigin="anonymous"
-                    style={{ maxWidth: "350px", maxHeight: "300px" }}
-                  />
-                  {(img as any).texto_overlay && (
-                    <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
-                      {(img as any).texto_overlay}
-                    </div>
-                  )}
-                  {img.descripcion && (
-                    <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
-                      {img.descripcion}
+                  <div style={{ marginTop: "0.4rem" }}>
+                    <strong>Planteamiento del problema: </strong>
+                    <span>{parseMarkdown((proceso as any).problemaMatematico)}</span>
+                  </div>
+
+                  {estrategiasTexto && (
+                    <div style={{ marginTop: "0.6rem" }}>
+                      {renderEstrategias()}
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-          </div>
-        ) : estrategiasTexto ? (
-          <div style={{ marginBottom: "0.8rem", whiteSpace: "pre-wrap" }}>
-            <strong>Estrategias:</strong>{" "}
-            {Array.isArray(proceso.estrategias) &&
-            proceso.estrategias.length > 1 ? (
-              <ul
-                style={{
-                  marginLeft: "1rem",
-                  marginTop: "0.3rem",
-                  lineHeight: 1.6,
-                }}
-              >
-                {proceso.estrategias.map((e, i) => (
-                  <li key={i} style={{ marginBottom: "0.2rem" }}>
-                    {parseMarkdown(e)}
-                  </li>
-                ))}
-              </ul>
+                <div style={{ flexShrink: 0, maxWidth: "35%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  {imgJunto.map((img, imgIdx) => (
+                    <div key={(img as any).id ?? imgIdx} style={{ textAlign: "center" }}>
+                      <img src={img.url} alt={img.descripcion || ""} crossOrigin="anonymous" style={{ maxWidth: "260px", maxHeight: "220px" }} />
+                      {(img as any).texto_overlay && (
+                        <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+                          {(img as any).texto_overlay}
+                        </div>
+                      )}
+                      {img.descripcion && (
+                        <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>{img.descripcion}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
-              <span>{parseMarkdown(estrategiasTexto)}</span>
+              <div style={{ marginBottom: "0.8rem", whiteSpace: "pre-wrap" }}>
+                {tituloProc && <strong>{tituloProc}: </strong>}
+
+                <div style={{ marginTop: "0.4rem" }}>
+                  <strong>Planteamiento del problema: </strong>
+                  <span>{parseMarkdown((proceso as any).problemaMatematico)}</span>
+                </div>
+
+                {estrategiasTexto && (
+                  <div style={{ marginTop: "0.6rem" }}>
+                    {renderEstrategias()}
+                  </div>
+                )}
+              </div>
             )}
-          </div>
-        ) : null}
 
-        {/* Imágenes con posicion "despues" o sin posicion */}
-        {imgDespues.length > 0 && (
-          <div style={{ marginBottom: "0.6rem", textAlign: "center" }}>
-            {imgDespues.map((img, imgIdx) => (
-              <div key={(img as any).id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
-                <img
-                  src={img.url}
-                  alt={img.descripcion || ""}
-                  crossOrigin="anonymous"
-                  style={{ maxWidth: "350px", maxHeight: "300px" }}
-                />
-                {(img as any).texto_overlay && (
-                  <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
-                    {(img as any).texto_overlay}
-                  </div>
-                )}
-                {img.descripcion && (
-                  <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
-                    {img.descripcion}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+            {/* Imágenes */}
+            {renderImageBlock(imgAntes)}
+            {renderImageBlock(imgDespues)}
 
-        {/* Gráfico educativo (Math o Área) */}
-        {proceso.grafico && esGraficoRenderable(proceso.grafico) && (
-          <div style={{
-            marginTop: "1rem",
-            marginBottom: "1rem",
-            padding: "1rem 1.25rem",
-            background: "linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%)",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-            textAlign: "center",
-            overflow: "visible",
-          }}>
-            <div style={{
-              maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 420,
-              width: "100%",
-              margin: "0 auto",
-              minWidth: 0,
-            }}>
-              <GraficoRenderer grafico={proceso.grafico as any} mostrarErrores={false} />
-            </div>
-          </div>
-        )}
-
-        {/* Gráfico de operación */}
-        {(proceso as any).graficoOperacion && esGraficoRenderable((proceso as any).graficoOperacion) && (
-          <div style={{
-            marginTop: "0.8rem",
-            marginBottom: "0.8rem",
-            backgroundColor: "#faf5ff",
-            padding: "1rem",
-            borderRadius: "8px",
-            border: "2px solid #d8b4fe",
-            overflow: "visible",
-          }}>
-            <p style={{ fontSize: "9pt", fontWeight: "bold", color: "#7c3aed", marginBottom: "0.5rem", margin: 0 }}>
-              🔢 Operación / Recurso:
-            </p>
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem", minWidth: 0 }}>
-              <div style={{ 
-                maxWidth: esGraficoAnchoCompleto((proceso as any).graficoOperacion) ? "100%" : 420, 
-                width: "100%",
-                minWidth: 0,
+            {/* 5. Gráfico del problema */}
+            {!ocultarGrafico && proceso.grafico && esGraficoRenderable(proceso.grafico) && (
+              <div className="no-break" style={{
+                marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.6rem 0.8rem",
+                backgroundColor: "#f0f9ff", borderRadius: "8px", border: "1px solid #bae6fd",
+                textAlign: "center", overflow: "visible",
               }}>
-                <GraficoRenderer grafico={(proceso as any).graficoOperacion} mostrarErrores={false} />
+                <div style={{
+                  maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 340,
+                  width: "100%", margin: "0 auto", minWidth: 0,
+                }}>
+                  <GraficoRenderer grafico={proceso.grafico as any} mostrarErrores={false} />
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+
+            {/* 6. Solución del problema (texto) */}
+            {(proceso as any).solucionProblema && (
+              <div style={{
+                marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.7rem 1rem",
+                backgroundColor: "#f0fdf4", borderRadius: "8px", borderLeft: "4px solid #22c55e",
+              }}>
+                <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#15803d", margin: "0 0 0.3rem 0" }}>
+                  ✅ Solución:
+                </p>
+                <div style={{ fontSize: "9pt", lineHeight: "1.6", margin: 0, whiteSpace: "pre-wrap" }}>
+                  {parseMarkdown((proceso as any).solucionProblema)}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* ═══ Layout sin problemaMatematico: orden original ═══ */}
+
+            {/* Imágenes con posicion "antes" */}
+            {renderImageBlock(imgAntes)}
+
+            {/* "TítuloProceso: estrategias..." */}
+            {estrategiasTexto && imgJunto.length > 0 ? (
+              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
+                <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
+                  {tituloProc && <strong>{tituloProc}: </strong>}
+                  {renderEstrategias()}
+                </div>
+                <div style={{ flexShrink: 0, maxWidth: "35%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  {imgJunto.map((img, imgIdx) => (
+                    <div key={(img as any).id ?? imgIdx} style={{ textAlign: "center" }}>
+                      <img src={img.url} alt={img.descripcion || ""} crossOrigin="anonymous" style={{ maxWidth: "260px", maxHeight: "220px" }} />
+                      {(img as any).texto_overlay && (
+                        <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+                          {(img as any).texto_overlay}
+                        </div>
+                      )}
+                      {img.descripcion && (
+                        <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>{img.descripcion}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : estrategiasTexto ? (
+              <div style={{ marginBottom: "0.8rem", whiteSpace: "pre-wrap" }}>
+                {tituloProc && <strong>{tituloProc}: </strong>}
+                {renderEstrategias()}
+              </div>
+            ) : tituloProc ? (
+              <div style={{ marginBottom: "0.8rem" }}>
+                <strong>{tituloProc}</strong>
+              </div>
+            ) : null}
+
+            {/* Imágenes con posicion "despues" o sin posicion */}
+            {renderImageBlock(imgDespues)}
+
+            {/* Gráfico standalone */}
+            {proceso.grafico && esGraficoRenderable(proceso.grafico) && !/socializaci[oó]n/i.test(tituloProc) && (
+              <div className="no-break" style={{
+                marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.6rem 0.8rem",
+                background: "linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%)",
+                borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center", overflow: "visible",
+              }}>
+                <div style={{
+                  maxWidth: esGraficoAnchoCompleto(proceso.grafico as Record<string, unknown>) ? "100%" : 340,
+                  width: "100%", margin: "0 auto", minWidth: 0,
+                }}>
+                  <GraficoRenderer grafico={proceso.grafico as any} mostrarErrores={false} />
+                </div>
+              </div>
+            )}
+
+            {/* Solución del problema (texto) */}
+            {(proceso as any).solucionProblema && (
+              <div style={{
+                marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.7rem 1rem",
+                backgroundColor: "#f0fdf4", borderRadius: "8px", borderLeft: "4px solid #22c55e",
+              }}>
+                <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#15803d", margin: "0 0 0.3rem 0" }}>
+                  ✅ Solución:
+                </p>
+                <div style={{ fontSize: "9pt", lineHeight: "1.6", margin: 0, whiteSpace: "pre-wrap" }}>
+                  {parseMarkdown((proceso as any).solucionProblema)}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Respuestas del docente (transversal — todas las áreas) */}
         {(proceso as any).respuestasDocente && (proceso as any).respuestasDocente.length > 0 && (
-          <div style={{
+          <div className="no-break" style={{
             marginTop: "0.8rem",
             marginBottom: "0.8rem",
             backgroundColor: "#fffbeb",
@@ -670,17 +694,6 @@ function ProcesoPremiumRow({
           </div>
         )}
 
-        {/* Recursos didácticos y tiempo */}
-        {recursosTexto && (
-          <div>
-            <strong>Recursos:</strong> {recursosTexto}
-          </div>
-        )}
-        {proceso.tiempo && (
-          <div>
-            <strong>Tiempo:</strong> {proceso.tiempo}
-          </div>
-        )}
       </td>
     </tr>
   );
@@ -996,14 +1009,78 @@ interface SesionPremiumDocProps {
  */
 export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremiumDocProps) {
   const { sesion, docente, institucion, seccion, nombreDirectivo } = data;
+  const _gradoId = (sesion as any).gradoId ?? (typeof sesion.grado === "object" && sesion.grado ? (sesion.grado as any).id : undefined);
 
   // ── Derivar colores del área ────────────────────────────────────
   const areaName = toLabel(sesion.area);
   const areaConfig = getAreaColor(areaName);
   const hex = areaConfig.hex;
+  const areaNormalized = areaName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  // Detección robusta: checar area, tipo, y formatoFront* para no depender
+  // solo del string de área (que puede venir como "Comunicación" desde la BD).
+  const s = sesion as any;
+  const tipoNormalized = (s.tipo ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  const isTutoria =
+    areaNormalized.includes("tutoria") ||
+    tipoNormalized.includes("tutoria") ||
+    !!s.formatoFrontTutoria;
+  const isPlanLector =
+    !isTutoria &&
+    (areaNormalized.includes("plan lector") ||
+      areaNormalized.includes("planlector") ||
+      tipoNormalized.includes("plan lector") ||
+      tipoNormalized.includes("planlector") ||
+      !!s.formatoFrontPlanLector);
+
+  if (isTutoria) {
+    return <SesionTutoriaDoc data={data} insigniaUrl={insigniaUrl} />;
+  }
+
+  if (isPlanLector) {
+    return <SesionPlanLectorDoc data={data} insigniaUrl={insigniaUrl} />;
+  }
+
+  const criteriosPorCompetencia = (() => {
+    const transversales =
+      (sesion as any)?.competenciasTransversalesSesion ??
+      (sesion as any)?.contenido?.competenciasTransversalesSesion ??
+      (sesion as any)?.contenido?.contenido?.competenciasTransversalesSesion;
+    if (Array.isArray(transversales) && transversales.length > 0) {
+      const criteriosTransversales = transversales
+        .slice(0, 2)
+        .map((ct: any) => {
+          const raw = ct?.criteriosEvaluacion ?? ct?.criterios;
+          return Array.isArray(raw) ? raw.filter(Boolean) : [];
+        });
+      if (criteriosTransversales.some((bloque: string[]) => bloque.length > 0)) {
+        return criteriosTransversales;
+      }
+    }
+
+    const propositos = Array.isArray(sesion.propositoAprendizaje)
+      ? sesion.propositoAprendizaje
+      : [];
+
+    const primerBloque = (propositos[0]?.criteriosEvaluacion ?? []).filter(Boolean);
+    const segundoBloque = (propositos[1]?.criteriosEvaluacion ?? []).filter(Boolean);
+
+    if (primerBloque.length || segundoBloque.length) {
+      return [primerBloque, segundoBloque];
+    }
+
+    return splitCriteriosEnDosBloques(primerBloque);
+  })();
 
   return (
-    <Document size="A4" orientation="portrait" margin="0.5in">
+    <HtmldocsDocument size="A4" orientation="portrait" margin="0.5in">
       <DocumentStyles thBgColor={hex.light} />
 
       {/* HEADER */}
@@ -1053,6 +1130,12 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
         <PreparacionPremium preparacion={sesion.preparacion} hex={hex} />
       )}
 
+      {/* COMPETENCIAS/CAPACIDADES + CRITERIOS (previo a momentos y tiempos) */}
+      <CompetenciasCriteriosSesionSection
+        sectionColor={hex.light}
+        criteriosPorCompetencia={criteriosPorCompetencia}
+      />
+
       {/* MOMENTOS Y TIEMPOS — siempre visible para PDF/Word (Inicio, Desarrollo, Cierre/Desenlace) */}
       <SecuenciaDidacticaPremium
         inicio={sesion.inicio || { tiempo: "", procesos: [] }}
@@ -1076,7 +1159,7 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
 
       {/* INSTRUMENTO DE EVALUACIÓN — siempre en el PDF (con o sin datos; celdas vacías si no hay estudiantes) */}
       {instrumento ? (
-        <InstrumentoEvaluacionSection instrumento={instrumento} hex={hex} alumnos={getSavedAlumnos()} />
+        <InstrumentoEvaluacionSection instrumento={instrumento} hex={hex} alumnos={getSavedAlumnos(_gradoId)} />
       ) : (
         <table style={{ marginBottom: "0.5rem", width: "100%", fontSize: "9pt", borderCollapse: "collapse" }}>
           <tbody>
@@ -1115,8 +1198,24 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
 
       {/* FUENTES MINEDU — deshabilitado, no se renderiza en el PDF */}
 
+      {/* Firmas — Docente y Directivo */}
+      <table style={{ marginTop: "2.2rem" }}>
+        <tbody>
+          <tr>
+            <td style={{ width: "50%", textAlign: "center", border: "none", paddingTop: "2.2rem" }}>
+              <div style={{ borderTop: "1px solid #000", width: "70%", margin: "0 auto 0.4rem auto" }} />
+              Docente
+            </td>
+            <td style={{ width: "50%", textAlign: "center", border: "none", paddingTop: "2.2rem" }}>
+              <div style={{ borderTop: "1px solid #000", width: "70%", margin: "0 auto 0.4rem auto" }} />
+              Directivo
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
       {/* Footer — con color del área */}
-      <Footer position="bottom-center">
+      <HtmldocsFooter position="bottom-center">
         {() => (
           <div
             style={{
@@ -1132,8 +1231,8 @@ export function SesionPremiumDoc({ data, instrumento, insigniaUrl }: SesionPremi
             <span>Sesión de Aprendizaje - {areaName || "Premium"}</span>
           </div>
         )}
-      </Footer>
-    </Document>
+      </HtmldocsFooter>
+    </HtmldocsDocument>
   );
 }
 

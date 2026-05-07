@@ -39,7 +39,7 @@ function extractCampos(sesion: ISesionPremiumSesion) {
     competencia: proposito?.competencia ?? "",
     evidencia: proposito?.evidencia ?? "",
     criterios: proposito?.criteriosEvaluacion ?? [],
-    instrumento: proposito?.instrumento ?? "",
+    instrumento: proposito?.instrumento ?? (proposito as any)?.instrumentoEvaluacion ?? "",
     tema: String((sesion as Record<string, unknown>).tema ?? datos.tema ?? ""),
   };
 }

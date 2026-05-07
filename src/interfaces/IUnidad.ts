@@ -4,6 +4,7 @@ import type { IUnidadContenido } from "./IUnidadIA";
 // ─── Tipos ───
 
 export type TipoUnidad = "PERSONAL" | "COMPARTIDA";
+export type ModoSecundaria = "tutoria" | "mono_grado";
 
 export type EstadoPagoUnidad = "PENDIENTE" | "CONFIRMADO" | "RECHAZADO";
 
@@ -34,7 +35,9 @@ export interface IUnidadCreateRequest {
   titulo: string;
   tipo?: TipoUnidad;
   nivelId: number;
-  gradoId: number;
+  gradoId: number | null;
+  gradosSecundaria?: number[];
+  modoSecundaria?: ModoSecundaria;
   numeroUnidad: number;
   duracion: number;
   fechaInicio: string;
@@ -132,7 +135,7 @@ export interface IPagoUnidad {
 // ─── Precios dinámicos (/api/unidades/precios) ───
 
 export interface IUnidadPrecios {
-  propietario: number;   // S/.20
+  propietario: number;   // Primaria S/.20, Secundaria S/.25
   suscriptor: number;    // S/.10
 }
 

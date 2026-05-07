@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,10 +6,12 @@ import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { listarUnidadesByUsuario, sincronizarMiembroUnidad, generarSesionComplementaria } from "@/services/unidad.service";
+import { sincronizarMiembroUnidad } from "@/services/unidad.service";
+import { isUnidadActiva } from "@/utils/unidadUtils";
+import { useUserUnidades } from "@/hooks/useUserUnidades";
 import { generarSesionUnidad } from "@/services/sesiones.service";
-import type { TipoSesionComplementaria } from "@/interfaces/ISesionComplementaria";
 import { generarImagenesSesion } from "@/services/ia-sesion.service";
+import { getAllAreas } from "@/services/areas.service";
 import { useInstrumentoEvaluacion } from "@/hooks/useInstrumentoEvaluacion";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
 import type { IUnidadListItem, IUnidadListMiembroArea } from "@/interfaces/IUnidadList";
@@ -58,26 +60,13 @@ interface ISemanaData {
 }
 
 type SlotKey = string;
-type SlotState = "generada" | "clonada" | "disponible" | "en_espera" | "bloqueada";
+type SlotState = "generada" | "clonada" | "disponible" | "en_espera";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const DIA_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
-
-/** Nombres de área que corresponden a sesiones complementarias (no curriculares) */
-const TIPOS_COMPLEMENTARIOS: Record<string, TipoSesionComplementaria> = {
-  "tutoría": "Tutoría",
-  "tutoria": "Tutoría",
-  "plan lector": "Plan Lector",
-  "planlector": "Plan Lector",
-};
-
-/** Detecta si un nombre de área es en realidad un tipo complementario */
-function getTipoComplementario(areaName: string): TipoSesionComplementaria | null {
-  return TIPOS_COMPLEMENTARIOS[areaName.toLowerCase().trim()] ?? null;
-}
 
 
 
@@ -181,14 +170,33 @@ function getSlotOrderInWeek(dia: string, bloqueIndex: number): number {
   return DIA_ORDER.indexOf(dia) * 10 + bloqueIndex;
 }
 
+/**
+ * Calcula la semana actual de la unidad.
+ * La siguiente semana se habilita cada sábado a las 00:00.
+ * getDay(): 0=domingo … 6=sábado
+ */
 function calcularSemanaActual(fechaInicio: string, duracion: number): number {
   const start = new Date(fechaInicio);
-  const today = new Date();
+  const now = new Date();
   start.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  if (today < start) return 1;
-  const diffDays = Math.floor((today.getTime() - start.getTime()) / 86400000);
-  return Math.min(Math.max(Math.floor(diffDays / 7) + 1, 1), duracion);
+
+  if (now < start) return 1;
+
+  // Encontrar el sábado (inicio de la semana de generación) correspondiente a fechaInicio.
+  // Retrocedemos al sábado anterior o igual a la fecha de inicio.
+  const startDay = start.getDay(); // 0=dom … 6=sáb
+  const daysToSaturday = startDay === 6 ? 0 : startDay + 1; // días que retroceder hasta sábado
+  const firstSaturday = new Date(start);
+  firstSaturday.setDate(firstSaturday.getDate() - daysToSaturday);
+  firstSaturday.setHours(0, 0, 0, 0);
+
+  const nowMidnight = new Date(now);
+  nowMidnight.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.floor((nowMidnight.getTime() - firstSaturday.getTime()) / 86400000);
+  const week = Math.floor(diffDays / 7) + 1;
+
+  return Math.min(Math.max(week, 1), duracion);
 }
 
 /** Busca el areaId por nombre dentro de las areas del miembro.
@@ -239,6 +247,18 @@ function formatFechaDia(fecha: string): string {
   }
 }
 
+function isUnidadSecundaria(unidad: IUnidadListItem | null | undefined): boolean {
+  if (!unidad) return false;
+  const contenido = (unidad as any).contenido ?? {};
+  if (Array.isArray(contenido?.secuenciaPorGrado) && contenido.secuenciaPorGrado.length > 0) {
+    return true;
+  }
+  if (Array.isArray(contenido?.gradosSecundaria) && contenido.gradosSecundaria.length > 0) {
+    return true;
+  }
+  return /secundaria/i.test(unidad?.nivel?.nombre ?? "");
+}
+
 function isHoy(fecha: string): boolean {
   if (!fecha) return false;
   const today = new Date();
@@ -272,9 +292,6 @@ function GenerarSesionPremium() {
   const userId = user?.id;
 
   // ─── State ───
-  const [unidades, setUnidades] = useState<IUnidadListItem[]>([]);
-  const [loadingUnidades, setLoadingUnidades] = useState(true);
-  const [errorUnidades, setErrorUnidades] = useState<string | null>(null);
   /** Sincronizando contenido personalizado para suscriptor */
   const [sincronizando, setSincronizando] = useState(false);
   const [selectedUnidadId, setSelectedUnidadId] = useState<string | null>(null);
@@ -293,13 +310,39 @@ function GenerarSesionPremium() {
   const [instrumentosMap, setInstrumentosMap] = useState<Map<SlotKey, IInstrumentoEvaluacion>>(new Map());
   /** Slots que fueron clonados (otro miembro creó la sesión) */
   const [clonedSlots, setClonedSlots] = useState<Set<SlotKey>>(new Set());
+  /** Catálogo completo de áreas (fallback cuando el área no está en miembros) */
+  const [catalogAreas, setCatalogAreas] = useState<IUnidadListMiembroArea[]>([]);
+
+  useEffect(() => {
+    getAllAreas()
+      .then((res) => {
+        const raw = res.data.data || res.data;
+        setCatalogAreas(
+          (raw as any[]).map((a) => ({
+            id: 0,
+            unidadMiembroId: "",
+            areaId: a.id,
+            maxSesionesSemana: 0,
+            createdAt: "",
+            area: { id: a.id, nombre: a.nombre, descripcion: a.descripcion ?? "", color: a.color ?? "", imagen: a.imagen ?? "" },
+          })),
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  // ─── Query centralizada de unidades ───
+  const { data: unidades = [], isFetching: loadingUnidades, isError: hasErrorUnidades, error: queryError, refetch } = useUserUnidades();
+  const errorUnidades = hasErrorUnidades ? ((queryError as any)?.message || "Error al cargar unidades") : null;
 
   // ─── Derived ───
+  /** Pago confirmado + unidad activa (no finalizada por fechaFin) — p. ej. varias unidades en secundaria */
   const unidadesActivas = useMemo(
     () =>
       unidades.filter((u) => {
         const miembro = u.miembros.find((mb) => mb.usuarioId === userId);
-        return miembro?.estadoPago === "CONFIRMADO";
+        if (miembro?.estadoPago !== "CONFIRMADO") return false;
+        return isUnidadActiva(u);
       }),
     [unidades, userId],
   );
@@ -308,6 +351,22 @@ function GenerarSesionPremium() {
     () => unidadesActivas.find((u) => u.id === selectedUnidadId) ?? null,
     [unidadesActivas, selectedUnidadId],
   );
+
+  /** Si la unidad elegida dejó de estar activa (p. ej. finalizada), limpiar o fijar la única restante */
+  useEffect(() => {
+    if (unidadesActivas.length === 0) {
+      setSelectedUnidadId(null);
+      return;
+    }
+    if (
+      selectedUnidadId &&
+      !unidadesActivas.some((u) => u.id === selectedUnidadId)
+    ) {
+      setSelectedUnidadId(
+        unidadesActivas.length === 1 ? unidadesActivas[0].id : null,
+      );
+    }
+  }, [unidadesActivas, selectedUnidadId]);
 
   /** Áreas del miembro actual (puede estar vacío si ya no hay restricciones por miembro) */
   const miembroAreas = useMemo<IUnidadListMiembroArea[]>(() => {
@@ -366,57 +425,24 @@ function GenerarSesionPremium() {
 
   // ─── Slot states ───
   const isCurrentWeek = displayWeek === semanaActualReal;
-  const isPastWeek = displayWeek < semanaActualReal;
-  const isFutureWeek = displayWeek > semanaActualReal;
 
   const slotStates = useMemo<Map<SlotKey, SlotState>>(() => {
     const map = new Map<SlotKey, SlotState>();
     if (!currentSemana) return map;
     const wk = currentSemana.semana;
 
-    // Collect all slots in order
-    const allSlots: { key: SlotKey; order: number; area: string }[] = [];
     currentSemana.dias.forEach((d) => {
-      d.bloques.forEach((bloque, idx) => {
-        allSlots.push({
-          key: makeSlotKey(wk, d.dia, bloque.turnoKey),
-          order: getSlotOrderInWeek(d.dia, idx),
-          area: bloque.area,
-        });
+      d.bloques.forEach((bloque) => {
+        const key = makeSlotKey(wk, d.dia, bloque.turnoKey);
+        if (generatedSlots.has(key)) {
+          map.set(key, clonedSlots.has(key) ? "clonada" : "generada");
+        } else {
+          map.set(key, "disponible");
+        }
       });
     });
-    allSlots.sort((a, b) => a.order - b.order);
-
-    // Future weeks → all blocked
-    if (isFutureWeek) {
-      for (const slot of allSlots) {
-        map.set(slot.key, "bloqueada");
-      }
-      return map;
-    }
-
-    // Past weeks → show generated/clonada or blocked
-    if (isPastWeek) {
-      for (const slot of allSlots) {
-        if (generatedSlots.has(slot.key)) {
-          map.set(slot.key, clonedSlots.has(slot.key) ? "clonada" : "generada");
-        } else {
-          map.set(slot.key, "bloqueada");
-        }
-      }
-      return map;
-    }
-
-    // Current week → slots disponibles, generados o clonados
-    for (const slot of allSlots) {
-      if (generatedSlots.has(slot.key)) {
-        map.set(slot.key, clonedSlots.has(slot.key) ? "clonada" : "generada");
-      } else {
-        map.set(slot.key, "disponible");
-      }
-    }
     return map;
-  }, [currentSemana, generatedSlots, clonedSlots, isCurrentWeek, isPastWeek, isFutureWeek]);
+  }, [currentSemana, generatedSlots, clonedSlots]);
 
   // ─── Progress ───
   const weekProgress = useMemo(() => {
@@ -437,58 +463,32 @@ function GenerarSesionPremium() {
   // EFFECTS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const cargarUnidades = useCallback(async () => {
-    if (!userId) return;
-    setLoadingUnidades(true);
-    setErrorUnidades(null);
-    try {
-      let items = await listarUnidadesByUsuario(userId);
-      
-      // Sincronizar automáticamente suscriptores que necesitan contenido personalizado
-      const unidadesNecesitanSync = items.filter(
-        (u) => u._rol === "SUSCRIPTOR" && u.necesitaSincronizacion === true
-      );
-      
-      if (unidadesNecesitanSync.length > 0) {
-        setSincronizando(true);
-        try {
-          // Sincronizar cada unidad que lo necesite
-          await Promise.all(
-            unidadesNecesitanSync.map(async (u) => {
-              try {
-                const result = await sincronizarMiembroUnidad(u.id);
-              } catch (syncErr) {
-                // Error sincronizando unidad
-              }
-            })
-          );
-          // Recargar unidades después de sincronizar
-          items = await listarUnidadesByUsuario(userId);
-        } finally {
-          setSincronizando(false);
-        }
-      }
-      
-      setUnidades(items);
-      const activas = items.filter((u) => {
-        const mb = u.miembros.find((m) => m.usuarioId === userId);
-        return mb?.estadoPago === "CONFIRMADO";
-      });
-      if (activas.length === 1) setSelectedUnidadId(activas[0].id);
-    } catch (err: any) {
-      setErrorUnidades(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Error al cargar unidades",
-      );
-    } finally {
-      setLoadingUnidades(false);
-    }
-  }, [userId]);
-
+  // Sincronizar suscriptores que necesitan contenido personalizado
   useEffect(() => {
-    cargarUnidades();
-  }, [cargarUnidades]);
+    if (!unidades.length) return;
+    const needSync = unidades.filter(
+      (u) => u._rol === "SUSCRIPTOR" && u.necesitaSincronizacion === true,
+    );
+    if (needSync.length === 0) return;
+    let cancelled = false;
+    setSincronizando(true);
+    Promise.all(
+      needSync.map((u) => sincronizarMiembroUnidad(u.id).catch(() => {})),
+    ).finally(() => {
+      if (!cancelled) {
+        setSincronizando(false);
+        refetch();
+      }
+    });
+    return () => { cancelled = true; };
+  }, [unidades]);
+
+  // Auto-seleccionar si hay una sola unidad activa
+  useEffect(() => {
+    if (unidadesActivas.length === 1 && !selectedUnidadId) {
+      setSelectedUnidadId(unidadesActivas[0].id);
+    }
+  }, [unidadesActivas, selectedUnidadId]);
 
   // Set initial week + detect existing sessions
   useEffect(() => {
@@ -524,6 +524,12 @@ function GenerarSesionPremium() {
     setGeneratedSesiones(sesMap);
   }, [selectedUnidad]);
 
+  useEffect(() => {
+    if (!selectedUnidad) return;
+    if (!isUnidadSecundaria(selectedUnidad)) return;
+    navigate("/generar-sesion-secundaria", { replace: true });
+  }, [selectedUnidad, navigate]);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // HANDLERS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -535,23 +541,16 @@ function GenerarSesionPremium() {
     areaName: string,
   ) => {
     if (!selectedUnidadId || !currentSemana) return;
-
-    // ─── Detectar si es sesión complementaria (Tutoría / Plan Lector) ───
-    const tipoComplementario = getTipoComplementario(areaName);
-
-    let areaId: number | undefined;
-    if (!tipoComplementario) {
-      // Buscar areaId: primero en áreas del miembro, luego en todas las áreas de la unidad
-      const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
-      areaId = findAreaId(areaName, areasPool);
-
-      if (!areaId) {
-        handleToaster(
-          `No se pudo identificar el área "${areaName}". Intenta recargar la página.`,
-          "error",
-        );
-        return;
-      }
+    // Buscar areaId: primero en áreas del miembro, luego en todas las áreas de la unidad,
+    // y finalmente en el catálogo completo (para áreas complementarias como Tutoría / Plan Lector)
+    const areasPool = miembroAreas.length > 0 ? miembroAreas : allUnidadAreas;
+    const areaId = findAreaId(areaName, areasPool) ?? findAreaId(areaName, catalogAreas);
+    if (!areaId) {
+      handleToaster(
+        `No se pudo identificar el área "${areaName}". Intenta recargar la página.`,
+        "error",
+      );
+      return;
     }
 
     const key = makeSlotKey(currentSemana.semana, dia, turnoKey);
@@ -560,42 +559,13 @@ function GenerarSesionPremium() {
       // ═══════════════════════════════════════════════════════════════
       // FASE 1: Generar texto de la sesión (rápido, ~20-30s)
       // ═══════════════════════════════════════════════════════════════
-      let resp: any;
-
-      if (tipoComplementario) {
-        // ── Sesión complementaria (Tutoría / Plan Lector) ──
-        const compResp = await generarSesionComplementaria({
-          tipo: tipoComplementario,
-          actividadTitulo: actividad,
-          unidadId: selectedUnidadId,
-          semana: currentSemana.semana,
-          dia,
-          turno: turnoKey,
-        });
-        // Normalizar a la misma forma que generarSesionUnidad
-        // El backend guarda recursoNarrativo dentro de `contenido` pero no
-        // lo flattena al nivel raíz; lo extraemos aquí para que el PDF lo vea.
-        const sesionComp = { ...compResp.sesion } as any;
-        if (!sesionComp.recursoNarrativo && sesionComp.contenido?.recursoNarrativo) {
-          sesionComp.recursoNarrativo = sesionComp.contenido.recursoNarrativo;
-        }
-        resp = {
-          success: compResp.success,
-          message: compResp.message,
-          sesion: sesionComp,
-          docente: compResp.docente,
-          institucion: compResp.institucion,
-          seccion: (compResp as any).seccion,
-        } as any;
-      } else {
-        resp = await generarSesionUnidad(selectedUnidadId, {
-          areaId,
-          semana: currentSemana.semana,
-          dia,
-          turno: turnoKey,
-          tituloActividad: actividad,
-        });
-      }
+      const resp = await generarSesionUnidad(selectedUnidadId, {
+        areaId,
+        semana: currentSemana.semana,
+        dia,
+        turno: turnoKey,
+        tituloActividad: actividad,
+      });
       // Si yaExistia === true, la sesión ya fue generada por otro miembro (clonada)
       if ((resp as any).yaExistia) {
         handleToaster(
@@ -696,10 +666,12 @@ function GenerarSesionPremium() {
 
           // ═══════════════════════════════════════════════════════════
           // FASE 3: Generar instrumento de evaluación en background
-          // (solo para sesiones curriculares — las complementarias
-          //  no tienen propositoAprendizaje con criterios de evaluación)
+          // Solo cuando la sesión trae propósito de aprendizaje evaluable.
           // ═══════════════════════════════════════════════════════════
-          if (!tipoComplementario) {
+          const tienePropositoEvaluable = Boolean(
+            (fullResp.sesion as any)?.propositoAprendizaje,
+          );
+          if (tienePropositoEvaluable) {
             generarInstrumento(fullResp.sesion)
               .then((inst) => {
                 if (inst) {
@@ -819,7 +791,7 @@ function GenerarSesionPremium() {
             <p className="text-slate-600 dark:text-slate-300 mb-4">
               {errorUnidades}
             </p>
-            <Button variant="outline" onClick={cargarUnidades}>
+            <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" /> Reintentar
             </Button>
           </div>
@@ -838,7 +810,11 @@ function GenerarSesionPremium() {
               Necesitas una unidad con pago confirmado para generar sesiones.
             </p>
             <Button
-              onClick={() => navigate("/crear-unidad")}
+              onClick={() =>
+                navigate("/crear-unidad", {
+                  state: { iniciarNuevaUnidad: true },
+                })
+              }
               className="bg-gradient-to-r from-violet-500 to-purple-600 text-white"
             >
               <Plus className="h-4 w-4 mr-2" /> Crear Unidad
@@ -952,23 +928,12 @@ function GenerarSesionPremium() {
                       <ChevronRight className="h-5 w-5 text-slate-600 dark:text-slate-300" />
                     </button>
 
-                    {displayWeek === semanaActualReal && (
+                    {isCurrentWeek && (
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300">
                         Actual
                       </span>
                     )}
-                    {displayWeek > semanaActualReal && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                        <Lock className="h-2.5 w-2.5" />
-                        Bloqueada
-                      </span>
-                    )}
-                    {displayWeek < semanaActualReal && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/50 text-slate-400 dark:text-slate-500">
-                        Pasada
-                      </span>
-                    )}
-                    {displayWeek !== semanaActualReal && (
+                    {!isCurrentWeek && (
                       <button
                         onClick={goToCurrentWeek}
                         className="text-xs text-violet-600 dark:text-violet-400 hover:underline ml-1"
@@ -989,29 +954,6 @@ function GenerarSesionPremium() {
                   </div>
                 </div>
 
-                {/* ─── Blocked week overlay message ─── */}
-                {isFutureWeek && (
-                  <div className="mb-5 flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50">
-                    <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700/50">
-                      <Lock className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Semana no disponible</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Esta semana aún no comienza. Solo puedes generar sesiones de la semana actual.</p>
-                    </div>
-                  </div>
-                )}
-                {isPastWeek && (
-                  <div className="mb-5 flex items-center gap-3 p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-500/5 border border-amber-200/60 dark:border-amber-500/20">
-                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-500/20">
-                      <Calendar className="h-4 w-4 text-amber-500 dark:text-amber-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Semana pasada</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Esta semana ya pasó. Las sesiones no generadas quedan bloqueadas.</p>
-                    </div>
-                  </div>
-                )}
 
                 {/* ─── Progress bar ─── */}
                 {weekProgress.total > 0 && isCurrentWeek && (
@@ -1236,7 +1178,6 @@ function BloqueCard({
   const isGenerated = state === "generada";
   const isClonada = state === "clonada";
   const isWaiting = state === "en_espera";
-  const isBlocked = state === "bloqueada";
 
   return (
     <div
@@ -1255,10 +1196,6 @@ function BloqueCard({
       } ${
         isWaiting
           ? `${theme.bg} opacity-70 border-slate-200/40 dark:border-slate-700/30`
-          : ""
-      } ${
-        isBlocked
-          ? `${theme.bg} opacity-50 border-slate-200/30 dark:border-slate-700/20`
           : ""
       } ${
         isClonada
@@ -1383,14 +1320,6 @@ function BloqueCard({
         <div className="w-full flex items-center justify-center gap-1 py-1 text-[10px] text-slate-400 dark:text-slate-500">
           <Lock className="h-2.5 w-2.5" />
           En espera
-        </div>
-      )}
-
-      {/* Bloqueada */}
-      {isBlocked && (
-        <div className="w-full flex items-center justify-center gap-1 py-1 text-[10px] text-slate-400 dark:text-slate-500">
-          <Lock className="h-2.5 w-2.5" />
-          Bloqueada
         </div>
       )}
 

@@ -5,6 +5,8 @@ export interface ISesion {
   nivelId: number;
   gradoId: number;
   problematicaId: number;
+  unidadId?: string | null;
+  areaId?: number | null;
   duracion: number;
   fechaInicio?: string;
   fechaFin?: string;

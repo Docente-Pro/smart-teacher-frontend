@@ -7,7 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSesionComplementaria } from "@/hooks/useSesionComplementaria";
+import { usePaymentSocket } from "@/hooks/usePaymentSocket";
 import { listarUnidadesByUsuario } from "@/services/unidad.service";
+import { isUnidadListaActiva } from "@/utils/unidadActiva";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import type { IUnidadListItem } from "@/interfaces/IUnidadList";
 import type { TipoSesionComplementaria } from "@/interfaces/ISesionComplementaria";
@@ -51,6 +53,7 @@ function GenerarSesionComplementaria() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { isPremium } = usePermissions();
+  const { startPaymentFlow } = usePaymentSocket();
 
   // ─── State ───
   const [loading, setLoading] = useState(true);
@@ -68,8 +71,11 @@ function GenerarSesionComplementaria() {
 
     listarUnidadesByUsuario(user.id)
       .then((data) => {
-        // Filtrar solo unidades con pago confirmado
-        const pagadas = data.filter((u) => u.estadoPago === "CONFIRMADO");
+        // Pago confirmado y unidad activa (no finalizada)
+        const pagadas = data.filter(
+          (u) =>
+            u.estadoPago === "CONFIRMADO" && isUnidadListaActiva(u.fechaFin),
+        );
         setUnidades(pagadas);
         if (pagadas.length === 1) {
           setSelectedUnidadId(pagadas[0].id);
@@ -128,8 +134,8 @@ function GenerarSesionComplementaria() {
           <p className="text-slate-600 dark:text-slate-400 mb-6">
             Las sesiones complementarias están disponibles con un plan premium activo.
           </p>
-          <Button onClick={() => navigate("/planes")}>
-            Ver planes
+          <Button onClick={() => startPaymentFlow()}>
+            Ser Premium por WhatsApp
           </Button>
         </div>
       </div>

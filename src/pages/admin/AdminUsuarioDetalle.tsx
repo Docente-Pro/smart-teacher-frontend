@@ -1,17 +1,38 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   getUsuarioDetalle,
-  downgradeUsuario,
   eliminarUsuario,
   resetUsuario,
   upgradePremium,
   rehacerSesion,
   rellenarListaAlumnosSesion,
+  adminDownloadUrlWordSesion,
+  adminDownloadUrlWordUnidad,
+  adminGenerarWordSesion,
+  adminGenerarWordUnidad,
+  adminGenerarFichaAplicacion,
+  adminUpdateUsuario,
 } from "@/services/admin.service";
-import { corregirEstandares, arreglarHorario, getUnidadById, editarContenidoUnidad } from "@/services/unidad.service";
+import type { IAdminUpdateUsuarioRequest } from "@/services/admin.service";
+import { adminGetUnidadById, adminArreglarHorario, adminEditarContenidoUnidad, adminCorregirEstandares, adminArreglarActividades, adminFinalizarUnidad, adminResetUnidad, revocarSuscripcion } from "@/services/admin.service";
+import type { IArreglarActividadesResponse } from "@/services/admin.service";
+import { getNiveles } from "@/features/initialForm/services/niveles.service";
+import { getAllGrados } from "@/services/grado.service";
+import { getAllProblematicas } from "@/services/problematica.service";
 import type { IUsuarioDetalle } from "@/interfaces/IAdmin";
+import type { INivel } from "@/interfaces/INivel";
+import type { IGrado } from "@/interfaces/IGrado";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ArrowLeft,
   Loader2,
@@ -22,6 +43,7 @@ import {
   Calendar,
   CreditCard,
   FileText,
+  FileDown,
   FolderOpen,
   ArrowDownCircle,
   Trash2,
@@ -34,8 +56,32 @@ import {
   Wrench,
   CalendarClock,
   ListChecks,
+  ClipboardList,
+  Pencil,
+  Save,
+  X,
+  ChevronDown,
+  ChevronUp,
+  FlagOff,
 } from "lucide-react";
 import { toast } from "sonner";
+
+import departamentosData from "@/utils/peru_ubigeo/1_ubigeo_departamentos.json";
+import provinciasData from "@/utils/peru_ubigeo/2_ubigeo_provincias.json";
+import distritosData from "@/utils/peru_ubigeo/3_ubigeo_distritos.json";
+
+interface UbigeoDepartamento { id: number; departamento: string; ubigeo: string }
+interface UbigeoProvincia { id: number; provincia: string; ubigeo: string; departamento_id: number }
+interface UbigeoDistrito { id: number; distrito: string; ubigeo: string; provincia_id: number; departamento_id: number }
+
+const departamentos: UbigeoDepartamento[] = departamentosData.ubigeo_departamentos;
+const provincias: UbigeoProvincia[] = provinciasData.ubigeo_provincias;
+const distritos: UbigeoDistrito[] = distritosData.ubigeo_distritos;
+
+function isUnidadActivaParaFinalizar(fechaFin?: string | null): boolean {
+  if (fechaFin == null) return true;
+  return new Date(fechaFin).getTime() > Date.now();
+}
 
 export default function AdminUsuarioDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -49,6 +95,134 @@ export default function AdminUsuarioDetalle() {
   const [rellenandoLista, setRellenandoLista] = useState<string | null>(null);
   const [corrigiendoUnidad, setCorrigiendoUnidad] = useState<string | null>(null);
   const [corrigiendoHorario, setCorrigiendoHorario] = useState<string | null>(null);
+  const [arreglandoActividades, setArreglandoActividades] = useState<string | null>(null);
+  const [resultadoArreglo, setResultadoArreglo] = useState<{ unidadId: string; res: IArreglarActividadesResponse } | null>(null);
+  const [downloadingWord, setDownloadingWord] = useState<string | null>(null);
+  const [generatingWord, setGeneratingWord] = useState<string | null>(null);
+  const [generandoFicha, setGenerandoFicha] = useState<string | null>(null);
+  const [finalizandoUnidadId, setFinalizandoUnidadId] = useState<string | null>(null);
+  const [reiniciandoUnidadId, setReiniciandoUnidadId] = useState<string | null>(null);
+
+  // ── Edit profile state ──
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState<IAdminUpdateUsuarioRequest>({});
+  const [niveles, setNiveles] = useState<INivel[]>([]);
+  const [todosLosGrados, setTodosLosGrados] = useState<IGrado[]>([]);
+  const [problematicas, setProblematicas] = useState<{ id: number; nombre: string; descripcion: string }[]>([]);
+  const [catalogsLoaded, setCatalogsLoaded] = useState(false);
+
+  const gradosFiltrados = useMemo(() => {
+    if (!editForm.nivelId || !todosLosGrados.length) return [];
+    return todosLosGrados.filter((g) => g.nivelId === editForm.nivelId).sort((a, b) => a.id - b.id);
+  }, [editForm.nivelId, todosLosGrados]);
+
+  const provinciasFiltradas = useMemo(() => {
+    if (!editForm.departamento) return [];
+    const dep = departamentos.find((d) => d.departamento === editForm.departamento);
+    if (!dep) return [];
+    return provincias.filter((p) => p.departamento_id === dep.id);
+  }, [editForm.departamento]);
+
+  const distritosFiltrados = useMemo(() => {
+    if (!editForm.provincia || !provinciasFiltradas.length) return [];
+    const prov = provincias.find(
+      (p) => p.provincia === editForm.provincia && provinciasFiltradas.includes(p),
+    );
+    if (!prov) return [];
+    return distritos.filter((d) => d.provincia_id === prov.id);
+  }, [editForm.provincia, provinciasFiltradas]);
+
+  function initEditForm(u: IUsuarioDetalle) {
+    setEditForm({
+      nombre: u.nombre ?? "",
+      email: u.email ?? "",
+      nombreInstitucion: u.nombreInstitucion ?? "",
+      nombreDirectivo: u.nombreDirectivo ?? "",
+      nombreSubdirectora: u.nombreSubdirectora ?? "",
+      genero: u.genero ?? "",
+      seccion: u.seccion ?? "",
+      nivelId: u.nivel?.id ?? 0,
+      gradoId: u.grado?.id ?? 0,
+      problematicaId: u.problematica?.id ?? 0,
+      departamento: u.departamento ?? "",
+      provincia: u.provincia ?? "",
+      distrito: u.distrito ?? "",
+      tituloUnidadContexto: u.tituloUnidadContexto ?? "",
+      situacionSignificativaContexto: u.situacionSignificativaContexto ?? "",
+    });
+  }
+
+  async function loadCatalogs() {
+    if (catalogsLoaded) return;
+    try {
+      const [nivelesRes, gradosRes, probRes] = await Promise.all([
+        getNiveles(),
+        getAllGrados(),
+        getAllProblematicas(),
+      ]);
+      setNiveles(nivelesRes.data.data ?? nivelesRes.data ?? []);
+      setTodosLosGrados(gradosRes.data.data ?? gradosRes.data ?? []);
+      const probData = probRes.data.data ?? probRes.data ?? [];
+      setProblematicas(probData);
+      setCatalogsLoaded(true);
+    } catch {
+      toast.error("Error al cargar catálogos");
+    }
+  }
+
+  function handleOpenEdit() {
+    if (!usuario) return;
+    initEditForm(usuario);
+    loadCatalogs();
+    setEditOpen(true);
+  }
+
+  function handleCancelEdit() {
+    setEditOpen(false);
+  }
+
+  function updateField<K extends keyof IAdminUpdateUsuarioRequest>(key: K, value: IAdminUpdateUsuarioRequest[K]) {
+    setEditForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSaveProfile() {
+    if (!id || !usuario) return;
+    setEditSaving(true);
+    try {
+      const payload: IAdminUpdateUsuarioRequest = {};
+      const f = editForm;
+      if (f.nombre && f.nombre !== usuario.nombre) payload.nombre = f.nombre;
+      if (f.email && f.email !== usuario.email) payload.email = f.email;
+      if ((f.nombreInstitucion ?? "") !== (usuario.nombreInstitucion ?? "")) payload.nombreInstitucion = f.nombreInstitucion;
+      if ((f.nombreDirectivo ?? "") !== (usuario.nombreDirectivo ?? "")) payload.nombreDirectivo = f.nombreDirectivo;
+      if ((f.nombreSubdirectora ?? "") !== (usuario.nombreSubdirectora ?? "")) payload.nombreSubdirectora = f.nombreSubdirectora;
+      if ((f.genero ?? "") !== (usuario.genero ?? "")) payload.genero = f.genero;
+      if ((f.seccion ?? "") !== (usuario.seccion ?? "")) payload.seccion = f.seccion;
+      if (f.nivelId && f.nivelId !== (usuario.nivel?.id ?? 0)) payload.nivelId = f.nivelId;
+      if (f.gradoId && f.gradoId !== (usuario.grado?.id ?? 0)) payload.gradoId = f.gradoId;
+      if (f.problematicaId && f.problematicaId !== (usuario.problematica?.id ?? 0)) payload.problematicaId = f.problematicaId;
+      if ((f.departamento ?? "") !== (usuario.departamento ?? "")) payload.departamento = f.departamento;
+      if ((f.provincia ?? "") !== (usuario.provincia ?? "")) payload.provincia = f.provincia;
+      if ((f.distrito ?? "") !== (usuario.distrito ?? "")) payload.distrito = f.distrito;
+      if ((f.tituloUnidadContexto ?? "") !== (usuario.tituloUnidadContexto ?? "")) payload.tituloUnidadContexto = f.tituloUnidadContexto;
+      if ((f.situacionSignificativaContexto ?? "") !== (usuario.situacionSignificativaContexto ?? "")) payload.situacionSignificativaContexto = f.situacionSignificativaContexto;
+
+      if (Object.keys(payload).length === 0) {
+        toast.info("No hay cambios que guardar");
+        return;
+      }
+
+      const res = await adminUpdateUsuario(id, payload);
+      setUsuario(res.data);
+      toast.success("Perfil actualizado correctamente");
+      setEditOpen(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.response?.data?.error || "Error al actualizar perfil");
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   useEffect(() => {
     if (id) cargarDetalle();
@@ -205,7 +379,7 @@ export default function AdminUsuarioDetalle() {
       return;
     setActionLoading("downgrade");
     try {
-      const res = await downgradeUsuario(id!);
+      const res = await revocarSuscripcion(id!);
       toast.success(res.message || "Usuario bajado a free");
       cargarDetalle();
     } catch (err: any) {
@@ -408,8 +582,283 @@ export default function AdminUsuarioDetalle() {
               year: "numeric",
             })}
           />
+          {usuario.genero && <InfoItem label="Género" value={usuario.genero} />}
+          {usuario.seccion && <InfoItem label="Sección" value={usuario.seccion} />}
+          {usuario.nombreDirectivo && <InfoItem label="Directivo" value={usuario.nombreDirectivo} />}
+          {usuario.nombreSubdirectora && <InfoItem label="Subdirectora" value={usuario.nombreSubdirectora} />}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => (editOpen ? handleCancelEdit() : handleOpenEdit())}
+            className="gap-1.5 text-blue-600 border-blue-300 hover:bg-blue-50"
+          >
+            {editOpen ? <ChevronUp className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+            {editOpen ? "Cerrar edición" : "Editar Perfil"}
+          </Button>
         </div>
       </div>
+
+      {/* Edit Profile Form */}
+      {editOpen && (
+        <div className="bg-white border border-blue-200 rounded-xl p-6 space-y-5">
+          <h2 className="text-gray-900 font-semibold text-sm flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-blue-500" />
+            Editar Perfil
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Nombre */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-nombre" className="text-xs text-gray-500">Nombre completo</Label>
+              <Input
+                id="edit-nombre"
+                value={editForm.nombre ?? ""}
+                onChange={(e) => updateField("nombre", e.target.value)}
+                placeholder="Nombre del docente"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-email" className="text-xs text-gray-500">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editForm.email ?? ""}
+                onChange={(e) => updateField("email", e.target.value)}
+                placeholder="correo@ejemplo.com"
+              />
+            </div>
+
+            {/* Institución */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-institucion" className="text-xs text-gray-500">Institución Educativa</Label>
+              <Input
+                id="edit-institucion"
+                value={editForm.nombreInstitucion ?? ""}
+                onChange={(e) => updateField("nombreInstitucion", e.target.value)}
+                placeholder="Nombre de la I.E."
+              />
+            </div>
+
+            {/* Género */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-gray-500">Género</Label>
+              <Select
+                value={editForm.genero ?? ""}
+                onValueChange={(v) => updateField("genero", v)}
+              >
+                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Masculino">Masculino</SelectItem>
+                  <SelectItem value="Femenino">Femenino</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Nivel */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-gray-500">Nivel</Label>
+              <Select
+                value={editForm.nivelId ? String(editForm.nivelId) : ""}
+                onValueChange={(v) => {
+                  const nivelId = Number(v);
+                  updateField("nivelId", nivelId);
+                  const gradoValido = todosLosGrados.find(
+                    (g) => g.nivelId === nivelId && g.id === editForm.gradoId,
+                  );
+                  if (!gradoValido) updateField("gradoId", 0);
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Seleccionar nivel" /></SelectTrigger>
+                <SelectContent>
+                  {niveles.map((n) => (
+                    <SelectItem key={n.id} value={String(n.id)}>{n.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Grado */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-gray-500">Grado</Label>
+              <Select
+                value={editForm.gradoId ? String(editForm.gradoId) : ""}
+                onValueChange={(v) => updateField("gradoId", Number(v))}
+                disabled={!editForm.nivelId}
+              >
+                <SelectTrigger><SelectValue placeholder="Seleccionar grado" /></SelectTrigger>
+                <SelectContent>
+                  {gradosFiltrados.map((g) => (
+                    <SelectItem key={g.id} value={String(g.id)}>{g.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Problemática */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-gray-500">Problemática</Label>
+              <Select
+                value={editForm.problematicaId ? String(editForm.problematicaId) : ""}
+                onValueChange={(v) => updateField("problematicaId", Number(v))}
+              >
+                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  {problematicas.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sección */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-seccion" className="text-xs text-gray-500">Sección</Label>
+              <Input
+                id="edit-seccion"
+                value={editForm.seccion ?? ""}
+                onChange={(e) => updateField("seccion", e.target.value)}
+                placeholder='Ej: "A"'
+              />
+            </div>
+
+            {/* Directivo */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-directivo" className="text-xs text-gray-500">Nombre del Directivo</Label>
+              <Input
+                id="edit-directivo"
+                value={editForm.nombreDirectivo ?? ""}
+                onChange={(e) => updateField("nombreDirectivo", e.target.value)}
+                placeholder="Director/a"
+              />
+            </div>
+
+            {/* Subdirectora */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-subdirectora" className="text-xs text-gray-500">Nombre Subdirectora</Label>
+              <Input
+                id="edit-subdirectora"
+                value={editForm.nombreSubdirectora ?? ""}
+                onChange={(e) => updateField("nombreSubdirectora", e.target.value)}
+                placeholder="Subdirector/a"
+              />
+            </div>
+          </div>
+
+          {/* Ubicación */}
+          <div>
+            <p className="text-xs text-gray-400 font-medium mb-2 flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5" /> Ubicación
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Departamento */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-500">Departamento</Label>
+                <Select
+                  value={editForm.departamento ?? ""}
+                  onValueChange={(v) => {
+                    updateField("departamento", v);
+                    updateField("provincia", "");
+                    updateField("distrito", "");
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {departamentos.map((d) => (
+                      <SelectItem key={d.id} value={d.departamento}>{d.departamento}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Provincia */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-500">Provincia</Label>
+                <Select
+                  value={editForm.provincia ?? ""}
+                  onValueChange={(v) => {
+                    updateField("provincia", v);
+                    updateField("distrito", "");
+                  }}
+                  disabled={!editForm.departamento}
+                >
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {provinciasFiltradas.map((p) => (
+                      <SelectItem key={p.id} value={p.provincia}>{p.provincia}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Distrito */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-500">Distrito</Label>
+                <Select
+                  value={editForm.distrito ?? ""}
+                  onValueChange={(v) => updateField("distrito", v)}
+                  disabled={!editForm.provincia}
+                >
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {distritosFiltrados.map((d) => (
+                      <SelectItem key={d.id} value={d.distrito}>{d.distrito}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Contexto de unidad */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-titulo-unidad" className="text-xs text-gray-500">Título Unidad (contexto)</Label>
+              <Input
+                id="edit-titulo-unidad"
+                value={editForm.tituloUnidadContexto ?? ""}
+                onChange={(e) => updateField("tituloUnidadContexto", e.target.value)}
+                placeholder="Título de la unidad didáctica"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-situacion" className="text-xs text-gray-500">Situación Significativa (contexto)</Label>
+              <Input
+                id="edit-situacion"
+                value={editForm.situacionSignificativaContexto ?? ""}
+                onChange={(e) => updateField("situacionSignificativaContexto", e.target.value)}
+                placeholder="Situación significativa de la unidad"
+              />
+            </div>
+          </div>
+
+          {/* Save / Cancel */}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleCancelEdit}
+              disabled={editSaving}
+              className="text-gray-500"
+            >
+              <X className="w-4 h-4 mr-1" /> Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveProfile}
+              disabled={editSaving}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {editSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+              Guardar cambios
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Reset Actions */}
       <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -568,6 +1017,7 @@ export default function AdminUsuarioDetalle() {
                   <th className="px-3 py-2 font-medium">Título</th>
                   <th className="px-3 py-2 font-medium">Fecha</th>
                   <th className="px-3 py-2 font-medium">PDF</th>
+                  <th className="px-3 py-2 font-medium">Word</th>
                   <th className="px-3 py-2 font-medium">Acción</th>
                 </tr>
               </thead>
@@ -594,6 +1044,69 @@ export default function AdminUsuarioDetalle() {
                         >
                           <ExternalLink className="w-4 h-4" />
                         </a>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {s.wordUrl ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1 text-xs h-7 text-green-700 hover:text-green-800 hover:bg-green-50 p-1"
+                          disabled={downloadingWord === s.id}
+                          onClick={async () => {
+                            setDownloadingWord(s.id);
+                            try {
+                              const res = await adminDownloadUrlWordSesion(s.id);
+                              window.open(res.data.downloadUrl, "_blank");
+                            } catch (err: any) {
+                              toast.error(err?.response?.data?.message || "Error al obtener Word");
+                            } finally {
+                              setDownloadingWord(null);
+                            }
+                          }}
+                        >
+                          {downloadingWord === s.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FileDown className="w-4 h-4" />
+                          )}
+                        </Button>
+                      ) : s.pdfUrl ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
+                          disabled={generatingWord === s.id}
+                          onClick={async () => {
+                            setGeneratingWord(s.id);
+                            try {
+                              const wordUrl = await adminGenerarWordSesion(s.id);
+                              setUsuario((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  sesiones: prev.sesiones.map((ses) =>
+                                    ses.id === s.id ? { ...ses, wordUrl } : ses,
+                                  ),
+                                };
+                              });
+                              toast.success("Word generado");
+                            } catch (err: any) {
+                              toast.error(err?.message || "Error al generar Word");
+                            } finally {
+                              setGeneratingWord(null);
+                            }
+                          }}
+                        >
+                          {generatingWord === s.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <FileText className="w-3 h-3" />
+                          )}
+                          {generatingWord === s.id ? "…" : "Generar"}
+                        </Button>
                       ) : (
                         <span className="text-gray-300 text-xs">—</span>
                       )}
@@ -671,6 +1184,47 @@ export default function AdminUsuarioDetalle() {
                           )}
                           {rellenandoLista === s.id ? "…" : "Rellenar lista"}
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-50"
+                          disabled={generandoFicha === s.id || rehaciendo === s.id}
+                          onClick={async () => {
+                            setGenerandoFicha(s.id);
+                            try {
+                              const res = await adminGenerarFichaAplicacion(s.id, {
+                                incluirRespuestas: true,
+                                dificultad: "media",
+                              });
+                              navigate(`/admin/ficha-pdf/${s.id}`, {
+                                state: {
+                                  ficha: res.ficha,
+                                  fichaId: res.fichaId,
+                                  presignedUrl: res.presignedUrl,
+                                  s3Key: res.s3Key,
+                                  docente: usuario?.nombre ?? "",
+                                  institucion: usuario?.nombreInstitucion ?? "",
+                                  usuarioId: usuario!.id,
+                                },
+                              });
+                            } catch (err: any) {
+                              toast.error(
+                                err?.response?.data?.message ||
+                                  err?.response?.data?.error ||
+                                  "Error al generar ficha",
+                              );
+                            } finally {
+                              setGenerandoFicha(null);
+                            }
+                          }}
+                        >
+                          {generandoFicha === s.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <ClipboardList className="w-3 h-3" />
+                          )}
+                          {generandoFicha === s.id ? "Generando…" : "Ficha"}
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -697,6 +1251,7 @@ export default function AdminUsuarioDetalle() {
                   <th className="px-3 py-2 font-medium">Tipo</th>
                   <th className="px-3 py-2 font-medium">Fecha</th>
                   <th className="px-3 py-2 font-medium">PDF</th>
+                  <th className="px-3 py-2 font-medium">Word</th>
                   <th className="px-3 py-2 font-medium">Acciones</th>
                 </tr>
               </thead>
@@ -734,6 +1289,70 @@ export default function AdminUsuarioDetalle() {
                       )}
                     </td>
                     <td className="px-3 py-2">
+                      {u.wordUrl ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1 text-xs h-7 text-green-700 hover:text-green-800 hover:bg-green-50 p-1"
+                          disabled={downloadingWord === u.id}
+                          onClick={async () => {
+                            setDownloadingWord(u.id);
+                            try {
+                              const res = await adminDownloadUrlWordUnidad(u.id);
+                              window.open(res.data.downloadUrl, "_blank");
+                            } catch (err: any) {
+                              toast.error(err?.response?.data?.message || "Error al obtener Word");
+                            } finally {
+                              setDownloadingWord(null);
+                            }
+                          }}
+                        >
+                          {downloadingWord === u.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FileDown className="w-4 h-4" />
+                          )}
+                        </Button>
+                      ) : u.pdfUrl ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
+                          disabled={generatingWord === u.id}
+                          onClick={async () => {
+                            setGeneratingWord(u.id);
+                            try {
+                              const wordUrl = await adminGenerarWordUnidad(u.id);
+                              setUsuario((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  unidades: prev.unidades.map((uni) =>
+                                    uni.id === u.id ? { ...uni, wordUrl } : uni,
+                                  ),
+                                };
+                              });
+                              toast.success("Word generado");
+                            } catch (err: any) {
+                              toast.error(err?.message || "Error al generar Word");
+                            } finally {
+                              setGeneratingWord(null);
+                            }
+                          }}
+                        >
+                          {generatingWord === u.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <FileText className="w-3 h-3" />
+                          )}
+                          {generatingWord === u.id ? "…" : "Generar"}
+                        </Button>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1 items-center max-w-[min(100%,520px)]">
                       <Button
                         size="sm"
                         variant="outline"
@@ -743,7 +1362,7 @@ export default function AdminUsuarioDetalle() {
                           if (!confirm(`¿Corregir estándares de la unidad "${u.titulo || u.id}"? Se regenerará el PDF.`)) return;
                           setCorrigiendoUnidad(u.id);
                           try {
-                            const res = await corregirEstandares(u.id);
+                            const res = await adminCorregirEstandares(u.id);
                             if (res.totalCorregidos === 0) {
                               toast.info("Los estándares ya estaban correctos");
                               return;
@@ -787,14 +1406,15 @@ export default function AdminUsuarioDetalle() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50 ml-1"
+                        className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
                         disabled={corrigiendoHorario === u.id}
                         onClick={async () => {
                           if (!confirm(`¿Arreglar horario de la unidad "${u.titulo || u.id}"? Se corregirá la secuencia y se regenerará el PDF.`)) return;
                           setCorrigiendoHorario(u.id);
                           try {
                             // 1. Cargar unidad completa para obtener secuencia
-                            const { data: unidad } = await getUnidadById(u.id);
+                            const { data: rawUnidad } = await adminGetUnidadById(u.id);
+                            const unidad = (rawUnidad as any)?.data ?? rawUnidad;
                             let contenido = unidad.contenido as any;
                             if (typeof contenido === "string") {
                               try { contenido = JSON.parse(contenido); } catch { contenido = {}; }
@@ -817,7 +1437,7 @@ export default function AdminUsuarioDetalle() {
                             const grado = usuario?.grado?.nombre ?? "";
 
                             // 2. Llamar al endpoint de arreglar horario
-                            const res = await arreglarHorario({
+                            const res = await adminArreglarHorario({
                               secuencia: contenido.secuencia,
                               grado,
                               turno: "mañana",
@@ -834,7 +1454,7 @@ export default function AdminUsuarioDetalle() {
                             }
 
                             // 3. Guardar la secuencia corregida en BD
-                            await editarContenidoUnidad(u.id, {
+                            await adminEditarContenidoUnidad(u.id, {
                               contenido: { secuencia: res.secuencia },
                             });
 
@@ -885,11 +1505,252 @@ export default function AdminUsuarioDetalle() {
                         )}
                         {corrigiendoHorario === u.id ? "Arreglando…" : "Arreglar Horario"}
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-50"
+                        disabled={arreglandoActividades === u.id}
+                        onClick={async () => {
+                          if (!confirm(`¿Arreglar actividades de la unidad "${u.titulo || u.id}"?\n\nEsto auditará y reparará competencias, actividades, criterios, estándares y la secuencia.\n\nPuede tardar hasta 4 minutos.`)) return;
+                          setArreglandoActividades(u.id);
+                          setResultadoArreglo(null);
+                          try {
+                            const res = await adminArreglarActividades(u.id, "mañana");
+                            setResultadoArreglo({ unidadId: u.id, res });
+                            if (res.correcciones.length > 0 && res.unidad) {
+                              // Hubo correcciones → regenerar siempre PDF y Word (el contenido cambió)
+                              toast.success(`${res.correcciones.length} corrección(es) aplicada(s) — generando PDF y Word actualizados…`);
+                              navigate(`/admin/corregir-estandares-pdf/${u.id}`, {
+                                state: {
+                                  corregirResponse: {
+                                    success: res.success,
+                                    totalCorregidos: res.correcciones.length,
+                                    guardadoEnBD: res.guardadoEnBD ?? false,
+                                    correcciones: [],
+                                    unidad: res.unidad,
+                                    upload: null, // null → la página solicita presigned URL
+                                    miembrosUpload: [],
+                                  },
+                                  unidadId: u.id,
+                                  titulo: u.titulo || "",
+                                  numeroUnidad: u.numeroUnidad,
+                                  grado: usuario?.grado?.nombre ?? "",
+                                  nivel: usuario?.nivel?.nombre ?? "",
+                                  fechaInicio: "",
+                                  fechaFin: "",
+                                  docente: usuario?.nombre ?? "",
+                                  institucion: usuario?.nombreInstitucion ?? "",
+                                  seccion: usuario?.seccion ?? "",
+                                  nombreDirectivo: usuario?.nombreDirectivo ?? "",
+                                  nombreSubdirectora: usuario?.nombreSubdirectora ?? "",
+                                  usuarioId: usuario!.id,
+                                  wordInvalidado: true, // siempre regenerar Word si hubo correcciones
+                                },
+                              });
+                            } else {
+                              toast.info("La unidad ya estaba correcta; no se aplicaron cambios.");
+                            }
+                          } catch (err: any) {
+                            console.error("❌ [Admin] Error al arreglar actividades:", err);
+                            toast.error(
+                              err?.response?.data?.message || "Error al arreglar actividades",
+                            );
+                          } finally {
+                            setArreglandoActividades(null);
+                          }
+                        }}
+                      >
+                        {arreglandoActividades === u.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <ListChecks className="w-3 h-3" />
+                        )}
+                        {arreglandoActividades === u.id ? "Arreglando…" : "Arreglar Actividades"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs h-7 border-orange-300 text-orange-700 hover:bg-orange-50"
+                        disabled={reiniciandoUnidadId === u.id}
+                        title="Reiniciar contenido IA de la unidad"
+                        onClick={async () => {
+                          if (
+                            !confirm(
+                              `¿Reiniciar la unidad "${u.titulo || u.id}"?\n\nSe limpiará el contenido IA, PDF y Word. El docente deberá rehacer el wizard desde el paso 1.\n\nLa unidad, pagos y sesiones existentes se conservan.`,
+                            )
+                          )
+                            return;
+                          setReiniciandoUnidadId(u.id);
+                          try {
+                            const res = await adminResetUnidad(u.id);
+                            toast.success(res.message || "Unidad reiniciada");
+                            setUsuario((prev) => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                unidades: prev.unidades.map((uni) =>
+                                  uni.id === u.id
+                                    ? { ...uni, pdfUrl: null, wordUrl: null, wordGeneradoAt: null }
+                                    : uni,
+                                ),
+                              };
+                            });
+                          } catch (err: any) {
+                            toast.error(
+                              err?.response?.data?.message ||
+                                "Error al reiniciar la unidad",
+                            );
+                          } finally {
+                            setReiniciandoUnidadId(null);
+                          }
+                        }}
+                      >
+                        {reiniciandoUnidadId === u.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-3 h-3" />
+                        )}
+                        {reiniciandoUnidadId === u.id ? "Reiniciando…" : "Reiniciar"}
+                      </Button>
+                      {isUnidadActivaParaFinalizar(u.fechaFin) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-xs h-7 border-red-300 text-red-700 hover:bg-red-50"
+                          disabled={finalizandoUnidadId === u.id}
+                          title="Finalizar unidad (admin)"
+                          onClick={async () => {
+                            if (
+                              !confirm(
+                                `¿Finalizar la unidad "${u.titulo || u.id}"?\n\nDejará de contar como activa. El docente podrá crear otra unidad si su plan lo permite. La unidad y sus sesiones/PDFs siguen existiendo.`,
+                              )
+                            )
+                              return;
+                            setFinalizandoUnidadId(u.id);
+                            try {
+                              const res = await adminFinalizarUnidad(u.id);
+                              toast.success(res.message || "Unidad finalizada");
+                              const nuevaFechaFin =
+                                typeof res.data?.fechaFin === "string"
+                                  ? res.data.fechaFin
+                                  : new Date().toISOString();
+                              setUsuario((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  unidades: prev.unidades.map((uni) =>
+                                    uni.id === u.id ? { ...uni, fechaFin: nuevaFechaFin } : uni,
+                                  ),
+                                };
+                              });
+                            } catch (err: any) {
+                              toast.error(
+                                err?.response?.data?.message ||
+                                  "Error al finalizar la unidad",
+                              );
+                            } finally {
+                              setFinalizandoUnidadId(null);
+                            }
+                          }}
+                        >
+                          {finalizandoUnidadId === u.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <FlagOff className="w-3 h-3" />
+                          )}
+                          {finalizandoUnidadId === u.id ? "Finalizando…" : "Finalizar"}
+                        </Button>
+                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {/* ─── Resultado de Arreglar Actividades ─── */}
+            {resultadoArreglo && (
+              <div className="mt-4 p-4 rounded-xl border border-violet-200 bg-violet-50/60">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-violet-800 flex items-center gap-1.5">
+                    <ListChecks className="w-4 h-4" />
+                    Resultado — Arreglar Actividades
+                  </h4>
+                  <button
+                    onClick={() => setResultadoArreglo(null)}
+                    className="text-xs text-violet-500 hover:underline"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+
+                {/* Advertencia PDF/Word invalidado */}
+                {(resultadoArreglo.res.pdfInvalidado || resultadoArreglo.res.wordInvalidado) && (
+                  <div className="mb-3 flex items-start gap-2 p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-800">
+                    <span className="text-base leading-none mt-0.5">⚠️</span>
+                    <div className="text-xs leading-relaxed">
+                      {resultadoArreglo.res.advertencia
+                        ? resultadoArreglo.res.advertencia
+                        : [
+                            resultadoArreglo.res.pdfInvalidado && "El PDF anterior fue eliminado.",
+                            resultadoArreglo.res.wordInvalidado && "El Word anterior fue eliminado.",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                      {" "}El docente debe generar y subir un nuevo PDF desde su cuenta.
+                    </div>
+                  </div>
+                )}
+
+                {/* Resumen */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                  {(
+                    [
+                      ["Competencias verificadas", resultadoArreglo.res.resumen.competenciasVerificadas],
+                      ["Competencias corregidas", resultadoArreglo.res.resumen.competenciasCorregidas],
+                      ["Capacidades corregidas", resultadoArreglo.res.resumen.capacidadesCorregidas],
+                      ["Áreas con actividades nuevas", resultadoArreglo.res.resumen.areasConActividadesRegeneradas],
+                      ["Estándares corregidos", resultadoArreglo.res.resumen.estandaresCorregidos],
+                      ["Secuencia regenerada", resultadoArreglo.res.resumen.secuenciaRegenerada ? "Sí" : "No"],
+                      ["Feriados reprogramados", resultadoArreglo.res.resumen.feriadosDetectados],
+                    ] as [string, number | string][]
+                  ).map(([label, val]) => (
+                    <div key={label} className="bg-white rounded-lg px-3 py-2 border border-violet-100 text-center">
+                      <p className="text-lg font-bold text-violet-700">{val}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Correcciones detalle */}
+                {resultadoArreglo.res.correcciones.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No se aplicaron cambios; la unidad ya estaba correcta.</p>
+                ) : (
+                  <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+                    {resultadoArreglo.res.correcciones.map((c, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs bg-white rounded-lg px-3 py-1.5 border border-violet-100">
+                        <span className="shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-violet-100 text-violet-700 capitalize">
+                          {c.fase}
+                        </span>
+                        {c.area && (
+                          <span className="shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+                            {c.area}
+                          </span>
+                        )}
+                        <span className="text-slate-600 leading-relaxed">{c.descripcion}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {resultadoArreglo.res.duracion != null && (
+                  <p className="text-[10px] text-slate-400 mt-2 text-right">
+                    Duración: {resultadoArreglo.res.duracion.toFixed(1)} s
+                    {resultadoArreglo.res.guardadoEnBD && " · Guardado en BD"}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Section>

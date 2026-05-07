@@ -4,6 +4,7 @@ import {
   EnrichedUser, 
   LoginResponse,
 } from "@/interfaces/IAuth";
+import { clearAllAlumnosStorage } from "@/utils/alumnosStorage";
 
 // ============================================
 // PROTECCIÓN DE INTEGRIDAD — Anti-tampering
@@ -202,6 +203,11 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
         });
         localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user-storage");
+        localStorage.removeItem("unidad-wizard-storage");
+        localStorage.removeItem("sesion-storage");
+        clearAllAlumnosStorage();
+        localStorage.removeItem("insignia_base64");
       },
 
       setLoading: (loading) => {

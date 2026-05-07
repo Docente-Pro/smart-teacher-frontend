@@ -54,6 +54,9 @@ export interface EnrichedUser extends JWTPayload {
   gradoId?: number;
   /** URL de la insignia del colegio (S3) */
   insigniaUrl?: string | null;
+  /** Perfil académico local para secundaria (frontend) */
+  secundariaGradosPerfil?: Array<number | string>;
+  tutoriaGradoPerfil?: number | string | null;
 }
 
 /**

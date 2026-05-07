@@ -27,6 +27,7 @@ import type {
   ISolucionarioItem,
 } from "@/interfaces/IFichaAplicacion";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
+import { normalizarEtiquetaGrafico } from "@/utils/normalizarEtiquetaGrafico";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Types
@@ -58,8 +59,9 @@ function FichaHeader({
         style={{
           display: "flex",
           alignItems: "center",
-          background: `linear-gradient(135deg, ${hex.accent}, ${hex.primary})`,
-          color: "#fff",
+          backgroundColor: hex.light,
+          borderBottom: `3px solid ${hex.accent}`,
+          color: "#1a1a1a",
           padding: "0.6rem 0.8rem",
           marginBottom: "0.4rem",
           gap: "0.6rem",
@@ -78,8 +80,7 @@ function FichaHeader({
             style={{
               fontSize: "9pt",
               marginBottom: "0.15rem",
-              opacity: 0.9,
-              textShadow: "0 1px 2px rgba(0,0,0,0.2)",
+              color: "#444",
             }}
           >
             {institucion}
@@ -90,7 +91,7 @@ function FichaHeader({
               fontWeight: 800,
               margin: 0,
               lineHeight: 1.3,
-              textShadow: "0 1px 3px rgba(0,0,0,0.3)",
+              color: hex.accent,
               letterSpacing: "0.3px",
             }}
           >
@@ -150,26 +151,6 @@ function FichaHeader({
                 style={{ fontSize: "9pt", padding: "0.25rem 0.4rem" }}
               >
                 {ficha.competencia}
-              </td>
-            </tr>
-          )}
-          {ficha.capacidad && (
-            <tr>
-              <td
-                style={{
-                  backgroundColor: hex.light,
-                  fontWeight: "bold",
-                  fontSize: "9pt",
-                  padding: "0.25rem 0.4rem",
-                }}
-              >
-                Capacidad
-              </td>
-              <td
-                colSpan={3}
-                style={{ fontSize: "9pt", padding: "0.25rem 0.4rem" }}
-              >
-                {ficha.capacidad}
               </td>
             </tr>
           )}
@@ -447,19 +428,21 @@ function BloqueProblema({
         </div>
       )}
 
-      {/* Línea de respuesta */}
-      <div style={{ padding: "0.2rem 0.5rem", fontSize: "10pt" }}>
-        <span style={{ fontWeight: "bold" }}>Respuesta: </span>
-        <span
-          style={{
-            display: "inline-block",
-            width: "200px",
-            borderBottom: "1.5px solid #333",
-          }}
-        >
-          &nbsp;
-        </span>
-      </div>
+      {/* Línea de respuesta (solo si no hay cuadro de resolución) */}
+      {!contenido.espacioResolucion && (
+        <div style={{ padding: "0.2rem 0.5rem", fontSize: "10pt" }}>
+          <span style={{ fontWeight: "bold" }}>Respuesta: </span>
+          <span
+            style={{
+              display: "inline-block",
+              width: "200px",
+              borderBottom: "1.5px solid #333",
+            }}
+          >
+            &nbsp;
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -467,12 +450,8 @@ function BloqueProblema({
 // ═════════════════════════════════════════════════════════════════════════════
 // BLOQUE 3: Preguntas de comprensión / reflexión
 // ═════════════════════════════════════════════════════════════════════════════
-
-const NIVEL_BADGE: Record<string, { bg: string; color: string; label: string }> = {
-  literal: { bg: "#DBEAFE", color: "#1E40AF", label: "Literal" },
-  inferencial: { bg: "#D1FAE5", color: "#065F46", label: "Inferencial" },
-  "crítico": { bg: "#FEF3C7", color: "#92400E", label: "Crítico" },
-};
+// El texto de `pregunta` suele traer ya la numeración ("1. ..."); no duplicar índice.
+// `nivel` (literal / inferencial / crítico) no se muestra en el PDF para no saturar la ficha.
 
 function BloquePreguntas({
   seccion,
@@ -485,33 +464,12 @@ function BloquePreguntas({
     <div style={{ marginBottom: "0.5rem" }}>
       <SectionTitle title={seccion.titulo} hex={hex} />
       {seccion.contenido.preguntas.map((p, i) => {
-        const badge = p.nivel ? NIVEL_BADGE[p.nivel] : null;
         const lineas = p.lineasRespuesta ?? 2;
         return (
           <div key={i} style={{ padding: "0.3rem 0.5rem" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.3rem" }}>
-              <span style={{ fontWeight: "bold", fontSize: "10pt", minWidth: "20px" }}>
-                {i + 1}.
-              </span>
-              <span style={{ fontSize: "10pt", lineHeight: 1.4, flex: 1 }}>
-                {p.pregunta}
-              </span>
-              {badge && (
-                <span
-                  style={{
-                    backgroundColor: badge.bg,
-                    color: badge.color,
-                    fontSize: "7pt",
-                    fontWeight: "bold",
-                    padding: "0.1rem 0.35rem",
-                    borderRadius: "8px",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {badge.label}
-                </span>
-              )}
-            </div>
+            <p style={{ fontSize: "10pt", lineHeight: 1.4, margin: 0 }}>
+              {p.pregunta}
+            </p>
             {/* Líneas punteadas para respuesta */}
             {Array.from({ length: lineas }).map((_, li) => (
               <div
@@ -519,7 +477,7 @@ function BloquePreguntas({
                 style={{
                   borderBottom: "1px dotted #aaa",
                   height: "22px",
-                  marginLeft: "20px",
+                  marginTop: "2px",
                 }}
               />
             ))}
@@ -565,7 +523,7 @@ function BloqueTabla({ seccion, hex }: { seccion: ISeccionTabla; hex: Hex }) {
                   textAlign: "center",
                 }}
               >
-                {col}
+                {normalizarEtiquetaGrafico(col)}
               </th>
             ))}
           </tr>
@@ -795,6 +753,11 @@ function BloqueOrdenar({
   seccion: ISeccionOrdenar;
   hex: Hex;
 }) {
+  const getTextoOrdenar = (elemento: ISeccionOrdenar["contenido"]["elementos"][number]): string => {
+    if (typeof elemento === "string") return elemento.trim();
+    return (elemento?.texto ?? "").trim();
+  };
+
   return (
     <div style={{ marginBottom: "0.5rem" }}>
       <SectionTitle title={seccion.titulo} hex={hex} />
@@ -829,7 +792,7 @@ function BloqueOrdenar({
             >
               &nbsp;
             </span>
-            <span style={{ fontSize: "10pt" }}>{el.texto}</span>
+            <span style={{ fontSize: "10pt" }}>{getTextoOrdenar(el) || "\u00A0"}</span>
           </div>
         ))}
       </div>
@@ -841,6 +804,32 @@ function BloqueOrdenar({
 // BLOQUE 8: Verdadero / Falso
 // ═════════════════════════════════════════════════════════════════════════════
 
+const vfRadioCell: React.CSSProperties = {
+  border: "1px solid #333",
+  textAlign: "center",
+  verticalAlign: "middle",
+  padding: "0.35rem 0.25rem",
+  width: "2.25rem",
+};
+
+function vfRadioCircle(hex: Hex): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "14px",
+    height: "14px",
+    border: `1.5px solid ${hex.accent}`,
+    borderRadius: "50%",
+    margin: "0 auto",
+    boxSizing: "border-box",
+  };
+}
+
+function textoAfirmacionVF(a: { texto?: string; afirmacion?: string }): string {
+  return (a.texto ?? a.afirmacion ?? "").trim();
+}
+
 function BloqueVerdaderoFalso({
   seccion,
   hex,
@@ -848,59 +837,37 @@ function BloqueVerdaderoFalso({
   seccion: ISeccionVerdaderoFalso;
   hex: Hex;
 }) {
+  const thBase: React.CSSProperties = {
+    backgroundColor: hex.light,
+    border: "1px solid #333",
+    fontSize: "9pt",
+    fontWeight: "bold",
+    padding: "0.3rem 0.4rem",
+    textAlign: "center",
+  };
+
   return (
     <div style={{ marginBottom: "0.5rem" }}>
       <SectionTitle title={seccion.titulo} hex={hex} />
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          tableLayout: "fixed",
+        }}
+      >
+        <colgroup>
+          <col style={{ width: "2rem" }} />
+          <col />
+          <col style={{ width: "2.25rem" }} />
+          <col style={{ width: "2.25rem" }} />
+        </colgroup>
         <thead>
           <tr>
-            <th
-              style={{
-                backgroundColor: hex.light,
-                border: "1px solid #333",
-                fontSize: "9pt",
-                padding: "0.25rem 0.4rem",
-                width: "5%",
-                textAlign: "center",
-              }}
-            >
-              N°
-            </th>
-            <th
-              style={{
-                backgroundColor: hex.light,
-                border: "1px solid #333",
-                fontSize: "9pt",
-                padding: "0.25rem 0.4rem",
-                textAlign: "left",
-              }}
-            >
-              Afirmación
-            </th>
-            <th
-              style={{
-                backgroundColor: hex.light,
-                border: "1px solid #333",
-                fontSize: "9pt",
-                padding: "0.25rem 0.4rem",
-                width: "6%",
-                textAlign: "center",
-              }}
-            >
-              V
-            </th>
-            <th
-              style={{
-                backgroundColor: hex.light,
-                border: "1px solid #333",
-                fontSize: "9pt",
-                padding: "0.25rem 0.4rem",
-                width: "6%",
-                textAlign: "center",
-              }}
-            >
-              F
-            </th>
+            <th style={{ ...thBase, width: "2rem" }}>N°</th>
+            <th style={{ ...thBase, textAlign: "left" }}>Afirmación</th>
+            <th style={{ ...thBase, ...vfRadioCell, fontWeight: "bold" }}>V</th>
+            <th style={{ ...thBase, ...vfRadioCell, fontWeight: "bold" }}>F</th>
           </tr>
         </thead>
         <tbody>
@@ -911,7 +878,9 @@ function BloqueVerdaderoFalso({
                   border: "1px solid #333",
                   textAlign: "center",
                   fontSize: "9pt",
-                  padding: "0.25rem",
+                  fontWeight: "bold",
+                  padding: "0.3rem 0.25rem",
+                  verticalAlign: "middle",
                 }}
               >
                 {i + 1}
@@ -920,28 +889,19 @@ function BloqueVerdaderoFalso({
                 style={{
                   border: "1px solid #333",
                   fontSize: "10pt",
-                  padding: "0.3rem 0.4rem",
+                  padding: "0.35rem 0.45rem",
+                  verticalAlign: "middle",
+                  lineHeight: 1.35,
+                  wordBreak: "break-word",
                 }}
               >
-                {a.afirmacion}
+                {textoAfirmacionVF(a)}
               </td>
-              <td
-                style={{
-                  border: "1px solid #333",
-                  textAlign: "center",
-                  fontSize: "10pt",
-                }}
-              >
-                ○
+              <td style={vfRadioCell}>
+                <span style={vfRadioCircle(hex)} aria-hidden />
               </td>
-              <td
-                style={{
-                  border: "1px solid #333",
-                  textAlign: "center",
-                  fontSize: "10pt",
-                }}
-              >
-                ○
+              <td style={vfRadioCell}>
+                <span style={vfRadioCircle(hex)} aria-hidden />
               </td>
             </tr>
           ))}
@@ -1100,15 +1060,15 @@ function Solucionario({
     <div style={{ marginTop: "0.5rem" }}>
       <div
         style={{
-          background: `linear-gradient(135deg, ${hex.accent}, ${hex.primary})`,
-          color: "#fff",
+          backgroundColor: hex.light,
+          borderBottom: `3px solid ${hex.accent}`,
+          color: hex.accent,
           fontWeight: 800,
           fontSize: "11pt",
           padding: "0.45rem 0.5rem",
           textAlign: "center",
           marginBottom: "0.3rem",
           letterSpacing: "1px",
-          textShadow: "0 1px 3px rgba(0,0,0,0.3)",
         }}
       >
         SOLUCIONARIO — SOLO PARA EL DOCENTE
@@ -1265,7 +1225,7 @@ export function FichaAplicacionDoc({
       />
 
       {/* Secciones / bloques renderizables */}
-      {ficha.secciones.map((seccion, i) => (
+      {(ficha.secciones ?? []).map((seccion, i) => (
         <div key={i}>
           <SeccionRenderer seccion={seccion} hex={hex} />
         </div>
@@ -1276,7 +1236,7 @@ export function FichaAplicacionDoc({
         // Recoger graficoOperacion de cada sección tipo "problema"
         const graficosOp: GraficoSolucion[] = [];
         let pIdx = 0;
-        ficha.secciones.forEach((sec) => {
+        (ficha.secciones ?? []).forEach((sec) => {
           if (sec.tipo === "problema") {
             pIdx++;
             const prob = sec as ISeccionProblema;

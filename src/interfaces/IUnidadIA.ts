@@ -65,7 +65,13 @@ export interface ICompetenciaProposito {
   estandar: string;
   criterios: string[];
   actividades: string[];
+  actividadCriterios?: IActividadCriterioProposito[];
   instrumento: string;
+}
+
+export interface IActividadCriterioProposito {
+  actividad: string;
+  criterios: string[];
 }
 
 export interface IAreaProposito {
@@ -83,6 +89,12 @@ export interface ICompetenciaTransversal {
 export interface IPropositos {
   areasPropositos: IAreaProposito[];
   competenciasTransversales: ICompetenciaTransversal[];
+}
+
+export interface IPropositosPorGradoItem {
+  gradoId: number;
+  grado: string;
+  propositos: IPropositos;
 }
 
 export interface IPropositosRequest extends IUnidadContextoBase {
@@ -157,6 +169,15 @@ export interface ISemanaSecuencia {
   dias: IDiaSecuencia[];
 }
 
+/** Reprogramación automática por feriados nacionales (opcional, backend reciente). */
+export interface IReprogramacionFeriados {
+  aplicado: boolean;
+  scope: "nacional";
+  cantidadFeriados: number;
+  fechasFeriadas: Array<{ fecha: string; nombre: string }>;
+  diasLectivosReprogramados: number;
+}
+
 /** Actividad que el backend excluyó para cumplir máx. 3 áreas/día */
 export interface IActividadExcluida {
   area: string;
@@ -168,8 +189,19 @@ export interface IActividadExcluida {
 export interface ISecuencia {
   hiloConductor: string;
   semanas: ISemanaSecuencia[];
+  /** Formato secundaria sin horario (semanas -> sesiones por índice) */
+  semanasPorSesiones?: Array<{
+    semana: number;
+    sesiones: Array<{
+      indiceSesion: number;
+      area: string;
+      actividad: string;
+    }>;
+  }>;
   /** Presente solo si Python excluyó bloques por límite de áreas/día */
   actividadesExcluidas?: IActividadExcluida[];
+  /** Presente si se aplicó reprogramación por feriados nacionales */
+  reprogramacionFeriados?: IReprogramacionFeriados;
 }
 
 export interface ISecuenciaRequest extends IUnidadContextoBase {
@@ -180,6 +212,12 @@ export interface ISecuenciaRequest extends IUnidadContextoBase {
 }
 
 export type ISecuenciaResponse = ISecuencia;
+
+export interface ISecuenciaPorGradoItem {
+  gradoId: number;
+  grado: string;
+  secuencia: ISecuencia;
+}
 
 // ─── Paso 7: Materiales y Recursos ───
 
@@ -216,17 +254,86 @@ export type PasoUnidad =
   | "materiales"
   | "reflexiones";
 
+// ─── Paso 5 (Secundaria Multigrado): Formato Secundaria ───
+
+export interface IProductoUnidadPorGrado {
+  grado: string;
+  producto: string;
+}
+
+export interface ICompetenciaTransversalPorGrado {
+  grado: string;
+  competencias: ICompetenciaTransversal[];
+}
+
+export interface IPropositoAprendizajePorGrado {
+  grado: string;
+  propositos: IPropositos;
+}
+
+export interface ISecuenciaSesionesPorGrado {
+  totalSemanas: number;
+  /** grado → semana → actividades */
+  grados: Record<string, Record<string, string[]>>;
+}
+
+export interface IComponentesFormatoSecundaria {
+  planteamientoSituacionSignificativa: string;
+  productoUnidadAprendizajePorGrado: IProductoUnidadPorGrado[];
+  enfoquesTransversales: IEnfoqueUnidad[];
+  instrumentoEvaluacion: string;
+  propositosAprendizajePorGrado: IPropositoAprendizajePorGrado[];
+  competenciasTransversalesPorGrado: ICompetenciaTransversalPorGrado[];
+  secuenciaSesionesPorGrado: ISecuenciaSesionesPorGrado;
+  recursosMaterialesDidacticos: string[];
+  bibliografia: string[];
+}
+
+export interface IFormatoSecundariaDatosInformativos {
+  grado: string;
+  area: string;
+  duracion: number;
+}
+
+export interface IFormatoSecundaria {
+  datosInformativos: IFormatoSecundariaDatosInformativos;
+  componentes: IComponentesFormatoSecundaria;
+}
+
+export interface IFormatoSecundariaResponse {
+  success: boolean;
+  paso: number;
+  message: string;
+  grados: string[];
+  formato: IFormatoSecundaria;
+  unidad: Record<string, unknown>;
+}
+
 export interface IUnidadContenido {
+  gradosSecundaria?: number[];
+  modoSecundaria?: "tutoria" | "mono_grado";
+  totalSesionesUnidad?: number;
+  actividadesPorCompetencia?: number;
   situacionSignificativa?: string;
   situacionBase?: ISituacionBase;
   imagenSituacionUrl?: string;
   evidencias?: IEvidencias;
   propositos?: IPropositos;
+  propositosPorGrado?: IPropositosPorGradoItem[];
   areasComplementarias?: IAreaComplementaria[];
   enfoques?: IEnfoqueUnidad[];
   secuencia?: ISecuencia;
+  secuenciaPorGrado?: ISecuenciaPorGradoItem[];
+  formatoSecundaria?: IFormatoSecundaria;
   materiales?: string[];
+  materialesPorGrado?: IMaterialesPorGradoItem[];
   reflexiones?: IReflexionPregunta[];
+}
+
+export interface IMaterialesPorGradoItem {
+  gradoId: number;
+  grado: string;
+  materiales: string[];
 }
 
 export interface IProgresoUnidadResponse {

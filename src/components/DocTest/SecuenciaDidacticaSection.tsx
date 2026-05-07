@@ -103,210 +103,180 @@ function renderProcesoRow(proceso: any, idx: number) {
 
   return (
     <tr key={idx}>
-      <td style={{ fontSize: "9pt", padding: "0.8rem", lineHeight: "1.6" }}>
-        {/* Título del proceso */}
-        {proceso.proceso && (
-          <div style={{
-            fontSize: "10pt",
-            fontWeight: "bold",
-            marginBottom: "0.8rem",
-            color: "#1e293b"
-          }}>
-            {proceso.proceso}
-          </div>
-        )}
-
-        {/* 🖼️ Imágenes posición "antes" */}
-        {renderImagenesProceso(proceso, 'antes')}
-
-        {/* Estrategias — con o sin imágenes "junto" */}
-        {tieneImagenesJunto ? (
-          <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
-            <div style={{ flex: 1 }}>
-              {proceso.estrategias && (
-                <div>
-                  <strong>Estrategias:</strong> {parseMarkdown(proceso.estrategias)}
-                </div>
-              )}
-            </div>
-            <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              {imgJunto.map((img: any, imgIdx: number) => (
-                <div key={img.id ?? imgIdx} style={{ textAlign: "center" }}>
-                  <img
-                    src={img.url}
-                    alt={img.descripcion || ""}
-                    style={{ maxHeight: "300px", borderRadius: "8px" }}
-                  />
-                  {img.texto_overlay && (
-                    <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
-                      {img.texto_overlay}
-                    </div>
-                  )}
-                  {img.descripcion && (
-                    <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>
-                      {img.descripcion}
+      <td colSpan={2} style={{ verticalAlign: "top", padding: "0.7rem 1rem", fontSize: "9pt", lineHeight: "1.6" }}>
+        {/* ═══ Layout condicional: con o sin problemaMatematico (alineado con Premium) ═══ */}
+        {proceso.problemaMatematico ? (
+          <>
+            {/* Título + Problema + Estrategias integrados en un solo bloque de texto */}
+            {tieneImagenesJunto ? (
+              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
+                <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
+                  {proceso.proceso && <strong>{proceso.proceso}: </strong>}
+                  <div style={{ marginTop: "0.4rem" }}>
+                    <strong>Planteamiento del problema: </strong>
+                    <span>{parseMarkdown(proceso.problemaMatematico)}</span>
+                  </div>
+                  {proceso.estrategias && (
+                    <div style={{ marginTop: "0.6rem" }}>
+                      {parseMarkdown(proceso.estrategias)}
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          proceso.estrategias && (
-            <div style={{ marginBottom: "0.8rem" }}>
-              <strong>Estrategias:</strong> {parseMarkdown(proceso.estrategias)}
-            </div>
-          )
-        )}
-
-        {/* 🖼️ Imágenes posición "despues" */}
-        {renderImagenesProceso(proceso, 'despues')}
-
-        {/* Gráfico del problema (con problemaMatematico) */}
-        {proceso.problemaMatematico && (proceso.grafico || proceso.graficoProblema) && (
-          <div style={{ marginBottom: "1rem", marginTop: "1rem" }}>
-            <div style={{
-              padding: "0.5rem",
-              backgroundColor: "#f0f9ff",
-              borderRadius: "4px",
-              marginBottom: "0.5rem",
-              fontWeight: "bold"
-            }}>
-              📝 Problema Matemático:
-            </div>
-            <div style={{ 
-              maxWidth: esGraficoAnchoCompleto(proceso.grafico || proceso.graficoProblema) ? "100%" : 420, 
-              width: "100%", 
-              margin: "0 auto 0.8rem" 
-            }}>
-              <GraficoRenderer grafico={proceso.grafico || proceso.graficoProblema} />
-            </div>
-            <div style={{
-              padding: "1rem",
-              backgroundColor: "#f0f9ff",
-              borderRadius: "8px",
-              borderLeft: "4px solid #0284c7",
-              marginBottom: "1rem"
-            }}>
-              <p style={{ margin: 0, fontSize: "10pt", lineHeight: "1.6" }}>
-                {proceso.problemaMatematico}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Gráfico standalone (sin problemaMatematico) — Math o Área */}
-        {proceso.grafico && !proceso.problemaMatematico && (
-          <div style={{
-            marginTop: "0.8rem",
-            marginBottom: "0.8rem",
-            padding: "0.8rem",
-            backgroundColor: "#fafafa",
-            borderRadius: "8px",
-            border: "1px solid #e2e8f0",
-            textAlign: "center",
-          }}>
-            <GraficoRenderer grafico={proceso.grafico} />
-          </div>
-        )}
-
-        {/* Gráfico de la operación — siempre que exista */}
-        {proceso.graficoOperacion && (
-          <div style={{
-            marginTop: "1rem",
-            marginBottom: "1rem",
-            backgroundColor: "#faf5ff",
-            padding: "1rem",
-            borderRadius: "8px",
-            border: "2px solid #d8b4fe",
-            overflowX: "auto"
-          }}>
-            <p style={{
-              fontSize: "9pt",
-              fontWeight: "bold",
-              color: "#7c3aed",
-              marginBottom: "0.5rem",
-              margin: 0
-            }}>
-              🔢 Operación / Recurso:
-            </p>
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
-              <div style={{ 
-                maxWidth: esGraficoAnchoCompleto(proceso.graficoOperacion) ? "100%" : 420, 
-                width: "100%" 
-              }}>
-                <GraficoRenderer grafico={proceso.graficoOperacion} />
+                <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  {imgJunto.map((img: any, imgIdx: number) => (
+                    <div key={img.id ?? imgIdx} style={{ textAlign: "center" }}>
+                      <img src={img.url} alt={img.descripcion || ""} style={{ maxHeight: "300px", borderRadius: "8px" }} />
+                      {img.texto_overlay && (
+                        <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+                          {img.texto_overlay}
+                        </div>
+                      )}
+                      {img.descripcion && (
+                        <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>{img.descripcion}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            ) : (
+              <div style={{ marginBottom: "0.8rem", whiteSpace: "pre-wrap" }}>
+                {proceso.proceso && <strong>{proceso.proceso}: </strong>}
+                <div style={{ marginTop: "0.4rem" }}>
+                  <strong>Planteamiento del problema: </strong>
+                  <span>{parseMarkdown(proceso.problemaMatematico)}</span>
+                </div>
+                {proceso.estrategias && (
+                  <div style={{ marginTop: "0.6rem" }}>
+                    {parseMarkdown(proceso.estrategias)}
+                  </div>
+                )}
+              </div>
+            )}
 
-        {/* Fallback: Imagen del problema (legacy) */}
-        {proceso.problemaMatematico && !proceso.grafico && !proceso.graficoProblema && proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
-          <div style={{ marginBottom: "1rem", marginTop: "1rem" }}>
-            <div style={{ textAlign: "center", marginBottom: "0.8rem" }}>
-              <img
-                src={proceso.imagenProblema}
-                alt="Problema matemático"
-                style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }}
-              />
-            </div>
-            <div style={{
-              padding: "1rem",
-              backgroundColor: "#f0f9ff",
-              borderRadius: "8px",
-              borderLeft: "4px solid #0284c7",
-              marginBottom: "1rem"
-            }}>
-              <p style={{ margin: 0, fontSize: "10pt", lineHeight: "1.6" }}>
-                {proceso.problemaMatematico}
-              </p>
-            </div>
-          </div>
-        )}
+            {/* Imágenes */}
+            {renderImagenesProceso(proceso, 'antes')}
+            {renderImagenesProceso(proceso, 'despues')}
 
-        {/* Gráfico de la solución (Rough.js) */}
-        {proceso.solucionProblema && proceso.graficoSolucion && (
-          <div style={{ marginBottom: "1rem" }}>
-            <div style={{
-              padding: "0.5rem",
-              backgroundColor: "#f0fdf4",
-              borderRadius: "4px",
-              marginBottom: "0.5rem",
-              fontWeight: "bold"
-            }}>
-              ✅ Solución:
-            </div>
-            <div style={{ textAlign: "center", marginBottom: "0.8rem" }}>
-              <GraficoRenderer grafico={proceso.graficoSolucion} />
-            </div>
-          </div>
-        )}
+            {/* Gráfico del problema (debajo del texto) */}
+            {(() => {
+              const esOtrosProblemas = /otros\s+problemas/i.test(proceso.proceso || "");
+              const esSocializacion = /socializaci[oó]n/i.test(proceso.proceso || "");
+              const ocultarGrafico = esOtrosProblemas || esSocializacion;
+              return !ocultarGrafico && (proceso.grafico || proceso.graficoProblema) ? (
+                <div className="no-break" style={{
+                  marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.6rem 0.8rem",
+                  backgroundColor: "#f0f9ff", borderRadius: "8px", border: "1px solid #bae6fd",
+                  textAlign: "center", overflow: "visible",
+                }}>
+                  <div style={{
+                    maxWidth: esGraficoAnchoCompleto(proceso.grafico || proceso.graficoProblema) ? "100%" : 340,
+                    width: "100%", margin: "0 auto", minWidth: 0,
+                  }}>
+                    <GraficoRenderer grafico={proceso.grafico || proceso.graficoProblema} />
+                  </div>
+                </div>
+              ) : null;
+            })()}
 
-        {/* Fallback: Imagen de la solución (legacy) */}
-        {proceso.solucionProblema && !proceso.graficoSolucion && proceso.imagenSolucion && proceso.imagenSolucion !== "GENERATE_IMAGE" && (
-          <div style={{ textAlign: "center", marginBottom: "0.8rem" }}>
-            <img
-              src={proceso.imagenSolucion}
-              alt="Solución del problema"
-              style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }}
-            />
-          </div>
-        )}
+            {/* Fallback: Imagen del problema (legacy) */}
+            {!proceso.grafico && !proceso.graficoProblema && proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
+              <div style={{ textAlign: "center", marginBottom: "0.6rem" }}>
+                <img src={proceso.imagenProblema} alt="Problema matemático" style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }} />
+              </div>
+            )}
 
-        {/* Texto de la solución */}
-        {proceso.solucionProblema && (
-          <div style={{
-            padding: "1rem",
-            backgroundColor: "#f0fdf4",
-            borderRadius: "8px",
-            borderLeft: "4px solid #16a34a",
-            marginBottom: "0.8rem"
-          }}>
-            <div style={{ whiteSpace: "pre-wrap", fontSize: "9pt", lineHeight: "1.6" }}>
-              {proceso.solucionProblema}
-            </div>
-          </div>
+            {/* Solución del problema */}
+            {proceso.solucionProblema && (
+              <div style={{
+                marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.7rem 1rem",
+                backgroundColor: "#f0fdf4", borderRadius: "8px", borderLeft: "4px solid #22c55e",
+              }}>
+                <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#15803d", margin: "0 0 0.3rem 0" }}>✅ Solución:</p>
+                <div style={{ whiteSpace: "pre-wrap", fontSize: "9pt", lineHeight: "1.6" }}>
+                  {parseMarkdown(proceso.solucionProblema)}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* ═══ Layout sin problemaMatematico: orden original ═══ */}
+            {renderImagenesProceso(proceso, 'antes')}
+
+            {tieneImagenesJunto ? (
+              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
+                <div style={{ flex: 1 }}>
+                  {proceso.estrategias ? (
+                    <div style={{ whiteSpace: "pre-wrap" }}>
+                      {proceso.proceso && <strong>{proceso.proceso}: </strong>}
+                      {parseMarkdown(proceso.estrategias)}
+                    </div>
+                  ) : proceso.proceso ? (
+                    <div><strong>{proceso.proceso}</strong></div>
+                  ) : null}
+                </div>
+                <div style={{ flexShrink: 0, maxWidth: "40%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  {imgJunto.map((img: any, imgIdx: number) => (
+                    <div key={img.id ?? imgIdx} style={{ textAlign: "center" }}>
+                      <img src={img.url} alt={img.descripcion || ""} style={{ maxHeight: "300px", borderRadius: "8px" }} />
+                      {img.texto_overlay && (
+                        <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
+                          {img.texto_overlay}
+                        </div>
+                      )}
+                      {img.descripcion && (
+                        <div style={{ fontSize: "7pt", color: "#64748b", marginTop: "0.2rem" }}>{img.descripcion}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              (proceso.estrategias || proceso.proceso) && (
+                <div style={{ marginBottom: "0.8rem" }}>
+                  {proceso.estrategias ? (
+                    <>
+                      {proceso.proceso && <strong>{proceso.proceso}: </strong>}
+                      {parseMarkdown(proceso.estrategias)}
+                    </>
+                  ) : (
+                    <strong>{proceso.proceso}</strong>
+                  )}
+                </div>
+              )
+            )}
+
+            {renderImagenesProceso(proceso, 'despues')}
+
+            {/* Gráfico standalone — oculto en socialización */}
+            {proceso.grafico && !/socializaci[oó]n/i.test(proceso.proceso || "") && (
+              <div className="no-break" style={{
+                marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.6rem 0.8rem",
+                background: "linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%)",
+                borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center", overflow: "visible",
+              }}>
+                <div style={{
+                  maxWidth: esGraficoAnchoCompleto(proceso.grafico) ? "100%" : 340,
+                  width: "100%", margin: "0 auto", minWidth: 0,
+                }}>
+                  <GraficoRenderer grafico={proceso.grafico} />
+                </div>
+              </div>
+            )}
+
+            {/* Solución del problema */}
+            {proceso.solucionProblema && (
+              <div style={{
+                marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.7rem 1rem",
+                backgroundColor: "#f0fdf4", borderRadius: "8px", borderLeft: "4px solid #22c55e",
+              }}>
+                <p style={{ fontSize: "8pt", fontWeight: "bold", color: "#15803d", margin: "0 0 0.3rem 0" }}>✅ Solución:</p>
+                <div style={{ whiteSpace: "pre-wrap", fontSize: "9pt", lineHeight: "1.6" }}>
+                  {parseMarkdown(proceso.solucionProblema)}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Respuestas del docente (transversal — todas las áreas) */}
@@ -335,11 +305,8 @@ function renderProcesoRow(proceso: any, idx: number) {
           </div>
         )}
 
-        {/* Recursos didácticos y tiempo */}
+        {/* Tiempo */}
         <div style={{ display: "flex", gap: "1rem", fontSize: "8pt", color: "#64748b" }}>
-          {(proceso.recursos || proceso.recursosDidacticos) && (
-            <div><strong>Recursos:</strong> {proceso.recursos || proceso.recursosDidacticos}</div>
-          )}
           {proceso.tiempo && (
             <div><strong>Tiempo:</strong> {proceso.tiempo}</div>
           )}

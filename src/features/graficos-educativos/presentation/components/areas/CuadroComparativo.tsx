@@ -1,6 +1,7 @@
 import React from 'react';
 import type { GraficoCuadroComparativo } from '../../../domain/types/graficos-areas.types';
 import { resolveColor } from '../../hooks/useRoughSVG';
+import { normalizarEtiquetaGrafico } from '@/utils/normalizarEtiquetaGrafico';
 
 interface Props {
   data: GraficoCuadroComparativo;
@@ -32,7 +33,7 @@ export const CuadroComparativo: React.FC<Props> = ({ data }) => {
                 className="px-4 py-3 text-center font-bold text-white"
                 style={{ background: resolveColor(col.color) }}
               >
-                {col.nombre}
+                {normalizarEtiquetaGrafico(col)}
               </th>
             ))}
           </tr>

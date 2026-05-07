@@ -8,3 +8,4 @@ export { PreparacionSesionSection } from "./PreparacionSesionSection";
 export { SecuenciaDidacticaSection } from "./SecuenciaDidacticaSection";
 export { ReflexionesSection } from "./ReflexionesSection";
 export { FirmasSection } from "./FirmasSection";
+export { HtmldocsDocument, HtmldocsFooter } from "./HtmldocsDomSafe";

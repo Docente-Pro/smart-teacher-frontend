@@ -49,6 +49,7 @@ export const AREAS_CURRICULARES = [
   "Tutoría",
   "Plan Lector",
   "Inglés",
+  "Computación",
 ] as const;
 
 export type AreaCurricular = (typeof AREAS_CURRICULARES)[number];

@@ -10,11 +10,11 @@ import LoadingComponent from '@/components/LoadingComponent';
  * Reglas:
  * 1. No autenticado → /login
  * 2. Perfil incompleto → /onboarding  
- * 3. Free sin sesiones en rutas de CREACIÓN → /planes
+ * 3. Free sin sesiones en rutas de CREACIÓN → /dashboard
  *    (dashboard, mis-sesiones, sesion/:id, evaluaciones, crear-unidad → siempre accesibles)
  *    crear-unidad se permite porque el wizard interno gestiona el pago
  * 4. Premium vencido (pero NO free) en rutas de CREACIÓN → /suscripcion-vencida
- *    (dashboard, mis-sesiones, sesion/:id, evaluaciones, planes → accesibles en modo limitado)
+ *    (dashboard, mis-sesiones, sesion/:id, evaluaciones → accesibles en modo limitado)
  * 5. Todo bien → muestra children
  * 
  * IMPORTANTE: No renderiza children hasta que la validación sea exitosa.
@@ -56,24 +56,24 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       return { status: 'redirect' as const, to: '/onboarding', reason: 'perfil-incompleto' };
     }
 
-    // 3. Usuario FREE sin sesiones en rutas de CREACIÓN → planes
-    //    Rutas de lectura (dashboard, mis-sesiones, sesion/:id, evaluaciones, planes) siguen accesibles.
+    // 3. Usuario FREE sin sesiones en rutas de CREACIÓN → dashboard (el FAB de WhatsApp gestiona el upgrade)
+    //    Rutas de lectura (dashboard, mis-sesiones, sesion/:id, evaluaciones) siguen accesibles.
     //    /crear-unidad también se permite: el wizard interno (Step0TipoUnidad) gestiona el pago.
-    const FREE_ALLOWED_PATHS = ['/dashboard', '/mis-sesiones', '/sesion', '/evaluaciones', '/planes', '/result', '/graficos', '/crear-unidad'];
+    const FREE_ALLOWED_PATHS = ['/dashboard', '/mis-sesiones', '/sesion', '/evaluaciones', '/result', '/graficos', '/crear-unidad'];
     const isReadOnlyPath = FREE_ALLOWED_PATHS.some((p) => currentPath.startsWith(p));
 
     if (user.plan === 'free' && user.sesionesRestantes === 0 && !isReadOnlyPath) {
       return { 
         status: 'redirect' as const, 
-        to: '/planes', 
+        to: '/dashboard', 
         reason: 'free-sin-sesiones',
         state: { message: 'Has usado tus 2 sesiones gratuitas. Actualiza a Premium para continuar creando.' }
       };
     }
 
     // 4. Usuario PREMIUM vencido → renovar
-    //    Rutas de lectura (dashboard, mis-sesiones, sesion/:id, evaluaciones, planes, etc.) siguen accesibles en modo limitado.
-    const PREMIUM_EXPIRED_ALLOWED_PATHS = ['/dashboard', '/mis-sesiones', '/sesion', '/evaluaciones', '/planes', '/result', '/graficos', '/suscripcion-vencida'];
+    //    Rutas de lectura (dashboard, mis-sesiones, sesion/:id, evaluaciones, etc.) siguen accesibles en modo limitado.
+    const PREMIUM_EXPIRED_ALLOWED_PATHS = ['/dashboard', '/mis-sesiones', '/sesion', '/evaluaciones', '/result', '/graficos', '/suscripcion-vencida'];
     const isExpiredAllowedPath = PREMIUM_EXPIRED_ALLOWED_PATHS.some((p) => currentPath.startsWith(p));
 
     if (user.plan !== 'free' && !user.suscripcionActiva && !isExpiredAllowedPath) {

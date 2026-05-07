@@ -58,6 +58,9 @@ export function useSesionPremiumPDF(
 
       const sesionId = premiumData.sesion.id;
       const usuarioId = user.id;
+      const sesionAny = premiumData.sesion as any;
+      const unidadId: string | undefined = sesionAny?.unidadId ?? undefined;
+      const areaId: number | undefined = sesionAny?.areaId ?? undefined;
 
       // PASO 1 — Pedir URL de subida
       const respuestaUpload = await solicitarUploadPDF({
@@ -76,7 +79,9 @@ export function useSesionPremiumPDF(
         sesionId,
         usuarioId,
         key: uploadData.key,
-        contenido: premiumData.sesion as any, // Guardar el contenido completo
+        contenido: premiumData.sesion as any,
+        ...(unidadId ? { unidadId } : {}),
+        ...(areaId ? { areaId } : {}),
       });
 
       const confirmData =

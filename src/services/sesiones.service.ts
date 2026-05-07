@@ -3,6 +3,7 @@ import { ISesionAprendizaje } from "@/interfaces/ISesionAprendizaje";
 import { ISesionToCreate } from "@/interfaces/IUsuario";
 import { ISesion } from "@/interfaces/ISesion";
 import type { ICalendarioSesionesResponse } from "@/interfaces/ICalendarioSesiones";
+import type { RecursosSesionResponse } from "@/interfaces/IRecursoSesion";
 
 // ============================================
 // INTERFACES
@@ -41,6 +42,8 @@ interface ConfirmarUploadRequest {
   usuarioId: string;
   key: string;
   contenido: Partial<ISesionAprendizaje>;
+  unidadId?: string;
+  areaId?: number;
 }
 
 interface ConfirmarUploadResponse {
@@ -305,6 +308,8 @@ export async function generarSesionUnidad(
 export interface IEditarContenidoSesionRequest {
   titulo?: string;
   contenido?: Record<string, any>;
+  unidadId?: string;
+  areaId?: number;
 }
 
 export interface IEditarContenidoSesionResponse {
@@ -324,6 +329,26 @@ export async function editarContenidoSesion(
   const { data } = await instance.patch<IEditarContenidoSesionResponse>(
     `/sesion/${sesionId}/contenido`,
     body,
+  );
+  return data;
+}
+
+// ============================================
+// Recursos sugeridos para una sesión
+// POST /api/sesion/recursos
+// ============================================
+
+/**
+ * Obtiene recursos sugeridos (videos YouTube, cuadernos MINEDU, páginas web)
+ * para una sesión. El backend enriquece el contexto (nivel, grado, área, etc.)
+ * a partir del ID y llama al servicio de IA.
+ */
+export async function obtenerRecursosSesion(
+  sesionId: string,
+): Promise<RecursosSesionResponse> {
+  const { data } = await instance.post<RecursosSesionResponse>(
+    "/sesion/recursos",
+    { sesionId },
   );
   return data;
 }

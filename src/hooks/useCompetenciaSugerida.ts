@@ -68,6 +68,7 @@ export function useCompetenciaSugerida({
         // situacionTexto viene en data o a nivel raíz de la respuesta
         const situacionTexto = rawData.situacionTexto || (response.data as any).situacionTexto || '';
         setSugerencia({ ...rawData, situacionTexto });
+        handleToaster("Competencia sugerida exitosamente", "success");
       } else {
         throw new Error("No se pudo obtener sugerencia");
       }

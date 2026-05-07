@@ -156,6 +156,12 @@ export interface ISecuenciaDidactica {
   cierre: IFaseCierre;
 }
 
+export interface ICompetenciaTransversalSesion {
+  nombre: string;
+  capacidades: string[];
+  criteriosEvaluacion: string[];
+}
+
 export interface IReflexionAprendizaje {
   avancesEstudiantes: string;
   dificultadesExperimentadas: string;
@@ -182,9 +188,11 @@ export interface IImagenDisponible {
 
 export interface ISesionAprendizaje {
   datosGenerales: IDatosGenerales;
+  areaId?: number;
+  gradoId?: number;
   titulo: string;
-  temaCurricular?: string; // Tema en texto (para mostrar o fallback)
-  temaId?: number; // ID del tema del currículo (null si es personalizado)
+  temaCurricular?: string;
+  temaId?: number;
   /** Objeto tema curricular devuelto por sugerir-competencia; se envía en todos los pasos IA */
   temaCurricularObjeto?: Record<string, unknown>;
   situacionTexto?: string; // Texto de la situación significativa devuelto por sugerir-competencia
@@ -195,6 +203,8 @@ export interface ISesionAprendizaje {
   secuenciaDidactica: ISecuenciaDidactica;
   reflexiones: IReflexionAprendizaje;
   firmas: IFirmas;
+  /** Competencias transversales con criterios de evaluación generados por IA */
+  competenciasTransversalesSesion?: ICompetenciaTransversalSesion[];
   /** Lista completa de imágenes disponibles que se ofreció a GPT (referencia/debug) */
   imagenes_disponibles?: IImagenDisponible[];
 }

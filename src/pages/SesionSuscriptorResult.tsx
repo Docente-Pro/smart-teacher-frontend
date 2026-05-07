@@ -11,6 +11,7 @@ import {
   Loader2,
   Pencil,
   Printer,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,8 +30,10 @@ import { SesionPremiumDoc } from "@/components/SesionPremiumDoc/SesionPremiumDoc
 import { generarFichaAplicacion } from "@/services/fichaAplicacion.service";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
 import type { IInstrumentoEvaluacion } from "@/interfaces/IInstrumentoEvaluacion";
+import type { RecursoSesion } from "@/interfaces/IRecursoSesion";
 import { buildInstrumentoLocal } from "@/utils/buildInstrumentoFromSesion";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
+import { RecursosSesionPanel } from "@/components/RecursosSesion";
 
 /**
  * Página de vista previa de una Sesión de Aprendizaje para **suscriptores**.
@@ -74,6 +77,12 @@ function SesionSuscriptorResult() {
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
   const [wordUrl, setWordUrl] = useState<string | null>(null);
 
+  // ── Estado de Recursos ──
+  const [recursos, setRecursos] = useState<RecursoSesion[] | null>(null);
+  const [loadingRecursos, setLoadingRecursos] = useState(false);
+  const [errorRecursos, setErrorRecursos] = useState<string | null>(null);
+  const [showRecursos, setShowRecursos] = useState(false);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Cargar sesión completa del backend
   // ═══════════════════════════════════════════════════════════════════════════
@@ -90,21 +99,23 @@ function SesionSuscriptorResult() {
         if (cancelled) return;
 
         // Extraer nombre del docente e institución
+        const currentUsuario = useUserStore.getState().user;
+        const currentUser = useAuthStore.getState().user;
         const sesionUsuario = data.usuario as
           | { nombre?: string; nombreInstitucion?: string; seccion?: string }
           | undefined;
         const docente =
           sesionUsuario?.nombre ||
-          usuario?.nombre ||
-          user?.name ||
+          currentUsuario?.nombre ||
+          currentUser?.name ||
           "";
         const institucion =
           sesionUsuario?.nombreInstitucion ||
-          usuario?.nombreInstitucion ||
+          currentUsuario?.nombreInstitucion ||
           "";
         const seccion =
           sesionUsuario?.seccion ||
-          usuario?.seccion ||
+          currentUsuario?.seccion ||
           "";
 
         // ─── Extraer contenido pedagógico ───────────────────────────────
@@ -135,7 +146,7 @@ function SesionSuscriptorResult() {
 
         // Si la sesión no tiene lista de alumnos pero el docente tiene en localStorage, actualizar en silencio y recargar
         const tieneListaAlumnos = Array.isArray(contenido.listaAlumnos) && contenido.listaAlumnos.length > 0;
-        const alumnosStorage = getSavedAlumnos();
+        const alumnosStorage = getSavedAlumnos(raw.gradoId ?? data.gradoId);
         if (!tieneListaAlumnos && alumnosStorage.length > 0) {
           try {
             const listaAlumnos = alumnosStorage.map((a) => ({
@@ -146,7 +157,11 @@ function SesionSuscriptorResult() {
               ...(a.sexo && { sexo: a.sexo }),
               ...(a.dni != null && a.dni !== "" && { dni: a.dni }),
             }));
-            await editarContenidoSesion(sesionId!, { contenido: { listaAlumnos } });
+            await editarContenidoSesion(sesionId!, {
+              contenido: { listaAlumnos },
+              ...(raw.unidadId ? { unidadId: raw.unidadId } : {}),
+              ...(raw.areaId ? { areaId: raw.areaId } : {}),
+            });
             if (!cancelled) {
               const updated = await obtenerSesionPorId(sesionId!);
               raw = updated as any;
@@ -178,6 +193,8 @@ function SesionSuscriptorResult() {
         const sesionForDoc = {
           // ── Identificadores y metadatos ──
           id: raw.id,
+          unidadId: raw.unidadId ?? undefined,
+          areaId: raw.areaId ?? undefined,
           titulo: pick<string>(raw.titulo, contenido.titulo, "Sesión de Aprendizaje"),
           area: pick(raw.area, contenido.area),
           nivel: pick(raw.nivel, contenido.nivel),
@@ -235,6 +252,18 @@ function SesionSuscriptorResult() {
           ...(raw.recursoNarrativo || contenido.recursoNarrativo
             ? { recursoNarrativo: raw.recursoNarrativo || contenido.recursoNarrativo }
             : {}),
+          ...(raw.tipo || contenido.tipo
+            ? { tipo: raw.tipo || contenido.tipo }
+            : {}),
+          ...(raw.formatoFrontTutoria || contenido.formatoFrontTutoria
+            ? { formatoFrontTutoria: raw.formatoFrontTutoria || contenido.formatoFrontTutoria }
+            : {}),
+          ...(raw.formatoFrontPlanLector || contenido.formatoFrontPlanLector
+            ? { formatoFrontPlanLector: raw.formatoFrontPlanLector || contenido.formatoFrontPlanLector }
+            : {}),
+          ...(raw.dimension || contenido.dimension
+            ? { dimension: raw.dimension || contenido.dimension }
+            : {}),
         };
 
         const nombreDirectivo =
@@ -270,7 +299,7 @@ function SesionSuscriptorResult() {
     return () => {
       cancelled = true;
     };
-  }, [sesionId, usuario, user]);
+  }, [sesionId]);
 
   // Lista de cotejo / instrumento de evaluación para el PDF (suscriptor ve lo mismo que el propietario)
   const instrumento = useMemo((): IInstrumentoEvaluacion | null => {
@@ -347,6 +376,9 @@ function SesionSuscriptorResult() {
 
       const idSesion = premiumData.sesion.id;
       const usuarioId = user.id;
+      const sesionAny = premiumData.sesion as any;
+      const unidadId: string | undefined = sesionAny?.unidadId ?? undefined;
+      const areaId: number | undefined = sesionAny?.areaId ?? undefined;
 
       // Paso 1 — URL presigned
       const respuestaUpload = await solicitarUploadPDF({
@@ -366,6 +398,8 @@ function SesionSuscriptorResult() {
         usuarioId,
         key: uploadData.key,
         contenido: premiumData.sesion as any,
+        ...(unidadId ? { unidadId } : {}),
+        ...(areaId ? { areaId } : {}),
       });
 
       setIsSaved(true);
@@ -574,6 +608,29 @@ function SesionSuscriptorResult() {
     }
   };
 
+  // ── Cargar recursos sugeridos ──
+  const handleCargarRecursos = async () => {
+    if (!sesionId) return;
+    setLoadingRecursos(true);
+    setErrorRecursos(null);
+    try {
+      const { obtenerRecursosSesion } = await import("@/services/sesiones.service");
+      const resp = await obtenerRecursosSesion(sesionId);
+      setRecursos(resp.recursos ?? []);
+    } catch (err: any) {
+      setErrorRecursos(err?.response?.data?.message || err?.message || "Error al obtener recursos");
+    } finally {
+      setLoadingRecursos(false);
+    }
+  };
+
+  const handleToggleRecursos = () => {
+    setShowRecursos((v) => !v);
+    if (recursos === null && !loadingRecursos) {
+      handleCargarRecursos();
+    }
+  };
+
   // ── Print styles ──
   const printStyles = `
     @media print {
@@ -764,7 +821,36 @@ function SesionSuscriptorResult() {
                 {isGeneratingFicha ? "..." : "Ficha"}
               </span>
             </Button>
+            {/* TODO: Recursos — descomentar cuando el backend esté listo
+            <Button
+              onClick={handleToggleRecursos}
+              size="sm"
+              variant="outline"
+              className={`gap-1.5 transition-all ${
+                showRecursos
+                  ? "border-violet-400 text-violet-700 bg-violet-50 dark:border-violet-500 dark:text-violet-400 dark:bg-violet-950"
+                  : "border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-600 dark:text-violet-400 dark:hover:bg-violet-950"
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Recursos</span>
+            </Button>
+            */}
           </div>
+
+          {/* TODO: Panel de recursos colapsable — descomentar cuando el backend esté listo
+          {showRecursos && sesionId && (
+            <div className="max-w-md">
+              <RecursosSesionPanel
+                sesionId={sesionId}
+                recursos={recursos}
+                loading={loadingRecursos}
+                error={errorRecursos}
+                onCargar={handleCargarRecursos}
+              />
+            </div>
+          )}
+          */}
         </div>
 
         {/* Documento para captura PDF */}

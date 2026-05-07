@@ -1,6 +1,6 @@
 import { IArea } from "@/interfaces/IArea";
 import { IUsuario } from "@/interfaces/IUsuario";
-import { getAllAreas, isAreaPrimaria } from "@/services/areas.service";
+import { getAllAreas } from "@/services/areas.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { useEffect, useState } from "react";
@@ -8,24 +8,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import {
   Users,
-  Activity,
-  Palette,
-  MessageCircle,
-  Globe,
-  Calculator,
-  Microscope,
-  Church,
   Clock,
   CheckCircle2,
   ArrowRight,
   Sparkles,
+  GraduationCap,
 } from "lucide-react";
 import { useSesionStore } from "@/store/sesion.store";
+import { getAreaColor, getAreaIcon } from "@/constants/areaColors";
 
 interface Props {
   pagina: number;
   setPagina: (pagina: number) => void;
   usuarioFromState: IUsuario;
+  gradosDisponibles?: Array<{ id: number; nombre: string }>;
 }
 
 const tiemposEstudio = [
@@ -58,34 +54,15 @@ const tiemposEstudio = [
   },
 ];
 
-const areaIcons: { [key: string]: any } = {
-  "Personal Social": Users,
-  "Educación Física": Activity,
-  "Arte y Cultura": Palette,
-  Comunicación: MessageCircle,
-  Inglés: Globe,
-  Matemática: Calculator,
-  "Ciencia y Tecnología": Microscope,
-  "Educación Religiosa": Church,
-};
-
-const areaGradients: { [key: string]: string } = {
-  "Personal Social": "from-blue-500 to-cyan-500",
-  "Educación Física": "from-green-500 to-emerald-500",
-  "Arte y Cultura": "from-purple-500 to-pink-500",
-  Comunicación: "from-orange-500 to-red-500",
-  Inglés: "from-indigo-500 to-blue-500",
-  Matemática: "from-yellow-500 to-orange-500",
-  "Ciencia y Tecnología": "from-teal-500 to-green-500",
-  "Educación Religiosa": "from-amber-500 to-yellow-500",
-};
-
-function Step1({ pagina, setPagina, usuarioFromState }: Props) {
+function Step1({ pagina, setPagina, usuarioFromState, gradosDisponibles = [] }: Props) {
   const { sesion, updateSesion } = useSesionStore();
   const [areas, setAreas] = useState<IArea[]>([]);
   const [areaSeleccionada, setAreaSeleccionada] = useState<string>("");
   const [duracionSeleccionada, setDuracionSeleccionada] = useState<string>("");
+  const [gradoSeleccionado, setGradoSeleccionado] = useState<number | null>(null);
   const { showLoading, hideLoading } = useGlobalLoading();
+
+  const requiereSeleccionGrado = gradosDisponibles.length > 1;
 
   useEffect(() => {
     async function cargarAreas() {
@@ -93,7 +70,14 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
       try {
         const response = await getAllAreas();
         const all = response.data.data || response.data;
-        setAreas(all.filter((a: IArea) => isAreaPrimaria(a.nombre)));
+        const seen = new Set<string>();
+        const dedup = (all as IArea[]).filter((a: IArea) => {
+          const key = `${a.id}-${a.nombre.toLowerCase().trim()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setAreas(dedup);
       } catch (error) {
         handleToaster("Error al cargar las áreas", "error");
       } finally {
@@ -109,10 +93,26 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
     if (sesion) {
       setAreaSeleccionada(sesion.datosGenerales.area || "");
       setDuracionSeleccionada(sesion.datosGenerales.duracion || "");
+      if (sesion.gradoId) {
+        setGradoSeleccionado(sesion.gradoId);
+      }
     }
   }, [sesion]);
 
-  function handleAreaClick(areaNombre: string) {
+  function handleGradoClick(gradoId: number, gradoNombre: string) {
+    setGradoSeleccionado(gradoId);
+    if (sesion) {
+      updateSesion({
+        gradoId: gradoId,
+        datosGenerales: {
+          ...sesion.datosGenerales,
+          grado: gradoNombre,
+        },
+      });
+    }
+  }
+
+  function handleAreaClick(areaNombre: string, id?: number) {
     setAreaSeleccionada(areaNombre);
     if (sesion) {
       updateSesion({
@@ -120,6 +120,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
           ...sesion.datosGenerales,
           area: areaNombre,
         },
+        areaId: id != null && id > 0 ? id : undefined,
       });
     }
   }
@@ -137,21 +138,15 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
   }
 
   function handleNextStep() {
+    if (requiereSeleccionGrado && !gradoSeleccionado) {
+      handleToaster("Por favor selecciona el grado", "error");
+      return;
+    }
     if (areaSeleccionada && duracionSeleccionada) {
       setPagina(pagina + 1);
     } else {
       handleToaster("Por favor selecciona un área y un tiempo de estudio", "error");
     }
-  }
-
-  function getAreaIcon(areaNombre: string) {
-    const key = Object.keys(areaIcons).find((k) => areaNombre.includes(k));
-    return key ? areaIcons[key] : Users;
-  }
-
-  function getAreaGradient(areaNombre: string) {
-    const key = Object.keys(areaGradients).find((k) => areaNombre.includes(k));
-    return key ? areaGradients[key] : "from-dp-blue-500 to-dp-orange-500";
   }
 
   if (!sesion) return null;
@@ -175,6 +170,68 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
           </p>
         </div>
 
+        {/* Selección de Grado (solo secundaria con múltiples grados) */}
+        {requiereSeleccionGrado && (
+          <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <div className="h-10 w-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
+                  <GraduationCap className="h-6 w-6 text-white" />
+                </div>
+                Selecciona el grado
+              </CardTitle>
+              <CardDescription className="text-base">
+                Elige el grado para el cual deseas crear tu sesión de aprendizaje
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {gradosDisponibles.map((grado) => {
+                  const isSelected = gradoSeleccionado === grado.id;
+
+                  return (
+                    <div
+                      key={grado.id}
+                      onClick={() => handleGradoClick(grado.id, grado.nombre)}
+                      className={`
+                        group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
+                        ${
+                          isSelected
+                            ? "ring-4 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-900 scale-105 shadow-2xl"
+                            : "hover:scale-105 hover:shadow-xl border-2 border-slate-200 dark:border-slate-700"
+                        }
+                      `}
+                    >
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 transition-opacity duration-300 ${
+                          isSelected ? "opacity-100" : "opacity-80 group-hover:opacity-90"
+                        }`}
+                      />
+
+                      <div className="relative p-6 flex flex-col items-center gap-3 text-white">
+                        <div
+                          className={`p-3 bg-white/20 backdrop-blur-sm rounded-lg transition-transform duration-300 ${
+                            isSelected ? "scale-110" : "group-hover:scale-110"
+                          }`}
+                        >
+                          <GraduationCap className="h-8 w-8" />
+                        </div>
+                        <p className="text-sm font-bold text-center leading-tight">{grado.nombre}</p>
+
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-lg">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Selección de Área */}
         <Card className="mb-8 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
           <CardHeader>
@@ -182,7 +239,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
               <div className="h-10 w-10 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-lg flex items-center justify-center">
                 <Users className="h-6 w-6 text-white" />
               </div>
-              Selecciona el área curricular
+              Selecciona el área
             </CardTitle>
             <CardDescription className="text-base">Elige el área en la que deseas crear tu sesión de aprendizaje</CardDescription>
           </CardHeader>
@@ -190,13 +247,13 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {areas.map((area) => {
                 const IconComponent = getAreaIcon(area.nombre);
-                const gradient = getAreaGradient(area.nombre);
+                const gradient = getAreaColor(area.nombre).gradient;
                 const isSelected = areaSeleccionada === area.nombre;
 
                 return (
                   <div
                     key={area.id}
-                    onClick={() => handleAreaClick(area.nombre)}
+                    onClick={() => handleAreaClick(area.nombre, area.id)}
                     className={`
                       group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300
                       ${
@@ -325,7 +382,7 @@ function Step1({ pagina, setPagina, usuarioFromState }: Props) {
         <div className="flex justify-end">
           <Button
             onClick={handleNextStep}
-            disabled={!areaSeleccionada || !duracionSeleccionada}
+            disabled={!areaSeleccionada || !duracionSeleccionada || (requiereSeleccionGrado && !gradoSeleccionado)}
             className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continuar

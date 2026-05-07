@@ -8,6 +8,7 @@ import AdminPagosUnidad from "@/pages/admin/AdminPagosUnidad";
 import AdminUsuarios from "@/pages/admin/AdminUsuarios";
 import AdminUsuarioDetalle from "@/pages/admin/AdminUsuarioDetalle";
 import AdminRehacerPdf from "@/pages/admin/AdminRehacerPdf";
+import AdminFichaPdf from "@/pages/admin/AdminFichaPdf";
 import AdminCorregirEstandaresPdf from "@/pages/admin/AdminCorregirEstandaresPdf";
 
 interface IAdminRoute {
@@ -30,6 +31,14 @@ export const adminRoutes: IAdminRoute[] = [
     element: (
       <AdminRoute>
         <AdminRehacerPdf />
+      </AdminRoute>
+    ),
+  },
+  {
+    path: "/admin/ficha-pdf/:sesionId",
+    element: (
+      <AdminRoute>
+        <AdminFichaPdf />
       </AdminRoute>
     ),
   },

@@ -110,13 +110,16 @@ export interface ISeccionOrdenar {
   tipo: "ordenar";
   titulo: string;
   contenido: {
-    elementos: IElementoOrdenar[];
+    elementos: Array<IElementoOrdenar | string>;
     tipoOrden?: "cronologico" | "numerico" | "logico";
   };
 }
 
 export interface IAfirmacionVF {
-  afirmacion: string;
+  /** Texto mostrado al estudiante (contrato API) */
+  texto?: string;
+  /** @deprecated Mismo significado que `texto`; mantener por payloads antiguos */
+  afirmacion?: string;
   respuesta?: boolean; // Va al solucionario, no se muestra
 }
 

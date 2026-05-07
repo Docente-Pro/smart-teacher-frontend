@@ -1,5 +1,6 @@
 import { IUsuario } from "@/interfaces/IUsuario";
 import { useState, useEffect } from "react";
+
 import {
   Card,
   CardContent,
@@ -177,6 +178,19 @@ function ProcesoCard({
         />
       </div>
 
+      {/* ─── Planteamiento del problema (antes de estrategias, alineado con Premium) ─── */}
+      {proceso.problemaMatematico && (
+        <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border-l-4 border-blue-500">
+          <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">Planteamiento del problema:</p>
+          <InlineEdit
+            value={proceso.problemaMatematico}
+            onSave={(v) => onUpdate({ problemaMatematico: v })}
+            multiline
+            className="text-sm text-blue-800 dark:text-blue-200"
+          />
+        </div>
+      )}
+
       {/* Estrategias */}
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
@@ -223,95 +237,39 @@ function ProcesoCard({
         />
       )}
 
-      {/* ─── Gráficos y Problema Matemático ─── */}
-      {proceso.problemaMatematico && (
-        <div className="mt-2 space-y-3">
-          {/* Gráfico del problema (Rough.js) */}
-          {((proceso as any).grafico || (proceso as any).graficoProblema) && (
-            <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
-              <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-2">📝 Problema Matemático:</p>
-              <div className="flex justify-center">
-                <GraficoRenderer grafico={(proceso as any).grafico || (proceso as any).graficoProblema} />
-              </div>
+      {/* ─── Gráfico del problema (debajo de estrategias, alineado con Premium) ─── */}
+      {proceso.problemaMatematico && (() => {
+        const esOtrosProblemas = /otros\s+problemas/i.test(proceso.proceso);
+        const esSocializacion = /socializaci[oó]n/i.test(proceso.proceso);
+        const ocultarGrafico = esOtrosProblemas || esSocializacion;
+        return !ocultarGrafico && ((proceso as any).grafico || (proceso as any).graficoProblema) ? (
+          <div className="mt-2 bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
+            <div className="flex justify-center">
+              <GraficoRenderer grafico={(proceso as any).grafico || (proceso as any).graficoProblema} />
             </div>
-          )}
-
-          {/* Fallback: Imagen del problema (legacy) */}
-          {!(proceso as any).grafico &&
-            !(proceso as any).graficoProblema &&
-            proceso.imagenProblema &&
-            proceso.imagenProblema !== "GENERATE_IMAGE" && (
-              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-2">📝 Problema Matemático:</p>
-                <img
-                  src={proceso.imagenProblema}
-                  alt="Problema matemático"
-                  className="w-full max-w-md rounded-lg shadow-md"
-                />
-              </div>
-            )}
-
-          {/* Texto del problema */}
-          <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border-l-4 border-blue-500">
-            <InlineEdit
-              value={proceso.problemaMatematico}
-              onSave={(v) => onUpdate({ problemaMatematico: v })}
-              multiline
-              className="text-sm text-blue-800 dark:text-blue-200"
-            />
           </div>
+        ) : null;
+      })()}
 
-          {/* Gráfico de la solución */}
-          {(proceso as any).graficoSolucion && (
-            <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
-              <p className="text-xs font-bold text-green-700 dark:text-green-400 mb-2">✅ Solución:</p>
-              <div className="flex justify-center">
-                <GraficoRenderer grafico={(proceso as any).graficoSolucion} />
-              </div>
-            </div>
-          )}
-
-          {/* Fallback: Imagen de la solución (legacy) */}
-          {!(proceso as any).graficoSolucion &&
-            (proceso as any).imagenSolucion &&
-            (proceso as any).imagenSolucion !== "GENERATE_IMAGE" && (
-              <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
-                <p className="text-xs font-bold text-green-700 dark:text-green-400 mb-2">✅ Solución:</p>
-                <img
-                  src={(proceso as any).imagenSolucion}
-                  alt="Solución"
-                  className="w-full max-w-md rounded-lg shadow-md"
-                />
-              </div>
-            )}
-
-          {/* Texto de la solución */}
-          {(proceso as any).solucionProblema && (
-            <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border-l-4 border-green-500">
-              <pre className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-sans text-sm">
-                {(proceso as any).solucionProblema}
-              </pre>
-            </div>
-          )}
-
-          {/* Gráfico de la operación matemática */}
-          {(proceso as any).graficoOperacion && (
-            <div className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg border-2 border-purple-300 dark:border-purple-700 overflow-x-auto max-w-full">
-              <p className="text-xs font-bold text-purple-700 dark:text-purple-400 mb-2">🔢 Operación Matemática:</p>
-              <div className="flex justify-center">
-                <GraficoRenderer grafico={(proceso as any).graficoOperacion} />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Gráfico standalone (sin problemaMatematico) — áreas no-Math */}
-      {!proceso.problemaMatematico && (proceso as any).grafico && (
+      {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización */}
+      {!proceso.problemaMatematico && (proceso as any).grafico && !/socializaci[oó]n/i.test(proceso.proceso) && (
         <div className="mt-2 bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full">
           <div className="flex justify-center">
             <GraficoRenderer grafico={(proceso as any).grafico} />
           </div>
+        </div>
+      )}
+
+      {/* Texto de la solución */}
+      {(proceso as any).solucionProblema && (
+        <div className="mt-2 p-3 bg-green-50 dark:bg-green-950 rounded-lg border-l-4 border-green-500">
+          <p className="text-xs font-bold text-green-700 dark:text-green-400 mb-1">✅ Solución:</p>
+          <InlineEdit
+            value={(proceso as any).solucionProblema}
+            onSave={(v) => onUpdate({ solucionProblema: v } as any)}
+            multiline
+            className="text-sm text-slate-700 dark:text-slate-300"
+          />
         </div>
       )}
 
@@ -323,12 +281,31 @@ function ProcesoCard({
           </p>
           {proceso.respuestasDocente.map((r, rIdx) => (
             <div key={rIdx} className="mt-1.5">
-              <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">
-                {rIdx + 1}. {r.pregunta}
-              </p>
-              <p className="text-sm text-emerald-700 dark:text-emerald-400 ml-4 italic">
-                → {r.respuestaEsperada}
-              </p>
+              <div className="flex items-start gap-1">
+                <span className="text-sm font-semibold text-amber-900 dark:text-amber-300 flex-shrink-0">{rIdx + 1}.</span>
+                <InlineEdit
+                  value={r.pregunta}
+                  onSave={(v) => {
+                    const updated = [...proceso.respuestasDocente!];
+                    updated[rIdx] = { ...updated[rIdx], pregunta: v };
+                    onUpdate({ respuestasDocente: updated });
+                  }}
+                  className="text-sm font-semibold text-amber-900 dark:text-amber-300"
+                />
+              </div>
+              <div className="flex items-start gap-1 ml-4">
+                <span className="text-sm text-emerald-700 dark:text-emerald-400 flex-shrink-0">→</span>
+                <InlineEdit
+                  value={r.respuestaEsperada}
+                  onSave={(v) => {
+                    const updated = [...proceso.respuestasDocente!];
+                    updated[rIdx] = { ...updated[rIdx], respuestaEsperada: v };
+                    onUpdate({ respuestasDocente: updated });
+                  }}
+                  multiline
+                  className="text-sm text-emerald-700 dark:text-emerald-400 italic"
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -380,6 +357,7 @@ function Step3FreeResult({ pagina, setPagina }: Props) {
   function handleGenerarPDF() {
     window.location.href = "/result";
   }
+
 
   /* ═══════════════ RENDER ═══════════════ */
   return (
@@ -449,9 +427,16 @@ function Step3FreeResult({ pagina, setPagina }: Props) {
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                   Competencia
                 </p>
-                <p className="text-base font-semibold text-slate-800 dark:text-white">
-                  {propositoAprendizaje.competencia}
-                </p>
+                <InlineEdit
+                  value={propositoAprendizaje.competencia}
+                  onSave={(v) =>
+                    updateSesion({
+                      propositoAprendizaje: { ...propositoAprendizaje, competencia: v },
+                    })
+                  }
+                  multiline
+                  className="text-base font-semibold text-slate-800 dark:text-white"
+                />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {propositoAprendizaje.capacidades.map((cap, idx) => (
@@ -460,7 +445,17 @@ function Step3FreeResult({ pagina, setPagina }: Props) {
                     className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800"
                   >
                     <Award className="h-4 w-4 mt-0.5 text-blue-500 flex-shrink-0" />
-                    <span className="text-sm text-blue-800 dark:text-blue-200">{cap.nombre}</span>
+                    <InlineEdit
+                      value={cap.nombre}
+                      onSave={(v) => {
+                        const caps = [...propositoAprendizaje.capacidades];
+                        caps[idx] = { ...caps[idx], nombre: v };
+                        updateSesion({
+                          propositoAprendizaje: { ...propositoAprendizaje, capacidades: caps },
+                        });
+                      }}
+                      className="text-sm text-blue-800 dark:text-blue-200"
+                    />
                   </div>
                 ))}
               </div>
@@ -543,14 +538,24 @@ function Step3FreeResult({ pagina, setPagina }: Props) {
                   key={idx}
                   className="p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700"
                 >
-                  <p className="font-semibold text-sm text-rose-700 dark:text-rose-300 mb-1">
-                    {enf.nombre}
-                  </p>
-                  {enf.valor && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 italic mb-2">
-                      Valor: {enf.valor}
-                    </p>
-                  )}
+                  <InlineEdit
+                    value={enf.nombre}
+                    onSave={(v) => {
+                      const updated = [...enfoquesTransversales];
+                      updated[idx] = { ...enf, nombre: v };
+                      updateSesion({ enfoquesTransversales: updated });
+                    }}
+                    className="font-semibold text-sm text-rose-700 dark:text-rose-300 mb-1"
+                  />
+                  <InlineEdit
+                    value={enf.valor || ""}
+                    onSave={(v) => {
+                      const updated = [...enfoquesTransversales];
+                      updated[idx] = { ...enf, valor: v };
+                      updateSesion({ enfoquesTransversales: updated });
+                    }}
+                    className="text-xs text-slate-500 dark:text-slate-400 italic mb-2"
+                  />
                   <InlineEdit
                     value={enf.actitudesObservables}
                     onSave={(v) => {
@@ -645,7 +650,17 @@ function Step3FreeResult({ pagina, setPagina }: Props) {
                         className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300"
                       >
                         <Check className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                        {item}
+                        <InlineEdit
+                          value={item}
+                          onSave={(v) => {
+                            const items = [...sesion.preparacion.quehacerAntes];
+                            items[idx] = v;
+                            updateSesion({
+                              preparacion: { ...sesion.preparacion, quehacerAntes: items },
+                            });
+                          }}
+                          className="flex-1"
+                        />
                       </li>
                     ))}
                   </ul>
@@ -663,7 +678,17 @@ function Step3FreeResult({ pagina, setPagina }: Props) {
                         className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300"
                       >
                         <BookOpen className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                        {item}
+                        <InlineEdit
+                          value={item}
+                          onSave={(v) => {
+                            const items = [...sesion.preparacion.recursosMateriales];
+                            items[idx] = v;
+                            updateSesion({
+                              preparacion: { ...sesion.preparacion, recursosMateriales: items },
+                            });
+                          }}
+                          className="flex-1"
+                        />
                       </li>
                     ))}
                   </ul>
@@ -674,7 +699,7 @@ function Step3FreeResult({ pagina, setPagina }: Props) {
         </div>
 
         {/* ─── Botones de navegación ─── */}
-        <div className="flex justify-between items-center mt-12 mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-12 mb-8">
           <Button
             onClick={() => setPagina(pagina - 1)}
             variant="outline"
@@ -683,13 +708,18 @@ function Step3FreeResult({ pagina, setPagina }: Props) {
             <ArrowLeft className="mr-2 h-5 w-5" />
             Anterior
           </Button>
-          <Button
-            onClick={handleGenerarPDF}
-            className="h-14 px-10 text-lg font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
-          >
-            <FileText className="mr-2 h-5 w-5" />
-            Generar PDF
-          </Button>
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              onClick={handleGenerarPDF}
+              className="h-14 px-10 text-lg font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
+            >
+              <FileText className="mr-2 h-5 w-5" />
+              Generar PDF y Guardar
+            </Button>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Se guardará tu sesión y verás la vista previa del PDF
+            </p>
+          </div>
         </div>
       </div>
     </div>

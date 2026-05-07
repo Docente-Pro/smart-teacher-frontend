@@ -71,6 +71,49 @@ function getEstadoPagoBadge(estado?: string) {
   };
 }
 
+function getSesionesSemanalesReales(unidad?: IUnidadListItem | null): string | null {
+  if (!unidad) return null;
+
+  const planAreas = Array.isArray((unidad as any)?.contenido?.planificacionAreas)
+    ? ((unidad as any).contenido.planificacionAreas as Array<any>)
+    : [];
+  const duracion = Number(unidad.duracion || 0);
+
+  if (planAreas.length > 0) {
+    const maxSemanas = Math.max(
+      0,
+      ...planAreas.map((a) => (Array.isArray(a?.sesionesPorSemana) ? a.sesionesPorSemana.length : 0))
+    );
+
+    // Si hay distribución semanal explícita, usarla como fuente de verdad.
+    if (maxSemanas > 0) {
+      const porSemana: number[] = [];
+      for (let i = 0; i < maxSemanas; i++) {
+        const totalSemana = planAreas.reduce(
+          (acc, a) => acc + Number(Array.isArray(a?.sesionesPorSemana) ? a.sesionesPorSemana[i] ?? 0 : 0),
+          0
+        );
+        if (totalSemana > 0) porSemana.push(totalSemana);
+      }
+
+      if (porSemana.length > 0) {
+        const min = Math.min(...porSemana);
+        const max = Math.max(...porSemana);
+        return min === max ? String(min) : `${min}-${max}`;
+      }
+    }
+
+    const totalSesionesUnidad = planAreas.reduce((acc, a) => acc + Number(a?.totalSesionesUnidad ?? 0), 0);
+    if (totalSesionesUnidad > 0 && duracion > 0) {
+      const promedio = totalSesionesUnidad / duracion;
+      return Number.isInteger(promedio) ? String(promedio) : promedio.toFixed(1);
+    }
+  }
+
+  const fallback = Number(unidad.sesionesSemanales || 0);
+  return fallback > 0 ? String(fallback) : null;
+}
+
 // ─── Component ───
 
 function UnidadDetail() {
@@ -91,6 +134,7 @@ function UnidadDetail() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
 
   // ─── Cargar unidad y PDF ───
   useEffect(() => {
@@ -230,6 +274,36 @@ function UnidadDetail() {
     }
   };
 
+  const handleGenerateWord = async () => {
+    if (!id) return;
+    if (!unidad?.pdfUrl) {
+      handleToaster("Primero se debe generar el PDF de la unidad", "info");
+      return;
+    }
+    setIsGeneratingWord(true);
+    try {
+      const { generarWordDesdeUnidad } = await import("@/services/pdfToWord.service");
+      const wordUrl = await generarWordDesdeUnidad(id);
+      setUnidad((prev) => prev ? { ...prev, wordUrl } : prev);
+      handleToaster("Word generado correctamente", "success");
+    } catch (err: any) {
+      handleToaster(err?.message || "Error al generar Word", "error");
+    } finally {
+      setIsGeneratingWord(false);
+    }
+  };
+
+  const handleVerWord = async () => {
+    if (!id) return;
+    try {
+      const { obtenerDownloadUrlWordUnidad } = await import("@/services/pdfToWord.service");
+      const url = await obtenerDownloadUrlWordUnidad(id);
+      window.open(url, "_blank");
+    } catch {
+      handleToaster("Error al obtener el Word", "error");
+    }
+  };
+
   const toggleFullscreen = () => setIsFullscreen((v) => !v);
 
   // ─── Fullscreen PDF overlay ───
@@ -325,6 +399,7 @@ function UnidadDetail() {
   const miembroPago = unidad?.miembros?.find((m) => m.usuarioId === authUser?.id);
   const estadoPagoResuelto = miembroPago?.estadoPago ?? unidad?.estadoPago;
   const estadoBadge = getEstadoPagoBadge(estadoPagoResuelto);
+  const sesionesSemanalesReales = getSesionesSemanalesReales(unidad);
   const periodo =
     unidad?.fechaInicio && unidad?.fechaFin
       ? `${formatFechaCorta(unidad.fechaInicio)} — ${formatFechaCorta(unidad.fechaFin)}`
@@ -376,6 +451,37 @@ function UnidadDetail() {
                 <Download className="h-4 w-4 mr-2" />
                 Descargar
               </Button>
+              {unidad?.wordUrl ? (
+                <Button
+                  onClick={handleVerWord}
+                  variant="outline"
+                  size="sm"
+                  className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950 transition-all"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Ver Word
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleGenerateWord}
+                  disabled={isGeneratingWord || !unidad?.pdfUrl}
+                  variant="outline"
+                  size="sm"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950 transition-all"
+                >
+                  {isGeneratingWord ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generar Word
+                    </>
+                  )}
+                </Button>
+              )}
               {id && (
                 <Button
                   size="sm"
@@ -387,7 +493,6 @@ function UnidadDetail() {
                   Editar
                 </Button>
               )}
-
             </div>
           )}
         </div>
@@ -550,7 +655,7 @@ function UnidadDetail() {
                       )}
 
                       {/* Sesiones semanales */}
-                      {unidad.sesionesSemanales > 0 && (
+                      {sesionesSemanalesReales && (
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center">
                             <BookOpen className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
@@ -560,7 +665,7 @@ function UnidadDetail() {
                               Sesiones semanales
                             </p>
                             <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">
-                              {unidad.sesionesSemanales}
+                              {sesionesSemanalesReales}
                             </p>
                           </div>
                         </div>
@@ -770,7 +875,11 @@ function UnidadDetail() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/crear-unidad")}
+                  onClick={() =>
+                    navigate("/crear-unidad", {
+                      state: { iniciarNuevaUnidad: true },
+                    })
+                  }
                   className="mt-2 border-slate-200 dark:border-slate-700"
                 >
                   Crear nueva unidad

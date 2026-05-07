@@ -1,5 +1,9 @@
 import React from 'react';
 import type { GraficoTablaObservacion } from '../../../domain/types/graficos-areas.types';
+import {
+  normalizarEtiquetaGrafico,
+  normalizarTipoColumnaObservacion,
+} from '@/utils/normalizarEtiquetaGrafico';
 
 interface Props {
   data: GraficoTablaObservacion;
@@ -30,7 +34,7 @@ export const TablaObservacion: React.FC<Props> = ({ data }) => {
                   className="px-4 py-2.5 text-left border-r border-teal-600 last:border-r-0"
                   style={{ backgroundColor: '#0f766e', color: '#ffffff', fontWeight: 700 }}
                 >
-                  {col.nombre}
+                  {normalizarEtiquetaGrafico(col)}
                   {unidades[idx] && (
                     <span className="ml-1 text-xs font-medium" style={{ color: '#ccfbf1' }}>
                       ({unidades[idx]})
@@ -57,7 +61,11 @@ export const TablaObservacion: React.FC<Props> = ({ data }) => {
                       cIdx === 0
                         ? 'font-semibold text-gray-900 bg-teal-50'
                         : 'text-gray-700'
-                    } ${columnas[cIdx]?.tipo === 'numero' ? 'text-right font-mono' : ''}`}
+                    } ${
+                      normalizarTipoColumnaObservacion(columnas[cIdx]) === 'numero'
+                        ? 'text-right font-mono'
+                        : ''
+                    }`}
                   >
                     {celda || '—'}
                   </td>

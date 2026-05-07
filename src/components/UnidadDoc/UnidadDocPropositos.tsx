@@ -1,5 +1,5 @@
-import type { IPropositos, IAreaComplementaria } from "@/interfaces/IUnidadIA";
-import React, { Fragment } from "react";
+import type { IPropositos, IAreaComplementaria, ICompetenciaProposito } from "@/interfaces/IUnidadIA";
+import { Fragment } from "react";
 import { getAreaColor } from "@/constants/areaColors";
 import { parseMarkdown } from "@/utils/parseMarkdown";
 
@@ -23,13 +23,88 @@ function VerticalText({ text }: { text: string }) {
   );
 }
 
+function normalizarTexto(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function getActividadCriteriosAgrupados(comp: ICompetenciaProposito) {
+  const actividades = comp.actividades ?? [];
+  const actividadCriterios = comp.actividadCriterios ?? [];
+  const usados = new Set<number>();
+
+  const grupos = actividades.map((actividad, idx) => {
+    const porNombreIdx = actividadCriterios.findIndex(
+      (ac, acIdx) => !usados.has(acIdx) && normalizarTexto(ac.actividad) === normalizarTexto(actividad)
+    );
+    const mapeadoIdx = porNombreIdx >= 0 ? porNombreIdx : idx;
+    const mapeado = actividadCriterios[mapeadoIdx];
+    if (mapeado) usados.add(mapeadoIdx);
+
+    return {
+      actividad,
+      criterios: mapeado?.criterios ?? [],
+    };
+  });
+
+  if (grupos.length === 0 && actividadCriterios.length > 0) {
+    return actividadCriterios.map((ac) => ({
+      actividad: ac.actividad,
+      criterios: ac.criterios ?? [],
+    }));
+  }
+
+  return grupos;
+}
+
+/**
+ * Builds activity-criteria groups for a competency, with fallback distribution
+ * when the backend doesn't provide explicit actividadCriterios pairing.
+ */
+function getGruposConFallback(comp: ICompetenciaProposito): Array<{ actividad: string; criterios: string[] }> {
+  const rawGrupos = getActividadCriteriosAgrupados(comp);
+
+  if (rawGrupos.length > 0 && rawGrupos.some((g) => (g.criterios?.length ?? 0) > 0)) {
+    return rawGrupos;
+  }
+
+  if (rawGrupos.length > 0 && comp.criterios?.length > 0) {
+    const criterios = comp.criterios;
+    const n = rawGrupos.length;
+    const perGroup = Math.ceil(criterios.length / n);
+    return rawGrupos.map((g, idx) => ({
+      actividad: g.actividad,
+      criterios: criterios.slice(idx * perGroup, (idx + 1) * perGroup),
+    }));
+  }
+
+  if (rawGrupos.length === 0 && comp.actividades?.length > 0 && comp.criterios?.length > 0) {
+    const n = comp.actividades.length;
+    const perGroup = Math.ceil(comp.criterios.length / n);
+    return comp.actividades.map((act, idx) => ({
+      actividad: act,
+      criterios: comp.criterios.slice(idx * perGroup, (idx + 1) * perGroup),
+    }));
+  }
+
+  if (rawGrupos.length > 0) return rawGrupos;
+
+  if (comp.criterios?.length > 0) {
+    return [{ actividad: "", criterios: comp.criterios }];
+  }
+  if (comp.actividades?.length > 0) {
+    return comp.actividades.map((act) => ({ actividad: act, criterios: [] }));
+  }
+  return [{ actividad: "", criterios: [] }];
+}
+
 /**
  * II. PROPÓSITO DE APRENDIZAJE
  *
  * Gran tabla con columnas: AREA, COMPETENCIAS Y CAPACIDADES, ESTÁNDAR DE APRENDIZAJE,
  * CRITERIOS, ACTIVIDADES, INSTRUMENTOS.
  *
- * Incluye también Competencias Transversales y Áreas Complementarias.
+ * Each activity-criteria group gets its own <tr> so criteria and activities
+ * are aligned at the same vertical level. rowSpan is used for the other columns.
  */
 export function UnidadDocPropositos({ propositos, areasComplementarias }: Props) {
   if (!propositos) return null;
@@ -41,106 +116,177 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
       </h3>
 
       {/* ─── Tabla principal por áreas ─── */}
-      <table>
+      <table style={{ tableLayout: "fixed", width: "100%" }}>
+        <colgroup>
+          <col style={{ width: "4%" }} />
+          <col style={{ width: "16%" }} />
+          <col style={{ width: "28%" }} />
+          <col style={{ width: "18%" }} />
+          <col style={{ width: "20%" }} />
+          <col style={{ width: "14%" }} />
+        </colgroup>
         <thead>
           <tr>
-            <th style={{ width: "6%", textAlign: "center" }}>ÁREA</th>
-            <th style={{ width: "16%", textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
-            <th style={{ width: "28%", textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
-            <th style={{ width: "18%", textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
-            <th style={{ width: "18%", textAlign: "center" }}>ACTIVIDADES</th>
-            <th style={{ width: "14%", textAlign: "center" }}>INSTRUMENTOS</th>
+            <th style={{ textAlign: "center" }}>ÁREA</th>
+            <th style={{ textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
+            <th style={{ textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
+            <th style={{ textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
+            <th style={{ textAlign: "center" }}>ACTIVIDADES</th>
+            <th style={{ textAlign: "center" }}>INSTRUMENTOS</th>
           </tr>
         </thead>
-        <tbody>
-          {propositos.areasPropositos.map((areaProp, aIdx) => {
-            const totalCompetencias = areaProp.competencias.length;
-            const areaHex = getAreaColor(areaProp.area).hex;
+        {(propositos.areasPropositos ?? []).map((areaProp, aIdx) => {
+          const areaHex = getAreaColor(areaProp.area).hex;
 
-            return areaProp.competencias.map((comp, cIdx) => {
-              const isFirst = cIdx === 0;
-              const isLast = cIdx === totalCompetencias - 1;
+          const compData = (areaProp.competencias ?? []).map((comp) => ({
+            comp,
+            grupos: getGruposConFallback(comp),
+          }));
 
-              // Bordes de la celda del área: ocultar top/bottom intermedios
-              const areaCellBorder: React.CSSProperties = {
-                borderTop: isFirst ? "1px solid #000" : "none",
-                borderBottom: isLast ? "1px solid #000" : "none",
-                borderLeft: "1px solid #000",
-                borderRight: "1px solid #000",
-              };
+          if (compData.length === 0) {
+            return (
+              <tbody key={`${aIdx}-empty`}>
+                <tr>
+                  <td
+                    style={{
+                      textAlign: "center",
+                      verticalAlign: "middle",
+                      fontWeight: "bold",
+                      fontSize: "7pt",
+                      padding: "0.15rem 0.05rem",
+                      backgroundColor: areaHex.light,
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    <VerticalText text={areaProp.area.toUpperCase()} />
+                  </td>
+                  <td colSpan={5} style={{ fontSize: "8pt", color: "#888", fontStyle: "italic" }}>
+                    Sin competencias generadas
+                  </td>
+                </tr>
+              </tbody>
+            );
+          }
 
-              return (
-              <tr key={`${aIdx}-${cIdx}`}>
-                {/* Celda de AREA — en cada fila, texto solo en la primera */}
-                <td
-                  style={{
-                    textAlign: "center",
-                    verticalAlign: "middle",
-                    width: "24px",
-                    maxWidth: "24px",
-                    fontWeight: "bold",
-                    fontSize: "7pt",
-                    padding: "0.15rem 0.05rem",
-                    backgroundColor: areaHex.light,
-                    lineHeight: 1.1,
-                    letterSpacing: "0px",
-                    ...areaCellBorder,
-                  }}
-                >
-                  {isFirst && <VerticalText text={areaProp.area.toUpperCase()} />}
-                </td>
+          const areaBg = areaHex.light;
+          let isFirstAreaRow = true;
 
-                {/* Competencia + Capacidades */}
-                <td style={{ fontSize: "8pt" }}>
-                  <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
-                    {comp.nombre}
-                  </p>
-                  {comp.capacidades.map((cap, i) => (
-                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
-                      • {cap}
-                    </p>
-                  ))}
-                </td>
+          return (
+            <tbody
+              key={aIdx}
+              style={{ pageBreakInside: "avoid", breakInside: "avoid" } as React.CSSProperties}
+            >
+              {compData.flatMap(({ comp, grupos }, cIdx) => {
+                let isFirstCompRow = true;
 
-                {/* Estándar */}
-                <td style={{ fontSize: "8pt" }}>{comp.estandar}</td>
+                return grupos.map((grupo, gIdx) => {
+                  const showAreaName = isFirstAreaRow;
+                  const showCompContent = isFirstCompRow;
+                  if (isFirstAreaRow) isFirstAreaRow = false;
+                  if (isFirstCompRow) isFirstCompRow = false;
 
-                {/* Criterios */}
-                <td style={{ fontSize: "8pt" }}>
-                  {comp.criterios.map((crit, i) => (
-                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
-                      <span style={{ flexShrink: 0 }}>•</span>
-                      <span>{parseMarkdown(crit)}</span>
-                    </p>
-                  ))}
-                </td>
+                  return (
+                    <tr key={`${aIdx}-${cIdx}-${gIdx}`}>
+                      {/* AREA — every row has this cell; only the first shows the name */}
+                      <td
+                        style={{
+                          textAlign: "center",
+                          verticalAlign: "middle",
+                          fontWeight: "bold",
+                          fontSize: "7pt",
+                          padding: "0.15rem 0.05rem",
+                          backgroundColor: areaBg,
+                          lineHeight: 1.1,
+                          ...(!showAreaName ? { borderTop: "hidden" } : {}),
+                        } as React.CSSProperties}
+                      >
+                        {showAreaName && <VerticalText text={areaProp.area.toUpperCase()} />}
+                      </td>
 
-                {/* Actividades */}
-                <td style={{ fontSize: "8pt" }}>
-                  {comp.actividades.map((act, i) => (
-                    <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem", display: "flex", gap: "0.2rem" }}>
-                      <span style={{ flexShrink: 0 }}>•</span>
-                      <span>{parseMarkdown(act)}</span>
-                    </p>
-                  ))}
-                </td>
+                      {/* COMPETENCIA + CAPACIDADES — first grupo shows content */}
+                      <td
+                        style={{
+                          fontSize: "8pt",
+                          verticalAlign: "top",
+                          ...(!showCompContent ? { borderTop: "hidden" } : {}),
+                        } as React.CSSProperties}
+                      >
+                        {showCompContent && (
+                          <>
+                            <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
+                              {comp.nombre}
+                            </p>
+                            {(comp.capacidades ?? []).map((cap, i) => (
+                              <p key={i} style={{ fontSize: "8pt", marginBottom: "0.1rem" }}>
+                                • {cap}
+                              </p>
+                            ))}
+                          </>
+                        )}
+                      </td>
 
-                {/* Instrumento */}
-                <td style={{ fontSize: "8pt", verticalAlign: "middle", textAlign: "center" }}>
-                  {comp.instrumento}
-                </td>
-              </tr>
-              );
-            });
-          })}
+                      {/* ESTÁNDAR — first grupo shows content */}
+                      <td
+                        style={{
+                          fontSize: "8pt",
+                          verticalAlign: "top",
+                          ...(!showCompContent ? { borderTop: "hidden" } : {}),
+                        } as React.CSSProperties}
+                      >
+                        {showCompContent && comp.estandar}
+                      </td>
 
-          {/* ─── Competencias Transversales ─── (se renderizan en tabla aparte) */}
-        </tbody>
+                      {/* CRITERIOS */}
+                      <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
+                        {(grupo.criterios ?? []).map((crit, j) => (
+                          <p
+                            key={j}
+                            style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}
+                          >
+                            <span style={{ flexShrink: 0 }}>•</span>
+                            <span>{parseMarkdown(crit)}</span>
+                          </p>
+                        ))}
+                      </td>
+
+                      {/* ACTIVIDAD */}
+                      <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
+                        {grupo.actividad && (
+                          <p style={{ fontSize: "8pt", marginBottom: "0.1rem", display: "flex", gap: "0.2rem" }}>
+                            <span style={{ flexShrink: 0 }}>•</span>
+                            <span>{parseMarkdown(grupo.actividad)}</span>
+                          </p>
+                        )}
+                      </td>
+
+                      {/* INSTRUMENTO — first grupo shows content */}
+                      <td
+                        style={{
+                          fontSize: "8pt",
+                          verticalAlign: "middle",
+                          textAlign: "center",
+                          ...(!showCompContent ? { borderTop: "hidden" } : {}),
+                        } as React.CSSProperties}
+                      >
+                        {showCompContent && comp.instrumento}
+                      </td>
+                    </tr>
+                  );
+                });
+              })}
+            </tbody>
+          );
+        })}
       </table>
 
       {/* ─── Competencias Transversales (tabla separada) ─── */}
-      {propositos.competenciasTransversales.length > 0 && (
-        <table style={{ marginTop: "0.3rem" }}>
+      {(propositos.competenciasTransversales?.length ?? 0) > 0 && (
+        <table style={{ tableLayout: "fixed", width: "100%", marginTop: "0.3rem" }}>
+          <colgroup>
+            <col style={{ width: "28%" }} />
+            <col style={{ width: "36%" }} />
+            <col style={{ width: "36%" }} />
+          </colgroup>
           <thead>
             <tr>
               <th
@@ -157,19 +303,19 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
               </th>
             </tr>
             <tr>
-              <th style={{ width: "28%", textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
-              <th style={{ width: "36%", textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
-              <th style={{ width: "36%", textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
+              <th style={{ textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
+              <th style={{ textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
+              <th style={{ textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
             </tr>
           </thead>
           <tbody>
-            {propositos.competenciasTransversales.map((ct, i) => (
+            {(propositos.competenciasTransversales ?? []).map((ct, i) => (
               <tr key={`trans-${i}`}>
                 <td style={{ fontSize: "8pt" }}>
                   <p style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "0.15rem" }}>
                     {ct.nombre}
                   </p>
-                  {ct.capacidades.map((cap, j) => (
+                  {(ct.capacidades ?? []).map((cap, j) => (
                     <p key={j} style={{ fontSize: "8pt", marginBottom: "0.05rem" }}>
                       • {cap}
                     </p>
@@ -177,7 +323,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                 </td>
                 <td style={{ fontSize: "8pt" }}>{ct.estandar || ""}</td>
                 <td style={{ fontSize: "8pt" }}>
-                  {ct.criterios.map((crit, j) => (
+                  {(ct.criterios ?? []).map((crit, j) => (
                     <p key={j} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
                       <span style={{ flexShrink: 0 }}>•</span>
                       <span>{crit}</span>
@@ -196,13 +342,19 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
           <h3 className="section-subtitle" style={{ marginTop: "0.3rem" }}>
             ÁREA COMPLEMENTARIA
           </h3>
-          <table>
+          <table style={{ tableLayout: "fixed", width: "100%" }}>
+            <colgroup>
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "25%" }} />
+              <col style={{ width: "15%" }} />
+              <col style={{ width: "40%" }} />
+            </colgroup>
             <thead>
               <tr>
-                <th style={{ width: "20%", textAlign: "center" }}>ÁREA COMPLEMENTARIA</th>
-                <th style={{ width: "25%", textAlign: "center" }}>COMPETENCIA RELACIONADA</th>
-                <th style={{ width: "15%", textAlign: "center" }}>DIMENSIÓN</th>
-                <th style={{ width: "40%", textAlign: "center" }}>ACTIVIDADES</th>
+                <th style={{ textAlign: "center" }}>ÁREA COMPLEMENTARIA</th>
+                <th style={{ textAlign: "center" }}>COMPETENCIA RELACIONADA</th>
+                <th style={{ textAlign: "center" }}>DIMENSIÓN</th>
+                <th style={{ textAlign: "center" }}>ACTIVIDADES</th>
               </tr>
             </thead>
             <tbody>
@@ -216,7 +368,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                     <p style={{ fontSize: "8pt" }}>• {ac.dimension}</p>
                   </td>
                   <td style={{ fontSize: "8pt" }}>
-                    {ac.actividades.map((act, j) => (
+                    {(ac.actividades ?? []).map((act, j) => (
                       <p key={j} style={{ fontSize: "8pt", marginBottom: "0.12rem", display: "flex", gap: "0.2rem" }}>
                         <span style={{ flexShrink: 0 }}>•</span>
                         <span>{parseMarkdown(act)}</span>

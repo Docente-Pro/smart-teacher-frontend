@@ -452,6 +452,33 @@ export async function arreglarHorario(
 }
 
 // ============================================
+// Finalizar unidad (docente propietario)
+// POST /api/unidades/:id/finalizar
+// ============================================
+
+export interface IFinalizarUnidadResponse {
+  success: boolean;
+  message: string;
+  data?: Record<string, unknown>;
+}
+
+/**
+ * Marca la unidad como finalizada (pone fechaFin = ahora).
+ * Solo puede hacerlo el propietario (PERSONAL) o quien tenga rol PROPIETARIO en UnidadMiembro (COMPARTIDA).
+ * No se requiere estadoPago = CONFIRMADO.
+ * POST /api/unidades/:id/finalizar
+ */
+export async function finalizarUnidad(
+  unidadId: string,
+): Promise<IFinalizarUnidadResponse> {
+  const { data } = await instance.post<IFinalizarUnidadResponse>(
+    `/unidades/${unidadId}/finalizar`,
+    {},
+  );
+  return data;
+}
+
+// ============================================
 // Editar contenido de unidad
 // PATCH /api/unidades/:id/contenido
 // ============================================
@@ -487,15 +514,20 @@ export async function editarContenidoUnidad(
 // ============================================
 
 export interface IPatchPropositosActividadesRequest {
+  /** Opcional para unidades secundarias multigrado */
+  gradoId?: number;
   area: string;
   competencia: string;
   actividades: string[];
+  /** Actividades nuevas (manual) para las que el backend genera criterios por IA en esta petición */
+  nuevasActividades?: string[];
 }
 
 export interface IPatchPropositosActividadesResponse {
   success: boolean;
   message?: string;
-  data?: Record<string, unknown>;
+  data?: IUnidad;
+  criteriosGeneradosParaActividades?: number;
 }
 
 /** Normaliza nombre de área (quita prefijo "Área de") para coincidir con el backend */
@@ -508,16 +540,62 @@ export function normalizarNombreArea(nombre: string): string {
  * El backend busca area y competencia (con normalización) y reemplaza solo actividades.
  * PATCH /api/unidades/:id/propositos/actividades
  */
+const PATCH_PROPOSITOS_IA_TIMEOUT_MS = 180_000;
+
 export async function patchPropositosActividades(
   unidadId: string,
   body: IPatchPropositosActividadesRequest,
+  options?: { timeout?: number }
 ): Promise<IPatchPropositosActividadesResponse> {
+  const hasNuevas = (body.nuevasActividades?.length ?? 0) > 0;
+  const timeout =
+    options?.timeout ?? (hasNuevas ? PATCH_PROPOSITOS_IA_TIMEOUT_MS : undefined);
+
   const { data } = await instance.patch<IPatchPropositosActividadesResponse>(
     `/unidades/${unidadId}/propositos/actividades`,
     {
       ...body,
       area: normalizarNombreArea(body.area),
     },
+    timeout != null ? { timeout } : undefined
+  );
+  return data;
+}
+
+// ============================================
+// POST /api/unidades/campo-tematico-secundaria
+// ============================================
+
+export interface ICampoTematicoSecundariaRequest {
+  unidadId?: string;
+  unidad?: Record<string, unknown>;
+  forzarRegeneracion?: boolean;
+}
+
+export interface ICampoTematicoSecundariaItem {
+  grado: string;
+  area: string;
+  competencia: string;
+  campoTematico: string;
+  fuente?: string;
+}
+
+export interface ICampoTematicoSecundariaResponse {
+  success: boolean;
+  totalCompetencias?: number;
+  totalCamposTematicosGenerados?: number;
+  camposTematicos?: ICampoTematicoSecundariaItem[];
+  observaciones?: string[];
+  guardadoEnBD?: boolean;
+  unidad?: IUnidad;
+}
+
+export async function generarCampoTematicoSecundaria(
+  body: ICampoTematicoSecundariaRequest
+): Promise<ICampoTematicoSecundariaResponse> {
+  const { data } = await instance.post<ICampoTematicoSecundariaResponse>(
+    "/unidades/campo-tematico-secundaria",
+    body
   );
   return data;
 }

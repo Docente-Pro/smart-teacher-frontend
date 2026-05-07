@@ -295,7 +295,7 @@ function FichaAplicacionResult() {
           />
           <SummaryCard
             label="Secciones"
-            value={`${ficha.secciones.length} bloques`}
+            value={`${ficha.secciones?.length ?? 0} bloques`}
             icon="📋"
           />
           <SummaryCard
@@ -305,7 +305,7 @@ function FichaAplicacionResult() {
           />
           <SummaryCard
             label="Dificultad"
-            value={ficha.secciones.length > 6 ? "Media-Alta" : "Media"}
+            value={(ficha.secciones?.length ?? 0) > 6 ? "Media-Alta" : "Media"}
             icon="📊"
           />
         </div>

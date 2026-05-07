@@ -6,10 +6,13 @@ import type {
   ISituacionSignificativaResponse,
   IEvidenciasResponse,
   IPropositosResponse,
+  IPropositosPorGradoItem,
   IAreasComplementariasResponse,
   IEnfoquesResponse,
   ISecuenciaResponse,
+  IFormatoSecundariaResponse,
   IMaterialesResponse,
+  IMaterialesPorGradoItem,
   IReflexionesResponse,
 } from "@/interfaces/IUnidadIA";
 import type { HorarioEscolar } from "@/interfaces/IHorario";
@@ -59,10 +62,52 @@ export async function generarEvidencias(
 /** Paso 3 — Propósitos de Aprendizaje (requiere pasos 1, 2) */
 export async function generarPropositos(
   unidadId: string,
-  contenidoEditado?: ContenidoEditadoBody
+  contenidoEditado?: ContenidoEditadoBody,
+  horario?: HorarioEscolar | null,
 ): Promise<IPasoUnidadResponse<IPropositosResponse>> {
-  const body = contenidoEditado && Object.keys(contenidoEditado).length > 0 ? { contenidoEditado } : undefined;
-  const { data } = await instance.post(`${BASE}/${unidadId}/propositos`, body);
+  const body: Record<string, unknown> = {};
+  if (contenidoEditado && Object.keys(contenidoEditado).length > 0) body.contenidoEditado = contenidoEditado;
+  if (horario?.dias?.length) body.horario = horario;
+  const { data } = await instance.post(`${BASE}/${unidadId}/propositos`, Object.keys(body).length ? body : undefined);
+  return data;
+}
+
+export interface IGenerarPropositosMultigradoBody {
+  gradoIds: number[];
+  competenciasDocenteSecundaria?: Array<{
+    area: string;
+    nombre: string;
+    campoTematico?: string;
+  }>;
+  maxCompetenciasPorAreaSecundaria?: number;
+  /** Total de sesiones de la unidad. El backend calcula actividadesPorCompetencia si no se envía explícitamente. */
+  totalSesionesUnidad?: number;
+  contenidoEditado?: ContenidoEditadoBody;
+}
+
+export interface IPropositosMultigradoResponse {
+  success: boolean;
+  paso: number;
+  message: string;
+  grados?: Array<{
+    gradoId: number;
+    grado: string;
+    totalAreas?: number;
+    totalCompetencias?: number;
+  }>;
+  data?: IPropositosPorGradoItem[];
+  unidad?: Record<string, unknown>;
+}
+
+/** Paso 3 (Secundaria) — Propósitos por grado */
+export async function generarPropositosMultigrado(
+  unidadId: string,
+  body: IGenerarPropositosMultigradoBody
+): Promise<IPropositosMultigradoResponse> {
+  const { data } = await instance.post<IPropositosMultigradoResponse>(
+    `${BASE}/${unidadId}/propositos-multigrado`,
+    body
+  );
   return data;
 }
 
@@ -86,17 +131,9 @@ export async function generarEnfoques(
   return data;
 }
 
-/** Mapea HorarioEscolar (dias[].horas[]) al formato del contrato: dias[].turnoManana/turnoTarde */
-function horarioToSecuenciaBody(horario: HorarioEscolar): { horario: { dias: Array<{ dia: string; turnoManana: { area: string }; turnoTarde: { area: string } }> } } {
-  return {
-    horario: {
-      dias: horario.dias.map((d) => ({
-        dia: d.dia,
-        turnoManana: { area: d.horas[0]?.area ?? "" },
-        turnoTarde: { area: d.horas[1]?.area ?? "" },
-      })),
-    },
-  };
+/** Mapea HorarioEscolar (dias[].horas[]) al formato completo para el backend */
+function horarioToSecuenciaBody(horario: HorarioEscolar): { horario: HorarioEscolar } {
+  return { horario };
 }
 
 /** Paso 6 — Secuencia de Actividades (requiere pasos 1, 2, 3, 5)
@@ -112,6 +149,39 @@ export async function generarSecuencia(
   if (horario?.dias?.length) Object.assign(body, horarioToSecuenciaBody(horario));
   if (contenidoEditado && Object.keys(contenidoEditado).length > 0) body.contenidoEditado = contenidoEditado;
   const { data } = await instance.post(`${BASE}/${unidadId}/secuencia`, Object.keys(body).length ? body : undefined);
+  return data;
+}
+
+/**
+ * Paso 5 (Secundaria Multigrado) — Formato Secundaria
+ * POST /api/ia-unidad/:unidadId/formato-secundaria
+ * Body vacío — el backend construye el payload desde contenido (propositosPorGrado, enfoques, etc.)
+ */
+export async function generarFormatoSecundaria(
+  unidadId: string
+): Promise<IFormatoSecundariaResponse> {
+  const { data } = await instance.post<IFormatoSecundariaResponse>(
+    `${BASE}/${unidadId}/formato-secundaria`,
+    {}
+  );
+  return data;
+}
+
+/** Paso 7 (Secundaria Multigrado) — Materiales por grado */
+export interface IMaterialesMultigradoResponse {
+  success: boolean;
+  paso: number;
+  message: string;
+  data: IMaterialesPorGradoItem[];
+  unidad: Record<string, unknown>;
+}
+
+export async function generarMaterialesMultigrado(
+  unidadId: string
+): Promise<IMaterialesMultigradoResponse> {
+  const { data } = await instance.post<IMaterialesMultigradoResponse>(
+    `${BASE}/${unidadId}/materiales-multigrado`
+  );
   return data;
 }
 
@@ -215,9 +285,17 @@ export async function generarImagenSituacion(
 /**
  * POST /api/ia-unidad/:unidadId/generar-completa
  * Ejecuta los 8 pasos de forma secuencial en el backend.
+ * Acepta horario y contenidoEditado opcionales (contrato §7).
  */
-export async function generarUnidadCompleta(unidadId: string): Promise<IPasoUnidadResponse> {
-  const { data } = await instance.post(`${BASE}/${unidadId}/generar-completa`);
+export async function generarUnidadCompleta(
+  unidadId: string,
+  horario?: HorarioEscolar | null,
+  contenidoEditado?: ContenidoEditadoBody
+): Promise<IPasoUnidadResponse> {
+  const body: Record<string, unknown> = {};
+  if (horario?.dias?.length) Object.assign(body, horarioToSecuenciaBody(horario));
+  if (contenidoEditado && Object.keys(contenidoEditado).length > 0) body.contenidoEditado = contenidoEditado;
+  const { data } = await instance.post(`${BASE}/${unidadId}/generar-completa`, Object.keys(body).length ? body : undefined);
   return data;
 }
 
@@ -232,6 +310,19 @@ export async function regenerarPasoUnidad(
   paso: PasoUnidad
 ): Promise<IPasoUnidadResponse> {
   const { data } = await instance.post(`${BASE}/${unidadId}/regenerar/${paso}`);
+  return data;
+}
+
+/** Regenerar secuencia enviando horario + contenidoEditado (contrato §8.2: mismo body que generar). */
+export async function regenerarSecuencia(
+  unidadId: string,
+  horario?: HorarioEscolar | null,
+  contenidoEditado?: ContenidoEditadoBody
+): Promise<IPasoUnidadResponse<ISecuenciaResponse>> {
+  const body: Record<string, unknown> = {};
+  if (horario?.dias?.length) Object.assign(body, horarioToSecuenciaBody(horario));
+  if (contenidoEditado && Object.keys(contenidoEditado).length > 0) body.contenidoEditado = contenidoEditado;
+  const { data } = await instance.post(`${BASE}/${unidadId}/regenerar/secuencia`, Object.keys(body).length ? body : undefined);
   return data;
 }
 

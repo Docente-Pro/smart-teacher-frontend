@@ -10,6 +10,7 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [savedSesionId, setSavedSesionId] = useState<string | null>(null);
   const guardadoIniciado = useRef(false); // Evitar doble envío
   const { sesion } = useSesionStore();
   const { user } = useAuthStore();
@@ -43,13 +44,16 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
       const duracionNum = parseInt(duracionStr, 10) || 90;
 
       // PASO 0 — Crear la sesión en la BD
+      // Preferir gradoId de la sesión (seleccionado en Step1 para secundaria)
+      const gradoIdFinal = sesion.gradoId ?? usuario.gradoId ?? 1;
       const respuestaCrear = await crearSesion({
         titulo: sesion.titulo || "Sesión de aprendizaje",
         usuarioId,
         nivelId: usuario.nivelId ?? 1,
-        gradoId: usuario.gradoId ?? 1,
+        gradoId: gradoIdFinal,
         problematicaId: usuario.problematicaId ?? 1,
         duracion: duracionNum,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
       });
 
       // El backend puede devolver { id } o { data: { id } } o { success, data: { id } }
@@ -78,10 +82,12 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
         usuarioId,
         key: uploadData.key,
         contenido: sesion,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
       });
 
       const confirmData = (respuestaConfirm as any)?.data ?? respuestaConfirm;
 
+      setSavedSesionId(sesionId);
       setIsSaved(true);
       return confirmData;
     } catch (error) {
@@ -187,6 +193,7 @@ export function usePDFGeneration(documentRef: RefObject<HTMLDivElement>, area?: 
     isGenerating,
     isSaving,
     isSaved,
+    savedSesionId,
     handleDownloadPDF,
     handlePrint,
     guardarEnNube,

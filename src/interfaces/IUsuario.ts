@@ -71,6 +71,26 @@ export interface IUsuario {
     nombre: string;
     descripcion: string;
   };
+  primariaGrados?: Array<{
+    gradoId: number;
+    seccion?: string | null;
+  }> | null;
+  gradosAreas?: Array<{
+    gradoId: number;
+    areaId: number;
+    grado?: {
+      id?: number;
+      nombre?: string;
+      nivel?: {
+        nombre?: string;
+      };
+    };
+    area?: {
+      id?: number;
+      nombre?: string;
+    };
+  }>;
+  primariaAreaIds?: number[];
   tituloUnidadContexto?: string | null;
   situacionSignificativaContexto?: string | null;
   insigniaUrl?: string | null;
@@ -78,14 +98,15 @@ export interface IUsuario {
   sesiones?: ISesion[];
 }
 
-// Interface para crear sesión (ahora sin problematicaId en el body)
 export interface ISesionToCreate {
   titulo: string;
   usuarioId: string;
-  nivelId: number;      // Se puede pre-llenar del usuario
-  gradoId: number;      // Se puede pre-llenar del usuario
-  problematicaId: number; // Se puede pre-llenar del usuario
+  nivelId: number;
+  gradoId: number;
+  problematicaId: number;
   duracion: number;
   fechaInicio?: string;
   fechaFin?: string;
+  unidadId?: string;
+  areaId?: number;
 }

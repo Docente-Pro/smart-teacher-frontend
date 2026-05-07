@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import rough from 'roughjs';
-import { GraficoPictograma } from '../../domain/types';
+import { GraficoPictograma, type FilaPictograma } from '../../domain/types';
+
+function etiquetaFilaPictograma(fila: FilaPictograma): string {
+  return String(fila.nombre ?? fila.categoria ?? '');
+}
 import { roughColors, defaultRoughConfig, resolveColor } from '../hooks/useRoughSVG';
 import { estimateTextWidth, createSVGText } from '../utils/svgTextUtils';
 
@@ -13,13 +17,13 @@ export const Pictograma: React.FC<Props> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    if (!svgRef.current || elementos.length === 0) return;
+    if (!svgRef.current || !elementos?.length) return;
     const rc = rough.svg(svgRef.current);
     svgRef.current.innerHTML = '';
 
     const filaHeight = 50;
     // Margen izquierdo dinámico según la categoría más larga
-    const allCats = elementos.map(e => e.categoria);
+    const allCats = elementos.map(etiquetaFilaPictograma);
     const maxCatW = Math.max(...allCats.map(c => estimateTextWidth(c, 14)));
     const margenIzq = Math.max(120, maxCatW + 20);
     const margenTop = 30;
@@ -32,7 +36,7 @@ export const Pictograma: React.FC<Props> = ({ data }) => {
 
       // Etiqueta de categoría
       const labelEl = createSVGText({
-        x: margenIzq - 10, y: y + filaHeight / 2 + 5, text: fila.categoria,
+        x: margenIzq - 10, y: y + filaHeight / 2 + 5, text: etiquetaFilaPictograma(fila),
         fontSize: 14, fontWeight: '700', fill: '#1e293b',
         textAnchor: 'end', maxCharsPerLine: 20, lineHeight: 16,
       });
@@ -91,10 +95,19 @@ export const Pictograma: React.FC<Props> = ({ data }) => {
     }
   }, [data]);
 
-  const allCats = elementos.map(e => e.categoria);
+  if (!elementos?.length) {
+    return (
+      <div className="pictograma-container" style={{ padding: 16, background: '#fff', borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', margin: '16px 0', color: '#64748b', fontSize: 14 }}>
+        Sin datos para el pictograma.
+      </div>
+    );
+  }
+
+  const allCats = elementos.map(etiquetaFilaPictograma);
   const maxCatW = Math.max(...allCats.map(c => estimateTextWidth(c, 14)));
   const dynMargenIzq = Math.max(120, maxCatW + 20);
-  const width = dynMargenIzq + Math.max(...elementos.map(e => Math.ceil(e.cantidad / valorIcono))) * 38 + 80;
+  const maxIconosFila = Math.max(...elementos.map(e => Math.ceil(e.cantidad / valorIcono)), 1);
+  const width = dynMargenIzq + maxIconosFila * 38 + 80;
   const height = 30 + elementos.length * 50 + (mostrarLeyenda ? 40 : 10);
 
   return (

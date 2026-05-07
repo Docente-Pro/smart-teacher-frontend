@@ -65,6 +65,7 @@ function Step7({ pagina, setPagina }: Props) {
       const response = await instance.post("/ia/generar-recursos-materiales", {
         temaCurricular: getTemaCurricularPayload(sesion),
         area: sesion.datosGenerales.area,
+        ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
         grado: sesion.datosGenerales.grado || "5to",
         competencia: sesion.propositoAprendizaje.competencia,
         duracion: sesion.datosGenerales.duracion,

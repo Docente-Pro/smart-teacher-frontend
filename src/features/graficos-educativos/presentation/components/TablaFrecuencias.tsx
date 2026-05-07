@@ -46,6 +46,8 @@ const wrapText = (text: string, maxWidth: number, fontSize: number = 13): string
 export const TablaFrecuencias: React.FC<Props> = ({ data }) => {
   const { datos, mostrarConteo = true, mostrarRelativa = false, mostrarAcumulada = false, totalDatos } = data;
   const svgRef = useRef<SVGSVGElement>(null);
+  const isValidNumber = (value: unknown): value is number =>
+    typeof value === 'number' && Number.isFinite(value);
 
   useEffect(() => {
     if (!svgRef.current || datos.length === 0) return;
@@ -143,10 +145,15 @@ export const TablaFrecuencias: React.FC<Props> = ({ data }) => {
       };
 
       drawCellWithWrap(String(fila.dato), colIdx++, true);
-      if (mostrarConteo) drawCellWithWrap(fila.conteo || '|'.repeat(fila.frecuencia), colIdx++);
-      drawCellWithWrap(fila.frecuencia.toString(), colIdx++);
-      if (mostrarRelativa) drawCellWithWrap(fila.frecuenciaRelativa !== undefined ? fila.frecuenciaRelativa.toFixed(2) : '-', colIdx++);
-      if (mostrarAcumulada) drawCellWithWrap(fila.frecuenciaAcumulada !== undefined ? fila.frecuenciaAcumulada.toString() : '-', colIdx++);
+      const frecuenciaSafe = isValidNumber(fila.frecuencia) ? fila.frecuencia : 0;
+      if (mostrarConteo) drawCellWithWrap(fila.conteo || '|'.repeat(frecuenciaSafe), colIdx++);
+      drawCellWithWrap(frecuenciaSafe.toString(), colIdx++);
+      if (mostrarRelativa) {
+        drawCellWithWrap(isValidNumber(fila.frecuenciaRelativa) ? fila.frecuenciaRelativa.toFixed(2) : '-', colIdx++);
+      }
+      if (mostrarAcumulada) {
+        drawCellWithWrap(isValidNumber(fila.frecuenciaAcumulada) ? fila.frecuenciaAcumulada.toString() : '-', colIdx++);
+      }
       
       currentY += altoCelda;
     });
