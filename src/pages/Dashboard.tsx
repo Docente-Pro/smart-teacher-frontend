@@ -35,11 +35,12 @@ import WelcomeGuideModal, {
 import { usePermissions } from "@/hooks/usePermissions";
 import { clearUserStorage } from "@/utils/clearUserStorage";
 import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
-import { listarUnidadesByUsuario } from "@/services/unidad.service";
 import { getUsuarioById } from "@/services/usuarios.service";
 import { getInsigniaDataUrl } from "@/utils/insigniaCache";
 import { useUserStore } from "@/store/user.store";
 import { useQuery } from "@tanstack/react-query";
+import { useUserUnidades } from "@/hooks/useUserUnidades";
+import { isUnidadActiva } from "@/utils/unidadUtils";
 
 /**
  * Tries to load an image URL via img+canvas and cache as base64 in localStorage.
@@ -204,12 +205,7 @@ function Dashboard() {
     staleTime: 100 * 60 * 60 * 24 * 30, // 1 Mes
   });
 
-  const { data: userUnitsData, isLoading: isLoadingUserUnitsData } = useQuery({
-    queryKey: ["userUnits", user?.id],
-    queryFn: () => listarUnidadesByUsuario(user!.id!),
-    enabled: !!user,
-    staleTime: 100 * 60 * 60 * 24 * 30, // 1 Mes
-  });
+  const { data: userUnitsData, isLoading: isLoadingUserUnitsData } = useUserUnidades();
 
   useEffect(() => {
     if (!isLoadingUserData) {
@@ -318,11 +314,7 @@ function Dashboard() {
       );
       setTotalSesiones(sesTotal);
       if (items.length > 0) {
-        const ahora = Date.now();
-        // Active unit = fechaFin is null/empty OR fechaFin is in the future
-        const activas = items.filter(
-          (u) => !u.fechaFin || new Date(u.fechaFin).getTime() > ahora,
-        );
+        const activas = items.filter(isUnidadActiva);
         // Pick the active unit with the highest number; fall back to newest by createdAt
         const candidates = activas.length > 0 ? activas : items;
         const sorted = [...candidates].sort(

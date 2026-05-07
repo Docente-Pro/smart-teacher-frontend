@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import {
-  listarUnidadesByUsuario,
   obtenerDownloadUrlUnidad,
   sincronizarMiembroUnidad,
   finalizarUnidad,
@@ -40,7 +39,8 @@ import {
   FlagOff,
   CheckCircle2,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useUserUnidades } from "@/hooks/useUserUnidades";
+import { isUnidadActiva, isUnidadFechaActiva } from "@/utils/unidadUtils";
 
 // ─────────────────── Helpers ───────────────────
 
@@ -95,8 +95,7 @@ function formatPeriodo(fechaInicio?: string, fechaFin?: string) {
 
 /** Unidad finalizada = fechaFin existe y ya pasó */
 function isUnidadFinalizada(fechaFin?: string | null): boolean {
-  if (!fechaFin) return false;
-  return new Date(fechaFin).getTime() <= Date.now();
+  return fechaFin ? !isUnidadFechaActiva(fechaFin) : false;
 }
 
 /** Solo propietarios con pago CONFIRMADO y unidad activa pueden finalizar */
@@ -177,12 +176,7 @@ function MisUnidades() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const { data, isFetching, isError, error, refetch } = useQuery({
-    queryKey: ["units", userId],
-    queryFn: () => listarUnidadesByUsuario(userId!),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!userId,
-  });
+  const { data, isFetching, isError, error, refetch } = useUserUnidades();
 
   // Derivar unidades ordenadas desde la query
   const unidades = useMemo(() => {

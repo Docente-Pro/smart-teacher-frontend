@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,8 +6,9 @@ import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { listarUnidadesByUsuario, sincronizarMiembroUnidad } from "@/services/unidad.service";
-import { isUnidadListaActiva } from "@/utils/unidadActiva";
+import { sincronizarMiembroUnidad } from "@/services/unidad.service";
+import { isUnidadActiva } from "@/utils/unidadUtils";
+import { useUserUnidades } from "@/hooks/useUserUnidades";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import { generarImagenesSesion } from "@/services/ia-sesion.service";
 import { getAllAreas } from "@/services/areas.service";
@@ -291,9 +292,6 @@ function GenerarSesionPremium() {
   const userId = user?.id;
 
   // ─── State ───
-  const [unidades, setUnidades] = useState<IUnidadListItem[]>([]);
-  const [loadingUnidades, setLoadingUnidades] = useState(true);
-  const [errorUnidades, setErrorUnidades] = useState<string | null>(null);
   /** Sincronizando contenido personalizado para suscriptor */
   const [sincronizando, setSincronizando] = useState(false);
   const [selectedUnidadId, setSelectedUnidadId] = useState<string | null>(null);
@@ -333,6 +331,10 @@ function GenerarSesionPremium() {
       .catch(() => {});
   }, []);
 
+  // ─── Query centralizada de unidades ───
+  const { data: unidades = [], isFetching: loadingUnidades, isError: hasErrorUnidades, error: queryError, refetch } = useUserUnidades();
+  const errorUnidades = hasErrorUnidades ? ((queryError as any)?.message || "Error al cargar unidades") : null;
+
   // ─── Derived ───
   /** Pago confirmado + unidad activa (no finalizada por fechaFin) — p. ej. varias unidades en secundaria */
   const unidadesActivas = useMemo(
@@ -340,7 +342,7 @@ function GenerarSesionPremium() {
       unidades.filter((u) => {
         const miembro = u.miembros.find((mb) => mb.usuarioId === userId);
         if (miembro?.estadoPago !== "CONFIRMADO") return false;
-        return isUnidadListaActiva(u.fechaFin);
+        return isUnidadActiva(u);
       }),
     [unidades, userId],
   );
@@ -461,60 +463,32 @@ function GenerarSesionPremium() {
   // EFFECTS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const cargarUnidades = useCallback(async () => {
-    if (!userId) return;
-    setLoadingUnidades(true);
-    setErrorUnidades(null);
-    try {
-      let items = await listarUnidadesByUsuario(userId);
-      
-      // Sincronizar automáticamente suscriptores que necesitan contenido personalizado
-      const unidadesNecesitanSync = items.filter(
-        (u) => u._rol === "SUSCRIPTOR" && u.necesitaSincronizacion === true
-      );
-      
-      if (unidadesNecesitanSync.length > 0) {
-        setSincronizando(true);
-        try {
-          // Sincronizar cada unidad que lo necesite
-          await Promise.all(
-            unidadesNecesitanSync.map(async (u) => {
-              try {
-                const result = await sincronizarMiembroUnidad(u.id);
-              } catch (syncErr) {
-                // Error sincronizando unidad
-              }
-            })
-          );
-          // Recargar unidades después de sincronizar
-          items = await listarUnidadesByUsuario(userId);
-        } finally {
-          setSincronizando(false);
-        }
-      }
-      
-      setUnidades(items);
-      const activas = items.filter((u) => {
-        const mb = u.miembros.find((m) => m.usuarioId === userId);
-        return (
-          mb?.estadoPago === "CONFIRMADO" && isUnidadListaActiva(u.fechaFin)
-        );
-      });
-      if (activas.length === 1) setSelectedUnidadId(activas[0].id);
-    } catch (err: any) {
-      setErrorUnidades(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Error al cargar unidades",
-      );
-    } finally {
-      setLoadingUnidades(false);
-    }
-  }, [userId]);
-
+  // Sincronizar suscriptores que necesitan contenido personalizado
   useEffect(() => {
-    cargarUnidades();
-  }, [cargarUnidades]);
+    if (!unidades.length) return;
+    const needSync = unidades.filter(
+      (u) => u._rol === "SUSCRIPTOR" && u.necesitaSincronizacion === true,
+    );
+    if (needSync.length === 0) return;
+    let cancelled = false;
+    setSincronizando(true);
+    Promise.all(
+      needSync.map((u) => sincronizarMiembroUnidad(u.id).catch(() => {})),
+    ).finally(() => {
+      if (!cancelled) {
+        setSincronizando(false);
+        refetch();
+      }
+    });
+    return () => { cancelled = true; };
+  }, [unidades]);
+
+  // Auto-seleccionar si hay una sola unidad activa
+  useEffect(() => {
+    if (unidadesActivas.length === 1 && !selectedUnidadId) {
+      setSelectedUnidadId(unidadesActivas[0].id);
+    }
+  }, [unidadesActivas, selectedUnidadId]);
 
   // Set initial week + detect existing sessions
   useEffect(() => {
@@ -817,7 +791,7 @@ function GenerarSesionPremium() {
             <p className="text-slate-600 dark:text-slate-300 mb-4">
               {errorUnidades}
             </p>
-            <Button variant="outline" onClick={cargarUnidades}>
+            <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" /> Reintentar
             </Button>
           </div>
