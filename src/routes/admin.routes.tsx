@@ -1,15 +1,17 @@
 import { Navigate } from "react-router";
+import { lazy } from "react";
 import { AdminRoute } from "@/components/AdminRoute";
 import AdminLogin from "@/pages/admin/AdminLogin";
-import AdminLayout from "@/pages/admin/AdminLayout";
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AdminPagosSuscripcion from "@/pages/admin/AdminPagosSuscripcion";
-import AdminPagosUnidad from "@/pages/admin/AdminPagosUnidad";
-import AdminUsuarios from "@/pages/admin/AdminUsuarios";
-import AdminUsuarioDetalle from "@/pages/admin/AdminUsuarioDetalle";
-import AdminRehacerPdf from "@/pages/admin/AdminRehacerPdf";
-import AdminFichaPdf from "@/pages/admin/AdminFichaPdf";
-import AdminCorregirEstandaresPdf from "@/pages/admin/AdminCorregirEstandaresPdf";
+
+const AdminLayout = lazy(() => import("@/pages/admin/AdminLayout"));
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const AdminPagosSuscripcion = lazy(() => import("@/pages/admin/AdminPagosSuscripcion"));
+const AdminPagosUnidad = lazy(() => import("@/pages/admin/AdminPagosUnidad"));
+const AdminUsuarios = lazy(() => import("@/pages/admin/AdminUsuarios"));
+const AdminUsuarioDetalle = lazy(() => import("@/pages/admin/AdminUsuarioDetalle"));
+const AdminRehacerPdf = lazy(() => import("@/pages/admin/AdminRehacerPdf"));
+const AdminFichaPdf = lazy(() => import("@/pages/admin/AdminFichaPdf"));
+const AdminCorregirEstandaresPdf = lazy(() => import("@/pages/admin/AdminCorregirEstandaresPdf"));
 
 interface IAdminRoute {
   path: string;

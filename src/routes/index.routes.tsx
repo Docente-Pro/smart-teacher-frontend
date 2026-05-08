@@ -1,50 +1,64 @@
 import { Navigate } from "react-router";
+import { DevRoute } from "@/components/DevRoute";
+import { lazy } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GuestRoute } from "@/components/GuestRoute";
-import Areas from "@/pages/Areas";
-import Competencias from "@/pages/Competencias";
-import CuestionarioInicial from "@/pages/CuestionarioInicial";
-import CuestionarioSesion from "@/pages/CuestionarioSesion";
 import LandingPage from "@/pages/LandingPage";
-import Dashboard from "@/pages/Dashboard";
-
-import PagoExitoso from "@/pages/PagoExitoso";
-import PagoFallido from "@/pages/PagoFallido";
-import PagoPendiente from "@/pages/PagoPendiente";
-import SuscripcionVencida from "@/pages/SuscripcionVencida";
-import PaymentSuccess from "@/pages/PaymentSuccess";
-import PaymentFailure from "@/pages/PaymentFailure";
 import LoginPage from "@/features/auth-screens/login/LoginPage";
-import SignupPage from "@/features/auth-screens/signup/SignupPage";
-import ForgotPasswordPage from "@/features/auth-screens/forgot-password/ForgotPasswordPage";
-import OnboardingPage from "@/pages/OnboardingPage";
-import DemoLoading from "@/pages/DemoLoading";
-import MisSesiones from "@/pages/MisSesiones";
-import MisUnidades from "@/pages/MisUnidades";
-import DocTest from "@/pages/DocTest";
-import SesionViewer from "@/pages/SesionViewer";
-import GraficosPlayground from "@/pages/GraficosPlayground";
-import GraficosAreasPlayground from "@/pages/GraficosAreasPlayground";
-import { DevRoute } from "@/components/DevRoute";
-import CrearUnidad from "@/pages/CrearUnidad";
-import UnidadResult from "@/pages/UnidadResult";
-import UnidadResultPrueba from "@/pages/UnidadResultPrueba";
-import UnidadSuscriptorResult from "@/pages/UnidadSuscriptorResult";
-import UnirseUnidad from "@/pages/UnirseUnidad";
-import GenerarSesionPremium from "@/pages/GenerarSesionPremium";
-import GenerarSesionSecundaria from "@/pages/GenerarSesionSecundaria";
-import SesionPremiumResult from "@/pages/SesionPremiumResult";
-import SesionSuscriptorResult from "@/pages/SesionSuscriptorResult";
-import FichaAplicacionResult from "@/pages/FichaAplicacionResult";
-import MisFichas from "@/pages/MisFichas";
-import UnidadDetail from "@/pages/UnidadDetail";
-import EditarSesionPremium from "@/pages/EditarSesionPremium";
-import EditarUnidad from "@/pages/EditarUnidad";
+
+const Areas = lazy(() => import("@/pages/Areas"));
+const Competencias = lazy(() => import("@/pages/Competencias"));
+const CuestionarioInicial = lazy(() => import("@/pages/CuestionarioInicial"));
+const CuestionarioSesion = lazy(() => import("@/pages/CuestionarioSesion"));
 
 interface IRouteToCreate {
   path: string;
   element: JSX.Element;
 }
+
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const MisSesiones = lazy(() => import("@/pages/MisSesiones"));
+const MisUnidades = lazy(() => import("@/pages/MisUnidades"));
+const DocTest = lazy(() => import("@/pages/DocTest"));
+const SesionViewer = lazy(() => import("@/pages/SesionViewer"));
+const GraficosPlayground = lazy(() => import("@/pages/GraficosPlayground"));
+const GraficosAreasPlayground = lazy(
+  () => import("@/pages/GraficosAreasPlayground"),
+);
+const CrearUnidad = lazy(() => import("@/pages/CrearUnidad"));
+const UnidadResult = lazy(() => import("@/pages/UnidadResult"));
+const UnidadResultPrueba = lazy(() => import("@/pages/UnidadResultPrueba"));
+const UnidadSuscriptorResult = lazy(
+  () => import("@/pages/UnidadSuscriptorResult"),
+);
+const UnirseUnidad = lazy(() => import("@/pages/UnirseUnidad"));
+const GenerarSesionPremium = lazy(() => import("@/pages/GenerarSesionPremium"));
+const GenerarSesionSecundaria = lazy(
+  () => import("@/pages/GenerarSesionSecundaria"),
+);
+const SesionPremiumResult = lazy(() => import("@/pages/SesionPremiumResult"));
+const SesionSuscriptorResult = lazy(
+  () => import("@/pages/SesionSuscriptorResult"),
+);
+const FichaAplicacionResult = lazy(
+  () => import("@/pages/FichaAplicacionResult"),
+);
+const MisFichas = lazy(() => import("@/pages/MisFichas"));
+const UnidadDetail = lazy(() => import("@/pages/UnidadDetail"));
+const EditarSesionPremium = lazy(() => import("@/pages/EditarSesionPremium"));
+const EditarUnidad = lazy(() => import("@/pages/EditarUnidad"));
+const PagoExitoso = lazy(() => import("@/pages/PagoExitoso"));
+const PagoFallido = lazy(() => import("@/pages/PagoFallido"));
+const PagoPendiente = lazy(() => import("@/pages/PagoPendiente"));
+const SuscripcionVencida = lazy(() => import("@/pages/SuscripcionVencida"));
+const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
+const PaymentFailure = lazy(() => import("@/pages/PaymentFailure"));
+const SignupPage = lazy(() => import("@/features/auth-screens/signup/SignupPage"));
+const ForgotPasswordPage = lazy(
+  () => import("@/features/auth-screens/forgot-password/ForgotPasswordPage"),
+);
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
+const DemoLoading = lazy(() => import("@/pages/DemoLoading"));
 
 export const routes: IRouteToCreate[] = [
   {
@@ -359,5 +373,4 @@ export const routes: IRouteToCreate[] = [
       </ProtectedRoute>
     ),
   },
-
 ];
