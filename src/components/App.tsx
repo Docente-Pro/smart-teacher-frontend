@@ -3,7 +3,7 @@ import { useSessionRestore } from "@/hooks/useSessionRestore";
 import { useSubscriptionSocket } from "@/hooks/useSubscriptionSocket";
 import { useLoadingStore } from "@/store/loading.store";
 import { useUserStore } from "@/store/user.store";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { GlobalLoading } from "./GlobalLoading";
 import { Route, Routes } from "react-router";
 import { routes } from "@/routes/index.routes";
@@ -38,29 +38,30 @@ export const App = () => {
 
   return (
     <>
-      {isLoading && <GlobalLoading message={loadingMessage} />}
-      <Routes>
-        {routes.map((routes, index) => (
-          <Route key={index} path={routes.path} element={routes.element} />
-        ))}
-        {/* Admin Routes */}
-        {adminRoutes.map((route, index) => (
-          <Route
-            key={`admin-${index}`}
-            path={route.path}
-            element={route.element}
-          >
-            {route.children?.map((child, ci) => (
-              <Route
-                key={`admin-child-${ci}`}
-                index={child.index}
-                path={child.path}
-                element={child.element}
-              />
-            ))}
-          </Route>
-        ))}
-      </Routes>
+      <Suspense fallback={<GlobalLoading message={loadingMessage} />}>
+        <Routes>
+          {routes.map((routes, index) => (
+            <Route key={index} path={routes.path} element={routes.element} />
+          ))}
+          {/* Admin Routes */}
+          {adminRoutes.map((route, index) => (
+            <Route
+              key={`admin-${index}`}
+              path={route.path}
+              element={route.element}
+            >
+              {route.children?.map((child, ci) => (
+                <Route
+                  key={`admin-child-${ci}`}
+                  index={child.index}
+                  path={child.path}
+                  element={child.element}
+                />
+              ))}
+            </Route>
+          ))}
+        </Routes>
+      </Suspense>
       {/* Modal de renovación — se muestra cuando suscripcion:expirada llega */}
       <RenewalModal isOpen={showRenewalModal} onClose={dismissRenewalModal} />
       {/* Modal "Nueva característica" — pide sección a usuarios existentes */}
