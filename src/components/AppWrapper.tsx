@@ -4,7 +4,7 @@ import { CustomAuth0Provider } from "@/providers/CustomAuth0Provider";
 import { App } from "./App";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 export const AppWrapper = () => {
   // Config for Tanstack Query
