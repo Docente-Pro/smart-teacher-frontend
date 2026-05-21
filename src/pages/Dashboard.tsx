@@ -202,10 +202,11 @@ function Dashboard() {
     queryKey: ["user", user?.id],
     queryFn: () => getUsuarioById(user!.id!),
     enabled: !!user,
-    staleTime: 100 * 60 * 60 * 24 * 30, // 1 Mes
+    staleTime: 5 * 60 * 1000, // 5 minutos
   });
 
-  const { data: userUnitsData, isLoading: isLoadingUserUnitsData } = useUserUnidades();
+  const { data: userUnitsData, isLoading: isLoadingUserUnitsData } =
+    useUserUnidades();
 
   useEffect(() => {
     if (!isLoadingUserData) {
