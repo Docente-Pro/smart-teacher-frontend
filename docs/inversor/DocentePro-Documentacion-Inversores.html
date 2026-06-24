@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Docente Pro — Documentación para Inversores</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { size: A4; margin: 18mm 16mm; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #1e293b;
+      line-height: 1.65;
+      font-size: 10.5pt;
+      background: #f1f5f9;
+    }
+    .page {
+      background: #fff;
+      max-width: 210mm;
+      margin: 0 auto;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    }
+    .cover {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 55%, #0e7490 100%);
+      color: #fff;
+      padding: 48px 44px 40px;
+      min-height: 260px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cover::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 220px; height: 220px;
+      background: rgba(255,255,255,.08);
+      border-radius: 50%;
+    }
+    .cover::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; left: -40px;
+      width: 280px; height: 280px;
+      background: rgba(255,255,255,.06);
+      border-radius: 50%;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 9pt;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      backdrop-filter: blur(4px);
+    }
+    .cover h1 {
+      font-size: 34pt;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .cover .subtitle {
+      font-size: 13pt;
+      color: #ffffff;
+      font-weight: 600;
+      max-width: 520px;
+      position: relative;
+    }
+    .cover .meta {
+      margin-top: 28px;
+      font-size: 9.5pt;
+      color: #cfe3ff;
+      font-weight: 500;
+      position: relative;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border-bottom: 3px solid #1d4ed8;
+    }
+    .stat {
+      text-align: center;
+      padding: 22px 16px;
+      background: #eff6ff;
+      border-right: 1px solid #dbeafe;
+    }
+    .stat:last-child { border-right: none; background: #1d4ed8; color: #fff; }
+    .stat:last-child .stat-label { color: #bfdbfe; }
+    .stat-value {
+      font-size: 22pt;
+      font-weight: 800;
+      color: #1e3a8a;
+      line-height: 1;
+    }
+    .stat:last-child .stat-value { color: #fff; }
+    .stat-label {
+      font-size: 8.5pt;
+      color: #64748b;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+    .content { padding: 36px 44px 44px; }
+    h2 {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin: 28px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #dbeafe;
+    }
+    h2:first-child { margin-top: 0; }
+    h3 {
+      font-size: 11pt;
+      font-weight: 600;
+      color: #1d4ed8;
+      margin: 18px 0 8px;
+    }
+    p { margin-bottom: 10px; color: #334155; }
+    ul { margin: 8px 0 12px 20px; }
+    li { margin-bottom: 5px; color: #334155; }
+    .highlight-box {
+      background: linear-gradient(135deg, #eff6ff, #f0fdfa);
+      border-left: 4px solid #1d4ed8;
+      padding: 16px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+    }
+    .highlight-box p { margin: 0; font-weight: 500; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 16px;
+      font-size: 9.5pt;
+    }
+    th {
+      background: #1e3a8a;
+      color: #fff;
+      text-align: left;
+      padding: 10px 12px;
+      font-weight: 600;
+    }
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    .tech-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      background: #fafafa;
+    }
+    .tech-card h4 {
+      font-size: 9.5pt;
+      color: #1d4ed8;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .tech-card ul { margin: 0 0 0 16px; font-size: 9pt; }
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 14px 0;
+      font-size: 8.5pt;
+    }
+    .flow-step {
+      background: #1d4ed8;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .flow-arrow { color: #94a3b8; font-weight: 700; }
+    .invest-box {
+      background: #1e3a8a;
+      color: #fff;
+      border-radius: 10px;
+      padding: 20px 22px;
+      margin-top: 16px;
+    }
+    .invest-box h3 { color: #93c5fd; margin-top: 0; }
+    .invest-box ul { color: #e2e8f0; }
+    .invest-box li { color: #e2e8f0; }
+    .footer-note {
+      text-align: center;
+      font-size: 8.5pt;
+      color: #94a3b8;
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .arch-figure { text-align: center; margin: 16px 0 8px; }
+    .arch-figure img {
+      max-width: 78%;
+      height: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    }
+    .arch-figure figcaption {
+      font-size: 8pt;
+      color: #94a3b8;
+      font-style: italic;
+      margin-top: 8px;
+    }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px; }
+    .pill {
+      font-size: 8pt;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #dbeafe;
+    }
+    .anatomy {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin: 12px 0;
+      background: #fafcff;
+    }
+    .anatomy h3 { margin-top: 0; }
+    .phase-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .phase {
+      border-top: 3px solid #0891b2;
+      background: #fff;
+      border-radius: 0 0 8px 8px;
+      padding: 10px 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+    .phase h5 { font-size: 9pt; color: #0e7490; margin-bottom: 4px; font-weight: 700; }
+    .phase p { font-size: 8.5pt; margin: 0; color: #475569; }
+    .steps { counter-reset: step; list-style: none; margin: 8px 0 8px 0; padding: 0; }
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      padding-left: 30px;
+      margin-bottom: 7px;
+      font-size: 9.5pt;
+    }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0; top: 0;
+      width: 20px; height: 20px;
+      background: #1d4ed8;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 8pt;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .note { font-size: 8.5pt; color: #64748b; font-style: italic; margin-top: 6px; }
+    .fin-intro { margin-bottom: 12px; }
+    .fin-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 16px;
+      font-size: 8.5pt;
+    }
+    .fin-table th {
+      background: #1e3a8a;
+      color: #fff;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .fin-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    .fin-table tr.milestone td { background: #eff6ff; }
+    .fin-table .row-note { font-size: 7.5pt; color: #94a3b8; font-style: italic; }
+    .fin-table .pos { color: #059669; font-weight: 700; }
+    .fin-table .neg { color: #dc2626; font-weight: 700; }
+    .fin-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 16px 0 20px;
+    }
+    .fin-kpi {
+      text-align: center;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 12px 8px;
+    }
+    .fin-kpi-val {
+      display: block;
+      font-size: 13pt;
+      font-weight: 800;
+      color: #1e3a8a;
+      line-height: 1.2;
+    }
+    .fin-kpi-lbl {
+      display: block;
+      font-size: 7pt;
+      color: #64748b;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; max-width: 100%; }
+      .arch-figure { page-break-inside: avoid; }
+      .anatomy { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="cover">
+    <div class="badge">Confidencial · Junio 2026</div>
+    <h1>Docente Pro</h1>
+    <p class="subtitle">Planificación docente con Inteligencia Artificial — Documentación para inversores</p>
+    <p class="meta">Resumen ejecutivo · Producto · Tecnología · Modelo de negocio</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value">440+</div><div class="stat-label">Usuarios registrados</div></div>
+    <div class="stat"><div class="stat-value">25</div><div class="stat-label">Usuarios premium</div></div>
+    <div class="stat"><div class="stat-value">SaaS</div><div class="stat-label">Modelo B2C recurrente</div></div>
+  </div>
+
+  <div class="content">
+    <h2>1. Resumen ejecutivo</h2>
+    <p><strong>Docente Pro</strong> es una plataforma SaaS para docentes peruanos de educación básica. Utiliza inteligencia artificial para generar sesiones de aprendizaje, unidades curriculares, evaluaciones y recursos didácticos alineados al <strong>Currículo Nacional de Educación Básica (CNEB)</strong>.</p>
+    <div class="highlight-box">
+      <p>Los docentes invierten 8–15 horas semanales en planificación. Docente Pro reduce ese tiempo a minutos, manteniendo calidad pedagógica y cumplimiento normativo MINEDU.</p>
+    </div>
+
+    <h2>2. Problema y oportunidad</h2>
+    <ul>
+      <li>Más de 350.000 docentes en educación básica regular en Perú planifican por competencias.</li>
+      <li>Herramientas genéricas (Word, IA sin contexto) no generan documentos alineados al CNEB.</li>
+      <li>Docente Pro combina IA especializada + plantillas oficiales + PDF profesional.</li>
+    </ul>
+
+    <h2>3. Propuesta de valor</h2>
+    <table>
+      <tr><th>Para el docente</th><th>Beneficio</th></tr>
+      <tr><td>Ahorro de tiempo</td><td>Sesiones completas en minutos vs. horas manuales</td></tr>
+      <tr><td>Cumplimiento normativo</td><td>Alineado al CNEB, competencias y capacidades</td></tr>
+      <tr><td>Documentos listos</td><td>PDF profesional para entregar o imprimir</td></tr>
+      <tr><td>Recursos visuales</td><td>Gráficos educativos integrados en sesiones</td></tr>
+      <tr><td>Evaluación</td><td>Rúbricas coherentes con cada sesión</td></tr>
+    </table>
+
+    <h2>4. Producto — Módulos principales</h2>
+    <h3>Sesiones de aprendizaje</h3>
+    <p>Generación IA de sesiones con secuencia didáctica (Inicio, Desarrollo, Cierre), propósitos, competencias y reflexiones. Interfaces especializadas por área curricular.</p>
+    <h3>Unidades de aprendizaje</h3>
+    <p>Unidades semanales vinculadas a problemáticas, estándares y sesiones complementarias (Premium).</p>
+    <h3>Evaluaciones y rúbricas</h3>
+    <p>Instrumentos de evaluación automáticos alineados a criterios de la sesión.</p>
+    <h3>Gráficos educativos y fichas</h3>
+    <p>Recursos visuales y fichas de aplicación exportables a PDF.</p>
+
+    <h2>5. Modelo de negocio</h2>
+    <table>
+      <tr><th>Plan</th><th>Precio</th><th>Público</th></tr>
+      <tr><td>Personal Primaria</td><td>S/ 20 / mes</td><td>Docente de primaria</td></tr>
+      <tr><td>Personal Secundaria</td><td>S/ 25 / mes</td><td>Docente de secundaria</td></tr>
+      <tr><td>Equipo</td><td>S/ 30 / mes</td><td>Docente + 1 colaborador</td></tr>
+    </table>
+    <p>MRR actual estimado: <strong>S/ 550 – 625 / mes</strong> · Estacionalidad alineada al calendario escolar peruano.</p>
+
+    <h2>6. Arquitectura técnica</h2>
+    <p>Sistema de <strong>microservicios desacoplados</strong>: un frontend SPA, un backend orquestador en <strong>Node.js</strong> y un motor de IA en <strong>Python (RAG)</strong> potenciado por <strong>Google Gemini</strong>. Desplegado en <strong>AWS</strong> con contenedores Docker y diseñado para escalar horizontalmente.</p>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <h4>Frontend (SPA)</h4>
+        <ul>
+          <li>React 18 + TypeScript</li>
+          <li>Vite · Tailwind · Radix UI</li>
+          <li>React Query · Zustand</li>
+          <li>Exportación PDF / Word</li>
+        </ul>
+      </div>
+      <div class="tech-card">
+        <h4>Backend — Node.js</h4>
+        <ul>
+          <li>Express + TypeScript</li>
+          <li>Prisma ORM + PostgreSQL</li>
+          <li>Orquestador de IA (gateway)</li>
+          <li>+20 grupos de endpoints</li>
+        </ul>
+      </div>
+      <div class="tech-card">
+        <h4>IA — Python RAG + Gemini</h4>
+        <ul>
+          <li>FastAPI (microservicio)</li>
+          <li>Google Gemini 2.5 Pro / Flash</li>
+          <li>LangChain + FAISS (vectorial)</li>
+          <li>Pydantic — salida validada</li>
+        </ul>
+      </div>
+      <div class="tech-card">
+        <h4>Seguridad</h4>
+        <ul>
+          <li>Auth0 — OAuth 2.0 + JWT</li>
+          <li>HTTPS end-to-end</li>
+          <li>Control free / premium / admin</li>
+          <li>Auditoría cyber (roadmap)</li>
+        </ul>
+      </div>
+      <div class="tech-card">
+        <h4>Pagos & tiempo real</h4>
+        <ul>
+          <li>Mercado Pago + webhooks</li>
+          <li>Yape / WhatsApp (manual)</li>
+          <li>Socket.io — tiempo real</li>
+          <li>Activación premium instantánea</li>
+        </ul>
+      </div>
+      <div class="tech-card">
+        <h4>Cloud — AWS</h4>
+        <ul>
+          <li>EC2 + Docker (actual)</li>
+          <li>S3 + CloudFront (CDN)</li>
+          <li>ALB + Auto Scaling (objetivo)</li>
+          <li>RDS Multi-AZ (objetivo)</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Base de conocimiento (RAG / MINEDU)</h3>
+    <p>El diferencial técnico: el motor de IA no responde "de memoria". Recupera contenido curricular oficial e indexado, y lo usa como contexto para generar planificaciones alineadas a la normativa peruana.</p>
+    <div class="pill-row">
+      <span class="pill">Currículo Nacional (CNEB)</span>
+      <span class="pill">Programa Curricular 649-2016-MINEDU</span>
+      <span class="pill">Cuadernillos y fichas MINEDU</span>
+      <span class="pill">Sesiones modelo</span>
+      <span class="pill">Estándares y competencias</span>
+    </div>
+
+    <h3>Flujo de generación con IA</h3>
+    <div class="flow">
+      <span class="flow-step">Cuestionario docente</span><span class="flow-arrow">→</span>
+      <span class="flow-step">Node orquesta</span><span class="flow-arrow">→</span>
+      <span class="flow-step">RAG: FAISS + MINEDU</span><span class="flow-arrow">→</span>
+      <span class="flow-step">Gemini 2.5</span><span class="flow-arrow">→</span>
+      <span class="flow-step">Validación Pydantic</span><span class="flow-arrow">→</span>
+      <span class="flow-step">Render + PDF/Word</span>
+    </div>
+
+    <h3>Infraestructura AWS — actual y escalable</h3>
+    <p>Hoy operamos una implementación funcional en AWS con CI/CD automatizado. La arquitectura objetivo está diseñada para escalar con balanceadores de carga, Auto Scaling y base de datos en alta disponibilidad.</p>
+    <figure class="arch-figure">
+      <img src="assets/arch-diagrama.jpg" alt="Arquitectura AWS actual y objetivo" />
+      <figcaption>Arriba: implementación actual (EC2 + Docker + S3 + CloudFront). Abajo: arquitectura objetivo escalable (ALB + Auto Scaling + RDS Multi-AZ).</figcaption>
+    </figure>
+
+    <h2>7. Anatomía de una Sesión de Aprendizaje</h2>
+    <div class="anatomy">
+      <p>Cada sesión es un documento estructurado que cumple las directrices del MINEDU. El motor genera y valida automáticamente:</p>
+      <ul>
+        <li><strong>Datos generales</strong> · <strong>Propósito de aprendizaje</strong> (competencia, capacidades, desempeños, estándar)</li>
+        <li><strong>Propósito de la sesión</strong> (qué, cómo, para qué) · <strong>Criterios de evaluación</strong> y evidencia</li>
+        <li><strong>Enfoques transversales</strong> (máx. 2) con valores y actitudes observables</li>
+        <li><strong>Preparación</strong>: recursos y materiales de costo cero (realidad de la escuela pública)</li>
+      </ul>
+      <h3 style="margin-top:12px">Secuencia didáctica — 3 momentos</h3>
+      <div class="phase-grid">
+        <div class="phase"><h5>INICIO</h5><p>Problematización, motivación, saberes previos y comunicación del propósito.</p></div>
+        <div class="phase"><h5>DESARROLLO</h5><p>Gestión y acompañamiento, procesos pedagógicos específicos por área.</p></div>
+        <div class="phase"><h5>CIERRE</h5><p>Evaluación, metacognición y reflexión del aprendizaje.</p></div>
+      </div>
+      <p class="note">Guardrails automáticos: una sola competencia por sesión, títulos normalizados al formato MINEDU, eliminación de contenido alucinado, validación de gráficos e instrumento de evaluación (lista de cotejo) coherente con los criterios.</p>
+    </div>
+
+    <h2>8. Anatomía de una Unidad de Aprendizaje</h2>
+    <p>Una unidad articula varias áreas durante semanas en torno a una problemática. Se genera mediante un <strong>flujo secuencial de 8 pasos</strong>, donde cada paso acumula el contexto de los anteriores y alterna modelos Gemini Pro/Flash según complejidad:</p>
+    <ol class="steps">
+      <li><strong>Situación significativa</strong> — contexto problematizador real del aula.</li>
+      <li><strong>Evidencias</strong> — propósito, producto integrador e instrumento de evaluación.</li>
+      <li><strong>Propósitos de aprendizaje</strong> — competencias, capacidades, estándares, criterios y actividades por área (+ transversales).</li>
+      <li><strong>Áreas complementarias</strong> — Tutoría, Plan Lector y otras vinculadas a la competencia.</li>
+      <li><strong>Enfoques transversales</strong> — valores y actitudes observables.</li>
+      <li><strong>Secuencia de actividades</strong> — planificador semanal hora por hora, día por día, por área.</li>
+      <li><strong>Materiales y recursos</strong> — coherentes con la secuencia.</li>
+      <li><strong>Reflexiones</strong> — preguntas de autoevaluación docente.</li>
+    </ol>
+    <p class="note">El backend Node orquesta los 8 pasos en orden, persiste el resultado consolidado y el frontend lo renderiza en tablas con el formato oficial, listo para exportar a PDF o Word.</p>
+
+    <h2>9. Ventaja competitiva</h2>
+    <ul>
+      <li>Especialización mercado peruano + CNEB con RAG sobre documentos MINEDU (no es ChatGPT genérico).</li>
+      <li>Documentos listos para el aula, no solo texto.</li>
+      <li>Arquitectura de microservicios extensible por áreas curriculares.</li>
+      <li>Equipo con dominio educativo + desarrollo.</li>
+    </ul>
+
+    <h2>10. Proyección financiera</h2>
+    
+    <p class="fin-intro">Proyección conservadora con ticket promedio de <strong>S/ 22.5/mes</strong> por usuario premium. Crecimiento gradual alineado al calendario escolar peruano (picos en marzo y agosto–noviembre).</p>
+    <table class="fin-table">
+      <tr>
+        <th>Periodo</th><th>Premium</th><th>Ingresos (MRR)</th><th>Gastos/mes</th><th>Resultado/mes</th>
+      </tr>
+      <tr>
+      <td><strong>Jun 2026 (actual)</strong><br><span class="row-note">Base actual · 25 premium activos</span></td>
+      <td>25</td>
+      <td>S/ 563</td>
+      <td>S/ 5,900</td>
+      <td class="neg">−S/ 5,337</td>
+    </tr>
+<tr>
+      <td><strong>Sep 2026</strong><br><span class="row-note">Inicio año escolar · conversión registrados</span></td>
+      <td>75</td>
+      <td>S/ 1,688</td>
+      <td>S/ 6,650</td>
+      <td class="neg">−S/ 4,962</td>
+    </tr>
+<tr>
+      <td><strong>Dic 2026</strong><br><span class="row-note">Vacaciones · foco retención y producto</span></td>
+      <td>170</td>
+      <td>S/ 3,825</td>
+      <td>S/ 6,550</td>
+      <td class="neg">−S/ 2,725</td>
+    </tr>
+<tr class="milestone">
+      <td><strong>Mar 2027 (9 meses)</strong><br><span class="row-note">Meta 9 meses · pico inicio de clases</span></td>
+      <td>500</td>
+      <td>S/ 11,250</td>
+      <td>S/ 9,500</td>
+      <td class="pos">S/ 1,750</td>
+    </tr>
+<tr class="milestone">
+      <td><strong>Jun 2027</strong><br><span class="row-note">Consolidación post-pico</span></td>
+      <td>580</td>
+      <td>S/ 13,050</td>
+      <td>S/ 9,300</td>
+      <td class="pos">S/ 3,750</td>
+    </tr>
+<tr class="milestone">
+      <td><strong>Sep 2027</strong><br><span class="row-note">Segundo impulso del año escolar</span></td>
+      <td>665</td>
+      <td>S/ 14,963</td>
+      <td>S/ 10,050</td>
+      <td class="pos">S/ 4,913</td>
+    </tr>
+<tr class="milestone">
+      <td><strong>Dic 2027 (18 meses)</strong><br><span class="row-note">Meta 18 meses · rango 700–800</span></td>
+      <td>780</td>
+      <td>S/ 17,550</td>
+      <td>S/ 10,100</td>
+      <td class="pos">S/ 7,450</td>
+    </tr>
+    </table>
+    <div class="fin-summary">
+      <div class="fin-kpi"><span class="fin-kpi-val">500</span><span class="fin-kpi-lbl">Premium a 9 meses (Mar 2027)</span></div>
+      <div class="fin-kpi"><span class="fin-kpi-val">S/ 11,250</span><span class="fin-kpi-lbl">MRR mes 9</span></div>
+      <div class="fin-kpi"><span class="fin-kpi-val">780</span><span class="fin-kpi-lbl">Premium a 18 meses (Dic 2027)</span></div>
+      <div class="fin-kpi"><span class="fin-kpi-val">S/ 210,600</span><span class="fin-kpi-lbl">ARR proyectado (mes 18 × 12)</span></div>
+    </div>
+    <h3>Desglose de gastos operativos</h3>
+    <table class="fin-table">
+      <tr><th>Rubro</th><th>Meses 1–6</th><th>Meses 7–9</th><th>Meses 10–18</th></tr>
+      <tr><td>Nómina fundadores (2 pers.)</td><td>S/ 5.000</td><td>S/ 5.500</td><td>S/ 6.000</td></tr>
+      <tr><td>Infra AWS + APIs Gemini</td><td>S/ 400 – 800</td><td>S/ 1.200 – 1.800</td><td>S/ 1.800 – 2.500</td></tr>
+      <tr><td>Marketing y adquisición</td><td>S/ 300 – 900</td><td>S/ 1.500 – 2.200</td><td>S/ 1.200 – 1.600</td></tr>
+      <tr><td>Herramientas, legal, otros</td><td>S/ 200 – 250</td><td>S/ 300</td><td>S/ 350 – 400</td></tr>
+      <tr class="milestone"><td><strong>Total / mes</strong></td><td><strong>S/ 5.900 – 6.950</strong></td><td><strong>S/ 8.500 – 9.800</strong></td><td><strong>S/ 9.350 – 10.500</strong></td></tr>
+    </table>
+    <p class="note">Meses 1–9 financiados con la ronda de S/ 60.000. A partir del mes 9–10 los ingresos recurrentes empiezan a cubrir parte significativa de la operación; al mes 18 el margen operativo mensual estimado supera S/ 6.500.</p>
+
+    <h2>11. Propuesta de inversión</h2>
+    <div class="invest-box">
+      <h3>Ronda actual: S/ 60.000 por 25%</h3>
+      <p style="margin-bottom:12px;color:#dbeafe">Valoración post-money: S/ 240.000 · Inversor estratégico (capital + ciberseguridad + desarrollo)</p>
+      <ul>
+        <li>S/ 45.000 — Equipo full time (S/ 2.500 × 2 × 9 meses)</li>
+        <li>S/ 8.000 — Mejora UX/UI y conversión</li>
+        <li>S/ 3.000 — Desarrollo técnico (ATS, integraciones)</li>
+        <li>S/ 4.000 — Infra, marketing y reserva</li>
+      </ul>
+    </div>
+
+    <p class="footer-note">Docente Pro · Documento confidencial para due diligence inicial · Información detallada bajo NDA</p>
+  </div>
+</div>
+</body>
+</html>
