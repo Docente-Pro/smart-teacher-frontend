@@ -1,5 +1,5 @@
 import { IUsuario } from "@/interfaces/IUsuario";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,9 @@ import { ArrowRight, ArrowLeft, Sparkles, PlayCircle, Circle, CheckCircle, Plus,
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { instance } from "@/services/instance";
-import { generarImagenesSesion, getTemaCurricularPayload } from "@/services/ia-sesion.service";
+import { getTemaCurricularPayload } from "@/services/ia-sesion.service";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
+import { esImagenIA, getImagenIAPrincipal, getImagenIASolucion, ImagenIA } from "@/components/Shared/GraficoIA";
 
 interface Props {
   pagina: number;
@@ -68,9 +69,6 @@ function Step8({ pagina, setPagina }: Props) {
   });
   const [seccionActual, setSeccionActual] = useState<"inicio" | "desarrollo" | "cierre">("inicio");
   const [loadingIA, setLoadingIA] = useState(false);
-  const [loadingImagenes, setLoadingImagenes] = useState(false);
-  const [imagenesError, setImagenesError] = useState(false);
-  const imageReqRef = useRef<any>(null);
   const [procesoEnEdicion, setProcesoEnEdicion] = useState<{ seccion: "inicio" | "desarrollo" | "cierre"; index: number } | null>(null);
   const [procesoEditado, setProcesoEditado] = useState<Proceso | null>(null);
 
@@ -217,79 +215,6 @@ function Step8({ pagina, setPagina }: Props) {
     handleToaster("Proceso actualizado exitosamente", "success");
   }
 
-  /**
-   * Inyecta las imágenes generadas (fase 2) en los arrays de procesos.
-   * El backend devuelve la sesión completa con imagen embebida en cada proceso.
-   * Usa functional updaters para evitar problemas de closure stale.
-   */
-  function inyectarImagenesEnProcesos(imagenesData: any) {
-    const applyImages = (
-      prev: Proceso[],
-      responseProcesos?: Array<any>,
-    ): Proceso[] => {
-      if (!responseProcesos || responseProcesos.length === 0) return prev;
-      const updated = [...prev];
-      responseProcesos.forEach((item, i) => {
-        const idx = item.index ?? i;
-        const img = item.imagen;
-        if (idx >= 0 && idx < updated.length && img) {
-          updated[idx] = { ...updated[idx], imagen: img };
-        }
-      });
-      return updated;
-    };
-
-    // Usar functional updaters → siempre opera sobre el estado más reciente
-    setInicioProcesos((prev) => applyImages(prev, imagenesData?.inicio?.procesos));
-    setDesarrolloProcesos((prev) => applyImages(prev, imagenesData?.desarrollo?.procesos));
-    setCierreProcesos((prev) => applyImages(prev, imagenesData?.cierre?.procesos));
-
-    // Actualizar store de forma segura leyendo el estado actual
-    const currentSesion = useSesionStore.getState().sesion;
-    if (currentSesion?.secuenciaDidactica) {
-      const sd = currentSesion.secuenciaDidactica;
-      updateSesion({
-        secuenciaDidactica: {
-          inicio: {
-            tiempo: sd.inicio?.tiempo || "15 min",
-            procesos: applyImages(sd.inicio?.procesos || [], imagenesData?.inicio?.procesos),
-          },
-          desarrollo: {
-            tiempo: sd.desarrollo?.tiempo || "60 min",
-            procesos: applyImages(sd.desarrollo?.procesos || [], imagenesData?.desarrollo?.procesos),
-          },
-          cierre: {
-            tiempo: sd.cierre?.tiempo || "15 min",
-            procesos: applyImages(sd.cierre?.procesos || [], imagenesData?.cierre?.procesos),
-          },
-        },
-      });
-    }
-  }
-
-  function reintentarImagenes() {
-    const req = imageReqRef.current;
-    if (!req) return;
-
-    setLoadingImagenes(true);
-    setImagenesError(false);
-
-    generarImagenesSesion(req)
-      .then((imgRes) => {
-        if (imgRes.success && imgRes.data) {
-          inyectarImagenesEnProcesos(imgRes.data);
-          handleToaster("Imágenes generadas y agregadas a la sesión", "success");
-          setImagenesError(false);
-        }
-      })
-      .catch((imgErr) => {
-        // Reintento de imágenes falló
-        handleToaster("No se pudieron generar las imágenes. Intente de nuevo.", "warning");
-        setImagenesError(true);
-      })
-      .finally(() => setLoadingImagenes(false));
-  }
-
   async function generarConIA() {
     if (!sesion) return;
 
@@ -393,40 +318,9 @@ function Step8({ pagina, setPagina }: Props) {
           ...(respAreaId ? { areaId: Number(respAreaId) } : {}),
         });
 
+        // Las imágenes ya vienen embebidas en la secuencia (`proceso.imagen`),
+        // por lo que ya no se llama a generar-imagenes-sesion por separado.
         handleToaster("Secuencia didáctica generada exitosamente con IA", "success");
-
-        // ═══════════════════════════════════════════════════════════════
-        // FASE 2: Generar imágenes en background (sin bloquear UI)
-        // ═══════════════════════════════════════════════════════════════
-        setLoadingIA(false); // Liberar el loading principal
-        setLoadingImagenes(true);
-        setImagenesError(false);
-
-        const imgReq = {
-          sesion: data.data,
-          area: sesion.datosGenerales?.area || "",
-          ...(sesion.areaId ? { areaId: sesion.areaId } : {}),
-          grado: sesion.datosGenerales?.grado || "",
-          tema: sesion.temaCurricular || "",
-        };
-        imageReqRef.current = imgReq;
-
-        generarImagenesSesion(imgReq)
-          .then((imgRes) => {
-            if (imgRes.success && imgRes.data) {
-              inyectarImagenesEnProcesos(imgRes.data);
-              handleToaster("Imágenes generadas y agregadas a la sesión", "success");
-              setImagenesError(false);
-            }
-          })
-          .catch((imgErr) => {
-            // No se pudieron generar imágenes
-            handleToaster("La sesión se generó correctamente, pero no se pudieron crear las imágenes", "warning");
-            setImagenesError(true);
-          })
-          .finally(() => setLoadingImagenes(false));
-
-        return; // No llegar al finally que haría setLoadingIA(false) otra vez
       }
     } catch (error) {
       console.error("Error al generar secuencia con IA:", error);
@@ -571,6 +465,9 @@ function Step8({ pagina, setPagina }: Props) {
             );
           }
 
+          const iaPrincipal = getImagenIAPrincipal(proc as any);
+          const iaSolucion = getImagenIASolucion(proc as any);
+
           return (
             <div
               key={index}
@@ -618,32 +515,43 @@ function Step8({ pagina, setPagina }: Props) {
                   const ocultarGrafico = esOtrosProblemas || esSocializacion;
                   return (
                     <div className="space-y-3">
+                      {iaPrincipal?.posicion === "antes" && !ocultarGrafico && (
+                        <ImagenIA imagen={iaPrincipal} modo={iaPrincipal.modo} crossOrigin={false} />
+                      )}
+
                       {/* Texto del problema (primero) */}
                       <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border-l-4 border-blue-500">
                         <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-1">Planteamiento del problema:</p>
                         <p className="text-slate-700 dark:text-slate-300">{(proc as any).problemaMatematico}</p>
                       </div>
 
-                      {/* Gráfico del problema (debajo del texto) — oculto en "otros problemas" y socialización */}
-                      {!ocultarGrafico && ((proc as any).grafico || (proc as any).graficoProblema) && (
+                      {/* Gráfico del problema (debajo del texto) — prioriza recurso visual IA */}
+                      {!ocultarGrafico && iaPrincipal && iaPrincipal.posicion !== "antes" ? (
+                        <ImagenIA imagen={iaPrincipal} modo={iaPrincipal.modo} crossOrigin={false} />
+                      ) : !ocultarGrafico && !iaPrincipal && !iaSolucion && ((proc as any).grafico || (proc as any).graficoProblema) ? (
                         <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
                           <div className="flex justify-center">
                             <GraficoRenderer grafico={(proc as any).grafico || (proc as any).graficoProblema} />
                           </div>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   );
                 })()}
 
-                {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización */}
-                {!(proc as any).problemaMatematico && (proc as any).grafico && !/socializaci[oó]n/i.test(proc.proceso) && (
-                  <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-center overflow-x-auto max-w-full">
-                    <div className="flex justify-center">
-                      <GraficoRenderer grafico={(proc as any).grafico} />
+                {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización. Prioriza recurso visual IA. */}
+                {!(proc as any).problemaMatematico && !/socializaci[oó]n/i.test(proc.proceso) && (() => {
+                  if (iaPrincipal) {
+                    return <ImagenIA imagen={iaPrincipal} modo={iaPrincipal.modo} crossOrigin={false} />;
+                  }
+                  return (proc as any).grafico ? (
+                    <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-center overflow-x-auto max-w-full">
+                      <div className="flex justify-center">
+                        <GraficoRenderer grafico={(proc as any).grafico} />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : null;
+                })()}
 
                 {/* Texto de la solución */}
                 {(proc as any).solucionProblema && (
@@ -655,10 +563,17 @@ function Step8({ pagina, setPagina }: Props) {
                   </div>
                 )}
 
+                {/* Recurso visual IA de la solución (si aplica) */}
+                {iaSolucion && (
+                  <ImagenIA imagen={iaSolucion} modo="solucion" crossOrigin={false} />
+                )}
+
                 <div>
                   {/* 🖼️ Imágenes con posición "antes" — soporta imagen singular (v2) e imagenes array (v1) */}
                   {(() => {
-                    const imgs = proc.imagenes ?? (proc.imagen ? [proc.imagen] : []);
+                    const imgsRaw = proc.imagenes ?? (proc.imagen ? [proc.imagen] : []);
+                    // Los recursos visuales IA se renderizan en su slot dedicado, no aquí.
+                    const imgs = imgsRaw.filter((img) => !esImagenIA(img));
                     const imgAntes = imgs.filter((img) => img.posicion === 'antes');
                     const imgJunto = imgs.filter((img) => img.posicion === 'junto');
                     const imgDespues = imgs.filter((img) => img.posicion === 'despues');
@@ -754,23 +669,8 @@ function Step8({ pagina, setPagina }: Props) {
               className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg"
             >
               <Wand2 className="h-5 w-5 mr-2" />
-              {loadingIA ? "Generando texto..." : "Generar con IA"}
+              {loadingIA ? "Generando..." : "Generar con IA"}
             </Button>
-            {loadingImagenes && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-lg animate-pulse">
-                <Sparkles className="h-4 w-4 text-sky-500 animate-spin" />
-                <span className="text-sm text-sky-700 dark:text-sky-300">Generando imágenes en segundo plano...</span>
-              </div>
-            )}
-            {imagenesError && !loadingImagenes && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={reintentarImagenes}
-              >
-                Reintentar generar imágenes
-              </Button>
-            )}
           </div>
         </div>
 

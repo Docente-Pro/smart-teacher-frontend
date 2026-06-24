@@ -154,6 +154,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     fechaFin: string;
     tipo: string;
   } | null>(null);
+  const [isSavingUnidad, setIsSavingUnidad] = useState(false);
 
   // Horario escolar (solo primaria)
   const {
@@ -471,6 +472,8 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
 
   /* ─── Validar y crear unidad en backend ─── */
   async function handleContinuar() {
+    if (isSavingUnidad) return;
+
     // Validaciones
     if (!titulo.trim()) return handleToaster("Ingresa el título de la unidad", "error");
     if (!isSecundaria && duracion <= 0) return handleToaster("Selecciona la duración", "error");
@@ -490,6 +493,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
       }
     }
 
+    setIsSavingUnidad(true);
     showLoading(existingUnidadId ? "Actualizando unidad de aprendizaje..." : "Creando unidad de aprendizaje...");
 
     try {
@@ -644,6 +648,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
       const msg = resData?.message || "Error al crear la unidad";
       handleToaster(msg, "error");
     } finally {
+      setIsSavingUnidad(false);
       hideLoading();
     }
   }
@@ -1336,11 +1341,21 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         <div className="flex justify-center sm:justify-end pb-10">
           <Button
             onClick={handleContinuar}
-            disabled={!titulo || (!isSecundaria && duracion <= 0) || !fechaInicio || areasSeleccionadas.length === 0 || !problematica}
+            disabled={isSavingUnidad || !titulo || (!isSecundaria && duracion <= 0) || !fechaInicio || areasSeleccionadas.length === 0 || !problematica}
+            aria-busy={isSavingUnidad}
             className="w-full sm:w-auto h-14 px-10 text-lg font-semibold bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continuar
-            <ArrowRight className="ml-2 h-5 w-5" />
+            {isSavingUnidad ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {existingUnidadId ? "Actualizando..." : "Creando unidad..."}
+              </>
+            ) : (
+              <>
+                Continuar
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </>
+            )}
           </Button>
         </div>
       </div>

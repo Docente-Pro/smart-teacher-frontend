@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { instance } from "@/services/instance";
-import { generarImagenesSesion, getTemaCurricularPayload } from "@/services/ia-sesion.service";
+import { getTemaCurricularPayload } from "@/services/ia-sesion.service";
 import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 
@@ -14,7 +14,6 @@ export type AutoGenPhase =
   | "proposito"
   | "enfoques"
   | "secuencia"
-  | "imagenes"
   | "done"
   | "error";
 
@@ -30,14 +29,16 @@ const PHASE_LABELS: Record<AutoGenPhase, string> = {
   proposito: "Generando propósito de la sesión...",
   enfoques: "Seleccionando enfoques transversales...",
   secuencia: "Creando secuencia didáctica (inicio, desarrollo y cierre)...",
-  imagenes: "Generando imágenes educativas...",
   done: "¡Sesión lista!",
   error: "Ocurrió un error",
 };
 
 /**
  * Hook que ejecuta toda la pipeline de IA en secuencia:
- *   criterios → propósito → enfoques → secuencia didáctica → imágenes (background)
+ *   criterios → propósito → enfoques → secuencia didáctica
+ *
+ * Las imágenes educativas vienen embebidas en la respuesta de la secuencia
+ * (`proceso.imagen`), por lo que ya no se generan en una llamada aparte.
  *
  * Devuelve el estado del progreso y una función `run()` para iniciar.
  */
@@ -222,66 +223,9 @@ export function useAutoGenerarSesion() {
         });
       }
 
+      // Las imágenes educativas ya vienen embebidas en la secuencia
+      // (`proceso.imagen`) y se guardaron en el store con el updateSesion previo.
       setState({ phase: "done", isRunning: false, error: null });
-
-      // ═══════════════ 5. IMÁGENES (Background, no bloquea) ═══════════════
-      const sesionFinal = useSesionStore.getState().sesion;
-      if (sesionFinal && secuenciaRes.data.success) {
-        generarImagenesSesion({
-          sesion: secuenciaRes.data.data,
-          area: sesionFinal.datosGenerales?.area || "",
-          ...(sesionFinal.areaId ? { areaId: sesionFinal.areaId } : {}),
-          grado: sesionFinal.datosGenerales?.grado || "",
-          tema: sesionFinal.temaCurricular || "",
-        })
-          .then((imgRes) => {
-            if (imgRes.success && imgRes.data) {
-              // Inyectar imágenes en procesos del store
-              const sesActual = useSesionStore.getState().sesion;
-              if (!sesActual) return;
-
-              const inyectar = (seccion: "inicio" | "desarrollo" | "cierre") => {
-                const imgData = (imgRes.data as any)[seccion];
-                if (!imgData?.procesos) return null;
-                const procesosActualizados = (sesActual.secuenciaDidactica[seccion]?.procesos || []).map(
-                  (proc: any, idx: number) => {
-                    const imgProc = imgData.procesos[idx];
-                    if (imgProc?.imagen) {
-                      return { ...proc, imagen: imgProc.imagen };
-                    }
-                    return proc;
-                  }
-                );
-                return procesosActualizados;
-              };
-
-              const inicioProcs = inyectar("inicio");
-              const desarrolloProcs = inyectar("desarrollo");
-              const cierreProcs = inyectar("cierre");
-
-              updateSesion({
-                secuenciaDidactica: {
-                  inicio: {
-                    ...sesActual.secuenciaDidactica.inicio,
-                    ...(inicioProcs && { procesos: inicioProcs }),
-                  },
-                  desarrollo: {
-                    ...sesActual.secuenciaDidactica.desarrollo,
-                    ...(desarrolloProcs && { procesos: desarrolloProcs }),
-                  },
-                  cierre: {
-                    ...sesActual.secuenciaDidactica.cierre,
-                    ...(cierreProcs && { procesos: cierreProcs }),
-                  },
-                },
-              });
-              handleToaster("Imágenes educativas generadas", "success");
-            }
-          })
-          .catch(() => {
-            // Las imágenes son opcionales, no bloqueamos si fallan
-          });
-      }
 
       return true;
     } catch (error: any) {

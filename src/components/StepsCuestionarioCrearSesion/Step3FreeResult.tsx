@@ -34,6 +34,7 @@ import { useSesionStore } from "@/store/sesion.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import type { IProcesoSecuencia, ICriterioIA } from "@/interfaces/ISesionAprendizaje";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
+import { esImagenIA, getImagenIAPrincipal, getImagenIASolucion, ImagenIA } from "@/components/Shared/GraficoIA";
 
 /* ───── helpers ───── */
 function criterioTexto(c: string | ICriterioIA): string {
@@ -178,6 +179,13 @@ function ProcesoCard({
         />
       </div>
 
+      {(() => {
+        const ia = getImagenIAPrincipal(proceso as any);
+        return proceso.problemaMatematico && ia?.posicion === "antes" ? (
+          <ImagenIA imagen={ia} modo={ia.modo} crossOrigin={false} />
+        ) : null;
+      })()}
+
       {/* ─── Planteamiento del problema (antes de estrategias, alineado con Premium) ─── */}
       {proceso.problemaMatematico && (
         <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border-l-4 border-blue-500">
@@ -228,8 +236,8 @@ function ProcesoCard({
         />
       </div>
 
-      {/* Imagen */}
-      {proceso.imagen && proceso.imagen.url && proceso.imagen.url !== "GENERATE_IMAGE" && (
+      {/* Imagen (genérica; los recursos visuales IA se renderizan en su slot dedicado) */}
+      {proceso.imagen && proceso.imagen.url && proceso.imagen.url !== "GENERATE_IMAGE" && !esImagenIA(proceso.imagen) && (
         <img
           src={proceso.imagen.url}
           alt={proceso.imagen.descripcion || "Imagen del proceso"}
@@ -242,7 +250,16 @@ function ProcesoCard({
         const esOtrosProblemas = /otros\s+problemas/i.test(proceso.proceso);
         const esSocializacion = /socializaci[oó]n/i.test(proceso.proceso);
         const ocultarGrafico = esOtrosProblemas || esSocializacion;
-        return !ocultarGrafico && ((proceso as any).grafico || (proceso as any).graficoProblema) ? (
+        if (ocultarGrafico) return null;
+
+        // Prioridad: recurso visual IA sobre el gráfico SVG legacy.
+        const ia = getImagenIAPrincipal(proceso as any);
+        if (ia && ia.posicion !== "antes") {
+          return <ImagenIA imagen={ia} modo={ia.modo} crossOrigin={false} />;
+        }
+        if (getImagenIASolucion(proceso as any)) return null;
+
+        return ((proceso as any).grafico || (proceso as any).graficoProblema) ? (
           <div className="mt-2 bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
             <div className="flex justify-center">
               <GraficoRenderer grafico={(proceso as any).grafico || (proceso as any).graficoProblema} />
@@ -251,14 +268,20 @@ function ProcesoCard({
         ) : null;
       })()}
 
-      {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización */}
-      {!proceso.problemaMatematico && (proceso as any).grafico && !/socializaci[oó]n/i.test(proceso.proceso) && (
-        <div className="mt-2 bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full">
-          <div className="flex justify-center">
-            <GraficoRenderer grafico={(proceso as any).grafico} />
+      {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización. Prioriza recurso visual IA. */}
+      {!proceso.problemaMatematico && !/socializaci[oó]n/i.test(proceso.proceso) && (() => {
+        const ia = getImagenIAPrincipal(proceso as any);
+        if (ia) {
+          return <ImagenIA imagen={ia} modo={ia.modo} crossOrigin={false} />;
+        }
+        return (proceso as any).grafico ? (
+          <div className="mt-2 bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full">
+            <div className="flex justify-center">
+              <GraficoRenderer grafico={(proceso as any).grafico} />
+            </div>
           </div>
-        </div>
-      )}
+        ) : null;
+      })()}
 
       {/* Texto de la solución */}
       {(proceso as any).solucionProblema && (
@@ -272,6 +295,14 @@ function ProcesoCard({
           />
         </div>
       )}
+
+      {/* Recurso visual IA de la solución (si aplica) */}
+      {(() => {
+        const ia = getImagenIASolucion(proceso as any);
+        return ia ? (
+          <ImagenIA imagen={ia} modo="solucion" crossOrigin={false} />
+        ) : null;
+      })()}
 
       {/* Respuestas Docente */}
       {proceso.respuestasDocente && proceso.respuestasDocente.length > 0 && (

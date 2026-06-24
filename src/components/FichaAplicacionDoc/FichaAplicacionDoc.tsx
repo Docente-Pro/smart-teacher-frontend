@@ -28,6 +28,8 @@ import type {
 } from "@/interfaces/IFichaAplicacion";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 import { normalizarEtiquetaGrafico } from "@/utils/normalizarEtiquetaGrafico";
+import { ImagenIAVisual } from "@/components/Shared/ImagenIAVisual";
+import { resolveSeccionVisual } from "@/types/visuales-ia";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Types
@@ -338,10 +340,12 @@ function BloqueProblema({
   seccion,
   hex,
   numero,
+  ocultarGraficoLegacy = false,
 }: {
   seccion: ISeccionProblema;
   hex: Hex;
   numero: number;
+  ocultarGraficoLegacy?: boolean;
 }) {
   const { contenido } = seccion;
   return (
@@ -391,7 +395,7 @@ function BloqueProblema({
       )}
 
       {/* Gráfico descriptivo (ilustración/diagrama) */}
-      {contenido.grafico && (
+      {!ocultarGraficoLegacy && contenido.grafico && (
         <div
           style={{
             border: `1.5px solid ${hex.medium}`,
@@ -1003,7 +1007,11 @@ function BloqueEspacioDibujo({
 let _problemaCounter = 0;
 
 function SeccionRenderer({ seccion, hex }: { seccion: ISeccionFicha; hex: Hex }) {
-  switch (seccion.tipo) {
+  const visual = resolveSeccionVisual(seccion as unknown as Record<string, unknown>);
+  const tieneImagenIA = visual?.kind === "imagen_ia" && visual.imagen;
+
+  const renderContenido = () => {
+    switch (seccion.tipo) {
     case "texto":
       return <BloqueTexto seccion={seccion as ISeccionTexto} hex={hex} />;
     case "problema":
@@ -1013,6 +1021,7 @@ function SeccionRenderer({ seccion, hex }: { seccion: ISeccionFicha; hex: Hex })
           seccion={seccion as ISeccionProblema}
           hex={hex}
           numero={_problemaCounter}
+          ocultarGraficoLegacy={Boolean(tieneImagenIA)}
         />
       );
     case "preguntas":
@@ -1033,7 +1042,20 @@ function SeccionRenderer({ seccion, hex }: { seccion: ISeccionFicha; hex: Hex })
       return <BloqueEspacioDibujo seccion={seccion as ISeccionEspacioDibujo} hex={hex} />;
     default:
       return null;
+    }
+  };
+
+  const contenido = renderContenido();
+
+  if (tieneImagenIA) {
+    return (
+      <ImagenIAVisual imagen={visual.imagen!} crossOrigin>
+        {contenido}
+      </ImagenIAVisual>
+    );
   }
+
+  return contenido;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
