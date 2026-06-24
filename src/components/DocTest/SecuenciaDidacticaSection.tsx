@@ -1,6 +1,7 @@
 import { ISecuenciaDidactica } from "@/interfaces/ISesionAprendizaje";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 import { parseMarkdown } from "@/utils/parseMarkdown";
+import { esImagenIA, getImagenIA, getImagenIAPrincipal, getImagenIASolucion, ImagenIA } from "@/components/Shared/GraficoIA";
 
 /** Tipos de gráficos que son tablas y necesitan ancho completo */
 const GRAFICOS_TABLA = [
@@ -38,16 +39,19 @@ interface SecuenciaDidacticaSectionProps {
  */
 function normalizarImagenes(proceso: any) {
   const base = proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
+  // Los recursos visuales IA (tipo "*_ia") se renderizan en su slot dedicado,
+  // no como imágenes genéricas, para evitar duplicados.
+  const sinIA = base.filter((img: any) => !esImagenIA(img));
   if (proceso.imagenContenido?.url) {
     return [
-      ...base,
+      ...sinIA,
       {
         ...proceso.imagenContenido,
         posicion: proceso.imagenContenido.posicion || "debajo",
       },
     ];
   }
-  return base;
+  return sinIA;
 }
 
 /**
@@ -101,12 +105,22 @@ function renderProcesoRow(proceso: any, idx: number) {
   const imgJunto = allImagenes.filter((img: any) => img.posicion === 'junto');
   const tieneImagenesJunto = imgJunto.length > 0;
 
+  // Recurso visual IA del proceso (cualquier área). "solucion" se muestra tras
+  // el texto de la solución; el resto, en el slot principal del proceso.
+  const imagenIA = getImagenIA(proceso);
+  const imagenIASolucion = getImagenIASolucion(proceso);
+  const imagenIAPrincipal = getImagenIAPrincipal(proceso);
+
   return (
     <tr key={idx}>
       <td colSpan={2} style={{ verticalAlign: "top", padding: "0.7rem 1rem", fontSize: "9pt", lineHeight: "1.6" }}>
         {/* ═══ Layout condicional: con o sin problemaMatematico (alineado con Premium) ═══ */}
         {proceso.problemaMatematico ? (
           <>
+            {imagenIAPrincipal?.posicion === "antes" && (
+              <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} crossOrigin={false} />
+            )}
+
             {/* Título + Problema + Estrategias integrados en un solo bloque de texto */}
             {tieneImagenesJunto ? (
               <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
@@ -162,7 +176,14 @@ function renderProcesoRow(proceso: any, idx: number) {
               const esOtrosProblemas = /otros\s+problemas/i.test(proceso.proceso || "");
               const esSocializacion = /socializaci[oó]n/i.test(proceso.proceso || "");
               const ocultarGrafico = esOtrosProblemas || esSocializacion;
-              return !ocultarGrafico && (proceso.grafico || proceso.graficoProblema) ? (
+              if (ocultarGrafico) return null;
+
+              // Prioridad: recurso visual IA sobre el gráfico SVG legacy.
+              if (imagenIAPrincipal && imagenIAPrincipal.posicion !== "antes") {
+                return <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} crossOrigin={false} />;
+              }
+
+              return (proceso.grafico || proceso.graficoProblema) ? (
                 <div className="no-break" style={{
                   marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.6rem 0.8rem",
                   backgroundColor: "#f0f9ff", borderRadius: "8px", border: "1px solid #bae6fd",
@@ -179,7 +200,7 @@ function renderProcesoRow(proceso: any, idx: number) {
             })()}
 
             {/* Fallback: Imagen del problema (legacy) */}
-            {!proceso.grafico && !proceso.graficoProblema && proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
+            {!imagenIA && !proceso.grafico && !proceso.graficoProblema && proceso.imagenProblema && proceso.imagenProblema !== "GENERATE_IMAGE" && (
               <div style={{ textAlign: "center", marginBottom: "0.6rem" }}>
                 <img src={proceso.imagenProblema} alt="Problema matemático" style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }} />
               </div>
@@ -196,6 +217,11 @@ function renderProcesoRow(proceso: any, idx: number) {
                   {parseMarkdown(proceso.solucionProblema)}
                 </div>
               </div>
+            )}
+
+            {/* Recurso visual IA de la solución (si aplica) */}
+            {imagenIASolucion && (
+              <ImagenIA imagen={imagenIASolucion} modo="solucion" crossOrigin={false} />
             )}
           </>
         ) : (
@@ -248,21 +274,26 @@ function renderProcesoRow(proceso: any, idx: number) {
 
             {renderImagenesProceso(proceso, 'despues')}
 
-            {/* Gráfico standalone — oculto en socialización */}
-            {proceso.grafico && !/socializaci[oó]n/i.test(proceso.proceso || "") && (
-              <div className="no-break" style={{
-                marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.6rem 0.8rem",
-                background: "linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%)",
-                borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center", overflow: "visible",
-              }}>
-                <div style={{
-                  maxWidth: esGraficoAnchoCompleto(proceso.grafico) ? "100%" : 340,
-                  width: "100%", margin: "0 auto", minWidth: 0,
+            {/* Gráfico standalone — oculto en socialización. Prioriza recurso visual IA. */}
+            {!/socializaci[oó]n/i.test(proceso.proceso || "") && (() => {
+              if (imagenIAPrincipal) {
+                return <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} crossOrigin={false} />;
+              }
+              return proceso.grafico ? (
+                <div className="no-break" style={{
+                  marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.6rem 0.8rem",
+                  background: "linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%)",
+                  borderRadius: "8px", border: "1px solid #e2e8f0", textAlign: "center", overflow: "visible",
                 }}>
-                  <GraficoRenderer grafico={proceso.grafico} />
+                  <div style={{
+                    maxWidth: esGraficoAnchoCompleto(proceso.grafico) ? "100%" : 340,
+                    width: "100%", margin: "0 auto", minWidth: 0,
+                  }}>
+                    <GraficoRenderer grafico={proceso.grafico} />
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : null;
+            })()}
 
             {/* Solución del problema */}
             {proceso.solucionProblema && (
@@ -275,6 +306,10 @@ function renderProcesoRow(proceso: any, idx: number) {
                   {parseMarkdown(proceso.solucionProblema)}
                 </div>
               </div>
+            )}
+
+            {imagenIASolucion && (
+              <ImagenIA imagen={imagenIASolucion} modo="solucion" crossOrigin={false} />
             )}
           </>
         )}

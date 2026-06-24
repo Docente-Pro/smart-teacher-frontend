@@ -1,3 +1,5 @@
+import type { ImagenIA } from "@/types/visuales-ia";
+
 /**
  * Interfaces para Fichas de Aplicación.
  *
@@ -154,8 +156,13 @@ export interface ISeccionEspacioDibujo {
   };
 }
 
+/** Campo visual opcional común a cualquier sección de ficha. */
+export interface ISeccionConImagen {
+  imagen?: ImagenIA;
+}
+
 /** Unión de todos los tipos de sección */
-export type ISeccionFicha =
+export type ISeccionFicha = (
   | ISeccionTexto
   | ISeccionProblema
   | ISeccionPreguntas
@@ -165,7 +172,8 @@ export type ISeccionFicha =
   | ISeccionOrdenar
   | ISeccionVerdaderoFalso
   | ISeccionSeleccionMultiple
-  | ISeccionEspacioDibujo;
+  | ISeccionEspacioDibujo
+) & ISeccionConImagen;
 
 // ─── Solucionario ───────────────────────────────────────────────────────────
 

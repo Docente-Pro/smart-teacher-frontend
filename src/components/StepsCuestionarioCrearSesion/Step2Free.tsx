@@ -14,7 +14,6 @@ import {
   Sparkles,
   Loader2,
   Wand2,
-  BookOpen,
   FileText,
   Heart,
   Layers,
@@ -44,7 +43,6 @@ const PHASE_CONFIG: Record<
   proposito: { icon: Target, gradient: "from-purple-500 to-pink-500", progress: 40 },
   enfoques: { icon: Heart, gradient: "from-rose-500 to-orange-500", progress: 60 },
   secuencia: { icon: Layers, gradient: "from-amber-500 to-yellow-500", progress: 80 },
-  imagenes: { icon: BookOpen, gradient: "from-emerald-500 to-teal-500", progress: 90 },
   done: { icon: CheckCircle2, gradient: "from-green-500 to-emerald-500", progress: 100 },
   error: { icon: Target, gradient: "from-red-500 to-rose-500", progress: 0 },
 };

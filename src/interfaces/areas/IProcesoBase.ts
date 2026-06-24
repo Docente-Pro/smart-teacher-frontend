@@ -1,19 +1,44 @@
 /**
  * Imagen asociada a un proceso de la secuencia didáctica
  */
+/**
+ * Tipos de recurso visual generado por IA (sistema AI_VISUALS).
+ * Todos terminan en "_ia" y aplican a cualquier área curricular.
+ */
+export type TipoImagenIA =
+  | "grafico_ia"      // gráfico/infografía matemática (reemplaza al SVG legacy)
+  | "infografia_ia"   // infografía conceptual
+  | "diagrama_ia"     // diagrama/esquema
+  | "ilustracion_ia"  // ilustración de apoyo
+  | "vocabulario_ia"  // tarjeta de vocabulario
+  | "evidencia_ia";   // evidencia/producto esperado
+
 export interface IImagenProceso {
   /** Identificador único de la imagen (opcional en v2) */
   id?: string;
   /** URL completa de la imagen (S3) */
   url: string;
-  /** "ilustrativa" = imagen decorativa, "contenido" = imagen con texto overlay */
-  tipo?: "ilustrativa" | "contenido";
+  /**
+   * "ilustrativa" = imagen decorativa, "contenido" = imagen con texto overlay,
+   * o un recurso visual generado por IA (`*_ia`) para cualquier área.
+   */
+  tipo?: "ilustrativa" | "contenido" | TipoImagenIA;
+  /**
+   * Para recursos `*_ia`: matiz del recurso. En Matemática suele ser
+   * "problema" | "solucion"; en otras áreas "concepto", "evidencia", etc.
+   * Si no viene, se asume contenido principal del proceso.
+   */
+  modo?: "problema" | "solucion" | "concepto" | (string & {});
   /** Descripción breve de la imagen */
   descripcion: string;
   /** Dónde renderizar respecto al texto de estrategias */
-  posicion: 'antes' | 'junto' | 'despues';
+  posicion: 'antes' | 'junto' | 'despues' | 'debajo';
   /** Texto superpuesto en la imagen (solo presente cuando tipo === "contenido") */
   texto_overlay?: string;
+  /** Para recursos `*_ia`: indica que la imagen incluye/depende de texto descriptivo */
+  requiereTexto?: boolean;
+  /** Tipo MIME del recurso generado (ej. "image/png") */
+  mimeType?: string;
 }
 
 /**

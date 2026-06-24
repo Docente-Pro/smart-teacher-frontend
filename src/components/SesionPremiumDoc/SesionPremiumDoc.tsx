@@ -27,6 +27,7 @@ import { SesionPlanLectorDoc } from "./SesionPlanLectorDoc";
 import { getSavedAlumnos } from "@/utils/alumnosStorage";
 import { GraficoRenderer } from "@/features/graficos-educativos/presentation/components/GraficoRenderer";
 import { parseMarkdown } from "@/utils/parseMarkdown";
+import { esImagenIA, getImagenIA, getImagenIAPrincipal, getImagenIASolucion, ImagenIA } from "@/components/Shared/GraficoIA";
 import { formatDateOnlyEsPE } from "@/utils/dateOnlyPeru";
 import type {
   ISesionPremiumResponse,
@@ -453,10 +454,17 @@ function ProcesoPremiumRow({
 
   // Normalizar imágenes: soporta imagen singular (v2), imagenes array (v1)
   // e imagenContenido (contenido didáctico: tabla, gráfico, mapa, etc.)
-  const baseImagenes = proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
+  const baseImagenesRaw = proceso.imagenes ?? (proceso.imagen ? [proceso.imagen] : []);
+  // Los recursos visuales IA se renderizan en su slot dedicado, no como imágenes genéricas.
+  const baseImagenes = baseImagenesRaw.filter((img: any) => !esImagenIA(img));
   const imagenes = proceso.imagenContenido?.url
     ? [...baseImagenes, { ...proceso.imagenContenido, posicion: proceso.imagenContenido.posicion || "debajo" }]
     : baseImagenes;
+
+  // Recurso visual IA del proceso (cualquier área).
+  const imagenIA = getImagenIA(proceso as any);
+  const imagenIASolucion = getImagenIASolucion(proceso as any);
+  const imagenIAPrincipal = getImagenIAPrincipal(proceso as any);
   const imgAntes = imagenes.filter((img) => img.posicion === "antes");
   const imgJunto = imagenes.filter((img) => img.posicion === "junto");
   const imgDespues = imagenes.filter((img) => img.posicion === "despues" || img.posicion === "debajo" || (!img.posicion && img.posicion !== "antes" && img.posicion !== "junto"));
@@ -506,6 +514,10 @@ function ProcesoPremiumRow({
         {/* ═══ Layout cuando HAY problemaMatematico: texto arriba del gráfico ═══ */}
         {tieneProblema ? (
           <>
+            {imagenIAPrincipal?.posicion === "antes" && !ocultarGrafico && (
+              <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} />
+            )}
+
             {/* Título + Problema + Estrategias en un solo bloque con imagen "junto" */}
             {imgJunto.length > 0 ? (
               <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", marginBottom: "0.8rem" }}>
@@ -560,8 +572,10 @@ function ProcesoPremiumRow({
             {renderImageBlock(imgAntes)}
             {renderImageBlock(imgDespues)}
 
-            {/* 5. Gráfico del problema */}
-            {!ocultarGrafico && proceso.grafico && esGraficoRenderable(proceso.grafico) && (
+            {/* 5. Gráfico del problema — prioriza recurso visual IA sobre el SVG legacy */}
+            {!ocultarGrafico && imagenIAPrincipal && imagenIAPrincipal.posicion !== "antes" ? (
+              <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} />
+            ) : !ocultarGrafico && proceso.grafico && esGraficoRenderable(proceso.grafico) ? (
               <div className="no-break" style={{
                 marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.6rem 0.8rem",
                 backgroundColor: "#f0f9ff", borderRadius: "8px", border: "1px solid #bae6fd",
@@ -574,7 +588,7 @@ function ProcesoPremiumRow({
                   <GraficoRenderer grafico={proceso.grafico as any} mostrarErrores={false} />
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* 6. Solución del problema (texto) */}
             {(proceso as any).solucionProblema && (
@@ -589,6 +603,11 @@ function ProcesoPremiumRow({
                   {parseMarkdown((proceso as any).solucionProblema)}
                 </div>
               </div>
+            )}
+
+            {/* 7. Recurso visual IA de la solución (si aplica) */}
+            {imagenIASolucion && (
+              <ImagenIA imagen={imagenIASolucion} modo="solucion" />
             )}
           </>
         ) : (
@@ -635,8 +654,10 @@ function ProcesoPremiumRow({
             {/* Imágenes con posicion "despues" o sin posicion */}
             {renderImageBlock(imgDespues)}
 
-            {/* Gráfico standalone */}
-            {proceso.grafico && esGraficoRenderable(proceso.grafico) && !/socializaci[oó]n/i.test(tituloProc) && (
+            {/* Gráfico standalone — prioriza recurso visual IA sobre el SVG legacy */}
+            {!/socializaci[oó]n/i.test(tituloProc) && imagenIAPrincipal ? (
+              <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} />
+            ) : proceso.grafico && esGraficoRenderable(proceso.grafico) && !/socializaci[oó]n/i.test(tituloProc) ? (
               <div className="no-break" style={{
                 marginTop: "0.6rem", marginBottom: "0.6rem", padding: "0.6rem 0.8rem",
                 background: "linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%)",
@@ -649,7 +670,7 @@ function ProcesoPremiumRow({
                   <GraficoRenderer grafico={proceso.grafico as any} mostrarErrores={false} />
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Solución del problema (texto) */}
             {(proceso as any).solucionProblema && (
@@ -664,6 +685,10 @@ function ProcesoPremiumRow({
                   {parseMarkdown((proceso as any).solucionProblema)}
                 </div>
               </div>
+            )}
+
+            {imagenIASolucion && (
+              <ImagenIA imagen={imagenIASolucion} modo="solucion" />
             )}
           </>
         )}
