@@ -20,7 +20,7 @@ interface PropositoCompetencia {
   actividades: string[];
   campoTematico: string;
   criteriosEvaluacion: string[];
-  evidenciasAprendizaje: string[];
+  evidenciasAprendizaje?: string[];
   instrumentoEvaluacion: string;
 }
 
