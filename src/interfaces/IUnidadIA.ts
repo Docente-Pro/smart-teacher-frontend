@@ -72,6 +72,8 @@ export interface ICompetenciaProposito {
 export interface IActividadCriterioProposito {
   actividad: string;
   criterios: string[];
+  /** Producto, actuación o registro observable generado en esta actividad. */
+  evidencia?: string | null;
 }
 
 export interface IAreaProposito {

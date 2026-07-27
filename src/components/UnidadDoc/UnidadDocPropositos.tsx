@@ -43,6 +43,7 @@ function getActividadCriteriosAgrupados(comp: ICompetenciaProposito) {
     return {
       actividad,
       criterios: mapeado?.criterios ?? [],
+      evidencia: mapeado?.evidencia ?? "",
     };
   });
 
@@ -50,6 +51,7 @@ function getActividadCriteriosAgrupados(comp: ICompetenciaProposito) {
     return actividadCriterios.map((ac) => ({
       actividad: ac.actividad,
       criterios: ac.criterios ?? [],
+      evidencia: ac.evidencia ?? "",
     }));
   }
 
@@ -60,7 +62,9 @@ function getActividadCriteriosAgrupados(comp: ICompetenciaProposito) {
  * Builds activity-criteria groups for a competency, with fallback distribution
  * when the backend doesn't provide explicit actividadCriterios pairing.
  */
-function getGruposConFallback(comp: ICompetenciaProposito): Array<{ actividad: string; criterios: string[] }> {
+function getGruposConFallback(
+  comp: ICompetenciaProposito,
+): Array<{ actividad: string; criterios: string[]; evidencia: string }> {
   const rawGrupos = getActividadCriteriosAgrupados(comp);
 
   if (rawGrupos.length > 0 && rawGrupos.some((g) => (g.criterios?.length ?? 0) > 0)) {
@@ -74,6 +78,7 @@ function getGruposConFallback(comp: ICompetenciaProposito): Array<{ actividad: s
     return rawGrupos.map((g, idx) => ({
       actividad: g.actividad,
       criterios: criterios.slice(idx * perGroup, (idx + 1) * perGroup),
+      evidencia: g.evidencia,
     }));
   }
 
@@ -83,25 +88,30 @@ function getGruposConFallback(comp: ICompetenciaProposito): Array<{ actividad: s
     return comp.actividades.map((act, idx) => ({
       actividad: act,
       criterios: comp.criterios.slice(idx * perGroup, (idx + 1) * perGroup),
+      evidencia: "",
     }));
   }
 
   if (rawGrupos.length > 0) return rawGrupos;
 
   if (comp.criterios?.length > 0) {
-    return [{ actividad: "", criterios: comp.criterios }];
+    return [{ actividad: "", criterios: comp.criterios, evidencia: "" }];
   }
   if (comp.actividades?.length > 0) {
-    return comp.actividades.map((act) => ({ actividad: act, criterios: [] }));
+    return comp.actividades.map((act) => ({
+      actividad: act,
+      criterios: [],
+      evidencia: "",
+    }));
   }
-  return [{ actividad: "", criterios: [] }];
+  return [{ actividad: "", criterios: [], evidencia: "" }];
 }
 
 /**
  * II. PROPÓSITO DE APRENDIZAJE
  *
  * Gran tabla con columnas: AREA, COMPETENCIAS Y CAPACIDADES, ESTÁNDAR DE APRENDIZAJE,
- * CRITERIOS, ACTIVIDADES, INSTRUMENTOS.
+ * CRITERIOS, EVIDENCIAS, ACTIVIDADES, INSTRUMENTOS.
  *
  * Each activity-criteria group gets its own <tr> so criteria and activities
  * are aligned at the same vertical level. rowSpan is used for the other columns.
@@ -119,11 +129,12 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
       <table style={{ tableLayout: "fixed", width: "100%" }}>
         <colgroup>
           <col style={{ width: "4%" }} />
+          <col style={{ width: "15%" }} />
+          <col style={{ width: "24%" }} />
           <col style={{ width: "16%" }} />
-          <col style={{ width: "28%" }} />
-          <col style={{ width: "18%" }} />
-          <col style={{ width: "20%" }} />
-          <col style={{ width: "14%" }} />
+          <col style={{ width: "15%" }} />
+          <col style={{ width: "16%" }} />
+          <col style={{ width: "10%" }} />
         </colgroup>
         <thead>
           <tr>
@@ -131,6 +142,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
             <th style={{ textAlign: "center" }}>COMPETENCIAS Y CAPACIDADES</th>
             <th style={{ textAlign: "center" }}>ESTÁNDAR DE APRENDIZAJE</th>
             <th style={{ textAlign: "center" }}>CRITERIOS DE EVALUACIÓN</th>
+            <th style={{ textAlign: "center" }}>EVIDENCIAS DE APRENDIZAJE</th>
             <th style={{ textAlign: "center" }}>ACTIVIDADES</th>
             <th style={{ textAlign: "center" }}>INSTRUMENTOS</th>
           </tr>
@@ -160,7 +172,7 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                   >
                     <VerticalText text={areaProp.area.toUpperCase()} />
                   </td>
-                  <td colSpan={5} style={{ fontSize: "8pt", color: "#888", fontStyle: "italic" }}>
+                  <td colSpan={6} style={{ fontSize: "8pt", color: "#888", fontStyle: "italic" }}>
                     Sin competencias generadas
                   </td>
                 </tr>
@@ -247,6 +259,23 @@ export function UnidadDocPropositos({ propositos, areasComplementarias }: Props)
                             <span>{parseMarkdown(crit)}</span>
                           </p>
                         ))}
+                      </td>
+
+                      {/* EVIDENCIA — producto observable de esta actividad */}
+                      <td style={{ fontSize: "8pt", verticalAlign: "top" }}>
+                        {grupo.evidencia && (
+                          <p
+                            style={{
+                              fontSize: "8pt",
+                              marginBottom: "0.1rem",
+                              display: "flex",
+                              gap: "0.2rem",
+                            }}
+                          >
+                            <span style={{ flexShrink: 0 }}>•</span>
+                            <span>{parseMarkdown(grupo.evidencia)}</span>
+                          </p>
+                        )}
                       </td>
 
                       {/* ACTIVIDAD */}

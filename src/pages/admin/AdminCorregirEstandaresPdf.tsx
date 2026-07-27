@@ -302,6 +302,9 @@ export default function AdminCorregirEstandaresPdf() {
               actividades: c?.actividades || [],
               campoTematico: c?.campoTematico || "—",
               criteriosEvaluacion: c?.criterios || [],
+              evidenciasAprendizaje: (c?.actividadCriterios || [])
+                .map((ac: any) => ac?.evidencia)
+                .filter(Boolean),
               instrumentoEvaluacion: c?.instrumento || "Lista de cotejo",
             })),
         })),
