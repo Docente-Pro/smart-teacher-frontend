@@ -20,6 +20,7 @@ interface PropositoCompetencia {
   actividades: string[];
   campoTematico: string;
   criteriosEvaluacion: string[];
+  evidenciasAprendizaje: string[];
   instrumentoEvaluacion: string;
 }
 
@@ -244,14 +245,15 @@ export function UnidadSecundariaFormatoDoc({ formato }: Props) {
         <table key={`${pg.grado}-${gIdx}`}>
           <thead>
             <tr>
-              <th colSpan={6} style={{ textAlign: "center" }}>GRADO {text(pg.grado)}</th>
+              <th colSpan={7} style={{ textAlign: "center" }}>GRADO {text(pg.grado)}</th>
             </tr>
             <tr>
-              <th style={{ width: "19%" }}>COMPETENCIA Y CAPACIDADES</th>
-              <th style={{ width: "21%" }}>ESTÁNDAR</th>
-              <th style={{ width: "22%" }}>ACTIVIDADES</th>
-              <th style={{ width: "12%" }}>CAMPO TEMÁTICO</th>
-              <th style={{ width: "17%" }}>CRITERIOS DE EVALUACIÓN</th>
+              <th style={{ width: "16%" }}>COMPETENCIA Y CAPACIDADES</th>
+              <th style={{ width: "18%" }}>ESTÁNDAR</th>
+              <th style={{ width: "17%" }}>ACTIVIDADES</th>
+              <th style={{ width: "10%" }}>CAMPO TEMÁTICO</th>
+              <th style={{ width: "15%" }}>CRITERIOS DE EVALUACIÓN</th>
+              <th style={{ width: "15%" }}>EVIDENCIAS DE APRENDIZAJE</th>
               <th style={{ width: "9%" }}>Instrumento de evaluación</th>
             </tr>
           </thead>
@@ -266,6 +268,7 @@ export function UnidadSecundariaFormatoDoc({ formato }: Props) {
                 <td>{renderList(cp.actividades)}</td>
                 <td>{text(cp.campoTematico)}</td>
                 <td>{renderList(cp.criteriosEvaluacion)}</td>
+                <td>{renderList(cp.evidenciasAprendizaje)}</td>
                 <td>{text(cp.instrumentoEvaluacion)}</td>
               </tr>
             ))}

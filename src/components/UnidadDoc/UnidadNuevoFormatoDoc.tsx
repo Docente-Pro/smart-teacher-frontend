@@ -213,16 +213,17 @@ export function UnidadNuevoFormatoDoc({
         <table key={`${grado}-${gIdx}`}>
           <thead>
             <tr>
-              <th colSpan={6} style={{ textAlign: "center" }}>
+              <th colSpan={7} style={{ textAlign: "center" }}>
                 GRADO {normalizeText(grado)}
               </th>
             </tr>
             <tr>
-              <th style={{ width: "19%" }}>COMPETENCIA Y CAPACIDADES</th>
-              <th style={{ width: "21%" }}>ESTÁNDAR</th>
-              <th style={{ width: "22%" }}>ACTIVIDADES</th>
-              <th style={{ width: "12%" }}>CAMPO TEMÁTICO</th>
-              <th style={{ width: "17%" }}>CRITERIOS DE EVALUACIÓN</th>
+              <th style={{ width: "16%" }}>COMPETENCIA Y CAPACIDADES</th>
+              <th style={{ width: "18%" }}>ESTÁNDAR</th>
+              <th style={{ width: "17%" }}>ACTIVIDADES</th>
+              <th style={{ width: "10%" }}>CAMPO TEMÁTICO</th>
+              <th style={{ width: "15%" }}>CRITERIOS DE EVALUACIÓN</th>
+              <th style={{ width: "15%" }}>EVIDENCIAS DE APRENDIZAJE</th>
               <th style={{ width: "9%" }}>Instrumento de evaluación</th>
             </tr>
           </thead>
@@ -242,12 +243,20 @@ export function UnidadNuevoFormatoDoc({
                   <td>{toLines(c.actividades)}</td>
                   <td>{normalizeText(ap.area)}</td>
                   <td>{toLines(c.criterios)}</td>
+                  <td>
+                    {toLines(
+                      (c.actividadCriterios || [])
+                        .map((ac) => ac.evidencia || "")
+                        .filter(Boolean),
+                    )}
+                  </td>
                   <td>{normalizeText(c.instrumento)}</td>
                 </tr>
               )),
             )}
             {(contenido.propositos?.areasPropositos || []).length === 0 && (
               <tr>
+                <td>—</td>
                 <td>—</td>
                 <td>—</td>
                 <td>—</td>
