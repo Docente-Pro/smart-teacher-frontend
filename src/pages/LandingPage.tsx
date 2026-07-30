@@ -3,48 +3,52 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Hero from "@/components/landing/Hero";
 import Features from "@/components/landing/Features";
+import SessionPreview from "@/components/landing/SessionPreview";
 import Pricing from "@/components/landing/Pricing";
 import Footer from "@/components/landing/Footer";
+import LandingHeader from "@/components/landing/LandingHeader";
 import { useUserStatus } from "@/hooks/useUserStatus";
-import { getUsuarioByEmail, createNewUsuario } from "@/services/usuarios.service";
+import {
+  getUsuarioByEmail,
+  createNewUsuario,
+} from "@/services/usuarios.service";
 import { crearPreferenciaPago } from "@/services/pago.service";
+import type { IPreferenciaPagoRequest } from "@/interfaces/ISuscripcion";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import LoadingComponent from "@/components/LoadingComponent";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 
 function LandingPage() {
-  const { user, isAuthenticated, logout } = useAuth0();
+  const { user, isAuthenticated } = useAuth0();
   const { isPremium, isLoading: statusLoading } = useUserStatus();
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
 
-  // Si el usuario es premium, redirigir al dashboard (en useEffect para evitar warning)
   useEffect(() => {
     if (isAuthenticated && isPremium && !statusLoading) {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, isPremium, statusLoading, navigate]);
 
-  const handleUpgradeClick = async () => {
+  const handleUpgradeClick = async (planId: string) => {
     if (!isAuthenticated || !user) {
       handleToaster("Por favor, inicia sesión primero", "error");
+      navigate("/login");
       return;
     }
+
+    const checkoutPlanId: IPreferenciaPagoRequest["planId"] =
+      planId === "premium_anual" ? "premium_anual" : "premium_mensual";
 
     setIsProcessing(true);
 
     try {
-      // 1. Verificar si el usuario existe en el backend
       let usuarioId: string;
 
       try {
         const res = await getUsuarioByEmail({ email: user.email! });
         usuarioId = res.data.data?.id ?? res.data.id;
       } catch (error: any) {
-        // Si no existe (404), crear el usuario
         if (error.response?.status === 404) {
-
           const today = new Date().toISOString().split("T")[0];
 
           const newUserData = {
@@ -67,14 +71,11 @@ function LandingPage() {
         }
       }
 
-      // 2. Crear preferencia de pago
       const preference = await crearPreferenciaPago({
         usuarioId,
-        planId: "premium_mensual",
+        planId: checkoutPlanId,
       });
 
-
-      // 3. Redirigir a Mercado Pago
       if (preference.data?.checkoutUrl) {
         window.location.href = preference.data.checkoutUrl;
       } else {
@@ -83,8 +84,9 @@ function LandingPage() {
     } catch (error: any) {
       console.error("Error en proceso de upgrade:", error);
       handleToaster(
-        error.response?.data?.message || "Error al procesar el upgrade. Intenta nuevamente.",
-        "error"
+        error.response?.data?.message ||
+          "Error al procesar el upgrade. Intenta nuevamente.",
+        "error",
       );
     } finally {
       setIsProcessing(false);
@@ -96,27 +98,21 @@ function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
-      {/* Header con botón de logout si está autenticado */}
-      {isAuthenticated && (
-        <div className="absolute top-4 right-4 z-50">
-          <Button
-            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-            variant="outline"
-            className="gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Cerrar Sesión
-          </Button>
-        </div>
-      )}
-
-      <Hero />
-      <Features />
-      <Pricing onUpgradeClick={handleUpgradeClick} isLoading={isProcessing} />
+    <div
+      className="dp-canvas-dots min-h-[100dvh] text-[#1F2937]"
+      style={{ fontFamily: '"Nunito", system-ui, sans-serif' }}
+    >
+      <LandingHeader />
+      <main>
+        <Hero />
+        <Features />
+        <SessionPreview />
+        <Pricing onUpgradeClick={handleUpgradeClick} isLoading={isProcessing} />
+      </main>
       <Footer />
     </div>
   );
 }
 
 export default LandingPage;
+

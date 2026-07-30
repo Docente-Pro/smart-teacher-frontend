@@ -97,3 +97,187 @@
 [data-radix-popper-content-wrapper] {
   pointer-events: auto !important;
 }
+
+/* Docente Pro — soft UI + Emil Kowalski motion (DESIGN.md) */
+:root {
+  --dp-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --dp-ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+@keyframes dp-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dp-enter {
+  animation: dp-enter 280ms var(--dp-ease-out) both;
+}
+
+.dp-enter-delay-1 {
+  animation-delay: 40ms;
+}
+.dp-enter-delay-2 {
+  animation-delay: 80ms;
+}
+.dp-enter-delay-3 {
+  animation-delay: 120ms;
+}
+.dp-enter-delay-4 {
+  animation-delay: 160ms;
+}
+.dp-enter-delay-5 {
+  animation-delay: 200ms;
+}
+
+.dp-press {
+  transition:
+    transform 140ms var(--dp-ease-out),
+    background-color 200ms var(--dp-ease-out),
+    border-color 200ms var(--dp-ease-out),
+    box-shadow 200ms var(--dp-ease-out),
+    color 200ms var(--dp-ease-out);
+}
+
+.dp-press:active {
+  transform: scale(0.97);
+}
+
+.dp-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(107, 159, 232, 0.16);
+}
+
+.dp-lift:active {
+  transform: scale(0.97) translateY(0);
+}
+
+/* Cuaderno del docente — patrones (solo atmósfera, no en tarjetas) */
+.dp-canvas-dots {
+  background-color: #f5f7fa;
+  background-image: radial-gradient(
+    rgba(107, 159, 232, 0.11) 1.1px,
+    transparent 1.1px
+  );
+  background-size: 22px 22px;
+}
+
+.dp-banner-notebook::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* Líneas de cuaderno + margen, no grilla tech */
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent 44px,
+      rgba(255, 255, 255, 0.16) 44px,
+      rgba(255, 255, 255, 0.16) 45px,
+      transparent 45px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      rgba(255, 255, 255, 0.11) 27px,
+      rgba(255, 255, 255, 0.11) 28px
+    ),
+    radial-gradient(
+      circle at 16% 78%,
+      rgba(255, 255, 255, 0.16) 0 2px,
+      transparent 3px
+    ),
+    radial-gradient(
+      circle at 78% 24%,
+      rgba(255, 255, 255, 0.12) 0 2px,
+      transparent 3px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='140' viewBox='0 0 180 140'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.13' stroke-width='1.35' stroke-linecap='round'%3E%3Crect x='22' y='26' width='20' height='26' rx='3'/%3E%3Cpath d='M26 34h12M26 40h9'/%3E%3Cpath d='M132 22l9 3.5-5.5 15-9-3.5z'/%3E%3Cpath d='M64 98h40'/%3E%3Cpath d='M66 94v12M100 94v12'/%3E%3Cpath d='M148 92l5-5 5 5-5 5z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:
+    100% 100%,
+    100% 28px,
+    100% 100%,
+    100% 100%,
+    180px 140px;
+  background-position:
+    0 0,
+    0 18px,
+    0 0,
+    0 0,
+    20px 12px;
+  opacity: 0.85;
+}
+
+.dp-cta-soft-pattern {
+  background-image:
+    radial-gradient(
+      circle at 88% 18%,
+      rgba(255, 255, 255, 0.22) 0 28%,
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 12% 88%,
+      rgba(255, 255, 255, 0.12) 0 22%,
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0,
+      rgba(255, 255, 255, 0.08) 2px,
+      transparent 2px,
+      transparent 14px
+    );
+  background-size:
+    100% 100%,
+    100% 100%,
+    20px 20px;
+}
+
+@keyframes dp-banner-art {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dp-banner-art {
+  animation: dp-banner-art 420ms var(--dp-ease-out) 80ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-enter,
+  .dp-enter-delay-1,
+  .dp-enter-delay-2,
+  .dp-enter-delay-3,
+  .dp-enter-delay-4,
+  .dp-enter-delay-5 {
+    animation: none;
+  }
+
+  .dp-banner-art {
+    animation: none;
+  }
+
+  .dp-press,
+  .dp-lift {
+    transition: none;
+  }
+
+  .dp-press:active,
+  .dp-lift:hover,
+  .dp-lift:active {
+    transform: none;
+  }
+}

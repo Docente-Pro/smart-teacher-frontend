@@ -12,6 +12,8 @@
   "dependencies": {
     "@auth0/auth0-react": "^2.3.0",
     "@auth0/auth0-spa-js": "^2.10.0",
+    "@fontsource/nunito": "^5.3.0",
+    "@fontsource/source-serif-4": "^5.3.0",
     "@formkit/drag-and-drop": "^0.5.3",
     "@hookform/resolvers": "^3.10.0",
     "@htmldocs/react": "^0.2.30",
