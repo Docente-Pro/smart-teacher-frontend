@@ -1,66 +1,97 @@
-import { Zap, BarChart3, Clock } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+const steps = [
+  {
+    number: "1",
+    title: "Cuéntanos tu clase",
+    description: "Elige el grado, el área y lo que quieres enseñar.",
+    image: "/dashboard/sesion.png",
+    imageAlt: "Cuaderno 3D para preparar una sesión de clase",
+    imageClass: "scale-[1.08]",
+    numberClass: "bg-[#EAF2FC] text-[#3B6CB5]",
+    wellClass: "bg-[#EAF2FC]/45 lg:bg-white",
+  },
+  {
+    number: "2",
+    title: "Recibe tu sesión lista",
+    description: "Te armamos la secuencia completa de la sesión.",
+    image: "/dashboard/unidad.png",
+    imageAlt: "Organizador 3D de una unidad de aprendizaje",
+    imageClass: "scale-[1.02]",
+    numberClass: "bg-[#EAF8F3] text-[#15803D]",
+    wellClass: "bg-[#EAF8F3]/55 lg:bg-white",
+  },
+  {
+    number: "3",
+    title: "Descárgala y úsala",
+    description: "Listo para editar o imprimir.",
+    image: "/landing/lesson-documents-3d.png",
+    imageAlt: "Sesión de aprendizaje disponible en Word y PDF",
+    imageClass: "scale-[1.02]",
+    numberClass: "bg-[#FFF0E9] text-[#C75F38]",
+    wellClass: "bg-[#FFF0E9]/55 lg:bg-white",
+  },
+];
 
 function Features() {
-  const features = [
-    {
-      icon: Zap,
-      title: "Sesiones en minutos",
-      description: "Genera sesiones de aprendizaje completas alineadas al Currículo Nacional",
-      color: "text-cyan-600",
-      bgColor: "bg-cyan-50 dark:bg-cyan-950",
-    },
-    {
-      icon: BarChart3,
-      title: "Evaluaciones automáticas",
-      description: "Crea evaluaciones con rúbricas de manera automática",
-      color: "text-blue-600",
-      bgColor: "bg-blue-50 dark:bg-blue-950",
-    },
-    {
-      icon: Clock,
-      title: "Ahorra tiempo",
-      description: "Dedica más tiempo a enseñar y menos a planificar",
-      color: "text-sky-600",
-      bgColor: "bg-sky-50 dark:bg-sky-950",
-    },
-  ];
-
   return (
-    <section className="py-20 px-4 bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            Todo lo que necesitas para planificar
+    <section
+      id="como-funciona"
+      className="relative scroll-mt-[5.5rem] px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
+    >
+      <div className="mx-auto max-w-7xl">
+        <div className="dp-enter dp-enter-delay-1 mb-8 max-w-2xl sm:mb-9">
+          <h2 className="text-balance text-3xl font-extrabold tracking-[-0.03em] text-[#1F2937] sm:text-4xl lg:text-[2.75rem]">
+            De tu idea a una sesión completa
           </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Herramientas diseñadas específicamente para docentes peruanos
+          <p className="mt-3 max-w-[42ch] text-lg font-semibold leading-7 text-[#6B7280] sm:text-xl sm:leading-8">
+            Sigue tres pasos claros. Docente Pro organiza el resto por ti.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <Card
-                key={index}
-                className="border-2 hover:border-cyan-500 transition-all duration-300 hover:shadow-xl hover:scale-105"
+        <ol className="overflow-hidden rounded-[28px] bg-white shadow-[0_16px_48px_rgba(60,88,128,0.08)] ring-1 ring-[#E6EBF2] lg:grid lg:grid-cols-3">
+          {steps.map((step, index) => (
+            <li
+              key={step.number}
+              className={`dp-enter flex flex-row items-center gap-4 border-b border-[#E6EBF2] px-4 py-4 last:border-b-0 sm:gap-5 sm:px-5 sm:py-5 lg:flex-col lg:items-stretch lg:gap-0 lg:border-b-0 lg:border-r lg:p-0 lg:last:border-r-0 ${
+                index === 1
+                  ? "dp-enter-delay-2"
+                  : index === 2
+                    ? "dp-enter-delay-3"
+                    : "dp-enter-delay-1"
+              }`}
+            >
+              <div
+                className={`relative h-[5.5rem] w-[5.75rem] shrink-0 overflow-hidden rounded-[18px] sm:h-28 sm:w-[6.5rem] lg:h-44 lg:w-full lg:rounded-none ${step.wellClass}`}
               >
-                <CardHeader>
-                  <div className={`w-16 h-16 ${feature.bgColor} rounded-xl flex items-center justify-center mb-4`}>
-                    <Icon className={`w-8 h-8 ${feature.color}`} />
+                <img
+                  src={step.image}
+                  alt={step.imageAlt}
+                  className={`relative h-full w-full object-contain p-1.5 lg:p-2 ${step.imageClass}`}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1 lg:px-5 lg:pb-6 lg:pt-4">
+                <div className="flex items-start gap-3 lg:block">
+                  <span
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-[12px] text-sm font-extrabold lg:mb-3 lg:h-10 lg:w-10 lg:rounded-[14px] lg:text-base ${step.numberClass}`}
+                    aria-hidden="true"
+                  >
+                    {step.number}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-extrabold leading-snug text-[#1F2937] sm:text-xl lg:mt-0 lg:text-2xl">
+                      {step.title}
+                    </h3>
+                    <p className="mt-1 text-sm font-semibold leading-5 text-[#6B7280] sm:text-base sm:leading-6 lg:mt-1.5 lg:text-lg lg:leading-7">
+                      {step.description}
+                    </p>
                   </div>
-                  <CardTitle className="text-2xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base leading-relaxed">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );

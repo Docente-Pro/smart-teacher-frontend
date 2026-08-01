@@ -5,6 +5,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GuestRoute } from "@/components/GuestRoute";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/features/auth-screens/login/LoginPage";
+import PrivacidadPage from "@/pages/PrivacidadPage";
+import TerminosPage from "@/pages/TerminosPage";
 
 const Areas = lazy(() => import("@/pages/Areas"));
 const Competencias = lazy(() => import("@/pages/Competencias"));
@@ -17,6 +19,7 @@ interface IRouteToCreate {
 }
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const DashboardTutoriales = lazy(() => import("@/pages/DashboardTutoriales"));
 const MisSesiones = lazy(() => import("@/pages/MisSesiones"));
 const MisUnidades = lazy(() => import("@/pages/MisUnidades"));
 const DocTest = lazy(() => import("@/pages/DocTest"));
@@ -94,6 +97,14 @@ export const routes: IRouteToCreate[] = [
     ),
   },
   {
+    path: "/privacidad",
+    element: <PrivacidadPage />,
+  },
+  {
+    path: "/terminos",
+    element: <TerminosPage />,
+  },
+  {
     path: "/demo-loading",
     element: <DemoLoading />,
   },
@@ -110,6 +121,14 @@ export const routes: IRouteToCreate[] = [
     element: (
       <ProtectedRoute>
         <Dashboard />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/tutoriales",
+    element: (
+      <ProtectedRoute>
+        <DashboardTutoriales />
       </ProtectedRoute>
     ),
   },

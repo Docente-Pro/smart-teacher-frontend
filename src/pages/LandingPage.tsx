@@ -3,92 +3,49 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Hero from "@/components/landing/Hero";
 import Features from "@/components/landing/Features";
+import LandingTutorialSection from "@/components/landing/LandingTutorialSection";
+import SessionPreview from "@/components/landing/SessionPreview";
+import LandingDesire from "@/components/landing/LandingDesire";
 import Pricing from "@/components/landing/Pricing";
+import LandingFinalCta from "@/components/landing/LandingFinalCta";
 import Footer from "@/components/landing/Footer";
+import LandingHeader from "@/components/landing/LandingHeader";
 import { useUserStatus } from "@/hooks/useUserStatus";
-import { getUsuarioByEmail, createNewUsuario } from "@/services/usuarios.service";
-import { crearPreferenciaPago } from "@/services/pago.service";
-import { handleToaster } from "@/utils/Toasters/handleToasters";
 import LoadingComponent from "@/components/LoadingComponent";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { smoothScrollToSection } from "@/utils/smoothScroll";
+import {
+  savePendingLandingPlan,
+  type LandingPlanId,
+} from "@/utils/landingPlan";
 
 function LandingPage() {
-  const { user, isAuthenticated, logout } = useAuth0();
+  const { isAuthenticated } = useAuth0();
   const { isPremium, isLoading: statusLoading } = useUserStatus();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingPlanId, setLoadingPlanId] = useState<LandingPlanId | null>(null);
   const navigate = useNavigate();
 
-  // Si el usuario es premium, redirigir al dashboard (en useEffect para evitar warning)
   useEffect(() => {
     if (isAuthenticated && isPremium && !statusLoading) {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, isPremium, statusLoading, navigate]);
 
-  const handleUpgradeClick = async () => {
-    if (!isAuthenticated || !user) {
-      handleToaster("Por favor, inicia sesión primero", "error");
-      return;
-    }
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith("#") || hash.length < 2) return;
 
-    setIsProcessing(true);
+    const sectionId = hash.slice(1);
+    const timer = window.setTimeout(() => {
+      smoothScrollToSection(sectionId);
+    }, 0);
 
-    try {
-      // 1. Verificar si el usuario existe en el backend
-      let usuarioId: string;
+    return () => window.clearTimeout(timer);
+  }, []);
 
-      try {
-        const res = await getUsuarioByEmail({ email: user.email! });
-        usuarioId = res.data.data?.id ?? res.data.id;
-      } catch (error: any) {
-        // Si no existe (404), crear el usuario
-        if (error.response?.status === 404) {
-
-          const today = new Date().toISOString().split("T")[0];
-
-          const newUserData = {
-            nombre: user.name || "Usuario",
-            email: user.email!,
-            nombreInstitucion: "Por definir",
-            nivelId: 1,
-            gradoId: 1,
-            problematicaId: 1,
-            suscripcion: {
-              fechaInicio: today,
-              plan: "free",
-            },
-          };
-
-          const createdRes = await createNewUsuario(newUserData);
-          usuarioId = createdRes.data.data?.id ?? createdRes.data.id;
-        } else {
-          throw error;
-        }
-      }
-
-      // 2. Crear preferencia de pago
-      const preference = await crearPreferenciaPago({
-        usuarioId,
-        planId: "premium_mensual",
-      });
-
-
-      // 3. Redirigir a Mercado Pago
-      if (preference.data?.checkoutUrl) {
-        window.location.href = preference.data.checkoutUrl;
-      } else {
-        handleToaster("Error al obtener URL de pago", "error");
-      }
-    } catch (error: any) {
-      console.error("Error en proceso de upgrade:", error);
-      handleToaster(
-        error.response?.data?.message || "Error al procesar el upgrade. Intenta nuevamente.",
-        "error"
-      );
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleStartFreeClick = (planId: LandingPlanId) => {
+    setLoadingPlanId(planId);
+    savePendingLandingPlan(planId);
+    navigate(`/signup?plan=${encodeURIComponent(planId)}`);
   };
 
   if (statusLoading) {
@@ -96,24 +53,34 @@ function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
-      {/* Header con botón de logout si está autenticado */}
-      {isAuthenticated && (
-        <div className="absolute top-4 right-4 z-50">
-          <Button
-            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-            variant="outline"
-            className="gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Cerrar Sesión
-          </Button>
-        </div>
-      )}
-
-      <Hero />
-      <Features />
-      <Pricing onUpgradeClick={handleUpgradeClick} isLoading={isProcessing} />
+    <div
+      className="dp-canvas-dots min-h-[100dvh] text-[#1F2937]"
+      style={{ fontFamily: '"Nunito", system-ui, sans-serif' }}
+    >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-[14px] focus:bg-white focus:px-4 focus:py-3 focus:text-base focus:font-extrabold focus:text-[#1F2937] focus:shadow-lg focus:outline-none focus:ring-4 focus:ring-[rgba(255,139,92,0.32)]"
+      >
+        Saltar al contenido
+      </a>
+      <LandingHeader />
+      <div
+        id="landing-portada"
+        className="relative bg-gradient-to-b from-[#6B9FE8] via-[#5A8FD6] to-[#3B6CB5]"
+      >
+        <Hero />
+      </div>
+      <main id="main-content">
+        <Features />
+        <LandingTutorialSection />
+        <SessionPreview />
+        <LandingDesire />
+        <Pricing
+          onStartFreeClick={handleStartFreeClick}
+          loadingPlanId={loadingPlanId}
+        />
+        <LandingFinalCta />
+      </main>
       <Footer />
     </div>
   );

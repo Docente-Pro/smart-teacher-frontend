@@ -36,6 +36,7 @@ import type {
   IEnfoqueUnidad,
   IReflexionPregunta,
   ICompetenciaProposito,
+  IActividadCriterioProposito,
   IAreaProposito,
   IAreaComplementaria,
   ISemanaSecuencia,
@@ -399,7 +400,9 @@ function EditarUnidad() {
         capacidades: string;
         estandar: string;
         criterios: string;
+        evidencias: string;
         actividades: string;
+        actividadCriterios: IActividadCriterioProposito[];
         instrumento: string;
       }[];
     }[]
@@ -489,7 +492,15 @@ function EditarUnidad() {
                   capacidades: (c.capacidades || []).join("\n"),
                   estandar: c.estandar || "",
                   criterios: (c.criterios || []).join("\n"),
+                  evidencias: (c.actividadCriterios || [])
+                    .map((ac) => ac.evidencia || "")
+                    .join("\n"),
                   actividades: (c.actividades || []).join("\n"),
+                  actividadCriterios: (c.actividadCriterios || []).map((ac) => ({
+                    actividad: ac.actividad,
+                    criterios: [...(ac.criterios || [])],
+                    evidencia: ac.evidencia || "",
+                  })),
                   instrumento: c.instrumento || "",
                 }),
               ),
@@ -554,23 +565,44 @@ function EditarUnidad() {
       propositos: {
         areasPropositos: propositosEdit.map((ap) => ({
           area: ap.area,
-          competencias: ap.competencias.map((c) => ({
-            nombre: c.nombre,
-            capacidades: c.capacidades
+          competencias: ap.competencias.map((c) => {
+            const actividades = c.actividades
               .split("\n")
               .map((x) => x.trim())
-              .filter(Boolean),
-            estandar: c.estandar,
-            criterios: c.criterios
+              .filter(Boolean);
+            const evidencias = c.evidencias
               .split("\n")
-              .map((x) => x.trim())
-              .filter(Boolean),
-            actividades: c.actividades
-              .split("\n")
-              .map((x) => x.trim())
-              .filter(Boolean),
-            instrumento: c.instrumento,
-          })),
+              .map((x) => x.trim());
+            const anteriores = c.actividadCriterios || [];
+
+            return {
+              nombre: c.nombre,
+              capacidades: c.capacidades
+                .split("\n")
+                .map((x) => x.trim())
+                .filter(Boolean),
+              estandar: c.estandar,
+              criterios: c.criterios
+                .split("\n")
+                .map((x) => x.trim())
+                .filter(Boolean),
+              actividades,
+              actividadCriterios: actividades.map((actividad, idx) => {
+                const anterior =
+                  anteriores.find(
+                    (ac) =>
+                      ac.actividad.trim().toLowerCase() ===
+                      actividad.toLowerCase(),
+                  ) ?? anteriores[idx];
+                return {
+                  actividad,
+                  criterios: [...(anterior?.criterios || [])],
+                  evidencia: evidencias[idx] || anterior?.evidencia || "",
+                };
+              }),
+              instrumento: c.instrumento,
+            };
+          }),
         })),
         competenciasTransversales:
           unwrapPropositos(rawContenido.propositos)
@@ -1387,14 +1419,17 @@ function EditarUnidad() {
                 <table>
                   <thead>
                     <tr>
-                      <th style={{ width: "6%" }}>ÁREA</th>
-                      <th style={{ width: "24%" }}>
+                      <th style={{ width: "5%" }}>ÁREA</th>
+                      <th style={{ width: "20%" }}>
                         COMPETENCIAS Y CAPACIDADES
                       </th>
-                      <th style={{ width: "28%" }}>
+                      <th style={{ width: "22%" }}>
                         CRITERIOS DE EVALUACIÓN
                       </th>
-                      <th style={{ width: "28%" }}>ACTIVIDADES</th>
+                      <th style={{ width: "18%" }}>
+                        EVIDENCIAS DE APRENDIZAJE
+                      </th>
+                      <th style={{ width: "23%" }}>ACTIVIDADES</th>
                       <th style={{ width: "12%" }}>INSTRUMENTOS</th>
                     </tr>
                   </thead>
@@ -1485,6 +1520,26 @@ function EditarUnidad() {
                                     .length,
                                 )}
                                 placeholder="Criterios (uno por línea)"
+                              />
+                            </td>
+
+                            {/* Evidencias, una por actividad y en el mismo orden */}
+                            <td className="ec">
+                              <textarea
+                                value={comp.evidencias}
+                                onChange={(e) =>
+                                  updateProposito(
+                                    aIdx,
+                                    cIdx,
+                                    "evidencias",
+                                    e.target.value,
+                                  )
+                                }
+                                rows={Math.max(
+                                  2,
+                                  comp.evidencias.split("\n").length,
+                                )}
+                                placeholder="Evidencias (una por actividad)"
                               />
                             </td>
 

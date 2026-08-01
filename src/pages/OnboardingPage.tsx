@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { Building2, GraduationCap, MapPin, User } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, GraduationCap, MapPin, User, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { GlobalLoading } from "@/components/GlobalLoading";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { readPendingLandingPlan } from "@/utils/landingPlan";
 
 // ── Ubigeo data ──
 import departamentosData from "@/utils/peru_ubigeo/1_ubigeo_departamentos.json";
@@ -93,6 +94,131 @@ function isPlanLectorAreaName(nombre?: string): boolean {
   return normalizeText(nombre).includes("plan lector");
 }
 
+const ONBOARDING_STEPS = ["Datos personales", "Perfil docente", "Ubicación"] as const;
+
+const STEP_HINTS: Record<number, string> = {
+  0: "Estos datos aparecerán en tus sesiones, unidades y fichas.",
+  1: "Cuéntanos qué enseñas para adaptar el currículo a tu aula.",
+  2: "Ubicación de tu colegio para contextualizar contenidos.",
+};
+
+const inputClassName =
+  "h-12 border-[#E6EBF2] bg-white pl-10 text-base font-semibold text-[#1F2937] placeholder:text-[#9CA3AF] focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)] focus-visible:ring-offset-2";
+
+const selectTriggerClassName =
+  "h-12 border-[#E6EBF2] bg-white text-base font-semibold text-[#1F2937] focus:ring-4 focus:ring-[rgba(255,139,92,0.32)] focus:ring-offset-2";
+
+function choiceChipClass(selected: boolean, disabled = false): string {
+  const base =
+    "min-h-[52px] rounded-[16px] border px-4 py-2 text-sm font-bold transition-[border-color,background-color,box-shadow,transform] duration-200 dp-press";
+  if (disabled) {
+    return `${base} cursor-not-allowed border-[#E6EBF2] bg-[#F5F7FA] text-[#9CA3AF]`;
+  }
+  if (selected) {
+    return `${base} border-[#6B9FE8] bg-[#6B9FE8] text-white shadow-[0_8px_20px_rgba(107,159,232,0.22)]`;
+  }
+  return `${base} border-[#E6EBF2] bg-white text-[#1F2937] hover:border-[#6B9FE8]/50`;
+}
+
+function tutoriaChipClass(selected: boolean, disabled: boolean): string {
+  const base =
+    "min-h-[48px] rounded-[16px] border-2 px-4 py-2 text-sm font-bold transition-[border-color,background-color] duration-200 dp-press";
+  if (disabled) {
+    return `${base} cursor-not-allowed border-[#E6EBF2] bg-[#F5F7FA] text-[#9CA3AF]`;
+  }
+  if (selected) {
+    return `${base} border-[#BE185D] bg-[#FCE7F3] text-[#BE185D]`;
+  }
+  return `${base} border-[#E6EBF2] bg-white text-[#1F2937] hover:border-[#BE185D]/40 hover:bg-[#FCE7F3]/40`;
+}
+
+function planLectorChipClass(selected: boolean, disabled: boolean): string {
+  const base =
+    "min-h-[48px] rounded-[16px] border-2 px-4 py-2 text-sm font-bold transition-[border-color,background-color] duration-200 dp-press";
+  if (disabled) {
+    return `${base} cursor-not-allowed border-[#E6EBF2] bg-[#F5F7FA] text-[#9CA3AF]`;
+  }
+  if (selected) {
+    return `${base} border-[#15803D] bg-[#E3F8EC] text-[#15803D]`;
+  }
+  return `${base} border-[#E6EBF2] bg-white text-[#1F2937] hover:border-[#15803D]/40 hover:bg-[#E3F8EC]/50`;
+}
+
+function sectionChipClass(selected: boolean): string {
+  const base =
+    "flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-xs font-extrabold border-2 transition-colors duration-200 dp-press";
+  if (selected) {
+    return `${base} border-[#6B9FE8] bg-[#6B9FE8] text-white`;
+  }
+  return `${base} border-[#E6EBF2] bg-white text-[#6B7280] hover:border-[#6B9FE8]/50`;
+}
+
+function OnboardingSectionTitle({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+  return (
+    <div className="mb-4 flex items-center gap-3">
+      <span className="grid h-10 w-10 place-items-center rounded-[16px] bg-[#EAF2FC] text-[#3B6CB5]">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <h2 className="text-xl font-extrabold tracking-[-0.02em] text-[#1F2937]">{title}</h2>
+    </div>
+  );
+}
+
+function OnboardingSubsection({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="rounded-[20px] border border-[#E6EBF2] bg-[#F5F7FA]/40 p-4 sm:p-5">
+      <p className="text-base font-extrabold text-[#1F2937]">{title}</p>
+      {hint ? <p className="mt-1 text-sm font-semibold leading-6 text-[#6B7280]">{hint}</p> : null}
+      <div className="mt-3">{children}</div>
+    </div>
+  );
+}
+
+function OnboardingStepIndicator({ currentStep }: { currentStep: number }) {
+  return (
+    <nav aria-label="Progreso del perfil" className="mb-6">
+      <ol className="flex items-center gap-0">
+        {ONBOARDING_STEPS.map((label, index) => {
+          const isComplete = index < currentStep;
+          const isActive = index === currentStep;
+          return (
+            <li key={label} className="flex flex-1 items-center">
+              <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                <span
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-extrabold transition-colors duration-200 ${
+                    isComplete
+                      ? "bg-[#6B9FE8] text-white"
+                      : isActive
+                        ? "bg-[#FF8B5C] text-white shadow-[0_8px_20px_rgba(255,139,92,0.28)]"
+                        : "border-2 border-[#E6EBF2] bg-white text-[#9CA3AF]"
+                  }`}
+                >
+                  {isComplete ? "✓" : index + 1}
+                </span>
+                <span
+                  className={`hidden max-w-[9rem] truncate text-center text-xs font-bold sm:block ${
+                    isActive ? "text-[#1F2937]" : "text-[#9CA3AF]"
+                  }`}
+                >
+                  {label}
+                </span>
+              </div>
+              {index < ONBOARDING_STEPS.length - 1 ? (
+                <div
+                  className={`mx-1 h-0.5 flex-1 rounded-full sm:mx-2 ${
+                    index < currentStep ? "bg-[#6B9FE8]" : "bg-[#E6EBF2]"
+                  }`}
+                  aria-hidden="true"
+                />
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
 function OnboardingPage() {
   const { user: auth0User, isLoading: authLoading } = useAuth0();
   const { user: backendUser, updateUser } = useAuthStore(); // Usar usuario del backend
@@ -121,6 +247,7 @@ function OnboardingPage() {
   const [tutoriaGradoIds, setTutoriaGradoIds] = useState<number[]>([]);
   const [planLectorGradoIds, setPlanLectorGradoIds] = useState<number[]>([]);
   const [seccionesPorAreaGrado, setSeccionesPorAreaGrado] = useState<Record<string, string[]>>({});
+  const [currentStep, setCurrentStep] = useState(0);
 
   const nivelSeleccionado = useMemo(
     () => niveles.find((n) => n.id === formData.nivelId),
@@ -193,13 +320,27 @@ function OnboardingPage() {
           getAllAreas(),
         ]);
 
-        setNiveles(
-          nivelesResponse.data.data.filter(
-            (nivel: INivel) => isNivelSoportado(nivel.nombre)
-          )
+        const nivelesFiltrados = nivelesResponse.data.data.filter(
+          (nivel: INivel) => isNivelSoportado(nivel.nombre)
         );
+        setNiveles(nivelesFiltrados);
         setTodosLosGrados(gradosResponse.data.data);
         setAreas((areasResponse.data.data || areasResponse.data) as AreaItem[]);
+
+        const pendingPlan = readPendingLandingPlan();
+        if (pendingPlan && nivelesFiltrados.length > 0) {
+          const wantsSecundaria =
+            pendingPlan === "premium_personal_secundaria";
+          const nivelMatch = nivelesFiltrados.find((nivel: INivel) => {
+            const name = (nivel.nombre || "").toLowerCase();
+            return wantsSecundaria
+              ? name.includes("secundaria")
+              : name.includes("primaria");
+          });
+          if (nivelMatch) {
+            setFormData((prev) => ({ ...prev, nivelId: nivelMatch.id }));
+          }
+        }
       } catch (error) {
         handleToaster("Error al cargar datos", "error");
       }
@@ -339,111 +480,151 @@ function OnboardingPage() {
     });
   }
 
-  function validateForm(): boolean {
+  function notifySecundariaErrors(): boolean {
+    if (tutoriaGradoIds.length > 0 && !tutoriaAreaId) {
+      handleToaster("No se encontró el área Tutoría en el catálogo. Revisa /api/area.", "error");
+      return true;
+    }
+    if (planLectorGradoIds.length > 0 && !planLectorAreaId) {
+      handleToaster("No se encontró el área Plan Lector en el catálogo. Revisa /api/area.", "error");
+      return true;
+    }
+    const missing: string[] = [];
+    const checkPairs = (areaId: number, areaNombre: string, gIds: number[]) => {
+      for (const gId of gIds) {
+        if (!(seccionesPorAreaGrado[`${areaId}-${gId}`]?.length > 0)) {
+          const gNombre = gradosFiltrados.find((g) => g.id === gId)?.nombre || `Grado ${gId}`;
+          missing.push(`${areaNombre} - ${gNombre}`);
+        }
+      }
+    };
+    for (const aId of areasSeleccionadasIds) {
+      const a = areas.find((x) => x.id === aId);
+      if (a) checkPairs(a.id, a.nombre, secundariaGradosIds);
+    }
+    if (tutoriaAreaId && tutoriaGradoIds.length > 0) {
+      const a = areas.find((x) => x.id === tutoriaAreaId);
+      if (a) checkPairs(a.id, a.nombre, tutoriaGradoIds);
+    }
+    if (planLectorAreaId && planLectorGradoIds.length > 0) {
+      const a = areas.find((x) => x.id === planLectorAreaId);
+      if (a) checkPairs(a.id, a.nombre, planLectorGradoIds);
+    }
+    if (missing.length > 0) {
+      handleToaster(
+        `Selecciona secciones para: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "..." : ""}`,
+        "error",
+      );
+      return true;
+    }
+    return false;
+  }
+
+  function validateStep(step: number): boolean {
     const hasAreasFromChecks =
       areasSeleccionadasIds.length > 0 ||
       Boolean(tutoriaGradoIds.length > 0 && tutoriaAreaId) ||
       Boolean(planLectorGradoIds.length > 0 && planLectorAreaId);
-    if (!formData.nombre || formData.nombre.trim().length < 2) {
-      return false;
+
+    if (step === 0) {
+      return (
+        formData.nombre.trim().length >= 2 &&
+        formData.nombreInstitucion.trim().length >= 3
+      );
     }
 
-    if (!formData.nombreInstitucion || formData.nombreInstitucion.trim().length < 3) {
-      return false;
-    }
-
-    if (!formData.genero) {
-      return false;
-    }
-
-    if (!formData.nivelId || formData.nivelId === 0) {
-      return false;
-    }
-
-    if (!formData.gradoId || formData.gradoId === 0) {
-      return false;
-    }
-
-    if (isSecundariaSeleccionada && secundariaGradosIds.length === 0) {
-      return false;
-    }
-
-    if (isSecundariaSeleccionada && !hasAreasFromChecks) {
-      return false;
-    }
-    if (isSecundariaSeleccionada && tutoriaGradoIds.length > 0 && !tutoriaAreaId) {
-      return false;
-    }
-
-    if (isSecundariaSeleccionada && planLectorGradoIds.length > 0 && !planLectorAreaId) {
-      return false;
-    }
-
-    if (isSecundariaSeleccionada) {
-      const pairs: { areaId: number; gradoId: number }[] = [];
-      for (const aId of areasSeleccionadasIds) {
-        for (const gId of secundariaGradosIds) pairs.push({ areaId: aId, gradoId: gId });
+    if (step === 1) {
+      if (!formData.genero || !formData.nivelId || !formData.gradoId) return false;
+      if (isSecundariaSeleccionada && secundariaGradosIds.length === 0) return false;
+      if (isSecundariaSeleccionada && !hasAreasFromChecks) return false;
+      if (isSecundariaSeleccionada && tutoriaGradoIds.length > 0 && !tutoriaAreaId) return false;
+      if (isSecundariaSeleccionada && planLectorGradoIds.length > 0 && !planLectorAreaId) return false;
+      if (isSecundariaSeleccionada) {
+        const pairs: { areaId: number; gradoId: number }[] = [];
+        for (const aId of areasSeleccionadasIds) {
+          for (const gId of secundariaGradosIds) pairs.push({ areaId: aId, gradoId: gId });
+        }
+        if (tutoriaAreaId && tutoriaGradoIds.length > 0) {
+          for (const gId of tutoriaGradoIds) pairs.push({ areaId: tutoriaAreaId, gradoId: gId });
+        }
+        if (planLectorAreaId && planLectorGradoIds.length > 0) {
+          for (const gId of planLectorGradoIds) pairs.push({ areaId: planLectorAreaId, gradoId: gId });
+        }
+        return !pairs.some((p) => !(seccionesPorAreaGrado[`${p.areaId}-${p.gradoId}`]?.length > 0));
       }
-      if (tutoriaAreaId && tutoriaGradoIds.length > 0) {
-        for (const gId of tutoriaGradoIds) pairs.push({ areaId: tutoriaAreaId, gradoId: gId });
+      return true;
+    }
+
+    if (step === 2) {
+      return Boolean(formData.departamento && formData.provincia && formData.distrito);
+    }
+
+    return false;
+  }
+
+  function notifyStepErrors(step: number) {
+    if (step === 0) {
+      if (formData.nombre.trim().length < 2) {
+        handleToaster("Escribe tu nombre completo", "error");
+        return;
       }
-      if (planLectorAreaId && planLectorGradoIds.length > 0) {
-        for (const gId of planLectorGradoIds) pairs.push({ areaId: planLectorAreaId, gradoId: gId });
+      if (formData.nombreInstitucion.trim().length < 3) {
+        handleToaster("Escribe el nombre de tu institución", "error");
+        return;
       }
-      const sinSeccion = pairs.some((p) => !(seccionesPorAreaGrado[`${p.areaId}-${p.gradoId}`]?.length > 0));
-      if (sinSeccion) return false;
     }
-
-    if (!formData.departamento) {
-      return false;
+    if (step === 1) {
+      if (!formData.genero) {
+        handleToaster("Selecciona tu género", "error");
+        return;
+      }
+      if (!formData.nivelId) {
+        handleToaster("Selecciona tu nivel educativo", "error");
+        return;
+      }
+      if (!formData.gradoId) {
+        handleToaster("Selecciona el grado que enseñas", "error");
+        return;
+      }
+      if (isSecundariaSeleccionada && secundariaGradosIds.length === 0) {
+        handleToaster("Selecciona al menos un año", "error");
+        return;
+      }
+      if (isSecundariaSeleccionada && !areasSeleccionadasIds.length && !tutoriaGradoIds.length && !planLectorGradoIds.length) {
+        handleToaster("Selecciona al menos un área curricular", "error");
+        return;
+      }
+      if (notifySecundariaErrors()) return;
     }
-
-    if (!formData.provincia) {
-      return false;
+    if (step === 2) {
+      handleToaster("Completa departamento, provincia y distrito", "error");
     }
+  }
 
-    if (!formData.distrito) {
-      return false;
+  function goToNextStep() {
+    if (!validateStep(currentStep)) {
+      notifyStepErrors(currentStep);
+      return;
     }
+    setCurrentStep((s) => Math.min(s + 1, ONBOARDING_STEPS.length - 1));
+  }
 
-    return true;
+  function goToPrevStep() {
+    setCurrentStep((s) => Math.max(s - 1, 0));
+  }
+
+  function validateForm(): boolean {
+    return ONBOARDING_STEPS.every((_, index) => validateStep(index));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     if (!validateForm()) {
-      if (isSecundariaSeleccionada && tutoriaGradoIds.length > 0 && !tutoriaAreaId) {
-        handleToaster("No se encontró el área Tutoría en el catálogo. Revisa /api/area.", "error");
-      } else if (isSecundariaSeleccionada && planLectorGradoIds.length > 0 && !planLectorAreaId) {
-        handleToaster("No se encontró el área Plan Lector en el catálogo. Revisa /api/area.", "error");
-      } else if (isSecundariaSeleccionada) {
-        const missing: string[] = [];
-        const checkPairs = (areaId: number, areaNombre: string, gIds: number[]) => {
-          for (const gId of gIds) {
-            if (!(seccionesPorAreaGrado[`${areaId}-${gId}`]?.length > 0)) {
-              const gNombre = gradosFiltrados.find((g) => g.id === gId)?.nombre || `Grado ${gId}`;
-              missing.push(`${areaNombre} - ${gNombre}`);
-            }
-          }
-        };
-        for (const aId of areasSeleccionadasIds) {
-          const a = areas.find((x) => x.id === aId);
-          if (a) checkPairs(a.id, a.nombre, secundariaGradosIds);
-        }
-        if (tutoriaAreaId && tutoriaGradoIds.length > 0) {
-          const a = areas.find((x) => x.id === tutoriaAreaId);
-          if (a) checkPairs(a.id, a.nombre, tutoriaGradoIds);
-        }
-        if (planLectorAreaId && planLectorGradoIds.length > 0) {
-          const a = areas.find((x) => x.id === planLectorAreaId);
-          if (a) checkPairs(a.id, a.nombre, planLectorGradoIds);
-        }
-        if (missing.length > 0) {
-          handleToaster(`Selecciona secciones para: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "..." : ""}`, "error");
-        }
-      } else {
-        handleToaster("Por favor, completa todos los campos", "error");
+      const firstInvalidStep = ONBOARDING_STEPS.findIndex((_, index) => !validateStep(index));
+      if (firstInvalidStep >= 0) {
+        setCurrentStep(firstInvalidStep);
+        notifyStepErrors(firstInvalidStep);
       }
       return;
     }
@@ -571,126 +752,146 @@ function OnboardingPage() {
     return <GlobalLoading message="Cargando perfil..." />;
   }
 
+  const primerNombre =
+    formData.nombre.trim().split(/\s+/)[0] ||
+    auth0User?.name?.trim().split(/\s+/)[0] ||
+    "docente";
+  const saludoGenero =
+    formData.genero === "Femenino"
+      ? "Bienvenida"
+      : formData.genero === "Masculino"
+        ? "Bienvenido"
+        : "Bienvenido/a";
+  const welcomeImageSrc =
+    formData.genero === "Femenino"
+      ? "/dashboard/welcome-female.png?v=onboarding1"
+      : "/dashboard/welcome-male.png?v=onboarding1";
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 relative overflow-hidden">
-      {/* Decorative background */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-25">
-        <div className="absolute top-10 -left-20 w-96 h-96 bg-cyan-400 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-10 -right-20 w-[500px] h-[500px] bg-sky-400 rounded-full blur-3xl"></div>
-      </div>
-
-      <div className="w-full max-w-3xl bg-white dark:bg-gray-950 rounded-2xl shadow-2xl p-5 sm:p-8 md:p-12 relative z-10">
-        {/* Header */}
-        <div className="text-center mb-6 sm:mb-10">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">¡Bienvenido, {auth0User?.name}! 🎉</h1>
-          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Completa tu perfil para personalizar tu experiencia en DocentePro</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
-
-          {/* ── Sección: Datos personales ── */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Datos personales</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="nombre" className="text-gray-700 dark:text-gray-300 text-sm">
-                  Nombre completo
-                </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="nombre"
-                    type="text"
-                    placeholder="Juan Pérez"
-                    className="pl-10 py-5 text-sm"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, nombre: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="institucion" className="text-gray-700 dark:text-gray-300 text-sm">
-                  Institución Educativa
-                </Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="institucion"
-                    type="text"
-                    placeholder="I.E. María Parado de Bellido"
-                    className="pl-10 py-5 text-sm"
-                    value={formData.nombreInstitucion}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, nombreInstitucion: e.target.value }))}
-                  />
-                </div>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">El nombre de la institución aparecerá en tus documentos generados.</p>
-
-            {/* Directivo(a) */}
-            <div className="space-y-1.5">
-              <Label htmlFor="directivo" className="text-gray-700 dark:text-gray-300 text-sm">
-                Directivo(a) de la I.E.
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  id="directivo"
-                  type="text"
-                  placeholder="Ej: Carmen López Torres"
-                  className="pl-10 py-5 text-sm"
-                  value={formData.nombreDirectivo}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, nombreDirectivo: e.target.value }))}
-                />
-              </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Nombre del director(a) de tu institución. Aparecerá en los documentos.</p>
-            </div>
-
-            {/* Subdirectora */}
-            <div className="space-y-1.5">
-              <Label htmlFor="subdirectora" className="text-gray-700 dark:text-gray-300 text-sm">
-                Subdirector(a) de la I.E.
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  id="subdirectora"
-                  type="text"
-                  placeholder="Ej: María García"
-                  className="pl-10 py-5 text-sm"
-                  value={formData.nombreSubdirectora}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, nombreSubdirectora: e.target.value }))}
-                />
-              </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Nombre del subdirector(a). Aparecerá en los documentos.</p>
-            </div>
+    <div
+      className="dp-canvas-dots min-h-[100dvh] text-[#1F2937]"
+      style={{ fontFamily: '"Nunito", system-ui, sans-serif' }}
+    >
+      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
+        <section className="dp-banner-notebook dp-enter relative mb-6 overflow-hidden rounded-[32px] bg-[#6B9FE8] px-6 py-8 sm:px-10 sm:py-9">
+          <div className="relative z-10 max-w-[58%] pr-2">
+            <p className="text-sm font-bold text-white/90">
+              Configura tu perfil · Paso {currentStep + 1} de {ONBOARDING_STEPS.length}
+            </p>
+            <h1 className="mt-2 text-balance text-2xl font-extrabold tracking-[-0.02em] text-white sm:text-3xl">
+              {saludoGenero}, {primerNombre}
+            </h1>
+            <p className="mt-2 max-w-[36ch] text-base font-semibold leading-7 text-white/95">
+              {STEP_HINTS[currentStep]}
+            </p>
           </div>
+          <img
+            src={welcomeImageSrc}
+            alt=""
+            className="dp-banner-art pointer-events-none absolute bottom-0 right-0 z-[1] h-[88%] w-auto max-w-[42%] object-contain object-bottom sm:max-w-[38%]"
+            loading="eager"
+            decoding="async"
+          />
+        </section>
 
-          <div className="border-t border-gray-100 dark:border-gray-800" />
+        <OnboardingStepIndicator currentStep={currentStep} />
 
-          {/* ── Sección: Información académica ── */}
-          <div className="space-y-5 rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-950/10 p-4 sm:p-5">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Información académica</span>
-            </div>
+        <div className="dp-enter dp-enter-delay-1 rounded-[28px] border border-[#E6EBF2] bg-white p-5 shadow-[0_8px_28px_rgba(31,41,55,0.05)] sm:p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {currentStep === 0 && (
+              <section className="space-y-4">
+                <OnboardingSectionTitle icon={User} title="Datos personales" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="nombre" className="text-sm font-bold text-[#1F2937]">
+                      Nombre completo
+                    </Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" aria-hidden="true" />
+                      <Input
+                        id="nombre"
+                        type="text"
+                        placeholder="Juan Pérez"
+                        className={inputClassName}
+                        value={formData.nombre}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, nombre: e.target.value }))}
+                      />
+                    </div>
+                  </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Género */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="institucion" className="text-sm font-bold text-[#1F2937]">
+                      Institución educativa
+                    </Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" aria-hidden="true" />
+                      <Input
+                        id="institucion"
+                        type="text"
+                        placeholder="I.E. María Parado de Bellido"
+                        className={inputClassName}
+                        value={formData.nombreInstitucion}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, nombreInstitucion: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm font-semibold text-[#9CA3AF]">
+                  El nombre de la institución aparecerá en tus documentos generados.
+                </p>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="directivo" className="text-sm font-bold text-[#1F2937]">
+                    Directivo(a) de la I.E.
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" aria-hidden="true" />
+                    <Input
+                      id="directivo"
+                      type="text"
+                      placeholder="Ej: Carmen López Torres"
+                      className={inputClassName}
+                      value={formData.nombreDirectivo}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, nombreDirectivo: e.target.value }))}
+                    />
+                  </div>
+                  <p className="text-sm font-semibold text-[#9CA3AF]">Opcional. Aparece en los documentos de la unidad.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="subdirectora" className="text-sm font-bold text-[#1F2937]">
+                    Subdirector(a) de la I.E.
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" aria-hidden="true" />
+                    <Input
+                      id="subdirectora"
+                      type="text"
+                      placeholder="Ej: María García"
+                      className={inputClassName}
+                      value={formData.nombreSubdirectora}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, nombreSubdirectora: e.target.value }))}
+                    />
+                  </div>
+                  <p className="text-sm font-semibold text-[#9CA3AF]">Opcional. Aparece en los documentos de la unidad.</p>
+                </div>
+              </section>
+            )}
+
+            {currentStep === 1 && (
+              <section className="space-y-5">
+            <OnboardingSectionTitle icon={GraduationCap} title="Perfil docente" />
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="genero" className="text-gray-700 dark:text-gray-300 text-base font-medium">
+                <Label htmlFor="genero" className="text-sm font-bold text-[#1F2937]">
                   Género
                 </Label>
                 <Select
                   value={formData.genero}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, genero: value }))}
                 >
-                  <SelectTrigger className="h-12 text-base">
+                  <SelectTrigger className={selectTriggerClassName}>
                     <SelectValue placeholder="Selecciona" />
                   </SelectTrigger>
                   <SelectContent>
@@ -698,19 +899,18 @@ function OnboardingPage() {
                     <SelectItem value="Femenino">Femenino</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Para personalizar: "el/la docente"</p>
+                <p className="text-sm font-semibold text-[#9CA3AF]">Para personalizar textos en tus documentos.</p>
               </div>
 
-              {/* Nivel Educativo */}
               <div className="space-y-1.5">
-                <Label htmlFor="nivel" className="text-gray-700 dark:text-gray-300 text-base font-medium">
-                  Nivel Educativo
+                <Label htmlFor="nivel" className="text-sm font-bold text-[#1F2937]">
+                  Nivel educativo
                 </Label>
                 <Select
                   value={formData.nivelId ? formData.nivelId.toString() : ""}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, nivelId: parseInt(value) }))}
                 >
-                  <SelectTrigger className="h-12 text-base">
+                  <SelectTrigger className={selectTriggerClassName}>
                     <SelectValue placeholder="Selecciona" />
                   </SelectTrigger>
                   <SelectContent>
@@ -722,42 +922,41 @@ function OnboardingPage() {
                   </SelectContent>
                 </Select>
               </div>
-
             </div>
 
-            {/* Primaria: grado único */}
             {!isSecundariaSeleccionada && (
-              <div className="space-y-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
-                <Label htmlFor="grado" className="text-gray-700 dark:text-gray-300 text-base font-medium">
-                  Grado
-                </Label>
-                <Select
-                  value={formData.gradoId ? formData.gradoId.toString() : ""}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, gradoId: parseInt(value) }))}
-                  disabled={!formData.nivelId}
-                >
-                  <SelectTrigger className="h-12 text-base">
-                    <SelectValue placeholder={formData.nivelId ? "Selecciona un grado" : "Primero elige nivel"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gradosFiltrados.map((grado) => (
-                      <SelectItem key={grado.id} value={grado.id.toString()}>
-                        {grado.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <OnboardingSubsection title="Grado que enseñas">
+                <div className="space-y-1.5">
+                  <Label htmlFor="grado" className="text-sm font-bold text-[#1F2937]">
+                    Grado
+                  </Label>
+                  <Select
+                    value={formData.gradoId ? formData.gradoId.toString() : ""}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, gradoId: parseInt(value) }))}
+                    disabled={!formData.nivelId}
+                  >
+                    <SelectTrigger className={selectTriggerClassName}>
+                      <SelectValue placeholder={formData.nivelId ? "Selecciona un grado" : "Primero elige nivel"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {gradosFiltrados.map((grado) => (
+                        <SelectItem key={grado.id} value={grado.id.toString()}>
+                          {grado.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </OnboardingSubsection>
             )}
 
-            {/* Secundaria: años + tutoría + áreas */}
             {isSecundariaSeleccionada && (
               <div className="space-y-4">
-                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
-                  <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">
-                    1) Selecciona los años que enseñas
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <OnboardingSubsection
+                  title="1) Años que enseñas"
+                  hint="Marca todos los grados en los que dictas clases este año."
+                >
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {gradosFiltrados.map((grado) => {
                       const selected = secundariaGradosIds.includes(grado.id);
                       return (
@@ -765,11 +964,7 @@ function OnboardingPage() {
                           type="button"
                           key={grado.id}
                           onClick={() => toggleSecondaryGrade(grado.id)}
-                          className={`min-h-[52px] px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
-                            selected
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:border-blue-400"
-                          }`}
+                          className={choiceChipClass(selected)}
                         >
                           {grado.nombre}
                         </button>
@@ -780,27 +975,24 @@ function OnboardingPage() {
                     {secundariaAniosSeleccionados.map((anio) => (
                       <span
                         key={`anio-selected-${anio}`}
-                        className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200"
+                        className="rounded-full bg-[#EAF2FC] px-2.5 py-1 text-xs font-bold text-[#3B6CB5]"
                       >
                         {anio}
                       </span>
                     ))}
                     {secundariaAniosSeleccionados.length === 0 && (
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                      <span className="text-sm font-semibold text-[#6B7280]">
                         Aún no seleccionaste años.
                       </span>
                     )}
                   </div>
-                </div>
+                </OnboardingSubsection>
 
-                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
-                  <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                    2) Grados de Tutoría (opcional)
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Selecciona hasta {MAX_GRADOS_TUTORIA} grados. Si no llevas Tutoría, no selecciones ninguno.
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <OnboardingSubsection
+                  title="2) Grados de tutoría (opcional)"
+                  hint={`Hasta ${MAX_GRADOS_TUTORIA} grados. Déjalo vacío si no llevas tutoría.`}
+                >
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {gradosFiltrados.map((grado) => {
                       const selected = tutoriaGradoIds.includes(grado.id);
                       const reachedMax = tutoriaGradoIds.length >= MAX_GRADOS_TUTORIA;
@@ -810,29 +1002,20 @@ function OnboardingPage() {
                           key={`tutoria-${grado.id}`}
                           onClick={() => toggleTutoriaGrado(grado.id)}
                           disabled={!selected && reachedMax}
-                          className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all
-                            ${selected
-                              ? "border-purple-500 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-400 shadow-sm"
-                              : reachedMax
-                                ? "border-gray-200 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
-                                : "border-gray-200 bg-white text-gray-600 hover:border-purple-300 hover:bg-purple-50/50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-purple-600"
-                            }`}
+                          className={tutoriaChipClass(selected, !selected && reachedMax)}
                         >
                           {grado.nombre}
                         </button>
                       );
                     })}
                   </div>
-                </div>
+                </OnboardingSubsection>
 
-                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
-                  <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                    2b) Grados de Plan Lector (opcional)
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Selecciona hasta {MAX_GRADOS_PLAN_LECTOR} grados. Si no llevas Plan Lector, no selecciones ninguno.
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <OnboardingSubsection
+                  title="2b) Grados de plan lector (opcional)"
+                  hint={`Hasta ${MAX_GRADOS_PLAN_LECTOR} grados. Déjalo vacío si no llevas plan lector.`}
+                >
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {gradosFiltrados.map((grado) => {
                       const selected = planLectorGradoIds.includes(grado.id);
                       const reachedMax = planLectorGradoIds.length >= MAX_GRADOS_PLAN_LECTOR;
@@ -842,45 +1025,28 @@ function OnboardingPage() {
                           key={`plan-lector-${grado.id}`}
                           onClick={() => togglePlanLectorGrado(grado.id)}
                           disabled={!selected && reachedMax}
-                          className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all
-                            ${selected
-                              ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 dark:border-green-400 shadow-sm"
-                              : reachedMax
-                                ? "border-gray-200 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed"
-                                : "border-gray-200 bg-white text-gray-600 hover:border-green-300 hover:bg-green-50/50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-green-600"
-                            }`}
+                          className={planLectorChipClass(selected, !selected && reachedMax)}
                         >
                           {grado.nombre}
                         </button>
                       );
                     })}
                   </div>
-                </div>
+                </OnboardingSubsection>
 
-                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
-                  <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">
-                    3) Selecciona las áreas curriculares que enseñas
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Selecciona las áreas curriculares que enseñas.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <OnboardingSubsection
+                  title="3) Áreas curriculares"
+                  hint="Selecciona las áreas que enseñas este año."
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {areasCurriculares.map((area) => {
                       const selected = areasSeleccionadasIds.includes(area.id);
-                      let areaButtonClass =
-                        "min-h-[52px] px-4 py-2 rounded-xl text-sm font-semibold border text-center transition-all";
-                      if (selected) {
-                        areaButtonClass += " bg-blue-600 text-white border-blue-600 shadow-md";
-                      } else {
-                        areaButtonClass +=
-                          " bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 hover:border-blue-400";
-                      }
                       return (
                         <button
                           type="button"
                           key={`area-sec-${area.id}`}
                           onClick={() => toggleAreaSecundaria(area.id)}
-                          className={areaButtonClass}
+                          className={`${choiceChipClass(selected)} text-center`}
                         >
                           {area.nombre}
                         </button>
@@ -891,20 +1057,19 @@ function OnboardingPage() {
                     {areasSeleccionadasNombres.map((nombre) => (
                       <span
                         key={`area-selected-${nombre}`}
-                        className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
+                        className="rounded-full bg-[#E3F8EC] px-2.5 py-1 text-xs font-bold text-[#15803D]"
                       >
                         {nombre}
                       </span>
                     ))}
                     {areasSeleccionadasNombres.length === 0 && (
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                      <span className="text-sm font-semibold text-[#6B7280]">
                         Aún no seleccionaste áreas.
                       </span>
                     )}
                   </div>
-                </div>
+                </OnboardingSubsection>
 
-                {/* 4) Secciones por área y grado */}
                 {(() => {
                   const entries: { areaId: number; areaNombre: string; gradoIds: number[] }[] = [];
                   for (const aId of areasSeleccionadasIds) {
@@ -921,20 +1086,17 @@ function OnboardingPage() {
                   }
                   if (entries.length === 0) return null;
                   return (
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/40 p-4">
-                      <p className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-1">
-                        4) Secciones por área y grado
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                        Para cada área, selecciona las secciones que enseñas en cada grado.
-                      </p>
+                    <OnboardingSubsection
+                      title="4) Secciones por área y grado"
+                      hint="Indica las secciones que enseñas en cada combinación."
+                    >
                       <div className="space-y-5">
                         {entries.map((entry) => (
                           <div key={`area-sec-block-${entry.areaId}`}>
-                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                            <p className="mb-2 text-sm font-extrabold text-[#1F2937]">
                               {entry.areaNombre}
                             </p>
-                            <div className="space-y-2 pl-2">
+                            <div className="space-y-2 pl-1">
                               {gradosFiltrados
                                 .filter((g) => entry.gradoIds.includes(g.id))
                                 .map((grado) => {
@@ -942,7 +1104,7 @@ function OnboardingPage() {
                                   const selected = seccionesPorAreaGrado[key] || [];
                                   return (
                                     <div key={key} className="flex flex-wrap items-center gap-2">
-                                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400 w-28 shrink-0">
+                                      <span className="w-28 shrink-0 text-sm font-semibold text-[#6B7280]">
                                         {grado.nombre}:
                                       </span>
                                       {SECCIONES_DISPONIBLES.map((sec) => {
@@ -952,11 +1114,7 @@ function OnboardingPage() {
                                             type="button"
                                             key={`${key}-${sec}`}
                                             onClick={() => toggleSeccion(entry.areaId, grado.id, sec)}
-                                            className={`w-9 h-9 rounded-lg text-xs font-bold border-2 transition-all
-                                              ${isActive
-                                                ? "border-blue-500 bg-blue-500 text-white shadow-sm"
-                                                : "border-gray-200 bg-white text-gray-500 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                                              }`}
+                                            className={sectionChipClass(isActive)}
                                           >
                                             {sec}
                                           </button>
@@ -969,104 +1127,130 @@ function OnboardingPage() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </OnboardingSubsection>
                   );
                 })()}
               </div>
             )}
-          </div>
+              </section>
+            )}
 
-          <div className="border-t border-gray-100 dark:border-gray-800" />
+            {currentStep === 2 && (
+              <section className="space-y-4">
+                <OnboardingSectionTitle icon={MapPin} title="Ubicación" />
 
-          {/* ── Sección: Ubicación ── */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Ubicación geográfica</span>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="departamento" className="text-sm font-bold text-[#1F2937]">
+                      Departamento
+                    </Label>
+                    <Select
+                      value={formData.departamento}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, departamento: value, provincia: "", distrito: "" }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerClassName}>
+                        <SelectValue placeholder="Selecciona" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departamentos.map((dep) => (
+                          <SelectItem key={dep.id} value={dep.departamento}>
+                            {dep.departamento}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="provincia" className="text-sm font-bold text-[#1F2937]">
+                      Provincia
+                    </Label>
+                    <Select
+                      value={formData.provincia}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, provincia: value, distrito: "" }))
+                      }
+                      disabled={!formData.departamento}
+                    >
+                      <SelectTrigger className={selectTriggerClassName}>
+                        <SelectValue placeholder={formData.departamento ? "Selecciona" : "Elige depto."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {provinciasFiltradas.map((prov) => (
+                          <SelectItem key={prov.id} value={prov.provincia}>
+                            {prov.provincia}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="distrito" className="text-sm font-bold text-[#1F2937]">
+                      Distrito
+                    </Label>
+                    <Select
+                      value={formData.distrito}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, distrito: value }))
+                      }
+                      disabled={!formData.provincia}
+                    >
+                      <SelectTrigger className={selectTriggerClassName}>
+                        <SelectValue placeholder={formData.provincia ? "Selecciona" : "Elige prov."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {distritosFiltrados.map((dist) => (
+                          <SelectItem key={dist.id} value={dist.distrito}>
+                            {dist.distrito}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <div className="flex flex-col-reverse gap-3 border-t border-[#E6EBF2] pt-6 sm:flex-row sm:items-center sm:justify-between">
+              {currentStep > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={goToPrevStep}
+                  className="dp-press min-h-[52px] rounded-[18px] border-[#E6EBF2] bg-white px-5 text-base font-bold text-[#1F2937] hover:bg-[#F5F7FA]"
+                >
+                  <ChevronLeft className="mr-1 h-5 w-5" aria-hidden="true" />
+                  Atrás
+                </Button>
+              ) : (
+                <span className="hidden text-sm font-semibold text-[#9CA3AF] sm:inline">
+                  Docente Pro
+                </span>
+              )}
+
+              {currentStep < ONBOARDING_STEPS.length - 1 ? (
+                <Button
+                  type="button"
+                  onClick={goToNextStep}
+                  className="dp-press dp-lift min-h-[52px] rounded-[18px] bg-[#6B9FE8] px-6 text-base font-extrabold text-white shadow-[0_10px_24px_rgba(107,159,232,0.28)] hover:bg-[#5A8FD6]"
+                >
+                  Siguiente
+                  <ChevronRight className="ml-1 h-5 w-5" aria-hidden="true" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  className="dp-press dp-lift min-h-[56px] rounded-[20px] bg-[#FF8B5C] px-6 text-base font-extrabold text-white shadow-[0_16px_40px_rgba(255,139,92,0.28)] hover:bg-[#F97316] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)] focus-visible:ring-offset-2"
+                >
+                  Completar perfil
+                </Button>
+              )}
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="departamento" className="text-gray-700 dark:text-gray-300 text-sm">
-                  Departamento
-                </Label>
-                <Select
-                  value={formData.departamento}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, departamento: value, provincia: "", distrito: "" }))
-                  }
-                >
-                  <SelectTrigger className="py-5">
-                    <SelectValue placeholder="Selecciona" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departamentos.map((dep) => (
-                      <SelectItem key={dep.id} value={dep.departamento}>
-                        {dep.departamento}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="provincia" className="text-gray-700 dark:text-gray-300 text-sm">
-                  Provincia
-                </Label>
-                <Select
-                  value={formData.provincia}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, provincia: value, distrito: "" }))
-                  }
-                  disabled={!formData.departamento}
-                >
-                  <SelectTrigger className="py-5">
-                    <SelectValue placeholder={formData.departamento ? "Selecciona" : "Elige depto."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {provinciasFiltradas.map((prov) => (
-                      <SelectItem key={prov.id} value={prov.provincia}>
-                        {prov.provincia}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="distrito" className="text-gray-700 dark:text-gray-300 text-sm">
-                  Distrito
-                </Label>
-                <Select
-                  value={formData.distrito}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, distrito: value }))
-                  }
-                  disabled={!formData.provincia}
-                >
-                  <SelectTrigger className="py-5">
-                    <SelectValue placeholder={formData.provincia ? "Selecciona" : "Elige prov."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {distritosFiltrados.map((dist) => (
-                      <SelectItem key={dist.id} value={dist.distrito}>
-                        {dist.distrito}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 text-base font-semibold mt-4 rounded-xl transition-all duration-200 hover:shadow-lg"
-          >
-            Completar Perfil
-          </Button>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

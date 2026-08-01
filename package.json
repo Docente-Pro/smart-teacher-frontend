@@ -7,11 +7,14 @@
     "dev": "vite --port 5173 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "optimize:landing-images": "node scripts/optimize-landing-images.mjs"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.3.0",
     "@auth0/auth0-spa-js": "^2.10.0",
+    "@fontsource/nunito": "^5.3.0",
+    "@fontsource/source-serif-4": "^5.3.0",
     "@formkit/drag-and-drop": "^0.5.3",
     "@hookform/resolvers": "^3.10.0",
     "@htmldocs/react": "^0.2.30",
@@ -64,6 +67,7 @@
     "globals": "^15.14.0",
     "postcss": "^8.5.1",
     "puppeteer": "^25.1.0",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.18.2",
