@@ -17,6 +17,7 @@ import { GlobalLoading } from "@/components/GlobalLoading";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+import { readPendingLandingPlan } from "@/utils/landingPlan";
 
 // ── Ubigeo data ──
 import departamentosData from "@/utils/peru_ubigeo/1_ubigeo_departamentos.json";
@@ -319,13 +320,27 @@ function OnboardingPage() {
           getAllAreas(),
         ]);
 
-        setNiveles(
-          nivelesResponse.data.data.filter(
-            (nivel: INivel) => isNivelSoportado(nivel.nombre)
-          )
+        const nivelesFiltrados = nivelesResponse.data.data.filter(
+          (nivel: INivel) => isNivelSoportado(nivel.nombre)
         );
+        setNiveles(nivelesFiltrados);
         setTodosLosGrados(gradosResponse.data.data);
         setAreas((areasResponse.data.data || areasResponse.data) as AreaItem[]);
+
+        const pendingPlan = readPendingLandingPlan();
+        if (pendingPlan && nivelesFiltrados.length > 0) {
+          const wantsSecundaria =
+            pendingPlan === "premium_personal_secundaria";
+          const nivelMatch = nivelesFiltrados.find((nivel: INivel) => {
+            const name = (nivel.nombre || "").toLowerCase();
+            return wantsSecundaria
+              ? name.includes("secundaria")
+              : name.includes("primaria");
+          });
+          if (nivelMatch) {
+            setFormData((prev) => ({ ...prev, nivelId: nivelMatch.id }));
+          }
+        }
       } catch (error) {
         handleToaster("Error al cargar datos", "error");
       }

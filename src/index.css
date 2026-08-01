@@ -83,6 +83,10 @@
     @apply border-border;
   }
 
+  html {
+    scroll-padding-top: 5.5rem;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -133,6 +137,17 @@
 }
 .dp-enter-delay-5 {
   animation-delay: 200ms;
+}
+
+/** FAB / avisos flotantes: por encima del bottom nav en mobile (lg:hidden en Dashboard). */
+.dp-floating-above-mobile-nav {
+  bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 1024px) {
+  .dp-floating-above-mobile-nav {
+    bottom: 1.5rem;
+  }
 }
 
 .dp-press {
@@ -216,6 +231,11 @@
   opacity: 0.85;
 }
 
+/* Landing hero — patrón más suave para que la ilustración destaque */
+.dp-banner-notebook-landing::before {
+  opacity: 0.48;
+}
+
 .dp-cta-soft-pattern {
   background-image:
     radial-gradient(
@@ -239,6 +259,138 @@
     100% 100%,
     100% 100%,
     20px 20px;
+}
+
+/* Landing Persuade — CTA vendedor: pulso, brillo y anillo (sin shake agresivo) */
+.dp-cta-seller {
+  isolation: isolate;
+}
+
+.dp-cta-seller::before,
+.dp-cta-seller::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.dp-cta-seller::before {
+  inset: -3px;
+  border: 2px solid rgba(255, 255, 255, 0.42);
+  opacity: 0;
+  animation: dp-cta-seller-ring 3s var(--dp-ease-out) infinite;
+}
+
+.dp-cta-seller::after {
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 42%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 38%,
+    rgba(255, 255, 255, 0.38) 50%,
+    rgba(255, 255, 255, 0) 62%,
+    transparent 100%
+  );
+  transform: translateX(-150%) skewX(-14deg);
+  animation: dp-cta-seller-shine 4s var(--dp-ease-out) infinite;
+}
+
+.dp-cta-seller-soft {
+  animation: dp-cta-seller-glow 3.2s var(--dp-ease-out) infinite;
+}
+
+.dp-cta-seller-hero {
+  animation:
+    dp-cta-seller-glow-hero 2.6s var(--dp-ease-out) infinite,
+    dp-cta-seller-attention 3.4s var(--dp-ease-out) infinite;
+}
+
+.dp-cta-seller-soft::before {
+  animation-duration: 4.2s;
+}
+
+.dp-cta-seller-soft::after {
+  animation-duration: 5.2s;
+}
+
+.dp-cta-seller:hover,
+.dp-cta-seller:focus-visible,
+.dp-cta-seller:active {
+  animation-play-state: paused;
+}
+
+.dp-cta-seller:hover::before,
+.dp-cta-seller:hover::after,
+.dp-cta-seller:focus-visible::before,
+.dp-cta-seller:focus-visible::after,
+.dp-cta-seller:active::before,
+.dp-cta-seller:active::after {
+  animation-play-state: paused;
+  opacity: 0;
+}
+
+@keyframes dp-cta-seller-glow {
+  0%,
+  100% {
+    box-shadow: 0 16px 40px rgba(255, 139, 92, 0.28);
+  }
+  50% {
+    box-shadow:
+      0 22px 50px rgba(255, 139, 92, 0.4),
+      0 0 0 3px rgba(255, 139, 92, 0.16);
+  }
+}
+
+@keyframes dp-cta-seller-glow-hero {
+  0%,
+  100% {
+    box-shadow: 0 18px 44px rgba(95, 66, 42, 0.22);
+  }
+  50% {
+    box-shadow:
+      0 26px 56px rgba(255, 139, 92, 0.38),
+      0 0 0 4px rgba(255, 255, 255, 0.24);
+  }
+}
+
+@keyframes dp-cta-seller-attention {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.016);
+  }
+}
+
+@keyframes dp-cta-seller-shine {
+  0%,
+  24% {
+    transform: translateX(-150%) skewX(-14deg);
+  }
+  44%,
+  100% {
+    transform: translateX(280%) skewX(-14deg);
+  }
+}
+
+@keyframes dp-cta-seller-ring {
+  0%,
+  52% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  56% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 0;
+  }
 }
 
 @keyframes dp-banner-art {
@@ -279,5 +431,13 @@
   .dp-lift:hover,
   .dp-lift:active {
     transform: none;
+  }
+
+  .dp-cta-seller,
+  .dp-cta-seller-soft,
+  .dp-cta-seller-hero,
+  .dp-cta-seller::before,
+  .dp-cta-seller::after {
+    animation: none !important;
   }
 }

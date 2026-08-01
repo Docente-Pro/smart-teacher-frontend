@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 
 type PreviewKind = "sesion" | "unidad";
 
@@ -9,13 +9,12 @@ const previews: Record<
     description: string;
     contents: string[];
     pages: { src: string; alt: string; className: string }[];
-    badge: string;
   }
 > = {
   sesion: {
     label: "Sesión",
     description:
-      "Una sesión completa y contextualizada, lista para editar en Word o descargar en PDF.",
+      "Una sesión completa y contextualizada, con inicio, desarrollo, cierre y evaluación.",
     contents: [
       "Datos, competencias y propósito",
       "Inicio, desarrollo y cierre",
@@ -42,12 +41,11 @@ const previews: Record<
           "absolute left-1/2 top-[2%] z-[1] w-[50%] -translate-x-1/2 rounded-[20px] border-[7px] border-white bg-white shadow-[0_34px_90px_rgba(60,88,128,0.26)] sm:rounded-[28px] sm:border-[10px]",
       },
     ],
-    badge: "Editable en Word y PDF",
   },
   unidad: {
     label: "Unidad",
     description:
-      "Una unidad completa: situación, competencias, secuencia por semanas y evaluación, lista para el aula.",
+      "Una unidad completa: situación, competencias, secuencia por semanas y evaluación.",
     contents: [
       "Situación y propósito de la unidad",
       "Competencias por área y criterios",
@@ -74,24 +72,35 @@ const previews: Record<
           "absolute left-1/2 top-[2%] z-[1] w-[50%] -translate-x-1/2 rounded-[20px] border-[7px] border-white bg-white shadow-[0_34px_90px_rgba(60,88,128,0.26)] sm:rounded-[28px] sm:border-[10px]",
       },
     ],
-    badge: "Editable en Word y PDF",
   },
 };
 
 function SessionPreview() {
   const [kind, setKind] = useState<PreviewKind>("sesion");
   const preview = previews[kind];
+  const baseId = useId();
+  const tabIds = {
+    sesion: `${baseId}-tab-sesion`,
+    unidad: `${baseId}-tab-unidad`,
+  };
+  const panelIds = {
+    sesion: `${baseId}-panel-sesion`,
+    unidad: `${baseId}-panel-unidad`,
+  };
 
   return (
-    <section className="overflow-hidden bg-[#EAF2FC]/55 px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+    <section
+      className="overflow-hidden bg-[#EAF2FC]/55 px-4 py-20 sm:px-6 sm:py-24 lg:px-8"
+      aria-labelledby="preview-heading"
+    >
       <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[0.78fr_1.22fr] lg:gap-16">
         <div className="dp-enter max-w-xl">
-          <h2 className="text-balance text-4xl font-extrabold tracking-[-0.03em] text-[#1F2937] sm:text-5xl">
+          <h2
+            id="preview-heading"
+            className="text-balance text-4xl font-extrabold tracking-[-0.03em] text-[#1F2937] sm:text-5xl"
+          >
             Mira lo que recibirás
           </h2>
-          <p className="mt-5 max-w-[40ch] text-xl font-semibold leading-8 text-[#6B7280]">
-            {preview.description}
-          </p>
 
           <div
             className="mt-7 inline-flex rounded-[18px] bg-white p-1.5 shadow-[0_10px_30px_rgba(60,88,128,0.08)] ring-1 ring-[#E6EBF2]"
@@ -103,9 +112,12 @@ function SessionPreview() {
               return (
                 <button
                   key={key}
+                  id={tabIds[key]}
                   type="button"
                   role="tab"
                   aria-selected={selected}
+                  aria-controls={panelIds[key]}
+                  tabIndex={selected ? 0 : -1}
                   onClick={() => setKind(key)}
                   className={`dp-press min-h-11 rounded-[14px] px-5 text-base font-extrabold focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)] ${
                     selected
@@ -119,29 +131,54 @@ function SessionPreview() {
             })}
           </div>
 
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            {preview.contents.map((item, index) => (
-              <li
-                key={`${kind}-${item}`}
-                className="flex min-h-12 items-center gap-4 text-lg font-extrabold text-[#1F2937]"
+          {(Object.keys(previews) as PreviewKind[]).map((key) => {
+            const isActive = kind === key;
+            const data = previews[key];
+            return (
+              <div
+                key={key}
+                id={panelIds[key]}
+                role="tabpanel"
+                aria-labelledby={tabIds[key]}
+                hidden={!isActive}
+                className={isActive ? "mt-5" : undefined}
               >
-                <span
-                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-[14px] text-base ${
-                    index % 2 === 0
-                      ? "bg-white text-[#3B6CB5]"
-                      : "bg-[#FFF0E9] text-[#C75F38]"
-                  }`}
-                  aria-hidden="true"
-                >
-                  {index + 1}
-                </span>
-                {item}
-              </li>
-            ))}
-          </ul>
+                {isActive && (
+                  <>
+                    <p className="max-w-[40ch] text-xl font-semibold leading-8 text-[#6B7280]">
+                      {data.description}
+                    </p>
+                    <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                      {data.contents.map((item, index) => (
+                        <li
+                          key={item}
+                          className="flex min-h-12 items-center gap-4 text-lg font-extrabold text-[#1F2937]"
+                        >
+                          <span
+                            className={`grid h-10 w-10 shrink-0 place-items-center rounded-[14px] text-base ${
+                              index % 2 === 0
+                                ? "bg-white text-[#3B6CB5]"
+                                : "bg-[#FFF0E9] text-[#C2410C]"
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {index + 1}
+                          </span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        <div className="dp-enter dp-enter-delay-2 relative mx-auto min-h-[470px] w-full max-w-3xl sm:min-h-[620px]">
+        <div
+          className="dp-enter dp-enter-delay-2 relative mx-auto min-h-[470px] w-full max-w-3xl sm:min-h-[620px]"
+          aria-live="polite"
+        >
           <div
             className="absolute inset-x-[6%] bottom-[3%] h-[78%] rounded-[48%] bg-[#6B9FE8]/10"
             aria-hidden="true"
@@ -157,15 +194,6 @@ function SessionPreview() {
               decoding="async"
             />
           ))}
-
-          <div className="absolute bottom-[2%] left-1/2 z-[2] flex -translate-x-1/2 items-center gap-3 rounded-[18px] bg-white px-5 py-4 shadow-[0_18px_50px_rgba(60,88,128,0.18)]">
-            <span className="grid h-10 w-10 place-items-center rounded-[12px] bg-[#EAF2FC] font-extrabold text-[#3B6CB5]">
-              W
-            </span>
-            <span className="whitespace-nowrap text-base font-extrabold text-[#1F2937]">
-              {preview.badge}
-            </span>
-          </div>
         </div>
       </div>
     </section>

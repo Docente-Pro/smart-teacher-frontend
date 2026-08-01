@@ -13,7 +13,9 @@ import {
   FilePlus2,
   Shield,
   Sparkles,
+  PlayCircle,
 } from "lucide-react";
+import DashboardTutorialsTeaser from "@/components/dashboard/DashboardTutorialsTeaser";
 import "@fontsource/nunito/600.css";
 import "@fontsource/nunito/700.css";
 import "@fontsource/nunito/800.css";
@@ -34,6 +36,10 @@ import WelcomeGuideModal, {
 } from "@/components/Shared/Modal/WelcomeGuideModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { clearUserStorage } from "@/utils/clearUserStorage";
+import {
+  clearPendingLandingPlan,
+  readPendingLandingPlan,
+} from "@/utils/landingPlan";
 import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
 import { getUsuarioById } from "@/services/usuarios.service";
 import { getInsigniaDataUrl } from "@/utils/insigniaCache";
@@ -363,6 +369,15 @@ function Dashboard() {
     : "/dashboard/welcome-male.png";
   const { isPremium, planLabel, sesionesUsadas, sesionesRestantes } =
     permissions;
+
+  useEffect(() => {
+    if (isPremium || !user?.id) return;
+    const pendingPlan = readPendingLandingPlan();
+    if (!pendingPlan) return;
+    setShowUpgradeModal(true);
+    clearPendingLandingPlan();
+  }, [isPremium, user?.id]);
+
   const unidadBloqueada = !permissions.canCreateUnidad;
   const needsProblematicaSetup =
     !isPremium && user?.problematicaCompleta === false;
@@ -408,6 +423,14 @@ function Dashboard() {
           },
         ]
       : []),
+    {
+      icon: PlayCircle,
+      label: "Tutoriales",
+      action: () => {
+        showLoading("Cargando tutoriales...");
+        navigate("/tutoriales");
+      },
+    },
     {
       icon: KeyRound,
       label: "Unirme",
@@ -939,6 +962,13 @@ function Dashboard() {
               </button>
             </section>
 
+            <DashboardTutorialsTeaser
+              focusRing={focusRing}
+              pressable={pressable}
+              cardShadow={cardShadow}
+              enterDelayClass="dp-enter-delay-6"
+            />
+
             {/* 5. Meta compacta */}
             <section
               aria-label="Resumen y unidad en curso"
@@ -1096,6 +1126,10 @@ function Dashboard() {
         onClose={() => setShowWelcomeGuide(false)}
         onQuickStart={handleInicioRapidoSesion}
         onChooseTheme={() => openProblematicaModal("pick")}
+        onWatchTutorial={() => {
+          showLoading("Cargando tutoriales...");
+          navigate("/tutoriales");
+        }}
       />
     </div>
   );

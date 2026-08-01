@@ -3,24 +3,25 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Hero from "@/components/landing/Hero";
 import Features from "@/components/landing/Features";
+import LandingTutorialSection from "@/components/landing/LandingTutorialSection";
 import SessionPreview from "@/components/landing/SessionPreview";
+import LandingDesire from "@/components/landing/LandingDesire";
 import Pricing from "@/components/landing/Pricing";
+import LandingFinalCta from "@/components/landing/LandingFinalCta";
 import Footer from "@/components/landing/Footer";
 import LandingHeader from "@/components/landing/LandingHeader";
 import { useUserStatus } from "@/hooks/useUserStatus";
-import {
-  getUsuarioByEmail,
-  createNewUsuario,
-} from "@/services/usuarios.service";
-import { crearPreferenciaPago } from "@/services/pago.service";
-import type { IPreferenciaPagoRequest } from "@/interfaces/ISuscripcion";
-import { handleToaster } from "@/utils/Toasters/handleToasters";
 import LoadingComponent from "@/components/LoadingComponent";
+import { smoothScrollToSection } from "@/utils/smoothScroll";
+import {
+  savePendingLandingPlan,
+  type LandingPlanId,
+} from "@/utils/landingPlan";
 
 function LandingPage() {
-  const { user, isAuthenticated } = useAuth0();
+  const { isAuthenticated } = useAuth0();
   const { isPremium, isLoading: statusLoading } = useUserStatus();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingPlanId, setLoadingPlanId] = useState<LandingPlanId | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,68 +30,22 @@ function LandingPage() {
     }
   }, [isAuthenticated, isPremium, statusLoading, navigate]);
 
-  const handleUpgradeClick = async (planId: string) => {
-    if (!isAuthenticated || !user) {
-      handleToaster("Por favor, inicia sesión primero", "error");
-      navigate("/login");
-      return;
-    }
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith("#") || hash.length < 2) return;
 
-    const checkoutPlanId: IPreferenciaPagoRequest["planId"] =
-      planId === "premium_anual" ? "premium_anual" : "premium_mensual";
+    const sectionId = hash.slice(1);
+    const timer = window.setTimeout(() => {
+      smoothScrollToSection(sectionId);
+    }, 0);
 
-    setIsProcessing(true);
+    return () => window.clearTimeout(timer);
+  }, []);
 
-    try {
-      let usuarioId: string;
-
-      try {
-        const res = await getUsuarioByEmail({ email: user.email! });
-        usuarioId = res.data.data?.id ?? res.data.id;
-      } catch (error: any) {
-        if (error.response?.status === 404) {
-          const today = new Date().toISOString().split("T")[0];
-
-          const newUserData = {
-            nombre: user.name || "Usuario",
-            email: user.email!,
-            nombreInstitucion: "Por definir",
-            nivelId: 1,
-            gradoId: 1,
-            problematicaId: 1,
-            suscripcion: {
-              fechaInicio: today,
-              plan: "free",
-            },
-          };
-
-          const createdRes = await createNewUsuario(newUserData);
-          usuarioId = createdRes.data.data?.id ?? createdRes.data.id;
-        } else {
-          throw error;
-        }
-      }
-
-      const preference = await crearPreferenciaPago({
-        usuarioId,
-        planId: checkoutPlanId,
-      });
-
-      if (preference.data?.checkoutUrl) {
-        window.location.href = preference.data.checkoutUrl;
-      } else {
-        handleToaster("Error al obtener URL de pago", "error");
-      }
-    } catch (error: any) {
-      console.error("Error en proceso de upgrade:", error);
-      handleToaster(
-        error.response?.data?.message ||
-          "Error al procesar el upgrade. Intenta nuevamente.",
-        "error",
-      );
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleStartFreeClick = (planId: LandingPlanId) => {
+    setLoadingPlanId(planId);
+    savePendingLandingPlan(planId);
+    navigate(`/signup?plan=${encodeURIComponent(planId)}`);
   };
 
   if (statusLoading) {
@@ -102,12 +57,29 @@ function LandingPage() {
       className="dp-canvas-dots min-h-[100dvh] text-[#1F2937]"
       style={{ fontFamily: '"Nunito", system-ui, sans-serif' }}
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-[14px] focus:bg-white focus:px-4 focus:py-3 focus:text-base focus:font-extrabold focus:text-[#1F2937] focus:shadow-lg focus:outline-none focus:ring-4 focus:ring-[rgba(255,139,92,0.32)]"
+      >
+        Saltar al contenido
+      </a>
       <LandingHeader />
-      <main>
+      <div
+        id="landing-portada"
+        className="relative bg-gradient-to-b from-[#6B9FE8] via-[#5A8FD6] to-[#3B6CB5]"
+      >
         <Hero />
+      </div>
+      <main id="main-content">
         <Features />
+        <LandingTutorialSection />
         <SessionPreview />
-        <Pricing onUpgradeClick={handleUpgradeClick} isLoading={isProcessing} />
+        <LandingDesire />
+        <Pricing
+          onStartFreeClick={handleStartFreeClick}
+          loadingPlanId={loadingPlanId}
+        />
+        <LandingFinalCta />
       </main>
       <Footer />
     </div>
@@ -115,4 +87,3 @@ function LandingPage() {
 }
 
 export default LandingPage;
-

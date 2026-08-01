@@ -10,6 +10,8 @@ interface WelcomeGuideModalProps {
   onQuickStart: () => void;
   /** Abre el selector de tema personalizado */
   onChooseTheme: () => void;
+  /** Abre la biblioteca de tutoriales en video */
+  onWatchTutorial?: () => void;
 }
 
 /**
@@ -21,6 +23,7 @@ function WelcomeGuideModal({
   onClose,
   onQuickStart,
   onChooseTheme,
+  onWatchTutorial,
 }: WelcomeGuideModalProps) {
   function markSeen() {
     localStorage.setItem(WELCOME_FLAG, "true");
@@ -41,6 +44,12 @@ function WelcomeGuideModal({
     markSeen();
     onClose();
     onChooseTheme();
+  }
+
+  function handleWatchTutorial() {
+    markSeen();
+    onClose();
+    onWatchTutorial?.();
   }
 
   return (
@@ -82,6 +91,16 @@ function WelcomeGuideModal({
         >
           Prefiero elegir el tema de mi aula
         </button>
+
+        {onWatchTutorial && (
+          <button
+            type="button"
+            onClick={handleWatchTutorial}
+            className="dp-press mt-2 inline-flex min-h-11 items-center px-4 text-base font-bold text-[#3B6CB5] hover:underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)]"
+          >
+            Ver tutorial en video
+          </button>
+        )}
 
         <button
           type="button"

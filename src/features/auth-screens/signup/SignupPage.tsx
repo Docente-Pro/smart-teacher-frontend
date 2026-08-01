@@ -1,24 +1,36 @@
 import { useEffect } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useAuth0 } from "@auth0/auth0-react";
 import { BookOpen } from "lucide-react";
 import SignupForm from "./components/SignupForm";
 import SocialLogin from "./components/SocialLogin";
 import { useUserStatus } from "@/hooks/useUserStatus";
 import { useAuthStore } from "@/store/auth.store";
+import {
+  isLandingPlanId,
+  savePendingLandingPlan,
+} from "@/utils/landingPlan";
 
 function SignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth0();
   const { isPremium, isLoading } = useUserStatus();
   const { user: backendUser } = useAuthStore();
+
+  useEffect(() => {
+    const plan = searchParams.get("plan");
+    if (plan && isLandingPlanId(plan)) {
+      savePendingLandingPlan(plan);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (isAuthenticated && backendUser && !isLoading) {
       if (isPremium) {
         navigate("/dashboard");
       } else {
-        navigate("/");
+        navigate("/onboarding");
       }
     }
   }, [isAuthenticated, backendUser, isPremium, isLoading, navigate]);
