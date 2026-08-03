@@ -7,7 +7,7 @@ import { useUserStore } from "@/store/user.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { sincronizarMiembroUnidad } from "@/services/unidad.service";
-import { isUnidadActiva } from "@/utils/unidadUtils";
+import { isUnidadDisponibleParaUsuario } from "@/utils/unidadUtils";
 import { useUserUnidades } from "@/hooks/useUserUnidades";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import { getAllAreas } from "@/services/areas.service";
@@ -287,7 +287,7 @@ function GenerarSesionPremium() {
   const { user: usuario } = useUserStore();
   const permissions = usePermissions();
   const { generarInstrumento, guardar: guardarInstrumento } = useInstrumentoEvaluacion();
-  const userId = user?.id;
+  const userId = user?.id || usuario?.id;
 
   // ─── State ───
   /** Sincronizando contenido personalizado para suscriptor */
@@ -335,11 +335,7 @@ function GenerarSesionPremium() {
   /** Pago confirmado + unidad activa (no finalizada por fechaFin) — p. ej. varias unidades en secundaria */
   const unidadesActivas = useMemo(
     () =>
-      unidades.filter((u) => {
-        const miembro = u.miembros.find((mb) => mb.usuarioId === userId);
-        if (miembro?.estadoPago !== "CONFIRMADO") return false;
-        return isUnidadActiva(u);
-      }),
+      unidades.filter((u) => isUnidadDisponibleParaUsuario(u, userId)),
     [unidades, userId],
   );
 
