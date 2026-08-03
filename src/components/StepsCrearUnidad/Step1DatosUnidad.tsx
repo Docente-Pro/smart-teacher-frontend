@@ -43,6 +43,7 @@ import type { IArea } from "@/interfaces/IArea";
 import type { ModoSecundaria, TipoUnidad } from "@/interfaces/IUnidad";
 import { useHorario } from "@/hooks/useHorario";
 import HorarioPanel from "./HorarioPanel";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   pagina: number;
@@ -108,6 +109,14 @@ function formatFechaLocal(fecha: string): string {
   return new Date(year, month - 1, day).toLocaleDateString("es-PE");
 }
 
+function getTodayLocalISO(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const duracionesUnidad = [
   { semanas: 2, label: "2 semanas", desc: "Unidad corta", gradient: "from-emerald-500 to-teal-500" },
   { semanas: 4, label: "4 semanas", desc: "Unidad estándar", gradient: "from-blue-500 to-cyan-500" },
@@ -115,6 +124,7 @@ const duracionesUnidad = [
 ];
 
 function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros }: Props) {
+  const queryClient = useQueryClient();
   const { unidadId: existingUnidadId, setUnidadId, setDatosBase, secundariaAreaElegida,
     horario: horarioStore, setHorario: setHorarioStore } =
     useUnidadStore();
@@ -478,6 +488,12 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     if (!titulo.trim()) return handleToaster("Ingresa el título de la unidad", "error");
     if (!isSecundaria && duracion <= 0) return handleToaster("Selecciona la duración", "error");
     if (!fechaInicio) return handleToaster("Selecciona la fecha de inicio", "error");
+    if (!fechaFin || fechaFin < getTodayLocalISO()) {
+      return handleToaster(
+        "La fecha de fin debe ser hoy o una fecha futura",
+        "error",
+      );
+    }
     if (areasSeleccionadas.length === 0) return handleToaster("Selecciona al menos un área", "error");
     if (!problematica) return handleToaster("Selecciona una problemática", "error");
     if (isSecundaria) {
@@ -571,6 +587,11 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         .filter((a) => areasSeleccionadas.includes(a.nombre))
         .map((a) => a.id);
       await seleccionarAreas(unidadResultId, { areaIds });
+
+      // La unidad se creó o actualizó: no reutilizar el listado anterior al navegar.
+      await queryClient.invalidateQueries({
+        queryKey: ["userUnidades", usuario.id],
+      });
 
       // Guardar en store
       setUnidadId(unidadResultId);
@@ -1324,6 +1345,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                   type="date"
                   value={fechaFin}
                   onChange={(e) => setFechaFin(e.target.value)}
+                  min={getTodayLocalISO()}
                   disabled={!fechaInicio || duracion <= 0}
                   className="h-12 text-base"
                 />

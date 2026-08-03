@@ -7,7 +7,10 @@ import { useUserStore } from "@/store/user.store";
 import { usePermissions } from "@/hooks/usePermissions";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { sincronizarMiembroUnidad } from "@/services/unidad.service";
-import { isUnidadDisponibleParaUsuario } from "@/utils/unidadUtils";
+import {
+  isUnidadActiva,
+  isUnidadDisponibleParaUsuario,
+} from "@/utils/unidadUtils";
 import { useUserUnidades } from "@/hooks/useUserUnidades";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import { getAllAreas } from "@/services/areas.service";
@@ -332,33 +335,49 @@ function GenerarSesionPremium() {
   const errorUnidades = hasErrorUnidades ? ((queryError as any)?.message || "Error al cargar unidades") : null;
 
   // ─── Derived ───
-  /** Pago confirmado + unidad activa (no finalizada por fechaFin) — p. ej. varias unidades en secundaria */
-  const unidadesActivas = useMemo(
-    () =>
-      unidades.filter((u) => isUnidadDisponibleParaUsuario(u, userId)),
-    [unidades, userId],
-  );
+  /** Primaria usa una sola unidad; Secundaria conserva su selector múltiple. */
+  const unidadesDisponibles = useMemo(() => {
+    const pagadas = unidades.filter((u) =>
+      isUnidadDisponibleParaUsuario(u, userId),
+    );
+    const secundarias = pagadas.filter(isUnidadSecundaria);
+
+    if (pagadas.length > 0 && secundarias.length === pagadas.length) {
+      return secundarias.filter(isUnidadActiva);
+    }
+
+    const primarias = pagadas.filter((u) => !isUnidadSecundaria(u));
+    const activas = primarias.filter(isUnidadActiva);
+    const candidatas = activas.length > 0 ? activas : primarias;
+
+    return [...candidatas]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 1);
+  }, [unidades, userId]);
 
   const selectedUnidad = useMemo(
-    () => unidadesActivas.find((u) => u.id === selectedUnidadId) ?? null,
-    [unidadesActivas, selectedUnidadId],
+    () => unidadesDisponibles.find((u) => u.id === selectedUnidadId) ?? null,
+    [unidadesDisponibles, selectedUnidadId],
   );
 
   /** Si la unidad elegida dejó de estar activa (p. ej. finalizada), limpiar o fijar la única restante */
   useEffect(() => {
-    if (unidadesActivas.length === 0) {
+    if (unidadesDisponibles.length === 0) {
       setSelectedUnidadId(null);
       return;
     }
     if (
       selectedUnidadId &&
-      !unidadesActivas.some((u) => u.id === selectedUnidadId)
+      !unidadesDisponibles.some((u) => u.id === selectedUnidadId)
     ) {
       setSelectedUnidadId(
-        unidadesActivas.length === 1 ? unidadesActivas[0].id : null,
+        unidadesDisponibles.length === 1 ? unidadesDisponibles[0].id : null,
       );
     }
-  }, [unidadesActivas, selectedUnidadId]);
+  }, [unidadesDisponibles, selectedUnidadId]);
 
   /** Áreas del miembro actual (puede estar vacío si ya no hay restricciones por miembro) */
   const miembroAreas = useMemo<IUnidadListMiembroArea[]>(() => {
@@ -477,10 +496,10 @@ function GenerarSesionPremium() {
 
   // Auto-seleccionar si hay una sola unidad activa
   useEffect(() => {
-    if (unidadesActivas.length === 1 && !selectedUnidadId) {
-      setSelectedUnidadId(unidadesActivas[0].id);
+    if (unidadesDisponibles.length === 1 && !selectedUnidadId) {
+      setSelectedUnidadId(unidadesDisponibles[0].id);
     }
-  }, [unidadesActivas, selectedUnidadId]);
+  }, [unidadesDisponibles, selectedUnidadId]);
 
   // Set initial week + detect existing sessions
   useEffect(() => {
@@ -724,13 +743,13 @@ function GenerarSesionPremium() {
         )}
 
         {/* ─── Sin unidades activas ─── */}
-        {!loadingUnidades && !errorUnidades && unidadesActivas.length === 0 && (
+        {!loadingUnidades && !errorUnidades && unidadesDisponibles.length === 0 && (
           <div className="rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 p-16 text-center">
             <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center">
               <FolderOpen className="h-10 w-10 text-slate-300 dark:text-slate-600" />
             </div>
             <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-              No tienes unidades activas
+              No tienes unidades disponibles
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
               Necesitas una unidad con pago confirmado para generar sesiones.
@@ -751,16 +770,16 @@ function GenerarSesionPremium() {
         {/* ═══════════════════════════════════════════════════════════════════
             MAIN CONTENT
         ═══════════════════════════════════════════════════════════════════ */}
-        {!loadingUnidades && !errorUnidades && unidadesActivas.length > 0 && (
+        {!loadingUnidades && !errorUnidades && unidadesDisponibles.length > 0 && (
           <>
             {/* ─── Selector de unidad (múltiples) ─── */}
-            {unidadesActivas.length > 1 && (
+            {unidadesDisponibles.length > 1 && (
               <div className="mb-6">
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">
                   Selecciona una unidad
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {unidadesActivas.map((u) => {
+                  {unidadesDisponibles.map((u) => {
                     const isSel = u.id === selectedUnidadId;
                     return (
                       <button
@@ -803,7 +822,7 @@ function GenerarSesionPremium() {
             )}
 
             {/* ─── Info de unidad (única) ─── */}
-            {unidadesActivas.length === 1 && selectedUnidad && (
+            {unidadesDisponibles.length === 1 && selectedUnidad && (
               <div className="mb-6 p-4 rounded-xl border border-violet-200/60 dark:border-violet-700/40 bg-violet-50/50 dark:bg-violet-500/5">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-500/20">

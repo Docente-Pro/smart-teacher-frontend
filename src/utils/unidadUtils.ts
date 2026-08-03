@@ -20,22 +20,23 @@ export function isUnidadActiva(unidad: IUnidadListItem): boolean {
 
 /**
  * Verifica si el usuario puede generar sesiones en una unidad.
- * El propietario paga la unidad; un suscriptor paga su propia membresía.
+ * La membresía es la fuente de verdad para propietarios y suscriptores.
+ * No se restringe por fechaFin: el backend permite completar sesiones
+ * planificadas aunque el periodo de la unidad ya haya terminado.
  */
 export function isUnidadDisponibleParaUsuario(
   unidad: IUnidadListItem,
   userId?: string,
 ): boolean {
-  if (!userId || !isUnidadActiva(unidad)) return false;
+  if (!userId) return false;
 
   const miembro = unidad.miembros?.find((m) => m.usuarioId === userId);
   const esPropietario =
     unidad._rol === "PROPIETARIO" ||
     unidad.usuarioId === userId ||
     miembro?.rol === "PROPIETARIO";
-  const estadoPago = esPropietario
-    ? unidad.estadoPago
-    : miembro?.estadoPago;
+  const estadoPago =
+    miembro?.estadoPago ?? (esPropietario ? unidad.estadoPago : undefined);
 
   return estadoPago === "CONFIRMADO";
 }

@@ -9,7 +9,10 @@ import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import { getAllAreas } from "@/services/areas.service";
 import { useUserUnidades } from "@/hooks/useUserUnidades";
-import { isUnidadDisponibleParaUsuario } from "@/utils/unidadUtils";
+import {
+  isUnidadActiva,
+  isUnidadDisponibleParaUsuario,
+} from "@/utils/unidadUtils";
 import type {
   IUnidadListItem,
   IUnidadListMiembroArea,
@@ -149,15 +152,18 @@ function GenerarSesionSecundaria() {
     Map<SlotKey, ISesionPremiumResponse>
   >(new Map());
 
-  const unidadesActivas = useMemo(
+  const unidadesDisponibles = useMemo(
     () =>
-      unidades.filter((u) => isUnidadDisponibleParaUsuario(u, userId)),
+      unidades.filter(
+        (u) =>
+          isUnidadDisponibleParaUsuario(u, userId) && isUnidadActiva(u),
+      ),
     [unidades, userId],
   );
 
   const unidadesSecundaria = useMemo(
-    () => unidadesActivas.filter((u) => isUnidadSecundaria(u)),
-    [unidadesActivas],
+    () => unidadesDisponibles.filter((u) => isUnidadSecundaria(u)),
+    [unidadesDisponibles],
   );
 
   const selectedUnidad = useMemo(
@@ -416,7 +422,7 @@ function GenerarSesionSecundaria() {
         {unidadesSecundaria.length === 0 && (
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40 p-8 text-center">
             <p className="text-slate-600 dark:text-slate-300 mb-4">
-              No tienes unidades secundarias activas con secuencia por grado.
+              No tienes unidades secundarias disponibles con secuencia por grado.
             </p>
             <Button
               onClick={() => navigate("/generar-sesion")}

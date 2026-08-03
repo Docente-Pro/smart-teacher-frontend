@@ -32,6 +32,7 @@ import type { IUsuario } from "@/interfaces/IUsuario";
 import type { TipoUnidad } from "@/interfaces/IUnidad";
 import { useScrollTopOnStep } from "@/hooks/useScrollTopOnStep";
 import { useManualSaveContenido } from "@/hooks/useAutoSaveContenido";
+import { useQueryClient } from "@tanstack/react-query";
 
 const STEPS = [
   { number: 1, title: "Datos Generales", description: "Configuración" },
@@ -50,6 +51,7 @@ const STEPS = [
 function CrearUnidad() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { user } = useAuth0();
   const { showLoading, hideLoading } = useGlobalLoading();
   const { isPremium, isSuscripcionActiva } = usePermissions();
@@ -140,6 +142,11 @@ function CrearUnidad() {
     try {
       const id = await obtenerUnidadActivaId();
       if (id) await deleteUnidad(id);
+      if (user?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ["userUnidades", user.id],
+        });
+      }
       resetUnidad();
     } catch (err: any) {
       console.error("No se pudo eliminar la unidad del backend:", err);
@@ -156,6 +163,11 @@ function CrearUnidad() {
       const id = await obtenerUnidadActivaId();
       if (id) {
         await resetUnidadContenido(id);
+        if (user?.id) {
+          await queryClient.invalidateQueries({
+            queryKey: ["userUnidades", user.id],
+          });
+        }
         softResetUnidad();
       } else {
         // No hay unidad en backend, reset local completo

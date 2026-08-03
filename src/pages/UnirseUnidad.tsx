@@ -31,6 +31,7 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import type { PlanType } from "@/interfaces/IAuth";
 import type { IUnidadPrecios } from "@/interfaces/IUnidad";
+import { useQueryClient } from "@tanstack/react-query";
 
 // ── Precios fallback ──
 const PRECIOS_DEFAULT: IUnidadPrecios = {
@@ -58,6 +59,7 @@ type Fase =
  */
 function UnirseUnidad() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
 
@@ -99,6 +101,10 @@ function UnirseUnidad() {
 
     const redirigir = async () => {
       if (unidadId && user?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ["userUnidades", user.id],
+        });
+
         try {
           const unidad = await getUnidadDetalleSuscriptor(unidadId, user.id);
           if (!cancelled && unidad?.contenido) {
@@ -116,7 +122,7 @@ function UnirseUnidad() {
 
     redirigir();
     return () => { cancelled = true; };
-  }, [fase, unidadId, user?.id, navigate]);
+  }, [fase, unidadId, user?.id, navigate, queryClient]);
 
   // ── Handlers ──
 
