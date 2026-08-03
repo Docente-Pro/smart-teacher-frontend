@@ -17,6 +17,6 @@ export function useUserUnidades() {
     queryKey: ["userUnidades", userId],
     queryFn: () => listarUnidadesByUsuario(userId!),
     enabled: !!userId,
-    staleTime: 1000 * 60 * 60 * 60 * 20, // 20 días
+    staleTime: 1000 * 60 * 2, // 2 minutos
   });
 }

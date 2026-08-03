@@ -9,7 +9,7 @@ import { handleToaster } from "@/utils/Toasters/handleToasters";
 import { generarSesionUnidad } from "@/services/sesiones.service";
 import { getAllAreas } from "@/services/areas.service";
 import { useUserUnidades } from "@/hooks/useUserUnidades";
-import { isUnidadActiva } from "@/utils/unidadUtils";
+import { isUnidadDisponibleParaUsuario } from "@/utils/unidadUtils";
 import type {
   IUnidadListItem,
   IUnidadListMiembroArea,
@@ -135,7 +135,7 @@ function GenerarSesionSecundaria() {
   const { user: usuario } = useUserStore();
   const permissions = usePermissions();
 
-  const userId = user?.id;
+  const userId = user?.id || usuario?.id;
   const { data: unidades = [], isFetching: loading, isError: hasError, error: queryError, refetch } = useUserUnidades();
   const error = hasError ? ((queryError as any)?.message || "Error al cargar unidades") : null;
   const [selectedUnidadId, setSelectedUnidadId] = useState<string | null>(null);
@@ -151,11 +151,7 @@ function GenerarSesionSecundaria() {
 
   const unidadesActivas = useMemo(
     () =>
-      unidades.filter((u) => {
-        const mb = u.miembros.find((m) => m.usuarioId === userId);
-        if (mb?.estadoPago !== "CONFIRMADO") return false;
-        return isUnidadActiva(u);
-      }),
+      unidades.filter((u) => isUnidadDisponibleParaUsuario(u, userId)),
     [unidades, userId],
   );
 

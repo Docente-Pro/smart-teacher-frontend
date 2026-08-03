@@ -18,5 +18,27 @@ export function isUnidadActiva(unidad: IUnidadListItem): boolean {
   return isUnidadFechaActiva(unidad.fechaFin);
 }
 
+/**
+ * Verifica si el usuario puede generar sesiones en una unidad.
+ * El propietario paga la unidad; un suscriptor paga su propia membresía.
+ */
+export function isUnidadDisponibleParaUsuario(
+  unidad: IUnidadListItem,
+  userId?: string,
+): boolean {
+  if (!userId || !isUnidadActiva(unidad)) return false;
+
+  const miembro = unidad.miembros?.find((m) => m.usuarioId === userId);
+  const esPropietario =
+    unidad._rol === "PROPIETARIO" ||
+    unidad.usuarioId === userId ||
+    miembro?.rol === "PROPIETARIO";
+  const estadoPago = esPropietario
+    ? unidad.estadoPago
+    : miembro?.estadoPago;
+
+  return estadoPago === "CONFIRMADO";
+}
+
 /** @deprecated Usa isUnidadFechaActiva o isUnidadActiva de '@/utils/unidadUtils' */
 export const isUnidadListaActiva = isUnidadFechaActiva;
