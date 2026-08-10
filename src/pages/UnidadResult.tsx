@@ -35,6 +35,7 @@ import { UnidadSecundariaFormatoDoc } from "@/components/UnidadDoc/UnidadSecunda
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { getInsigniaDataUrl } from "@/utils/insigniaCache";
+import { normalizeMateriales, normalizeReflexiones } from "@/utils/unidadContenido";
 import { updateUsuario } from "@/services/usuarios.service";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
 
@@ -101,12 +102,15 @@ function UnidadResult() {
   const [wordUrl, setWordUrl] = useState<string | null>(null);
 
   const handleGenerateWord = async () => {
-    if (!unidadId || !isSaved) {
-      handleToaster("Espera a que el PDF se guarde primero", "info");
-      return;
-    }
+    if (!unidadId) return;
     setIsGeneratingWord(true);
     try {
+      // El Word se genera a partir del PDF en S3. Si el guardado automático
+      // falló, se reintenta aquí en vez de dejar el botón inutilizable.
+      if (!isSaved) {
+        handleToaster("Guardando el PDF antes de generar el Word...", "info");
+        await guardarEnNube(true);
+      }
       const { generarWordDesdeUnidad } = await import("@/services/pdfToWord.service");
       const url = await generarWordDesdeUnidad(unidadId);
       setWordUrl(url);
@@ -348,11 +352,7 @@ function UnidadResult() {
           totalSemanas,
           grados: secuenciaGradosRecord,
         },
-        recursosMaterialesDidacticos: Array.isArray(contenido.materiales)
-          ? contenido.materiales
-          : Array.isArray((contenido.materiales as any)?.materiales)
-            ? (contenido.materiales as any).materiales
-            : [],
+        recursosMaterialesDidacticos: normalizeMateriales(contenido.materiales),
         recursosMaterialesPorGrado: ((contenido as any)?.materialesPorGrado || []).map((g: any) => {
           let mats: string[] = [];
           const raw = g?.materiales;
@@ -458,7 +458,7 @@ function UnidadResult() {
             ) : (
               <Button
                 onClick={handleGenerateWord}
-                disabled={isGeneratingWord || !isSaved}
+                disabled={isGeneratingWord || isSaving}
                 variant="outline"
                 size="sm"
                 className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-950"
@@ -605,8 +605,8 @@ function UnidadResult() {
 
                 {/* V. MATERIALES + VI. REFLEXIONES + FIRMAS */}
                 <UnidadDocMaterialesReflexiones
-                  materiales={contenido.materiales}
-                  reflexiones={contenido.reflexiones}
+                  materiales={normalizeMateriales(contenido.materiales)}
+                  reflexiones={normalizeReflexiones(contenido.reflexiones)}
                 />
 
                 {/* Footer */}
