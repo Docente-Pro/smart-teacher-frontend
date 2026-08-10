@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MarkdownTextarea } from "@/components/ui/markdown-textarea";
 import { parseMarkdown } from "@/utils/parseMarkdown";
+import { normalizeMateriales, normalizeReflexiones } from "@/utils/unidadContenido";
 import {
   Sparkles,
   ArrowLeft,
@@ -145,17 +146,6 @@ function AutoResizeTextarea({
   );
 }
 
-function extractStrings(val: unknown): string[] {
-  if (typeof val === "string") return [val];
-  if (Array.isArray(val)) return val.flatMap(extractStrings);
-  if (val && typeof val === "object" && "materiales" in (val as any))
-    return extractStrings((val as any).materiales);
-  return [];
-}
-function normalizeMateriales(raw: unknown): string[] {
-  return extractStrings(raw);
-}
-
 function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
   const navigate = useNavigate();
   const { unidadId, datosBase, contenido, updateContenido, generandoPaso, setGenerandoPaso, markCompleted,
@@ -201,7 +191,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     normalizeMateriales(contenido.materiales).length > 0 || (contenido as any).materialesPorGrado?.length > 0 ? "done" : "idle"
   );
   const [statusReflexiones, setStatusReflexiones] = useState<GenerationStatus>(
-    contenido.reflexiones?.length ? "done" : "idle"
+    normalizeReflexiones(contenido.reflexiones).length > 0 ? "done" : "idle"
   );
 
   const [secuencia, setSecuencia] = useState<ISecuencia | null>(contenido.secuencia || null);
@@ -220,7 +210,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
     }))
   );
   const [reflexiones, setReflexiones] = useState<IReflexionPregunta[]>(
-    contenido.reflexiones || []
+    normalizeReflexiones(contenido.reflexiones)
   );
 
   // ─── Sincronizar estado local con store (cuando se rehidrata de localStorage) ───
@@ -254,9 +244,12 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
         setStatusMateriales("done");
       }
     }
-    if (contenido.reflexiones?.length && reflexiones.length === 0) {
-      setReflexiones(contenido.reflexiones);
-      setStatusReflexiones("done");
+    if (reflexiones.length === 0) {
+      const normalizadas = normalizeReflexiones(contenido.reflexiones);
+      if (normalizadas.length > 0) {
+        setReflexiones(normalizadas);
+        setStatusReflexiones("done");
+      }
     }
   }, [contenido.secuencia, (contenido as any).secuenciaPorGrado, contenido.materiales, (contenido as any).materialesPorGrado, contenido.reflexiones, secuencia, secuenciaPorGrado.length, materiales.length, materialesPorGradoLocal.length, reflexiones.length]);
 
@@ -406,7 +399,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
       try {
         const contenidoParaRef = useUnidadStore.getState().contenido;
         const resRef = await generarReflexiones(unidadId, contenidoParaRef as Record<string, unknown>);
-        const refData = (resRef.data as IReflexionesResponse).reflexiones;
+        const refData = normalizeReflexiones((resRef.data as IReflexionesResponse).reflexiones);
         setReflexiones(refData);
         updateContenido({ reflexiones: refData });
         setStatusReflexiones("done");
@@ -560,7 +553,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
             setGenerandoPaso("Reflexiones");
             const contenidoParaRef = useUnidadStore.getState().contenido;
             const resRef = await generarReflexiones(unidadId, contenidoParaRef as Record<string, unknown>);
-            const refData = (resRef.data as IReflexionesResponse).reflexiones;
+            const refData = normalizeReflexiones((resRef.data as IReflexionesResponse).reflexiones);
             setReflexiones(refData);
             updateContenido({ reflexiones: refData });
             setStatusReflexiones("done");
@@ -584,7 +577,7 @@ function Step4SecuenciaFinal({ pagina, setPagina }: Props) {
           setMateriales(d);
           updateContenido({ materiales: d });
         } else {
-          const d = (res.data as unknown as IReflexionesResponse).reflexiones;
+          const d = normalizeReflexiones((res.data as unknown as IReflexionesResponse).reflexiones);
           setReflexiones(d);
           updateContenido({ reflexiones: d });
         }

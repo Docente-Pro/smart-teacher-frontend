@@ -754,11 +754,21 @@ function EditarUnidad() {
 
       await subirPDFaS3(uploadData.uploadUrl, pdfBlob);
 
-      await confirmarUploadUnidad({
+      const respConfirm = await confirmarUploadUnidad({
         unidadId,
         usuarioId: user.id,
         key: uploadData.key,
       });
+
+      // Sin esto el botón de Word sigue deshabilitado tras guardar, porque
+      // depende de rawUnidad.pdfUrl y solo se leía al cargar la página.
+      const pdfUrlNuevo =
+        (respConfirm as any)?.data?.pdfUrl ??
+        (respConfirm as any)?.pdfUrl ??
+        uploadData.key;
+      setRawUnidad((prev) =>
+        prev ? ({ ...prev, pdfUrl: pdfUrlNuevo } as IUnidadListItem) : prev,
+      );
 
       toast.success("PDF actualizado y guardado en la nube ☁️");
 
