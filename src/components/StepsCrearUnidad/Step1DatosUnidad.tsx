@@ -164,6 +164,13 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     fechaFin: string;
     tipo: string;
   } | null>(null);
+  // Cupo mensual de unidades agotado (error 403)
+  const [limiteMes, setLimiteMes] = useState<{
+    mensaje: string;
+    limite: number;
+    usadas: number;
+    renovacion: string;
+  } | null>(null);
   const [isSavingUnidad, setIsSavingUnidad] = useState(false);
 
   // Horario escolar (solo primaria)
@@ -650,6 +657,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         "success"
       );
       setUnidadActiva(null);
+      setLimiteMes(null);
       setPagina(pagina + 1);
     } catch (error: any) {
       console.error("Error al crear unidad:", error);
@@ -664,6 +672,17 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
           handleToaster("Se usará tu unidad activa para continuar.", "success");
         }
         return; // no toast, se muestra la alerta en la UI
+      }
+
+      // HTTP 403 — agotó su cupo de unidades del mes
+      if (resData?.data?.accion === "LIMITE_UNIDADES_MES") {
+        setLimiteMes({
+          mensaje: resData.message,
+          limite: resData.data.limite,
+          usadas: resData.data.unidadesUsadas,
+          renovacion: resData.data.renovacion,
+        });
+        return; // se muestra la alerta en la UI, no un toast que se desvanece
       }
 
       const msg = resData?.message || "Error al crear la unidad";
@@ -745,6 +764,37 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Finaliza: <span className="font-medium">{formatFechaLocal(unidadActiva.fechaFin)}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Alerta: cupo mensual de unidades agotado ── */}
+        {limiteMes && (
+          <Card className="mb-8 border-2 border-amber-300 dark:border-amber-800 shadow-xl bg-amber-50 dark:bg-amber-950/30">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 p-2 bg-amber-100 dark:bg-amber-900/50 rounded-full">
+                  <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">
+                    Alcanzaste tu límite de unidades del mes
+                  </h3>
+                  <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
+                    {limiteMes.mensaje}
+                  </p>
+                  <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-slate-700 dark:text-slate-200">
+                      Has creado{" "}
+                      <span className="font-semibold">
+                        {limiteMes.usadas} de {limiteMes.limite}
+                      </span>{" "}
+                      unidades este mes. Tus unidades ya creadas siguen disponibles en{" "}
+                      <span className="font-medium">Mis Unidades</span>.
                     </p>
                   </div>
                 </div>
