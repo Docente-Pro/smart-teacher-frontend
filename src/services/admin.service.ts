@@ -21,6 +21,8 @@ import type {
   IListarUsuariosResponse,
   IUsuarioDetalleResponse,
   IEliminarUsuarioResponse,
+  IConsumoGlobalResponse,
+  IConsumoUsuarioResponse,
 } from "@/interfaces/IAdmin";
 
 // ============================================
@@ -290,6 +292,39 @@ export async function getUsuarioDetalle(
 ): Promise<IUsuarioDetalleResponse> {
   const { data } = await instance.get<IUsuarioDetalleResponse>(
     `/admin/usuarios/${usuarioId}`,
+    { headers: getAdminHeaders() }
+  );
+  return data;
+}
+
+// ─── Consumo de IA ───
+
+/**
+ * GET /api/admin/consumo
+ * Consumo global de Gemini: totales, desglose por modelo y ranking de docentes.
+ * Sin fechas devuelve el mes en curso.
+ */
+export async function getConsumoGlobal(params: {
+  desde?: string;
+  hasta?: string;
+  limite?: number;
+} = {}): Promise<IConsumoGlobalResponse> {
+  const { data } = await instance.get<IConsumoGlobalResponse>("/admin/consumo", {
+    headers: getAdminHeaders(),
+    params,
+  });
+  return data;
+}
+
+/**
+ * GET /api/admin/usuarios/:usuarioId/consumo
+ * Consumo de IA de un docente concreto.
+ */
+export async function getConsumoUsuario(
+  usuarioId: string
+): Promise<IConsumoUsuarioResponse> {
+  const { data } = await instance.get<IConsumoUsuarioResponse>(
+    `/admin/usuarios/${usuarioId}/consumo`,
     { headers: getAdminHeaders() }
   );
   return data;
