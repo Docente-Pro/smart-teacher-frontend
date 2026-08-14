@@ -63,7 +63,9 @@ import {
   ChevronDown,
   ChevronUp,
   FlagOff,
+  Zap,
 } from "lucide-react";
+import { ConsumoIADocente } from "@/components/admin/ConsumoIADocente";
 import { toast } from "sonner";
 
 import departamentosData from "@/utils/peru_ubigeo/1_ubigeo_departamentos.json";
@@ -934,6 +936,11 @@ export default function AdminUsuarioDetalle() {
         <StatCard label="Ses. con PDF" value={usuario.stats.sesionesConPdf} icon={FileText} />
         <StatCard label="Und. con PDF" value={usuario.stats.unidadesConPdf} icon={FolderOpen} />
       </div>
+
+      {/* Consumo de IA */}
+      <Section title="Consumo de IA" icon={Zap}>
+        <ConsumoIADocente usuarioId={usuario.id} />
+      </Section>
 
       {/* Suscripción */}
       {usuario.suscripcion && (

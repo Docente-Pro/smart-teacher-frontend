@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -532,10 +532,13 @@ function MisSesiones() {
   const {
     data: sessions,
     isFetching: loadingSessions,
+    isError: sessionsError,
+    error: sessionsErrorObj,
     refetch: refetchSessions,
   } = useQuery({
     queryKey: ["userSessions", userId],
     queryFn: () => obtenerSesionesPorUsuario(userId),
+    enabled: !!userId,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
@@ -545,27 +548,26 @@ function MisSesiones() {
     refetch: refetchUnidades,
   } = useUserUnidades();
 
-  // ─── Data fetching ───
-  const cargarSesiones = useCallback(async () => {
+  // Sync React Query data into local state (optimistic updates mutate this)
+  useEffect(() => {
     if (!userId) return;
     setError(null);
-    try {
-      const sesionesArray = Array.isArray(sessions) ? sessions : [];
-      console.log("llamando recarga");
+    const sesionesArray = Array.isArray(sessions) ? [...sessions] : [];
+    sesionesArray.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    setSesiones(sesionesArray);
+    setUnidades(Array.isArray(unidadesData) ? unidadesData : []);
+  }, [userId, sessions, unidadesData]);
 
-      sesionesArray.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-      setSesiones(sesionesArray);
-      setUnidades(Array.isArray(unidadesData) ? unidadesData : []);
-    } catch (err: any) {
-      console.error("Error al cargar sesiones:", err);
-      const msg =
-        err?.response?.data?.message || err?.message || "Error desconocido";
-      setError(msg);
-    }
-  }, [userId]);
+  useEffect(() => {
+    if (!sessionsError) return;
+    const err = sessionsErrorObj as any;
+    const msg =
+      err?.response?.data?.message || err?.message || "Error desconocido";
+    setError(msg);
+  }, [sessionsError, sessionsErrorObj]);
 
   // ─── Resolve PDF URL for preview modal ───
   useEffect(() => {
