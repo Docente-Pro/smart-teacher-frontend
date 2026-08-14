@@ -416,3 +416,112 @@ export interface IEliminarUsuarioResponse {
     };
   };
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// Consumo de IA
+// El coste lo calcula el rag-service a partir de los tokens y lo guarda el
+// backend atribuido al docente. Todos los importes son USD salvo los `pen`.
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Fila de un desglose (por modelo o por operación). */
+export interface IConsumoDesglose {
+  clave: string;
+  llamadas: number;
+  usd: number;
+  tokensEntrada: number;
+  tokensSalida: number;
+  tokensImagen: number;
+}
+
+export interface IConsumoRankingItem {
+  usuarioId: string;
+  nombre: string;
+  email: string | null;
+  nombreInstitucion: string | null;
+  plan: string;
+  usd: number;
+  llamadas: number;
+}
+
+export interface IConsumoGlobal {
+  ventana: { desde: string; hasta: string };
+  tipoCambio: number;
+  totales: {
+    usd: number;
+    pen: number;
+    llamadas: number;
+    tokensEntrada: number;
+    tokensCacheados: number;
+    tokensSalida: number;
+    tokensPensamiento: number;
+    tokensImagen: number;
+  };
+  volumen: { sesiones: number; unidades: number; fichas: number; imagenes: number };
+  /** `null` cuando no hubo volumen de ese tipo en la ventana. */
+  costesUnitarios: {
+    porSesion: number | null;
+    porUnidad: number | null;
+    porFicha: number | null;
+    porImagen: number | null;
+  };
+  porModelo: IConsumoDesglose[];
+  porOperacion: IConsumoDesglose[];
+  porCategoria: Record<string, { usd: number; llamadas: number }>;
+  modeloMasCaro: IConsumoDesglose | null;
+  ranking: IConsumoRankingItem[];
+  rankingMenor: IConsumoRankingItem[];
+  docentesConGasto: number;
+  serieDiaria: { dia: string; usd: number; llamadas: number }[];
+}
+
+export interface IConsumoGlobalResponse {
+  success: boolean;
+  data: IConsumoGlobal;
+}
+
+export interface IConsumoUsuario {
+  usuarioId: string;
+  tipoCambio: number;
+  /** Gasto real registrado. `desde` es null si este docente aún no tiene telemetría. */
+  medido: {
+    desde: string | null;
+    usd: number;
+    pen: number;
+    llamadas: number;
+    tokensEntrada: number;
+    tokensCacheados: number;
+    tokensSalida: number;
+    tokensPensamiento: number;
+    tokensImagen: number;
+  };
+  /** Aproximación de lo generado antes de que existiera la telemetría. */
+  estimadoPrevio: {
+    usd: number;
+    pen: number;
+    volumen: { sesiones: number; unidades: number; fichas: number };
+    medias: {
+      porSesion: number;
+      porUnidad: number;
+      porFicha: number;
+      origen: "medido" | "referencia" | "mixto";
+    };
+  };
+  totalAproximadoUsd: number;
+  esteMes: {
+    usd: number;
+    pen: number;
+    llamadas: number;
+    sesiones: number;
+    unidades: number;
+    fichas: number;
+  };
+  volumen: { sesiones: number; unidades: number; fichas: number; imagenes: number };
+  costesUnitarios: { porImagen: number | null };
+  porModelo: IConsumoDesglose[];
+  porOperacion: IConsumoDesglose[];
+}
+
+export interface IConsumoUsuarioResponse {
+  success: boolean;
+  data: IConsumoUsuario;
+}

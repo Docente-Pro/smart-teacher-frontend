@@ -9,6 +9,7 @@ const AdminPagosSuscripcion = lazy(() => import("@/pages/admin/AdminPagosSuscrip
 const AdminPagosUnidad = lazy(() => import("@/pages/admin/AdminPagosUnidad"));
 const AdminUsuarios = lazy(() => import("@/pages/admin/AdminUsuarios"));
 const AdminUsuarioDetalle = lazy(() => import("@/pages/admin/AdminUsuarioDetalle"));
+const AdminConsumoIA = lazy(() => import("@/pages/admin/AdminConsumoIA"));
 const AdminRehacerPdf = lazy(() => import("@/pages/admin/AdminRehacerPdf"));
 const AdminFichaPdf = lazy(() => import("@/pages/admin/AdminFichaPdf"));
 const AdminCorregirEstandaresPdf = lazy(() => import("@/pages/admin/AdminCorregirEstandaresPdf"));
@@ -83,6 +84,10 @@ export const adminRoutes: IAdminRoute[] = [
       {
         path: "usuarios/:id",
         element: <AdminUsuarioDetalle />,
+      },
+      {
+        path: "consumo-ia",
+        element: <AdminConsumoIA />,
       },
     ],
   },
