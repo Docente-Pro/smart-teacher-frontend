@@ -5,13 +5,13 @@ import {
   youtubeThumbnailUrl,
   youtubeWatchUrl,
 } from "@/utils/youtube";
+import { dpWellListRow } from "@/styles/dpTokens";
 
 interface TutorialVideoRowProps {
   tutorial: DashboardTutorial;
   onPlay: (tutorial: DashboardTutorial) => void;
   focusRing: string;
   pressable: string;
-  cardShadow: string;
   showPremiumBadge?: boolean;
 }
 
@@ -20,7 +20,6 @@ function TutorialVideoRow({
   onPlay,
   focusRing,
   pressable,
-  cardShadow,
   showPremiumBadge = true,
 }: TutorialVideoRowProps) {
   const [thumbnailSrc, setThumbnailSrc] = useState(
@@ -32,7 +31,7 @@ function TutorialVideoRow({
       <button
         type="button"
         onClick={() => onPlay(tutorial)}
-        className={`${focusRing} ${pressable} flex min-h-[76px] flex-1 items-center gap-3 rounded-[20px] border border-[#E6EBF2] bg-white px-3 py-3 text-left ${cardShadow}`}
+        className={`${focusRing} ${pressable} flex min-h-[76px] flex-1 items-center gap-3 px-3 py-3 text-left ${dpWellListRow}`}
       >
         <span className="relative h-[52px] w-[92px] shrink-0 overflow-hidden rounded-[14px] bg-[#EAF2FC]">
           <img

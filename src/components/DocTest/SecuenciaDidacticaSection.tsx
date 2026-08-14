@@ -118,7 +118,7 @@ function renderProcesoRow(proceso: any, idx: number) {
         {proceso.problemaMatematico ? (
           <>
             {imagenIAPrincipal?.posicion === "antes" && (
-              <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} crossOrigin={false} />
+              <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} />
             )}
 
             {/* Título + Problema + Estrategias integrados en un solo bloque de texto */}
@@ -180,7 +180,7 @@ function renderProcesoRow(proceso: any, idx: number) {
 
               // Prioridad: recurso visual IA sobre el gráfico SVG legacy.
               if (imagenIAPrincipal && imagenIAPrincipal.posicion !== "antes") {
-                return <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} crossOrigin={false} />;
+                return <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} />;
               }
 
               return (proceso.grafico || proceso.graficoProblema) ? (
@@ -221,7 +221,7 @@ function renderProcesoRow(proceso: any, idx: number) {
 
             {/* Recurso visual IA de la solución (si aplica) */}
             {imagenIASolucion && (
-              <ImagenIA imagen={imagenIASolucion} modo="solucion" crossOrigin={false} />
+              <ImagenIA imagen={imagenIASolucion} modo="solucion" />
             )}
           </>
         ) : (
@@ -277,7 +277,7 @@ function renderProcesoRow(proceso: any, idx: number) {
             {/* Gráfico standalone — oculto en socialización. Prioriza recurso visual IA. */}
             {!/socializaci[oó]n/i.test(proceso.proceso || "") && (() => {
               if (imagenIAPrincipal) {
-                return <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} crossOrigin={false} />;
+                return <ImagenIA imagen={imagenIAPrincipal} modo={imagenIAPrincipal.modo} />;
               }
               return proceso.grafico ? (
                 <div className="no-break" style={{
@@ -309,7 +309,7 @@ function renderProcesoRow(proceso: any, idx: number) {
             )}
 
             {imagenIASolucion && (
-              <ImagenIA imagen={imagenIASolucion} modo="solucion" crossOrigin={false} />
+              <ImagenIA imagen={imagenIASolucion} modo="solucion" />
             )}
           </>
         )}

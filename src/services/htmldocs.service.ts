@@ -139,7 +139,7 @@ async function forceLoadAllImages(container: HTMLElement): Promise<void> {
 
 /** Data URL de una imagen 1x1 transparente; evita CORS cuando no se puede inlinear una imagen externa */
 const PLACEHOLDER_IMAGE_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
 
 export interface InlineExternalImagesOptions {
   /**
@@ -166,16 +166,24 @@ async function inlineExternalImages(
   await forceLoadAllImages(container);
 
   const images = container.querySelectorAll("img");
-  const originals = new Map<HTMLImageElement, { src: string; crossOrigin: string | null }>();
+  const originals = new Map<
+    HTMLImageElement,
+    { src: string; crossOrigin: string | null; display: string }
+  >();
 
   const promises = Array.from(images).map(async (img) => {
     const src = img.src;
     if (!src || src.startsWith("data:") || src.startsWith("blob:")) return;
 
-    originals.set(img, { src, crossOrigin: img.getAttribute("crossorigin") });
+    originals.set(img, {
+      src,
+      crossOrigin: img.getAttribute("crossorigin"),
+      display: img.style.display,
+    });
 
     if (replaceExternalWithoutFetch) {
       img.src = PLACEHOLDER_IMAGE_DATA_URL;
+      img.style.display = "none";
       return;
     }
 
@@ -224,16 +232,27 @@ async function inlineExternalImages(
       }
     } catch { /* CORS blocked, continue */ }
 
-    // No se pudo inlinear: dejar data URL placeholder
+    // No se pudo inlinear: ocultar la imagen para no estirar el placeholder 1x1
+    // al ancho completo del documento (dejaría un bloque vacío gigante).
     img.src = PLACEHOLDER_IMAGE_DATA_URL;
+    img.style.display = "none";
   });
 
   await Promise.allSettled(promises);
 
+  // Las data URLs recién asignadas también necesitan decodificarse antes de
+  // que html2canvas clone el DOM, o se capturan como imágenes vacías.
+  await Promise.allSettled(
+    Array.from(images).map((img) =>
+      img.complete ? Promise.resolve() : img.decode().catch(() => undefined),
+    ),
+  );
+
   // Retornar función para restaurar src originales
   return () => {
-    originals.forEach(({ src: originalSrc, crossOrigin }, img) => {
+    originals.forEach(({ src: originalSrc, crossOrigin, display }, img) => {
       img.src = originalSrc;
+      img.style.display = display;
       if (crossOrigin) {
         img.setAttribute("crossorigin", crossOrigin);
       }

@@ -2,8 +2,8 @@ import { useAuth0 } from "@/hooks/useAuth0";
 import { useSubscription } from "@/hooks/useSubscription";
 import { usePaymentSocket } from "@/hooks/usePaymentSocket";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { dpCtaPrimary } from "@/styles/dpTokens";
 
 /**
  * Guard que protege rutas/componentes que requieren suscripción Premium
@@ -47,25 +47,25 @@ export const PremiumGuard = ({
   }
 
   return (
-    <Card className="p-4 border-2 border-dp-orange-200 bg-gradient-to-br from-white to-dp-orange-50">
+    <Card className="rounded-[20px] border border-[#E6EBF2] bg-white p-4 shadow-[0_8px_28px_rgba(31,41,55,0.05)]">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-dp-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <AlertTriangle className="w-5 h-5 text-dp-orange-500" />
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-[16px] bg-[#FFF7ED] text-[#C2410C]">
+          <AlertTriangle className="h-5 w-5" strokeWidth={2} aria-hidden />
         </div>
-        <div className="flex-1">
-          <h4 className="font-semibold text-dp-text-title mb-1">
+        <div className="flex-1 min-w-0">
+          <h4 className="text-base font-extrabold text-[#1F2937] mb-1">
             Función Premium
           </h4>
-          <p className="text-sm text-dp-text-secondary mb-3">
+          <p className="text-base font-semibold text-[#6B7280] mb-3">
             {feature} está disponible solo para usuarios Premium
           </p>
-          <Button
+          <button
+            type="button"
             onClick={() => startPaymentFlow()}
-            className="bg-dp-orange-500 hover:bg-dp-orange-600 text-white"
-            size="sm"
+            className={`${dpCtaPrimary} text-sm min-h-11 px-4`}
           >
             Actualizar a Premium
-          </Button>
+          </button>
         </div>
       </div>
     </Card>

@@ -17,35 +17,20 @@ import type { DashboardTutorial } from "@/data/dashboardTutorials";
 import { useTutorialVisibilityContext } from "@/hooks/useTutorialVisibilityContext";
 
 import TutorialVideoModal from "@/components/dashboard/TutorialVideoModal";
-
 import TutorialVideoRow from "@/components/dashboard/TutorialVideoRow";
-
-
+import DpEnter from "@/components/motion/DpEnter";
+import { dpSectionGap } from "@/styles/dpTokens";
 
 interface DashboardTutorialsTeaserProps {
-
   focusRing: string;
-
   pressable: string;
-
-  cardShadow: string;
-
-  enterDelayClass?: string;
-
+  enterDelayMs?: number;
 }
 
-
-
 function DashboardTutorialsTeaser({
-
   focusRing,
-
   pressable,
-
-  cardShadow,
-
-  enterDelayClass = "dp-enter-delay-5",
-
+  enterDelayMs = 200,
 }: DashboardTutorialsTeaserProps) {
 
   const navigate = useNavigate();
@@ -81,17 +66,13 @@ function DashboardTutorialsTeaser({
 
 
   return (
-
     <>
-
-      <section
-
+      <DpEnter
+        as="section"
+        delayMs={enterDelayMs}
         id="tutoriales"
-
         aria-labelledby="tutoriales-heading"
-
-        className={`mb-8 dp-enter ${enterDelayClass}`}
-
+        className={dpSectionGap}
       >
 
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -146,26 +127,17 @@ function DashboardTutorialsTeaser({
 
 
 
-        <div className="mt-3 flex flex-col gap-2.5">
+        <div className="mt-4 flex flex-col gap-2.5">
 
           {featured.map((tutorial) => (
 
             <TutorialVideoRow
-
               key={tutorial.videoId}
-
               tutorial={tutorial}
-
               onPlay={setActiveTutorial}
-
               focusRing={focusRing}
-
               pressable={pressable}
-
-              cardShadow={cardShadow}
-
               showPremiumBadge={!ctx.isPremium}
-
             />
 
           ))}
@@ -194,7 +166,7 @@ function DashboardTutorialsTeaser({
 
         )}
 
-      </section>
+      </DpEnter>
 
 
 

@@ -35,6 +35,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "crypto-js": "^4.2.0",
+    "framer-motion": "^12.43.0",
     "html2pdf.js": "^0.14.0",
     "htmldocs": "^0.2.30",
     "lucide-react": "^0.473.0",
