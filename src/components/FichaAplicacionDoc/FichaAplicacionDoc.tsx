@@ -73,7 +73,6 @@ function FichaHeader({
           <img
             src={insigniaUrl}
             alt="Insignia"
-            crossOrigin="anonymous"
             style={{ width: "100px", height: "100px", objectFit: "contain", flexShrink: 0 }}
           />
         )}
@@ -1049,7 +1048,7 @@ function SeccionRenderer({ seccion, hex }: { seccion: ISeccionFicha; hex: Hex })
 
   if (tieneImagenIA) {
     return (
-      <ImagenIAVisual imagen={visual.imagen!} crossOrigin>
+      <ImagenIAVisual imagen={visual.imagen!}>
         {contenido}
       </ImagenIAVisual>
     );

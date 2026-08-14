@@ -32,7 +32,6 @@ export function DocumentHeader({ institucion, titulo, areaSubtitle, accentColor,
         <img
           src={insigniaUrl}
           alt="Insignia"
-          crossOrigin="anonymous"
           style={{
             width: "100px",
             height: "100px",

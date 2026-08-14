@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
-import { Mail, ArrowLeft, CheckCircle, Send } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { Mail, ArrowLeft, CheckCircle, Send, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { forgotPassword } from "@/services/backendAuth.service";
+
+const fieldFocus =
+  "h-12 rounded-[16px] border-[#E6EBF2] bg-[#F5F7FA] text-base font-semibold text-[#1F2937] placeholder:text-[#9CA3AF] shadow-none focus-visible:border-[#6B9FE8] focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)]";
 
 function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -39,137 +42,191 @@ function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-gray-950">
-        <div className="w-full max-w-md space-y-8">
-          {/* Back to login */}
-          <button
-            onClick={() => navigate("/login")}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver al inicio de sesión
-          </button>
+    <div
+      className="dp-canvas-dots flex min-h-[100dvh] text-[#1F2937]"
+      style={{ fontFamily: '"Nunito", system-ui, sans-serif' }}
+    >
+      <div className="flex w-full items-center justify-center px-4 py-10 sm:px-8 lg:w-[48%] lg:px-12">
+        <div className="dp-enter w-full max-w-[420px]">
+          <div className="rounded-[28px] border border-[#E6EBF2] bg-white p-6 shadow-[0_8px_28px_rgba(31,41,55,0.05)] sm:p-8">
+            <Link
+              to="/login"
+              className="dp-press mb-6 inline-flex min-h-11 items-center gap-2 text-sm font-extrabold text-[#6B7280] hover:text-[#3B6CB5] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)] focus-visible:ring-offset-2"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              Volver al inicio de sesión
+            </Link>
 
-          {/* Logo */}
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">DocentePro</h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Recupera el acceso a tu cuenta
-            </p>
-          </div>
-
-          {submitted ? (
-            /* ─── Success State ─── */
-            <div className="space-y-6 text-center">
-              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
-                <CheckCircle className="w-8 h-8 text-emerald-500" />
+            <div className="mb-7 flex flex-col items-start gap-4">
+              <div className="grid h-12 w-12 place-items-center rounded-[18px] bg-[#6B9FE8] text-white shadow-[0_10px_24px_rgba(107,159,232,0.28)]">
+                <BookOpen className="h-6 w-6" aria-hidden="true" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Revisa tu correo
-                </h2>
-                <p className="mt-3 text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Si el email <span className="font-medium text-gray-900 dark:text-white">{email}</span> está
-                  registrado, recibirás un enlace para restablecer tu contraseña.
+                <p className="text-sm font-bold text-[#3B6CB5]">Docente Pro</p>
+                <h1 className="mt-1 text-balance text-3xl font-extrabold tracking-[-0.02em] text-[#1F2937]">
+                  Recupera tu acceso
+                </h1>
+                <p className="mt-2 text-base font-semibold leading-7 text-[#6B7280]">
+                  Te enviamos un enlace para crear una nueva contraseña.
                 </p>
               </div>
-              <div className="space-y-3">
-                <Button
-                  onClick={() => navigate("/login")}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-5 text-base rounded-xl shadow-lg transition-all duration-300"
-                >
-                  Volver al inicio de sesión
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setSubmitted(false);
-                    setEmail("");
-                  }}
-                  className="w-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  Intentar con otro correo
-                </Button>
-              </div>
             </div>
-          ) : (
-            /* ─── Form State ─── */
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">
-                  Correo Electrónico
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (error) setError("");
-                    }}
-                    disabled={isLoading}
-                    autoFocus
+
+            {submitted ? (
+              <div className="space-y-6 text-center">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-[20px] bg-[#E3F8EC]">
+                  <CheckCircle
+                    className="h-8 w-8 text-[#15803D]"
+                    aria-hidden="true"
                   />
                 </div>
-                {error && <p className="text-sm text-red-500">{error}</p>}
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Te enviaremos un enlace para que puedas crear una nueva contraseña.
-                </p>
+                <div>
+                  <h2 className="text-xl font-extrabold text-[#1F2937]">
+                    Revisa tu correo
+                  </h2>
+                  <p className="mt-3 text-base font-semibold leading-7 text-[#6B7280]">
+                    Si el email{" "}
+                    <span className="font-extrabold text-[#1F2937]">
+                      {email}
+                    </span>{" "}
+                    está registrado, recibirás un enlace para restablecer tu
+                    contraseña.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <Button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    className="dp-press dp-lift dp-cta-soft-pattern relative h-12 w-full overflow-hidden rounded-[20px] bg-[#FF8B5C] text-base font-extrabold text-white shadow-[0_16px_40px_rgba(255,139,92,0.28)] hover:bg-[#F97316] focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)]"
+                  >
+                    Volver al inicio de sesión
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setSubmitted(false);
+                      setEmail("");
+                    }}
+                    className="dp-press h-12 w-full rounded-[20px] text-base font-extrabold text-[#6B7280] hover:bg-[#EAF2FC] hover:text-[#3B6CB5] focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)]"
+                  >
+                    Intentar con otro correo
+                  </Button>
+                </div>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="email"
+                    className="text-sm font-bold text-[#1F2937]"
+                  >
+                    Correo electrónico
+                  </Label>
+                  <div className="relative">
+                    <Mail
+                      className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9CA3AF]"
+                      aria-hidden="true"
+                    />
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="tu@email.com"
+                      className={`${fieldFocus} pl-11`}
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (error) setError("");
+                      }}
+                      disabled={isLoading}
+                      autoFocus
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={
+                        error ? "email-error" : "email-hint"
+                      }
+                    />
+                  </div>
+                  {error ? (
+                    <p
+                      id="email-error"
+                      className="text-sm font-semibold text-[#C2410C]"
+                    >
+                      {error}
+                    </p>
+                  ) : (
+                    <p
+                      id="email-hint"
+                      className="text-sm font-semibold leading-5 text-[#9CA3AF]"
+                    >
+                      Te enviaremos un enlace para crear una nueva contraseña.
+                    </p>
+                  )}
+                </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-6 text-lg rounded-xl shadow-lg transition-all duration-300"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  "Enviando..."
-                ) : (
-                  <>
-                    <Send className="w-5 h-5 mr-2" />
-                    Enviar enlace de recuperación
-                  </>
-                )}
-              </Button>
-            </form>
-          )}
-        </div>
-      </div>
-
-      {/* Right Side - Illustration */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full opacity-25">
-          <div className="absolute top-10 -left-20 w-96 h-96 bg-cyan-400 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 -right-20 w-[500px] h-[500px] bg-sky-400 rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="max-w-lg text-white space-y-6 relative z-10">
-          <h2 className="text-4xl font-bold">No te preocupes</h2>
-          <p className="text-xl text-blue-100">
-            Restablecer tu contraseña es rápido y sencillo. Solo necesitas tu correo electrónico.
-          </p>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-sm font-bold">1</div>
-              <span className="text-lg">Ingresa tu correo electrónico</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-sm font-bold">2</div>
-              <span className="text-lg">Revisa tu bandeja de entrada</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-sm font-bold">3</div>
-              <span className="text-lg">Crea una nueva contraseña</span>
-            </div>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="dp-press dp-lift dp-cta-soft-pattern relative h-12 w-full overflow-hidden rounded-[20px] bg-[#FF8B5C] text-base font-extrabold text-white shadow-[0_16px_40px_rgba(255,139,92,0.28)] hover:bg-[#F97316] focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)]"
+                >
+                  {isLoading ? (
+                    "Enviando..."
+                  ) : (
+                    <>
+                      <Send className="h-5 w-5" aria-hidden="true" />
+                      Enviar enlace de recuperación
+                    </>
+                  )}
+                </Button>
+              </form>
+            )}
           </div>
         </div>
       </div>
+
+      <aside
+        className="dp-banner-notebook relative hidden overflow-hidden bg-[#6B9FE8] lg:flex lg:w-[52%] lg:flex-col lg:justify-between lg:p-12 xl:p-14"
+        aria-hidden="true"
+      >
+        <div className="relative z-10 max-w-lg">
+          <p className="text-sm font-bold text-white/90">Recuperación segura</p>
+          <h2 className="mt-3 text-balance text-4xl font-extrabold leading-tight tracking-[-0.02em] text-white">
+            No te preocupes, lo resolvemos rápido
+          </h2>
+          <p className="mt-4 max-w-[36ch] text-lg font-semibold leading-8 text-white/95">
+            Solo necesitas tu correo. En pocos minutos vuelves a planificar.
+          </p>
+        </div>
+
+        <ul className="relative z-10 mt-10 max-w-md space-y-3 text-base font-semibold text-white">
+          <li className="flex items-center gap-3">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[12px] bg-white/20 text-sm font-extrabold">
+              1
+            </span>
+            Ingresa tu correo electrónico
+          </li>
+          <li className="flex items-center gap-3">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[12px] bg-white/20 text-sm font-extrabold">
+              2
+            </span>
+            Revisa tu bandeja de entrada
+          </li>
+          <li className="flex items-center gap-3">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[12px] bg-white/20 text-sm font-extrabold">
+              3
+            </span>
+            Crea una nueva contraseña
+          </li>
+        </ul>
+
+        <img
+          src="/dashboard/welcome-male.png?v=forgot1"
+          alt=""
+          className="dp-banner-art pointer-events-none absolute bottom-0 right-0 z-[1] h-[58%] w-auto max-w-[55%] object-contain object-bottom xl:h-[62%] xl:max-w-[50%]"
+          loading="eager"
+          decoding="async"
+        />
+      </aside>
     </div>
   );
 }

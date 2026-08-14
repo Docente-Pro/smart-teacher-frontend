@@ -94,7 +94,12 @@ interface ImagenIAProps {
   imagen: { url?: string; descripcion?: string; requiereTexto?: boolean };
   /** Variante de estilo: "solucion" (verde) o cualquier otro (azul). */
   modo?: string;
-  /** Activar crossOrigin para captura PDF (html2canvas). Default: true. */
+  /**
+   * Activar crossOrigin en la imagen visible. Default: false.
+   * Si la imagen quedó cacheada sin cabeceras CORS, pedirla con crossOrigin
+   * falla y no se muestra nada. La captura a PDF re-descarga la imagen con
+   * CORS por su cuenta, así que aquí no hace falta.
+   */
   crossOrigin?: boolean;
 }
 
@@ -102,7 +107,7 @@ interface ImagenIAProps {
  * Render de un recurso visual IA como imagen prominente (ancho completo,
  * object-contain, dentro de una caja con borde). Sirve para todas las áreas.
  */
-export function ImagenIA({ imagen, modo, crossOrigin = true }: ImagenIAProps) {
+export function ImagenIA({ imagen, modo, crossOrigin = false }: ImagenIAProps) {
   if (!imagen?.url) return null;
 
   const colores =

@@ -68,7 +68,7 @@ export function WhatsAppPremiumFAB() {
   // Si está esperando confirmación, mostrar estado especial
   if (status === "waiting") {
     return (
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="dp-floating-above-mobile-nav fixed right-4 z-50 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-300 lg:right-6">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center gap-3 max-w-xs">
           <div className="relative shrink-0">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
@@ -98,7 +98,7 @@ export function WhatsAppPremiumFAB() {
   // Si se activó, mostrar éxito briefmente
   if (status === "activated") {
     return (
-      <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="dp-floating-above-mobile-nav fixed right-4 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 lg:right-6">
         <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-3">
           <Crown className="w-5 h-5" />
           <span className="text-sm font-bold">¡Premium activado!</span>
@@ -109,7 +109,7 @@ export function WhatsAppPremiumFAB() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 select-none">
+    <div className="dp-floating-above-mobile-nav fixed right-4 z-50 flex flex-col items-end gap-2 select-none lg:right-6">
       {/* ── Dismiss tiny button (solo cuando expandido) ── */}
       {isExpanded && (
         <button

@@ -7,9 +7,12 @@ import { useLoginStore } from "../store/loginStore";
 import { LOGIN_VALIDATION } from "../constants/loginConstants";
 import type { ILoginFormErrors } from "../interfaces/ILogin";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { loginWithBackend } from "@/services/backendAuth.service";
 import { useAuthStore } from "@/store/auth.store";
+
+const fieldFocus =
+  "h-12 rounded-[16px] border-[#E6EBF2] bg-[#F5F7FA] text-base font-semibold text-[#1F2937] placeholder:text-[#9CA3AF] shadow-none focus-visible:border-[#6B9FE8] focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)]";
 
 function LoginForm() {
   const navigate = useNavigate();
@@ -17,7 +20,8 @@ function LoginForm() {
   const [errors, setErrors] = useState<ILoginFormErrors>({});
   const setTokens = useAuthStore((state) => state.setTokens);
 
-  const { credentials, isLoading, setCredentials, setLoading, setError } = useLoginStore();
+  const { credentials, isLoading, setCredentials, setLoading, setError } =
+    useLoginStore();
 
   const validateForm = (): boolean => {
     const newErrors: ILoginFormErrors = {};
@@ -30,7 +34,9 @@ function LoginForm() {
 
     if (!credentials.password) {
       newErrors.password = LOGIN_VALIDATION.PASSWORD.REQUIRED;
-    } else if (credentials.password.length < LOGIN_VALIDATION.PASSWORD.MIN_LENGTH) {
+    } else if (
+      credentials.password.length < LOGIN_VALIDATION.PASSWORD.MIN_LENGTH
+    ) {
       newErrors.password = LOGIN_VALIDATION.PASSWORD.MIN_LENGTH_MESSAGE;
     }
 
@@ -49,31 +55,29 @@ function LoginForm() {
     setError(null);
 
     try {
-      // 1. Llamar al backend para obtener los tokens
       const response = await loginWithBackend({
         email: credentials.email,
         password: credentials.password,
       });
 
-      // 2. Guardar tokens en el store de autenticación
       setTokens(response);
 
-      // 3. Guardar refresh token en localStorage para restaurar sesión
       if (response.refresh_token) {
         localStorage.setItem("refresh_token", response.refresh_token);
       }
 
       handleToaster("¡Inicio de sesión exitoso!", "success");
-
-      // 4. El PostLoginValidator se encargará de redirigir según el estado del usuario
-      // Por ahora navegamos al dashboard y el validator decidirá
       navigate("/dashboard");
     } catch (error: any) {
       setLoading(false);
 
       const errorMessage = error.message || error.response?.data?.message;
 
-      if (errorMessage?.includes("Wrong") || errorMessage?.includes("invalid") || errorMessage?.includes("credentials")) {
+      if (
+        errorMessage?.includes("Wrong") ||
+        errorMessage?.includes("invalid") ||
+        errorMessage?.includes("credentials")
+      ) {
         handleToaster("Email o contraseña incorrectos", "error");
         setError("Credenciales inválidas");
       } else {
@@ -84,83 +88,122 @@ function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Email Input */}
+    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">
-          Correo Electrónico
+        <Label
+          htmlFor="email"
+          className="text-sm font-bold text-[#1F2937]"
+        >
+          Correo electrónico
         </Label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Mail
+            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9CA3AF]"
+            aria-hidden="true"
+          />
           <Input
             id="email"
             type="email"
+            autoComplete="email"
             placeholder="tu@email.com"
-            className="pl-10"
+            className={`${fieldFocus} pl-11`}
             value={credentials.email}
             onChange={(e) => setCredentials({ email: e.target.value })}
             disabled={isLoading}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "email-error" : undefined}
           />
         </div>
-        {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+        {errors.email && (
+          <p id="email-error" className="text-sm font-semibold text-[#C2410C]">
+            {errors.email}
+          </p>
+        )}
       </div>
 
-      {/* Password Input */}
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">
+        <Label
+          htmlFor="password"
+          className="text-sm font-bold text-[#1F2937]"
+        >
           Contraseña
         </Label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Lock
+            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9CA3AF]"
+            aria-hidden="true"
+          />
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
             placeholder="••••••••"
-            className="pl-10 pr-10"
+            className={`${fieldFocus} pl-11 pr-12`}
             value={credentials.password}
             onChange={(e) => setCredentials({ password: e.target.value })}
             disabled={isLoading}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "password-error" : undefined}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="dp-press absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[12px] text-[#6B7280] hover:bg-white hover:text-[#1F2937] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)]"
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
           >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            {showPassword ? (
+              <EyeOff className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Eye className="h-5 w-5" aria-hidden="true" />
+            )}
           </button>
         </div>
-        {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+        {errors.password && (
+          <p
+            id="password-error"
+            className="text-sm font-semibold text-[#C2410C]"
+          >
+            {errors.password}
+          </p>
+        )}
       </div>
 
-      {/* Remember Me & Forgot Password */}
-      <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 cursor-pointer">
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
             checked={credentials.rememberMe}
-            onChange={(e) => setCredentials({ rememberMe: e.target.checked })}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            onChange={(e) =>
+              setCredentials({ rememberMe: e.target.checked })
+            }
+            className="h-5 w-5 rounded border-[#E6EBF2] text-[#FF8B5C] accent-[#FF8B5C] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)]"
           />
-          <span className="text-sm text-gray-600 dark:text-gray-400">Recordarme</span>
+          <span className="text-base font-semibold text-[#6B7280]">
+            Recordarme
+          </span>
         </label>
-        <a href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400">
+        <Link
+          to="/forgot-password"
+          className="text-sm font-extrabold text-[#3B6CB5] underline-offset-2 hover:text-[#6B9FE8] hover:underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)] focus-visible:ring-offset-2"
+        >
           ¿Olvidaste tu contraseña?
-        </a>
+        </Link>
       </div>
 
-      {/* Submit Button */}
       <Button
         type="submit"
-        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-6 text-lg rounded-xl shadow-lg transition-all duration-300"
         disabled={isLoading}
+        className="dp-press dp-lift dp-cta-soft-pattern relative h-12 w-full overflow-hidden rounded-[20px] bg-[#FF8B5C] text-base font-extrabold text-white shadow-[0_16px_40px_rgba(255,139,92,0.28)] hover:bg-[#F97316] focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)]"
       >
-        {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
+        {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
       </Button>
 
-      {/* General Error */}
       {errors.general && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-sm text-red-600 dark:text-red-400">{errors.general}</p>
+        <div
+          role="alert"
+          className="rounded-[16px] border border-[#FED7AA] bg-[#FFF7ED] px-4 py-3"
+        >
+          <p className="text-sm font-semibold text-[#C2410C]">{errors.general}</p>
         </div>
       )}
     </form>

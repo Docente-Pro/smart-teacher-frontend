@@ -131,63 +131,6 @@ export function buildSesionPremiumData(
   };
 }
 
-// ─── Helpers para imágenes ───────────────────────────────────────────────────
-
-/** GIF transparente de 1×1 px — reemplaza imágenes que no pudieron inlinearse */
-const TRANSPARENT_1PX =
-  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-
-/**
- * Intenta convertir una imagen ya cargada en el DOM a data URL vía canvas.
- * Si el canvas se tainta (CORS), devuelve false y no modifica el img.
- */
-function tryInlineImage(img: HTMLImageElement): boolean {
-  if (!img.complete || !img.naturalWidth) return false;
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return false;
-    ctx.drawImage(img, 0, 0);
-    // toDataURL lanza SecurityError si el canvas está tainted (CORS)
-    const dataUrl = canvas.toDataURL("image/png");
-    img.src = dataUrl;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Pre-procesa todas las imágenes externas para evitar problemas con html2canvas:
- *  - Si se puede convertir a data URL (CORS OK) → usa data URL
- *  - Si no (CORS bloqueado) → reemplaza con pixel transparente
- *
- * Esto evita que html2canvas con useCORS:true intente re-fetchear las imágenes
- * con crossOrigin="anonymous", lo que falla y corrompe el canvas completo.
- */
-function neutralizeExternalImages(container: HTMLElement): number {
-  const imgs = Array.from(
-    container.querySelectorAll<HTMLImageElement>("img"),
-  );
-  let inlined = 0;
-  let stripped = 0;
-
-  for (const img of imgs) {
-    if (!img.src || img.src.startsWith("data:") || img.src.startsWith("blob:")) continue;
-
-    if (tryInlineImage(img)) {
-      inlined++;
-    } else {
-      img.src = TRANSPARENT_1PX;
-      stripped++;
-    }
-  }
-
-  return inlined + stripped;
-}
-
 // ─── Offscreen Render ────────────────────────────────────────────────────────
 
 /**
@@ -197,9 +140,9 @@ function neutralizeExternalImages(container: HTMLElement): number {
  * Estrategia:
  *   - position:absolute + left:0 + top:0 → en el viewport (html2canvas lo necesita).
  *   - z-index:-1 → detrás del contenido visible de la app.
- *   - Imágenes externas se convierten a data URLs (o se neutralizan si CORS falla)
- *     ANTES de llamar a generatePDFBlob, evitando que html2canvas intente
- *     re-fetchearlas con crossOrigin.
+ *   - Las imágenes se montan sin crossOrigin para que siempre se muestren;
+ *     generatePDFBlob las re-descarga con CORS y las inlinea como data URLs
+ *     antes de rasterizar.
  */
 export async function renderPdfOffscreen(
   data: ISesionPremiumResponse,
@@ -250,11 +193,6 @@ export async function renderPdfOffscreen(
       await new Promise((r) => setTimeout(r, 400));
     }
 
-    // 4. Neutralizar imágenes externas para evitar CORS en html2canvas
-    //    Si CORS está configurado (producción) → se convierten a data URL (con imágenes)
-    //    Si CORS está bloqueado (localhost) → se usa pixel transparente (solo texto)
-    neutralizeExternalImages(container);
-
     const innerH = container.scrollHeight;
     if (innerH < 10) {
       console.error(
@@ -262,7 +200,8 @@ export async function renderPdfOffscreen(
       );
     }
 
-    // 5. Capturar PDF
+    // 4. Capturar PDF (generatePDFBlob convierte las imágenes externas a
+    //    data URLs re-descargándolas con CORS antes de rasterizar)
     const blob = await generatePDFBlob(container, {
       size: "A4",
       orientation: "portrait",
@@ -270,7 +209,7 @@ export async function renderPdfOffscreen(
 
     return blob;
   } finally {
-    // 6. Limpiar
+    // 5. Limpiar
     root.unmount();
     document.body.removeChild(container);
   }

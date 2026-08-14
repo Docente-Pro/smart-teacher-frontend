@@ -481,7 +481,7 @@ function ProcesoPremiumRow({
       <div style={{ marginBottom: "0.6rem", textAlign: "center" }}>
         {imgs.map((img, imgIdx) => (
           <div key={(img as any).id ?? imgIdx} style={{ display: "inline-block", margin: "0 0.5rem" }}>
-            <img src={img.url} alt={img.descripcion || ""} crossOrigin="anonymous" style={{ maxWidth: "260px", maxHeight: "220px" }} />
+            <img src={img.url} alt={img.descripcion || ""} style={{ maxWidth: "260px", maxHeight: "220px" }} />
             {(img as any).texto_overlay && (
               <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
                 {(img as any).texto_overlay}
@@ -538,7 +538,7 @@ function ProcesoPremiumRow({
                 <div style={{ flexShrink: 0, maxWidth: "35%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                   {imgJunto.map((img, imgIdx) => (
                     <div key={(img as any).id ?? imgIdx} style={{ textAlign: "center" }}>
-                      <img src={img.url} alt={img.descripcion || ""} crossOrigin="anonymous" style={{ maxWidth: "260px", maxHeight: "220px" }} />
+                      <img src={img.url} alt={img.descripcion || ""} style={{ maxWidth: "260px", maxHeight: "220px" }} />
                       {(img as any).texto_overlay && (
                         <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
                           {(img as any).texto_overlay}
@@ -627,7 +627,7 @@ function ProcesoPremiumRow({
                 <div style={{ flexShrink: 0, maxWidth: "35%", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                   {imgJunto.map((img, imgIdx) => (
                     <div key={(img as any).id ?? imgIdx} style={{ textAlign: "center" }}>
-                      <img src={img.url} alt={img.descripcion || ""} crossOrigin="anonymous" style={{ maxWidth: "260px", maxHeight: "220px" }} />
+                      <img src={img.url} alt={img.descripcion || ""} style={{ maxWidth: "260px", maxHeight: "220px" }} />
                       {(img as any).texto_overlay && (
                         <div style={{ fontSize: "8pt", color: "#1e293b", marginTop: "0.3rem", padding: "0.4rem 0.6rem", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", textAlign: "left", whiteSpace: "pre-wrap" }}>
                           {(img as any).texto_overlay}
