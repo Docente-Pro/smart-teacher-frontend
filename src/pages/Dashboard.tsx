@@ -1,10 +1,8 @@
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
-  BookOpen,
   FileText,
   FolderOpen,
-  LogOut,
   Users,
   ChevronRight,
   Lock,
@@ -13,29 +11,42 @@ import {
   FilePlus2,
   Shield,
   Sparkles,
-  PlayCircle,
 } from "lucide-react";
 import DashboardTutorialsTeaser from "@/components/dashboard/DashboardTutorialsTeaser";
-import "@fontsource/nunito/600.css";
-import "@fontsource/nunito/700.css";
-import "@fontsource/nunito/800.css";
+import TeacherAppShell from "@/components/layout/TeacherAppShell";
+import TeacherDashboardHeader from "@/components/layout/TeacherDashboardHeader";
+import TeacherHubPage from "@/components/layout/TeacherHubPage";
+import { useTeacherShell } from "@/components/layout/teacherShellContext";
+import {
+  DpEnter,
+  DpStaggerItem,
+  DpStaggerList,
+  DpViewTransition,
+} from "@/components/motion";
+import {
+  dpCardShadow,
+  dpCtaPrimary,
+  dpCtaPrimaryCard,
+  dpFocusRing,
+  dpLiftable,
+  dpPressable,
+  dpSectionGap,
+  dpWellListRow,
+} from "@/styles/dpTokens";
 import { useEffect, useMemo, useState } from "react";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
-import { useAuth0 } from "@auth0/auth0-react";
 import { useAuthStore } from "@/store/auth.store";
 import ProblematicaModal from "@/components/Shared/Modal/ProblematicaModal";
 import { problematicaApiService } from "@/features/problematicas/services/problematica-api.service";
 import { applyProblematicaSelection } from "@/features/problematicas/utils/applyProblematicaSelection";
 import { pickQuickStartProblematica } from "@/features/problematicas/utils/pickQuickStartProblematica";
-import UpgradePremiumModal from "@/components/Shared/Modal/UpgradePremiumModal";
 import SubirAlumnosModal from "@/components/Shared/Modal/SubirAlumnosModal";
 import SubirInsigniaModal from "@/components/Shared/Modal/SubirInsigniaModal";
 import WelcomeGuideModal, {
   hasSeenWelcomeGuide,
 } from "@/components/Shared/Modal/WelcomeGuideModal";
 import { usePermissions } from "@/hooks/usePermissions";
-import { clearUserStorage } from "@/utils/clearUserStorage";
 import {
   clearPendingLandingPlan,
   readPendingLandingPlan,
@@ -75,8 +86,8 @@ function convertUrlToBase64(url: string) {
   img.src = url;
 }
 
-function Dashboard() {
-  const { logout } = useAuth0();
+function DashboardView() {
+  const { openUpgradeModal } = useTeacherShell();
   const { user } = useAuthStore();
   const { user: usuarioBD } = useUserStore();
   const permissions = usePermissions();
@@ -88,7 +99,6 @@ function Dashboard() {
   >("choose");
   const [showProblematicaIndividual, setShowProblematicaIndividual] =
     useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAlumnosModal, setShowAlumnosModal] = useState(false);
   const [alumnosSubidos, setAlumnosSubidos] = useState(() =>
     hasUploadedAlumnos(user?.gradoId),
@@ -260,12 +270,6 @@ function Dashboard() {
     }
   }
 
-  const handleLogout = () => {
-    clearUserStorage();
-    useAuthStore.getState().clearAuth();
-    logout({ logoutParams: { returnTo: `${window.location.origin}/login` } });
-  };
-
   /**
    * Intenta crear unidad.
    * Siempre navega a /crear-unidad. El chequeo de plan (free/premium)
@@ -292,7 +296,7 @@ function Dashboard() {
 
     if (user.problematicaCompleta !== false) {
       if (!permissions.canCreateSesion) {
-        setShowUpgradeModal(true);
+        openUpgradeModal();
         return;
       }
       showLoading("Cargando cuestionario...");
@@ -354,7 +358,7 @@ function Dashboard() {
 
     // FREE: validar límite de sesiones gratuitas
     if (!permissions.canCreateSesion) {
-      setShowUpgradeModal(true);
+      openUpgradeModal();
       return;
     }
     showLoading("Cargando cuestionario...");
@@ -374,7 +378,7 @@ function Dashboard() {
     if (isPremium || !user?.id) return;
     const pendingPlan = readPendingLandingPlan();
     if (!pendingPlan) return;
-    setShowUpgradeModal(true);
+    openUpgradeModal();
     clearPendingLandingPlan();
   }, [isPremium, user?.id]);
 
@@ -387,59 +391,6 @@ function Dashboard() {
     (sesionesUsadas === 0 || sesionesUsadas === 1);
   const showProblematicaNudge =
     needsProblematicaSetup && Number(sesionesUsadas ?? 0) === 0;
-
-  const navItems = [
-    {
-      icon: BookOpen,
-      label: "Inicio",
-      active: true,
-      action: () => window.scrollTo({ top: 0, behavior: "smooth" }),
-    },
-    {
-      icon: FileText,
-      label: "Sesiones",
-      action: () => {
-        showLoading("Cargando sesiones...");
-        navigate("/mis-sesiones");
-      },
-    },
-    {
-      icon: FolderOpen,
-      label: "Unidades",
-      action: () => {
-        showLoading("Cargando unidades...");
-        navigate("/mis-unidades");
-      },
-    },
-    ...(permissions.isPremium
-      ? [
-          {
-            icon: ClipboardList,
-            label: "Fichas",
-            action: () => {
-              showLoading("Cargando fichas...");
-              navigate("/mis-fichas");
-            },
-          },
-        ]
-      : []),
-    {
-      icon: PlayCircle,
-      label: "Tutoriales",
-      action: () => {
-        showLoading("Cargando tutoriales...");
-        navigate("/tutoriales");
-      },
-    },
-    {
-      icon: KeyRound,
-      label: "Unirme",
-      action: () => {
-        showLoading("Preparando...");
-        navigate("/unirse-unidad");
-      },
-    },
-  ];
 
   const documentos = [
     {
@@ -478,155 +429,34 @@ function Dashboard() {
       : []),
   ];
 
-  // DESIGN.md soft UI + Emil motion classes (dp-*)
-  const focusRing =
-    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(255,139,92,0.32)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F5F7FA]";
-  const pressable = "dp-press";
-  const liftable = "dp-press dp-lift";
-  const cardShadow = "shadow-[0_8px_28px_rgba(31,41,55,0.05)]";
+  const focusRing = dpFocusRing;
+  const pressable = dpPressable;
+  const liftable = dpLiftable;
+  const cardShadow = dpCardShadow;
+
+  const dashboardContentKey = [
+    showProblematicaNudge ? "nudge" : "",
+    showFreeQuotaBanner ? "quota" : "",
+    isPremium ? "premium" : "free",
+  ]
+    .filter(Boolean)
+    .join("-");
 
   return (
-    <div
-      className="dp-canvas-dots relative min-h-[100dvh] overflow-x-hidden text-[#1F2937] dark:bg-slate-950 dark:text-slate-100"
-      style={{ fontFamily: '"Nunito", system-ui, sans-serif' }}
-    >
-      <div className="flex min-h-[100dvh] w-full">
-        <aside className="sticky top-0 hidden h-[100dvh] w-[92px] shrink-0 flex-col items-center gap-3 border-r border-[#E6EBF2]/80 bg-white/90 px-3 py-5 backdrop-blur-md lg:flex xl:w-[220px] xl:items-stretch xl:px-4">
-          <div className="mb-4 flex items-center gap-3 xl:px-1">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-[18px] bg-[#6B9FE8] text-white shadow-[0_10px_24px_rgba(107,159,232,0.28)]">
-              <BookOpen className="h-6 w-6" aria-hidden="true" />
-            </div>
-            <div className="hidden min-w-0 xl:block">
-              <p className="truncate text-lg font-extrabold text-[#1F2937]">
-                Docente Pro
-              </p>
-              <p className="truncate text-sm font-semibold text-[#6B7280]">
-                {planLabel}
-              </p>
-            </div>
-          </div>
+    <>
+      <TeacherDashboardHeader
+        planLabel={planLabel}
+        gradoNombre={gradoNombre}
+        nivelNombre={nivelNombre}
+        userName={user?.name}
+        firstName={firstName}
+      />
 
-          <nav aria-label="Navegación principal" className="flex flex-1 flex-col gap-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={item.action}
-                  className={`${focusRing} ${pressable} flex items-center justify-center gap-3 rounded-[20px] px-3 py-3 text-left xl:justify-start ${
-                    item.active
-                      ? "bg-[#EAF2FC] text-[#3B6CB5]"
-                      : "text-[#6B7280] hover:bg-[#EAF2FC]"
-                  }`}
-                  aria-current={item.active ? "page" : undefined}
-                >
-                  <span
-                    className={`grid h-11 w-11 place-items-center rounded-full ${
-                      item.active
-                        ? "bg-[#6B9FE8] text-white shadow-[0_8px_18px_rgba(107,159,232,0.28)]"
-                        : "bg-[#EAF2FC] text-[#6B7280]"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <span className="hidden text-base font-bold xl:inline">
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {!isPremium && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowUpgradeModal(true)}
-                className={`${focusRing} ${liftable} dp-cta-soft-pattern grid h-12 w-12 place-items-center rounded-[18px] bg-[#FF8B5C] text-white shadow-[0_12px_28px_rgba(255,139,92,0.28)] hover:bg-[#F97316] xl:hidden`}
-                aria-label="Pasa a Premium"
-                title="Pasa a Premium"
-              >
-                <Sparkles className="h-5 w-5" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowUpgradeModal(true)}
-                className={`${focusRing} ${liftable} dp-cta-soft-pattern hidden rounded-[22px] bg-[#FF8B5C] p-4 text-left text-white shadow-[0_14px_32px_rgba(255,139,92,0.28)] hover:bg-[#F97316] xl:block`}
-              >
-                <p className="text-base font-extrabold">Pasa a Premium</p>
-                <p className="mt-1 text-sm font-semibold text-white/90">
-                  Unidades ilimitadas y más herramientas.
-                </p>
-              </button>
-            </>
-          )}
-
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className={`${focusRing} ${pressable} mt-2 h-12 rounded-[16px] border-[#E6EBF2] bg-white px-3 text-base font-bold text-[#1F2937] hover:bg-[#EAF2FC]`}
-            aria-label="Cerrar sesión"
-          >
-            <LogOut className="h-5 w-5 xl:mr-2" aria-hidden="true" />
-            <span className="hidden xl:inline">Salir</span>
-          </Button>
-        </aside>
-
-        <div className="min-w-0 flex-1">
-          <header className="sticky top-0 z-30 border-b border-[#E6EBF2]/70 bg-[#F5F7FA]/85 backdrop-blur-md">
-            <div className="flex h-[72px] items-center justify-between gap-3 px-4 sm:px-6">
-              <div className="flex min-w-0 items-center gap-3 lg:hidden">
-                <div className="grid h-11 w-11 place-items-center rounded-[16px] bg-[#6B9FE8] text-white">
-                  <BookOpen className="h-5 w-5" aria-hidden="true" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-lg font-extrabold">Docente Pro</p>
-                  <p className="truncate text-sm font-semibold text-[#6B7280]">
-                    {planLabel}
-                    {gradoNombre ? ` · ${gradoNombre}` : ""}
-                  </p>
-                </div>
-              </div>
-
-              <div className="hidden min-w-0 lg:block">
-                <p className="text-sm font-bold text-[#6B7280]">
-                  {gradoNombre || "Tu aula"}
-                  {nivelNombre ? ` · ${nivelNombre}` : ""}
-                </p>
-                <p className="text-xl font-extrabold text-[#1F2937]">
-                  Panel del docente
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden items-center gap-2 rounded-full bg-white px-3 py-1.5 shadow-[0_6px_18px_rgba(31,41,55,0.05)] sm:flex">
-                  <div
-                    className="grid h-10 w-10 place-items-center rounded-full bg-[#EAF2FC] text-base font-extrabold text-[#3B6CB5]"
-                    aria-hidden="true"
-                  >
-                    {firstName.charAt(0)}
-                  </div>
-                  <span className="max-w-[16ch] truncate text-base font-bold">
-                    {user?.name}
-                  </span>
-                </div>
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  className={`${focusRing} ${pressable} h-11 rounded-full border-[#E6EBF2] bg-white px-4 text-base font-bold lg:hidden`}
-                  aria-label="Cerrar sesión"
-                >
-                  <LogOut className="h-5 w-5" aria-hidden="true" />
-                </Button>
-              </div>
-            </div>
-          </header>
-
-          <main className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-            {/* Welcome — cuaderno del docente + personaje contenido */}
-            <section
-              className={`dp-enter dp-banner-notebook relative mb-6 min-h-[210px] overflow-hidden rounded-[32px] bg-[#6B9FE8] sm:min-h-[240px] ${cardShadow}`}
+      <TeacherHubPage maxWidth="full">
+        <DpViewTransition viewKey={dashboardContentKey || "home"}>
+            <DpEnter
+              as="section"
+              className={`dp-banner-notebook relative mb-8 min-h-[210px] overflow-hidden rounded-[32px] bg-[#6B9FE8] sm:min-h-[240px] ${cardShadow}`}
             >
               <img
                 src={`${bannerDocenteSrc}?v=pattern6`}
@@ -647,12 +477,14 @@ function Dashboard() {
                   Empieza creando, o abre lo que ya tienes listo.
                 </p>
               </div>
-            </section>
+            </DpEnter>
 
             {showProblematicaNudge && (
-              <section
+              <DpEnter
+                as="section"
+                delayMs={40}
                 aria-label="Configurar tema del aula"
-                className="dp-enter mb-6 rounded-[24px] border border-[#FFD6C2] bg-[#FFEDE5] p-5 sm:p-6"
+                className="mb-8 rounded-[24px] border border-[#FFD6C2] bg-[#FFEDE5] p-5 sm:p-6"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
@@ -670,7 +502,7 @@ function Dashboard() {
                     <button
                       type="button"
                       onClick={handleInicioRapidoSesion}
-                      className={`${focusRing} ${liftable} dp-cta-soft-pattern inline-flex min-h-12 items-center justify-center rounded-[18px] bg-[#FF8B5C] px-5 text-base font-extrabold text-white shadow-[0_12px_28px_rgba(255,139,92,0.24)] hover:bg-[#F97316]`}
+                      className={dpCtaPrimary}
                     >
                       Probar ahora
                     </button>
@@ -683,44 +515,34 @@ function Dashboard() {
                     </button>
                   </div>
                 </div>
-              </section>
+              </DpEnter>
             )}
 
             {showFreeQuotaBanner && (
-              <section
+              <DpEnter
+                as="section"
+                delayMs={60}
                 aria-label="Sesiones gratis disponibles"
-                className="dp-enter mb-6 rounded-[24px] border border-[#C5D8F2] bg-[#EAF2FC] p-5 sm:p-6"
+                className="mb-8 rounded-[24px] border border-[#C5D8F2] bg-[#EAF2FC] px-5 py-4 sm:px-6 sm:py-5"
               >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-xl font-extrabold text-[#1F2937]">
-                      {sesionesUsadas === 0
-                        ? "Aún no usaste tus 2 sesiones gratis"
-                        : "Te queda 1 sesión gratis"}
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-[#3B6CB5]">
-                      {sesionesUsadas === 0
-                        ? "Créala ahora y llévala a clase en Word o PDF."
-                        : "Aprovecha tu última sesión gratuita."}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCrearSesion}
-                    className={`${focusRing} ${liftable} dp-cta-soft-pattern inline-flex min-h-12 shrink-0 items-center justify-center rounded-[18px] bg-[#FF8B5C] px-5 text-base font-extrabold text-white shadow-[0_12px_28px_rgba(255,139,92,0.24)] hover:bg-[#F97316]`}
-                  >
-                    {sesionesUsadas === 0
-                      ? "Crear mi primera sesión"
-                      : "Crear mi sesión"}
-                  </button>
-                </div>
-              </section>
+                <p className="text-xl font-extrabold text-[#1F2937]">
+                  {sesionesUsadas === 0
+                    ? "Aún no usaste tus 2 sesiones gratis"
+                    : "Te queda 1 sesión gratis"}
+                </p>
+                <p className="mt-1 text-base font-semibold text-[#3B6CB5]">
+                  {sesionesUsadas === 0
+                    ? "Créala con «Crear sesión» abajo y llévala a clase en Word o PDF."
+                    : "Aprovecha tu última sesión gratuita con «Crear sesión» abajo."}
+                </p>
+              </DpEnter>
             )}
 
-            {/* 1. Crear */}
-            <section
+            <DpEnter
+              as="section"
+              delayMs={80}
               aria-labelledby="acciones-principales"
-              className="mb-6 dp-enter dp-enter-delay-1"
+              className={dpSectionGap}
             >
               <h2
                 id="acciones-principales"
@@ -728,13 +550,21 @@ function Dashboard() {
               >
                 ¿Qué quieres crear?
               </h2>
-              <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <button
                   type="button"
                   onClick={handleCrearSesion}
-                  className={`${focusRing} ${liftable} dp-cta-soft-pattern relative flex min-h-[156px] items-center gap-4 overflow-hidden rounded-[28px] bg-[#FF8B5C] p-5 text-left text-white shadow-[0_16px_40px_rgba(255,139,92,0.28)] hover:bg-[#F97316] sm:gap-5 sm:p-6`}
+                  className={
+                    showProblematicaNudge
+                      ? `${focusRing} ${liftable} relative flex min-h-[156px] w-full items-center gap-4 rounded-[28px] border border-[#E6EBF2] bg-white p-5 text-left ${cardShadow} hover:border-[#6B9FE8]/40 sm:gap-5 sm:p-6`
+                      : dpCtaPrimaryCard
+                  }
                 >
-                  <span className="grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-[22px] bg-white/95 sm:h-20 sm:w-20">
+                  <span
+                    className={`grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-[22px] sm:h-20 sm:w-20 ${
+                      showProblematicaNudge ? "bg-[#EAF2FC]" : "bg-white/95"
+                    }`}
+                  >
                     <img
                       src="/dashboard/sesion.png"
                       alt=""
@@ -744,10 +574,20 @@ function Dashboard() {
                     />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-2xl font-extrabold sm:text-3xl">
+                    <span
+                      className={`block text-2xl font-extrabold sm:text-3xl ${
+                        showProblematicaNudge ? "text-[#1F2937]" : ""
+                      }`}
+                    >
                       Crear sesión
                     </span>
-                    <span className="mt-2 block text-base font-semibold leading-7 text-orange-50 sm:text-lg">
+                    <span
+                      className={`mt-2 block text-base font-semibold leading-7 sm:text-lg ${
+                        showProblematicaNudge
+                          ? "text-[#6B7280]"
+                          : "text-orange-50"
+                      }`}
+                    >
                       {needsProblematicaSetup
                         ? "Inicio rápido o elige el tema de tu aula."
                         : !isPremium && sesionesRestantes > 0
@@ -762,7 +602,7 @@ function Dashboard() {
                 <button
                   type="button"
                   onClick={handleCrearUnidad}
-                  className={`${focusRing} ${liftable} relative flex min-h-[156px] items-center gap-4 rounded-[28px] border border-[#E6EBF2] bg-white p-5 text-left ${cardShadow} hover:border-[#FF8B5C]/30 sm:gap-5 sm:p-6`}
+                  className={`${focusRing} ${liftable} relative flex min-h-[156px] w-full items-center gap-4 rounded-[28px] border border-[#E6EBF2] bg-white p-5 text-left ${cardShadow} hover:border-[#FF8B5C]/30 sm:gap-5 sm:p-6`}
                 >
                   {unidadBloqueada && (
                     <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-[#FFF7ED] px-3 py-1 text-sm font-extrabold text-[#9A3412]">
@@ -789,13 +629,14 @@ function Dashboard() {
                   </span>
                 </button>
               </div>
-            </section>
+            </DpEnter>
 
-            {/* 2. Sesión individual */}
             {isPremium && (
-              <section
+              <DpEnter
+                as="section"
+                delayMs={120}
                 aria-labelledby="sesion-individual"
-                className="mb-6 dp-enter dp-enter-delay-2"
+                className={dpSectionGap}
               >
                 <button
                   type="button"
@@ -821,14 +662,15 @@ function Dashboard() {
                     aria-hidden="true"
                   />
                 </button>
-              </section>
+              </DpEnter>
             )}
 
-            {/* 3. Preparar documentos */}
             {isPremium && (
-              <section
+              <DpEnter
+                as="section"
+                delayMs={160}
                 aria-labelledby="preparar-documentos"
-                className="mb-8 dp-enter dp-enter-delay-3"
+                className={dpSectionGap}
               >
                 <h2
                   id="preparar-documentos"
@@ -839,11 +681,11 @@ function Dashboard() {
                 <p className="mt-1 text-sm font-semibold text-[#6B7280]">
                   Nómina e insignia para tus PDFs.
                 </p>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="mt-4 grid gap-2.5 md:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setShowAlumnosModal(true)}
-                    className={`${focusRing} ${liftable} flex min-h-[76px] items-center gap-3 rounded-[20px] border border-[#E6EBF2] bg-white px-4 py-3 text-left ${cardShadow}`}
+                    className={`${focusRing} ${liftable} flex min-h-[76px] items-center gap-3 px-4 py-3 text-left ${dpWellListRow}`}
                   >
                     <span className="grid h-11 w-11 place-items-center rounded-[14px] bg-[#E3F8EC] text-[#15803D]">
                       <Users className="h-5 w-5" aria-hidden="true" />
@@ -862,7 +704,7 @@ function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setShowInsigniaModal(true)}
-                    className={`${focusRing} ${liftable} flex min-h-[76px] items-center gap-3 rounded-[20px] border border-[#E6EBF2] bg-white px-4 py-3 text-left ${cardShadow}`}
+                    className={`${focusRing} ${liftable} flex min-h-[76px] items-center gap-3 px-4 py-3 text-left ${dpWellListRow}`}
                   >
                     <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-[14px] bg-[#FFEDE5] text-[#F97316]">
                       {insigniaUrl ? (
@@ -887,13 +729,14 @@ function Dashboard() {
                     </span>
                   </button>
                 </div>
-              </section>
+              </DpEnter>
             )}
 
-            {/* 4. Mis documentos */}
-            <section
+            <DpEnter
+              as="section"
+              delayMs={200}
               aria-labelledby="mis-documentos"
-              className="mb-8 dp-enter dp-enter-delay-4"
+              className={dpSectionGap}
             >
               <h2
                 id="mis-documentos"
@@ -901,16 +744,16 @@ function Dashboard() {
               >
                 Mis documentos
               </h2>
-              <div className="mt-3 flex flex-col gap-2.5">
-                {documentos.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.title}
-                      type="button"
-                      onClick={item.action}
-                      className={`${focusRing} ${liftable} flex min-h-[72px] items-center gap-3 rounded-[20px] border border-[#E6EBF2] bg-white px-4 py-3 text-left ${cardShadow}`}
-                    >
+              <DpStaggerList className="mt-4 flex flex-col gap-2.5">
+                  {documentos.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <DpStaggerItem key={item.title} className="w-full">
+                        <button
+                          type="button"
+                          onClick={item.action}
+                          className={`${focusRing} ${liftable} flex min-h-[72px] w-full items-center gap-3 px-4 py-3 text-left ${dpWellListRow}`}
+                        >
                       <span
                         className={`grid h-11 w-11 shrink-0 place-items-center rounded-[14px] ${item.well}`}
                       >
@@ -928,49 +771,51 @@ function Dashboard() {
                         className="h-5 w-5 shrink-0 text-[#9CA3AF]"
                         aria-hidden="true"
                       />
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+                        </button>
+                      </DpStaggerItem>
+                    );
+                  })}
+                </DpStaggerList>
+            </DpEnter>
 
-            {/* Unirme */}
-            <section className="mb-8 dp-enter dp-enter-delay-5">
-              <button
-                type="button"
-                onClick={() => {
-                  showLoading("Preparando...");
-                  navigate("/unirse-unidad");
-                }}
-                className={`${focusRing} ${pressable} flex w-full min-h-[64px] items-center gap-3 rounded-[18px] border border-dashed border-[#C5D8F2] bg-white/50 px-4 py-3 text-left hover:bg-white`}
-              >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[#EAF2FC] text-[#6B7280]">
-                  <KeyRound className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-base font-extrabold text-[#1F2937]">
-                    Unirme a una unidad
+            {isPremium && (
+              <DpEnter as="section" delayMs={240} className={dpSectionGap}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    showLoading("Preparando...");
+                    navigate("/unirse-unidad");
+                  }}
+                  className={`${focusRing} ${pressable} flex w-full min-h-[64px] items-center gap-3 rounded-[18px] border border-dashed border-[#C5D8F2] bg-white px-4 py-3 text-left ${cardShadow} hover:bg-[#EAF2FC]/50`}
+                >
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[#EAF2FC] text-[#6B7280]">
+                    <KeyRound className="h-5 w-5" aria-hidden="true" />
                   </span>
-                  <span className="mt-0.5 block text-sm font-semibold text-[#6B7280]">
-                    Con el código de un colega.
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-extrabold text-[#1F2937]">
+                      Unirme a una unidad
+                    </span>
+                    <span className="mt-0.5 block text-sm font-semibold text-[#6B7280]">
+                      Con el código de un colega.
+                    </span>
                   </span>
-                </span>
-                <ChevronRight
-                  className="h-5 w-5 shrink-0 text-[#9CA3AF]"
-                  aria-hidden="true"
-                />
-              </button>
-            </section>
+                  <ChevronRight
+                    className="h-5 w-5 shrink-0 text-[#9CA3AF]"
+                    aria-hidden="true"
+                  />
+                </button>
+              </DpEnter>
+            )}
 
             <DashboardTutorialsTeaser
               focusRing={focusRing}
               pressable={pressable}
-              cardShadow={cardShadow}
-              enterDelayClass="dp-enter-delay-6"
+              enterDelayMs={280}
             />
 
-            {/* 5. Meta compacta */}
-            <section
+            <DpEnter
+              as="section"
+              delayMs={320}
               aria-label="Resumen y unidad en curso"
               className="mb-24 space-y-3 border-t border-[#E6EBF2] pt-6 lg:mb-6"
             >
@@ -1027,42 +872,9 @@ function Dashboard() {
                   />
                 </button>
               )}
-            </section>
-          </main>
-        </div>
-      </div>
-
-      {/* Mobile bottom nav */}
-      <nav
-        aria-label="Accesos rápidos"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E6EBF2] bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md lg:hidden"
-      >
-        <div className="mx-auto flex max-w-lg items-center justify-around gap-1">
-          {navItems.slice(0, 4).map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.label}
-                type="button"
-                onClick={item.action}
-                className={`${focusRing} ${pressable} flex min-w-[64px] flex-col items-center gap-1 rounded-[16px] px-2 py-2 ${
-                  item.active ? "text-[#3B6CB5]" : "text-[#6B7280]"
-                }`}
-              >
-                <span
-                  className={`grid h-10 w-10 place-items-center rounded-full ${
-                    item.active ? "bg-[#EAF2FC]" : "bg-transparent"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <span className="text-xs font-bold">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
+            </DpEnter>
+        </DpViewTransition>
+      </TeacherHubPage>
 
       {/* Modal de Problemática — primera sesión free */}
       <ProblematicaModal
@@ -1086,12 +898,6 @@ function Dashboard() {
           showLoading("Cargando cuestionario...");
           navigate("/crear-sesion");
         }}
-      />
-
-      {/* Modal de Upgrade Premium */}
-      <UpgradePremiumModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
       />
 
       {/* Modal de Subir Lista de Alumnos */}
@@ -1131,7 +937,15 @@ function Dashboard() {
           navigate("/tutoriales");
         }}
       />
-    </div>
+    </>
+  );
+}
+
+function Dashboard() {
+  return (
+    <TeacherAppShell activeNav="inicio">
+      <DashboardView />
+    </TeacherAppShell>
   );
 }
 

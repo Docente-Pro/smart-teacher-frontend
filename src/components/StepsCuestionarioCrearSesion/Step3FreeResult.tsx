@@ -182,7 +182,7 @@ function ProcesoCard({
       {(() => {
         const ia = getImagenIAPrincipal(proceso as any);
         return proceso.problemaMatematico && ia?.posicion === "antes" ? (
-          <ImagenIA imagen={ia} modo={ia.modo} crossOrigin={false} />
+          <ImagenIA imagen={ia} modo={ia.modo} />
         ) : null;
       })()}
 
@@ -255,7 +255,7 @@ function ProcesoCard({
         // Prioridad: recurso visual IA sobre el gráfico SVG legacy.
         const ia = getImagenIAPrincipal(proceso as any);
         if (ia && ia.posicion !== "antes") {
-          return <ImagenIA imagen={ia} modo={ia.modo} crossOrigin={false} />;
+          return <ImagenIA imagen={ia} modo={ia.modo} />;
         }
         if (getImagenIASolucion(proceso as any)) return null;
 
@@ -272,7 +272,7 @@ function ProcesoCard({
       {!proceso.problemaMatematico && !/socializaci[oó]n/i.test(proceso.proceso) && (() => {
         const ia = getImagenIAPrincipal(proceso as any);
         if (ia) {
-          return <ImagenIA imagen={ia} modo={ia.modo} crossOrigin={false} />;
+          return <ImagenIA imagen={ia} modo={ia.modo} />;
         }
         return (proceso as any).grafico ? (
           <div className="mt-2 bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full">
@@ -300,7 +300,7 @@ function ProcesoCard({
       {(() => {
         const ia = getImagenIASolucion(proceso as any);
         return ia ? (
-          <ImagenIA imagen={ia} modo="solucion" crossOrigin={false} />
+          <ImagenIA imagen={ia} modo="solucion" />
         ) : null;
       })()}
 

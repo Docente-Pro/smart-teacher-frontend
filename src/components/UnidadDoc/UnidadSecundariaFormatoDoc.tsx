@@ -181,7 +181,6 @@ export function UnidadSecundariaFormatoDoc({ formato }: Props) {
           <img
             src={formato.imagenSituacionUrl}
             alt="Ilustración de la situación significativa"
-            crossOrigin="anonymous"
             style={{
               width: "200px",
               height: "200px",

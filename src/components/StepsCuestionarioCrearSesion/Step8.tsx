@@ -516,7 +516,7 @@ function Step8({ pagina, setPagina }: Props) {
                   return (
                     <div className="space-y-3">
                       {iaPrincipal?.posicion === "antes" && !ocultarGrafico && (
-                        <ImagenIA imagen={iaPrincipal} modo={iaPrincipal.modo} crossOrigin={false} />
+                        <ImagenIA imagen={iaPrincipal} modo={iaPrincipal.modo} />
                       )}
 
                       {/* Texto del problema (primero) */}
@@ -527,7 +527,7 @@ function Step8({ pagina, setPagina }: Props) {
 
                       {/* Gráfico del problema (debajo del texto) — prioriza recurso visual IA */}
                       {!ocultarGrafico && iaPrincipal && iaPrincipal.posicion !== "antes" ? (
-                        <ImagenIA imagen={iaPrincipal} modo={iaPrincipal.modo} crossOrigin={false} />
+                        <ImagenIA imagen={iaPrincipal} modo={iaPrincipal.modo} />
                       ) : !ocultarGrafico && !iaPrincipal && !iaSolucion && ((proc as any).grafico || (proc as any).graficoProblema) ? (
                         <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg overflow-x-auto max-w-full">
                           <div className="flex justify-center">
@@ -542,7 +542,7 @@ function Step8({ pagina, setPagina }: Props) {
                 {/* Gráfico standalone (sin problemaMatematico) — oculto en socialización. Prioriza recurso visual IA. */}
                 {!(proc as any).problemaMatematico && !/socializaci[oó]n/i.test(proc.proceso) && (() => {
                   if (iaPrincipal) {
-                    return <ImagenIA imagen={iaPrincipal} modo={iaPrincipal.modo} crossOrigin={false} />;
+                    return <ImagenIA imagen={iaPrincipal} modo={iaPrincipal.modo} />;
                   }
                   return (proc as any).grafico ? (
                     <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-center overflow-x-auto max-w-full">
@@ -565,7 +565,7 @@ function Step8({ pagina, setPagina }: Props) {
 
                 {/* Recurso visual IA de la solución (si aplica) */}
                 {iaSolucion && (
-                  <ImagenIA imagen={iaSolucion} modo="solucion" crossOrigin={false} />
+                  <ImagenIA imagen={iaSolucion} modo="solucion" />
                 )}
 
                 <div>

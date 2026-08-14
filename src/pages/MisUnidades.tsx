@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { handleToaster } from "@/utils/Toasters/handleToasters";
@@ -20,11 +18,9 @@ import {
   Download,
   Eye,
   Plus,
-  ArrowLeft,
   Loader2,
   RefreshCw,
   AlertTriangle,
-  TrendingUp,
   X,
   Users,
   Lock,
@@ -41,6 +37,28 @@ import {
 } from "lucide-react";
 import { useUserUnidades } from "@/hooks/useUserUnidades";
 import { isUnidadActiva, isUnidadFechaActiva } from "@/utils/unidadUtils";
+import TeacherAppShell from "@/components/layout/TeacherAppShell";
+import TeacherHubPage from "@/components/layout/TeacherHubPage";
+import TeacherHubPageHeader from "@/components/layout/TeacherHubPageHeader";
+import TeacherHubSearchRow from "@/components/layout/TeacherHubSearchRow";
+import {
+  dpCardShadow,
+  dpCtaPrimary,
+  dpFocusRing,
+  dpLiftable,
+} from "@/styles/dpTokens";
+import {
+  DpEnter,
+  DpStaggerItem,
+  DpStaggerList,
+} from "@/components/motion";
+import "@fontsource/nunito/600.css";
+import "@fontsource/nunito/700.css";
+import "@fontsource/nunito/800.css";
+
+const focusRing = dpFocusRing;
+const liftable = dpLiftable;
+const cardShadow = dpCardShadow;
 
 // ─────────────────── Helpers ───────────────────
 
@@ -78,9 +96,9 @@ function formatFechaRelativa(fecha: string) {
   }
 }
 
-function getTipoColor(tipo?: string) {
-  if (tipo === "COMPARTIDA") return "from-sky-500 to-cyan-600";
-  return "from-violet-500 to-purple-600";
+function getTipoWellClass(tipo?: string) {
+  if (tipo === "COMPARTIDA") return "bg-[#EAF2FC] text-[#3B6CB5]";
+  return "bg-[#E3F8EC] text-[#15803D]";
 }
 
 function getTipoIcon(tipo?: string) {
@@ -119,23 +137,23 @@ function puedeFinalizarUnidad(
 
 function getTipoBadgeClasses(tipo?: string) {
   const base =
-    "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border";
+    "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold";
   if (tipo === "COMPARTIDA") {
-    return `${base} bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-100 dark:border-sky-700/50`;
+    return `${base} border-[#BFDBFE] bg-[#EAF2FC] text-[#3B6CB5]`;
   }
-  return `${base} bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-100 dark:border-violet-700/50`;
+  return `${base} border-[#BBF7D0] bg-[#E3F8EC] text-[#15803D]`;
 }
 
 function getEstadoPagoBadgeClasses(estado?: string) {
   const base =
-    "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border";
+    "inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-bold";
   if (estado === "CONFIRMADO") {
-    return `${base} bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-700/50`;
+    return `${base} border-[#BBF7D0] bg-[#E3F8EC] text-[#15803D]`;
   }
   if (estado === "PENDIENTE") {
-    return `${base} bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-700/50`;
+    return `${base} border-[#FDE68A] bg-[#FFFBEB] text-[#B45309]`;
   }
-  return `${base} bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 border-red-100 dark:border-red-700/50`;
+  return `${base} border-[#FECACA] bg-[#FEE2E2] text-[#DC2626]`;
 }
 
 // ─────────────────── Componente Principal ───────────────────
@@ -306,316 +324,232 @@ function MisUnidades() {
     }
   };
 
-  // ─── Stats ───
   const totalUnidades = unidades.length;
-  const unidadesEsteMes = unidades.filter((u) => {
-    const d = new Date(u.createdAt);
-    const now = new Date();
-    return (
-      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    );
-  }).length;
   const unidadesCompartidas = unidades.filter(
     (u) => u.tipo === "COMPARTIDA",
   ).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* ─── Header ─── */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/dashboard")}
-            className="mb-4 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Dashboard
-          </Button>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                Mis Unidades
-              </h1>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">
-                {totalUnidades === 0
-                  ? "Aún no has creado unidades"
-                  : `${totalUnidades} unidad${totalUnidades === 1 ? "" : "es"} de aprendizaje`}
-              </p>
-            </div>
-            <Button
-              onClick={() =>
+    <>
+      <TeacherAppShell activeNav="unidades">
+        <TeacherHubPage>
+          <TeacherHubPageHeader
+            title="Mis unidades"
+            description={
+              <>
+                <span>
+                  {totalUnidades === 0
+                    ? "Aún no has creado unidades"
+                    : `${totalUnidades} unidad${totalUnidades === 1 ? "" : "es"} de aprendizaje`}
+                </span>
+                {unidadesCompartidas > 0 && (
+                  <span className="rounded-full bg-[#EAF2FC] px-2.5 py-0.5 text-xs font-bold text-[#3B6CB5]">
+                    {unidadesCompartidas} compartida
+                    {unidadesCompartidas === 1 ? "" : "s"}
+                  </span>
+                )}
+              </>
+            }
+            primaryAction={{
+              label: "Crear unidad",
+              icon: <Plus className="mr-2 h-4 w-4" aria-hidden="true" />,
+              onClick: () =>
                 navigate("/crear-unidad", {
                   state: { iniciarNuevaUnidad: true },
-                })
-              }
-              className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva Unidad
-            </Button>
-          </div>
-        </div>
+                }),
+              className: dpCtaPrimary,
+            }}
+          />
 
-        {/* ─── Stats Cards ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-5 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-violet-500/5 to-transparent rounded-bl-full" />
-            <div className="flex items-center gap-3 relative">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-500/10 dark:to-violet-500/5 group-hover:scale-105 transition-transform">
-                <FolderOpen className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Total
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {totalUnidades}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-5 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/5 to-transparent rounded-bl-full" />
-            <div className="flex items-center gap-3 relative">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-500/10 dark:to-emerald-500/5 group-hover:scale-105 transition-transform">
-                <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Este mes
-                </p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {unidadesEsteMes}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-5 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-sky-500/5 to-transparent rounded-bl-full" />
-            <div className="flex items-center gap-3 relative">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-sky-50 to-sky-100 dark:from-sky-500/10 dark:to-sky-500/5 group-hover:scale-105 transition-transform">
-                <Share2 className="h-5 w-5 text-sky-600 dark:text-sky-400" />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Compartidas
-                </p>
-                <p className="text-2xl font-bold text-sky-600 dark:text-sky-400">
-                  {unidadesCompartidas}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+          <TeacherHubSearchRow
+            value={searchTerm}
+            onChange={setSearchTerm}
+            onClear={() => setSearchTerm("")}
+            placeholder="Buscar por nombre, tipo, código…"
+            onRefresh={() => refetch()}
+            refreshing={isFetching}
+          />
 
-        {/* ─── Search + Refresh ─── */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="flex-1 relative group/search">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within/search:text-violet-500 transition-colors" />
-            <Input
-              type="text"
-              placeholder="Buscar por nombre, tipo, código..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-11 bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20 transition-all rounded-xl"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="h-11 px-5 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all"
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`}
-            />
-            Actualizar
-          </Button>
-        </div>
+          {sincronizando && (
+            <DpEnter delayMs={60} className="mb-4 flex items-center gap-3 rounded-[16px] border border-[#E6EBF2] bg-[#EAF2FC] p-4">
+              <Loader2
+                className="h-5 w-5 shrink-0 animate-spin text-[#3B6CB5]"
+                aria-hidden="true"
+              />
+              <p className="text-sm font-semibold text-[#3B6CB5]">
+                Sincronizando contenido personalizado de tus unidades
+                compartidas…
+              </p>
+            </DpEnter>
+          )}
 
-        {/* ─── Sincronizando contenido personalizado ─── */}
-        {sincronizando && (
-          <div className="mb-4 p-4 rounded-xl border border-violet-200 dark:border-violet-700/50 bg-violet-50 dark:bg-violet-500/10 flex items-center gap-3">
-            <Loader2 className="h-5 w-5 text-violet-500 animate-spin flex-shrink-0" />
-            <p className="text-sm text-violet-700 dark:text-violet-300">
-              Sincronizando contenido personalizado de tus unidades
-              compartidas...
-            </p>
-          </div>
-        )}
-
-        {/* ─── Content ─── */}
-        {isFetching ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 overflow-hidden animate-pulse"
-              >
-                <div className="h-1 bg-slate-200 dark:bg-slate-700" />
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <Skeleton className="h-5 w-3/4 mb-2 rounded-lg" />
-                      <Skeleton className="h-3.5 w-1/3 rounded-lg" />
-                    </div>
-                    <Skeleton className="h-11 w-11 rounded-xl" />
-                  </div>
-                  <div className="space-y-2.5 mb-4">
-                    <Skeleton className="h-3.5 w-2/3 rounded-lg" />
-                    <Skeleton className="h-3.5 w-1/2 rounded-lg" />
-                  </div>
-                  <Skeleton className="h-7 w-24 rounded-lg mb-4" />
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-700/50 flex gap-2">
-                    <Skeleton className="h-9 flex-1 rounded-lg" />
-                    <Skeleton className="h-9 w-9 rounded-lg" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : isError ? (
-          <Card className="border-red-200/60 dark:border-red-800/30 bg-white dark:bg-slate-800/50 overflow-hidden">
-            <CardContent className="py-16 text-center relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-red-50/50 to-transparent dark:from-red-900/10 dark:to-transparent" />
-              <div className="relative">
-                <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-red-50 to-red-100 dark:from-red-500/10 dark:to-red-500/5 flex items-center justify-center shadow-sm">
-                  <AlertTriangle className="h-10 w-10 text-red-400 dark:text-red-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-                  Error al cargar unidades
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
-                  {(error as any)?.message || "Error desconocido"}
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => refetch()}
-                  className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 transition-all"
+          {isFetching ? (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className={`animate-pulse overflow-hidden rounded-[24px] border border-[#E6EBF2] bg-white ${cardShadow}`}
                 >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Reintentar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : filteredUnidades.length === 0 ? (
-          <Card className="border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/30 overflow-hidden">
-            <CardContent className="py-20 text-center relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-slate-50/50 to-transparent dark:from-slate-700/10 dark:to-transparent" />
-              <div className="relative">
-                <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200/50 dark:from-slate-700/50 dark:to-slate-800/50 flex items-center justify-center shadow-inner">
-                  {searchTerm ? (
-                    <Search className="h-11 w-11 text-slate-300 dark:text-slate-600" />
-                  ) : (
-                    <FolderOpen className="h-11 w-11 text-slate-300 dark:text-slate-600" />
-                  )}
+                  <div className="p-5">
+                    <div className="mb-4 flex items-start justify-between">
+                      <div className="flex-1">
+                        <Skeleton className="mb-2 h-5 w-3/4 rounded-lg" />
+                        <Skeleton className="h-3.5 w-1/3 rounded-lg" />
+                      </div>
+                      <Skeleton className="h-11 w-11 rounded-[14px]" />
+                    </div>
+                    <div className="mb-4 space-y-2.5">
+                      <Skeleton className="h-3.5 w-2/3 rounded-lg" />
+                      <Skeleton className="h-3.5 w-1/2 rounded-lg" />
+                    </div>
+                    <Skeleton className="mb-4 h-7 w-24 rounded-lg" />
+                    <div className="flex gap-2 border-t border-[#E6EBF2] pt-3">
+                      <Skeleton className="h-9 flex-1 rounded-lg" />
+                      <Skeleton className="h-9 w-9 rounded-lg" />
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-                  {searchTerm ? "Sin resultados" : "No tienes unidades aún"}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-sm mx-auto leading-relaxed">
-                  {searchTerm
-                    ? `No se encontraron unidades para "${searchTerm}". Intenta con otro término.`
-                    : "Crea tu primera unidad de aprendizaje y aparecerá aquí."}
-                </p>
+              ))}
+            </div>
+          ) : isError ? (
+            <DpEnter
+              delayMs={80}
+              className={`overflow-hidden rounded-[24px] border border-[#FECACA] bg-white py-16 text-center ${cardShadow}`}
+            >
+              <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-[20px] bg-[#FEE2E2]">
+                <AlertTriangle
+                  className="h-10 w-10 text-[#DC2626]"
+                  aria-hidden="true"
+                />
+              </div>
+              <h3 className="mb-2 text-xl font-extrabold text-[#1F2937]">
+                Error al cargar unidades
+              </h3>
+              <p className="mx-auto mb-6 max-w-sm text-sm font-semibold text-[#6B7280]">
+                {(error as Error)?.message || "Error desconocido"}
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                className={`${focusRing} border-[#FECACA] text-sm font-bold text-[#DC2626] hover:bg-[#FEF2F2]`}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+                Reintentar
+              </Button>
+            </DpEnter>
+          ) : filteredUnidades.length === 0 ? (
+            <DpEnter
+              delayMs={80}
+              className={`overflow-hidden rounded-[24px] border border-[#E6EBF2] bg-white py-20 text-center ${cardShadow}`}
+            >
+              <div className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-[28px] bg-[#F5F7FA]">
                 {searchTerm ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => setSearchTerm("")}
-                    className="border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Limpiar búsqueda
-                  </Button>
+                  <Search
+                    className="h-11 w-11 text-[#D1D5DB]"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <Button
-                    onClick={() =>
-                      navigate("/crear-unidad", {
-                        state: { iniciarNuevaUnidad: true },
-                      })
-                    }
-                    className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Crear mi primera unidad
-                  </Button>
+                  <FolderOpen
+                    className="h-11 w-11 text-[#D1D5DB]"
+                    aria-hidden="true"
+                  />
                 )}
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredUnidades.map((unidad) => (
-              <div
-                key={unidad.id}
-                className="group relative rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
-              >
-                {/* Top accent bar */}
-                <div
-                  className={`h-1 bg-gradient-to-r ${getTipoColor(unidad.tipo)} opacity-50 group-hover:opacity-100 transition-opacity duration-300`}
-                />
-
-                <div className="p-5">
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-slate-900 dark:text-white text-base leading-snug line-clamp-2 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors duration-200">
-                        {unidad.titulo || "Sin título"}
-                      </h3>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5 flex items-center gap-1.5">
-                        <Calendar className="h-3 w-3" />
-                        {formatFechaRelativa(unidad.createdAt)}
-                      </p>
+              <h3 className="mb-2 text-xl font-extrabold text-[#1F2937]">
+                {searchTerm ? "Sin resultados" : "No tienes unidades aún"}
+              </h3>
+              <p className="mx-auto mb-8 max-w-sm text-sm font-semibold leading-relaxed text-[#6B7280]">
+                {searchTerm
+                  ? `No se encontraron unidades para "${searchTerm}". Intenta con otro término.`
+                  : "Crea tu primera unidad de aprendizaje y aparecerá aquí."}
+              </p>
+              {searchTerm ? (
+                <Button
+                  variant="outline"
+                  onClick={() => setSearchTerm("")}
+                  className={`${focusRing} border-[#E6EBF2] text-sm font-bold text-[#6B7280] hover:bg-[#F5F7FA]`}
+                >
+                  <X className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Limpiar búsqueda
+                </Button>
+              ) : (
+                <Button
+                  onClick={() =>
+                    navigate("/crear-unidad", {
+                      state: { iniciarNuevaUnidad: true },
+                    })
+                  }
+                  className={`${focusRing} ${liftable} dp-cta-soft-pattern inline-flex min-h-12 items-center justify-center rounded-[18px] bg-[#FF8B5C] px-5 text-base font-extrabold text-white shadow-[0_12px_28px_rgba(255,139,92,0.24)] hover:bg-[#F97316]`}
+                >
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Crear mi primera unidad
+                </Button>
+              )}
+            </DpEnter>
+          ) : (
+            <DpStaggerList className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {filteredUnidades.map((unidad) => (
+                <DpStaggerItem key={unidad.id}>
+                  <div
+                    className={`${liftable} group overflow-hidden rounded-[24px] border border-[#E6EBF2] bg-white ${cardShadow}`}
+                  >
+                  <div className="p-5">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="line-clamp-2 text-base font-extrabold leading-snug text-[#1F2937] group-hover:text-[#3B6CB5]">
+                          {unidad.titulo || "Sin título"}
+                        </h3>
+                        <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-[#6B7280]">
+                          <Calendar className="h-3 w-3" aria-hidden="true" />
+                          {formatFechaRelativa(unidad.createdAt)}
+                        </p>
+                      </div>
+                      <div
+                        className={`grid h-11 w-11 shrink-0 place-items-center rounded-[14px] ${getTipoWellClass(unidad.tipo)}`}
+                      >
+                        {getTipoIcon(unidad.tipo)}
+                      </div>
                     </div>
-                    <div
-                      className={`flex-shrink-0 p-2.5 rounded-xl bg-gradient-to-br ${getTipoColor(unidad.tipo)} text-white shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300`}
-                    >
-                      {getTipoIcon(unidad.tipo)}
-                    </div>
-                  </div>
 
-                  {/* Info: Nivel, Grado, Problemática */}
-                  <div className="space-y-1.5 mb-3 text-sm text-slate-600 dark:text-slate-300">
-                    {unidad.nivel?.nombre && (
-                      <div className="flex items-center gap-2">
-                        <GraduationCap className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-                        <span className="truncate">
-                          {unidad.nivel.nombre}
-                          {unidad.grado?.nombre
-                            ? ` — ${unidad.grado.nombre}`
-                            : ""}
-                        </span>
-                      </div>
-                    )}
-                    {unidad.problematica?.nombre && (
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-                        <span className="truncate">
-                          {unidad.problematica.nombre}
-                        </span>
-                      </div>
-                    )}
-                    {unidad.fechaInicio && unidad.fechaFin && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-                        <span className="truncate">
-                          {formatPeriodo(unidad.fechaInicio, unidad.fechaFin)}
-                          {unidad.duracion ? ` (${unidad.duracion} sem.)` : ""}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                    <div className="mb-3 space-y-1.5 text-sm font-semibold text-[#6B7280]">
+                      {unidad.nivel?.nombre && (
+                        <div className="flex items-center gap-2">
+                          <GraduationCap
+                            className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]"
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">
+                            {unidad.nivel.nombre}
+                            {unidad.grado?.nombre
+                              ? ` — ${unidad.grado.nombre}`
+                              : ""}
+                          </span>
+                        </div>
+                      )}
+                      {unidad.problematica?.nombre && (
+                        <div className="flex items-center gap-2">
+                          <BookOpen
+                            className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]"
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">
+                            {unidad.problematica.nombre}
+                          </span>
+                        </div>
+                      )}
+                      {unidad.fechaInicio && unidad.fechaFin && (
+                        <div className="flex items-center gap-2">
+                          <Clock
+                            className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]"
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">
+                            {formatPeriodo(unidad.fechaInicio, unidad.fechaFin)}
+                            {unidad.duracion ? ` (${unidad.duracion} sem.)` : ""}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
                   {/* Tipo badge */}
                   <div className="flex flex-wrap gap-1.5 mb-4">
@@ -629,16 +563,16 @@ function MisUnidades() {
                     </span>
                     {unidad.tipo === "COMPARTIDA" &&
                       unidad.miembros?.length > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-700/40 text-xs text-slate-600 dark:text-slate-300 font-medium border border-slate-100 dark:border-slate-700/50">
-                          <Users className="h-3 w-3" />
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#F5F7FA] px-2.5 py-1 text-xs font-bold text-[#6B7280]">
+                          <Users className="h-3 w-3" aria-hidden="true" />
                           {unidad.miembros.length} miembro
                           {unidad.miembros.length !== 1 ? "s" : ""}
                         </span>
                       )}
                     {unidad.tipo === "COMPARTIDA" &&
                       unidad.codigoCompartido && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-xs text-emerald-700 dark:text-emerald-300 font-mono font-semibold border border-emerald-100 dark:border-emerald-700/50">
-                          <Share2 className="h-3 w-3" />
+                        <span className="inline-flex items-center gap-1 rounded-full border border-[#BBF7D0] bg-[#E3F8EC] px-2.5 py-1 font-mono text-xs font-bold text-[#15803D]">
+                          <Share2 className="h-3 w-3" aria-hidden="true" />
                           {unidad.codigoCompartido}
                         </span>
                       )}
@@ -660,8 +594,8 @@ function MisUnidades() {
                       );
                     })()}
                     {isUnidadFinalizada(unidad.fechaFin) && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600/50">
-                        <CheckCircle2 className="h-3 w-3" />
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[#E6EBF2] bg-[#F5F7FA] px-2.5 py-1 text-xs font-bold text-[#6B7280]">
+                        <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                         Finalizada
                       </span>
                     )}
@@ -669,11 +603,11 @@ function MisUnidades() {
 
                   {/* Compartir código (solo COMPARTIDA) */}
                   {unidad.tipo === "COMPARTIDA" && unidad.codigoCompartido && (
-                    <div className="flex items-center gap-2 pt-3 border-t border-emerald-100 dark:border-emerald-800/40">
+                    <div className="flex items-center gap-2 border-t border-[#E6EBF2] pt-3">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 text-xs border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-500/10 transition-all"
+                        className={`${focusRing} h-10 min-h-10 flex-1 border-[#BBF7D0] text-xs font-bold text-[#15803D] hover:bg-[#E3F8EC]`}
                         onClick={() =>
                           handleCopiarCodigo(
                             unidad.id,
@@ -709,12 +643,11 @@ function MisUnidades() {
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                  <div className="flex gap-2 border-t border-[#E6EBF2] pt-3">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 text-sm h-9 border-slate-200 dark:border-slate-700 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 dark:hover:bg-violet-500/10 dark:hover:text-violet-400 transition-all"
+                      className={`${focusRing} h-10 min-h-10 flex-1 border-[#E6EBF2] text-sm font-bold`}
                       onClick={() => {
                         if (unidad._rol === "SUSCRIPTOR") {
                           navigate(`/unidad/${unidad.id}`, {
@@ -731,9 +664,11 @@ function MisUnidades() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 transition-all"
+                      className={`${focusRing} h-10 w-10 min-h-10 border-[#E6EBF2] p-0`}
                       onClick={() => handleDescargar(unidad.id)}
                       disabled={downloadingId === unidad.id}
+                      title="Descargar PDF"
+                      aria-label="Descargar PDF"
                     >
                       {downloadingId === unidad.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -744,9 +679,10 @@ function MisUnidades() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 dark:hover:bg-violet-500/10 dark:hover:text-violet-400 transition-all"
+                      className={`${focusRing} h-10 w-10 min-h-10 border-[#E6EBF2] p-0`}
                       onClick={() => navigate(`/editar-unidad/${unidad.id}`)}
                       title="Editar contenido"
+                      aria-label="Editar unidad"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -754,10 +690,11 @@ function MisUnidades() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-all"
+                        className={`${focusRing} h-10 w-10 min-h-10 border-[#E6EBF2] p-0 text-[#DC2626] hover:bg-[#FEF2F2]`}
                         onClick={() => setConfirmFinalizarId(unidad.id)}
                         disabled={finalizandoId === unidad.id}
                         title="Finalizar unidad"
+                        aria-label="Finalizar unidad"
                       >
                         {finalizandoId === unidad.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -767,12 +704,14 @@ function MisUnidades() {
                       </Button>
                     )}
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                  </div>
+                  </div>
+                </DpStaggerItem>
+              ))}
+            </DpStaggerList>
+          )}
+        </TeacherHubPage>
+      </TeacherAppShell>
 
       {/* ─── Modal confirmar finalizar ─── */}
       {confirmFinalizarId &&
@@ -786,26 +725,29 @@ function MisUnidades() {
               onClick={() => setConfirmFinalizarId(null)}
             >
               <div
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-700"
+                className={`w-full max-w-md rounded-[24px] border border-[#E6EBF2] bg-white p-6 ${cardShadow}`}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-500/20">
-                    <FlagOff className="h-5 w-5 text-red-600 dark:text-red-400" />
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="grid h-11 w-11 place-items-center rounded-[14px] bg-[#FEE2E2]">
+                    <FlagOff
+                      className="h-5 w-5 text-[#DC2626]"
+                      aria-hidden="true"
+                    />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-lg font-extrabold text-[#1F2937]">
                     Finalizar unidad
                   </h3>
                 </div>
 
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                <p className="mb-2 text-sm font-semibold text-[#6B7280]">
                   ¿Estás seguro que deseas finalizar{" "}
-                  <span className="font-semibold text-slate-900 dark:text-white">
+                  <span className="font-extrabold text-[#1F2937]">
                     "{unidadTarget?.titulo}"
                   </span>
                   ?
                 </p>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                <p className="mb-6 text-sm font-semibold text-[#9CA3AF]">
                   La unidad quedará cerrada. Seguirá existiendo con todas sus
                   sesiones y PDFs, pero dejará de contar como activa, lo que te
                   permitirá crear una nueva unidad.
@@ -817,6 +759,7 @@ function MisUnidades() {
                     size="sm"
                     onClick={() => setConfirmFinalizarId(null)}
                     disabled={finalizandoId === confirmFinalizarId}
+                    className={`${focusRing} text-sm font-bold`}
                   >
                     Cancelar
                   </Button>
@@ -824,7 +767,7 @@ function MisUnidades() {
                     size="sm"
                     onClick={() => handleFinalizar(confirmFinalizarId)}
                     disabled={finalizandoId === confirmFinalizarId}
-                    className="bg-red-600 hover:bg-red-700 text-white"
+                    className="bg-[#DC2626] text-sm font-bold text-white hover:bg-[#B91C1C]"
                   >
                     {finalizandoId === confirmFinalizarId ? (
                       <>
@@ -843,7 +786,7 @@ function MisUnidades() {
             </div>
           );
         })()}
-    </div>
+    </>
   );
 }
 

@@ -1,50 +1,48 @@
 import { useNavigate } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import ReusableModal from "@/components/Shared/Modal/ReusableModal";
-import { Button } from "@/components/ui/button";
-import { Crown, Sparkles, Check, Lock, MessageCircle, Loader2, PartyPopper, Rocket, AlertCircle } from "lucide-react";
-import { usePaymentSocket, type PaymentStatus } from "@/hooks/usePaymentSocket";
+import {
+  Check,
+  CircleCheck,
+  Loader2,
+  Lock,
+  MessageCircle,
+  AlertCircle,
+} from "lucide-react";
+import { usePaymentSocket } from "@/hooks/usePaymentSocket";
 import { SubirListaAlumnosView } from "@/components/Shared/SubirListaAlumnosView";
+import { dpCtaPrimary, dpOutlineButtonClass, dpPressable } from "@/styles/dpTokens";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { cn } from "@/lib/utils";
 
 interface UpgradePremiumModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const PREMIUM_FEATURES = [
+  "Crear Unidades de Aprendizaje con IA",
+  "Planificador de sesiones de aprendizaje",
+  "Exportar a PDF profesional",
+  "Soporte prioritario",
+] as const;
+
 /**
- * Modal que se muestra cuando un usuario free intenta acceder
- * a funcionalidad premium (crear unidad, etc.)
- *
- * Flujo:
- * 1. Muestra beneficios + botón "Contactar por WhatsApp"
- * 2. Al hacer clic → POST /api/unidad/pago/solicitar → abre whatsappLink
- * 3. UI queda "esperando" escuchando `pago:confirmado` por WebSocket
- * 4. Cuando el admin confirma → pantalla de éxito → redirige al dashboard
+ * Modal cuando un usuario free intenta una función Premium.
+ * Flujo: beneficios → WhatsApp → espera socket → éxito → subir lista (opcional).
  */
 function UpgradePremiumModal({ isOpen, onClose }: UpgradePremiumModalProps) {
   const navigate = useNavigate();
   const { status, errorMessage, startPaymentFlow, cancelWaiting, reset } = usePaymentSocket();
-  /** true → muestra la vista de subir lista de alumnos (post-pago) */
   const [showUploadStep, setShowUploadStep] = useState(false);
 
-  const premiumFeatures = [
-    "Crear Unidades de Aprendizaje con IA",
-    "Planificador de sesiones de aprendizaje",
-    "Exportar a PDF profesional",
-    "Soporte prioritario",
-  ];
-
-  // Cuando el pago se confirma, mostrar brevemente el éxito y luego la vista de subir lista
   useEffect(() => {
     if (status === "activated" && !showUploadStep) {
-      const timer = setTimeout(() => {
-        setShowUploadStep(true);
-      }, 2500);
+      const timer = setTimeout(() => setShowUploadStep(true), 2200);
       return () => clearTimeout(timer);
     }
   }, [status, showUploadStep]);
 
-  /** El usuario terminó el paso de subir lista (skip o continuar) → ir al dashboard */
   const handleUploadContinue = useCallback(() => {
     setShowUploadStep(false);
     reset();
@@ -52,10 +50,8 @@ function UpgradePremiumModal({ isOpen, onClose }: UpgradePremiumModalProps) {
     navigate("/dashboard");
   }, [navigate, onClose, reset]);
 
-  // Al cerrar el modal, limpiar todo
   function handleClose() {
     if (showUploadStep) {
-      // Si está en el paso de subir lista, tratar como "skip"
       handleUploadContinue();
       return;
     }
@@ -67,226 +63,307 @@ function UpgradePremiumModal({ isOpen, onClose }: UpgradePremiumModalProps) {
     onClose();
   }
 
-  function handleContactWhatsApp() {
-    startPaymentFlow();
-  }
+  const canDismiss =
+    status !== "activated" && status !== "loading" && !showUploadStep;
 
   return (
     <ReusableModal
       isOpen={isOpen}
       onClose={handleClose}
       size="sm"
-      gradient="amber-orange"
-      showCloseButton={status !== "activated" && status !== "loading" && !showUploadStep}
+      presentation="material"
+      headerless
+      showGradientBar={false}
+      showCloseButton={canDismiss}
       closeOnOverlayClick={status === "idle" || status === "error"}
     >
-      {/* Paso post-pago: subir lista de alumnos (opcional) */}
       {showUploadStep ? (
         <SubirListaAlumnosView onContinue={handleUploadContinue} />
       ) : (
         <>
-          {status === "idle" && <IdleView features={premiumFeatures} onContact={handleContactWhatsApp} onClose={handleClose} />}
+          {status === "idle" && (
+            <IdleView
+              features={PREMIUM_FEATURES}
+              onContact={startPaymentFlow}
+              onClose={handleClose}
+            />
+          )}
           {status === "loading" && <LoadingView />}
           {status === "waiting" && <WaitingView onCancel={handleClose} />}
           {status === "activated" && <ActivatedView />}
-          {status === "error" && <ErrorView message={errorMessage} onRetry={handleContactWhatsApp} onClose={handleClose} />}
+          {status === "error" && (
+            <ErrorView
+              message={errorMessage}
+              onRetry={startPaymentFlow}
+              onClose={handleClose}
+            />
+          )}
         </>
       )}
     </ReusableModal>
   );
 }
 
-// ─── Vista inicial: beneficios + CTA WhatsApp ───
+function ModalWell({
+  children,
+  tone = "blue",
+  className,
+}: {
+  children: React.ReactNode;
+  tone?: "blue" | "green" | "warning" | "muted";
+  className?: string;
+}) {
+  const tones = {
+    blue: "bg-[#EAF2FC] border-[#D6E6FA]",
+    green: "bg-[#E3F8EC] border-[#C6EDD8]",
+    warning: "bg-[#FFF7ED] border-[#FDEAD7]",
+    muted: "bg-[#F5F7FA] border-[#E6EBF2]",
+  };
+
+  return (
+    <div
+      className={cn(
+        "rounded-[20px] border px-4 py-4 text-left",
+        tones[tone],
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function IconWell({
+  children,
+  tone = "blue",
+}: {
+  children: React.ReactNode;
+  tone?: "blue" | "green" | "warning";
+}) {
+  const tones = {
+    blue: "bg-[#EAF2FC] text-[#3B6CB5]",
+    green: "bg-[#E3F8EC] text-[#15803D]",
+    warning: "bg-[#FFF7ED] text-[#C2410C]",
+  };
+
+  return (
+    <div
+      className={cn(
+        "grid h-14 w-14 place-items-center rounded-[18px]",
+        tones[tone],
+      )}
+    >
+      {children}
+    </div>
+  );
+}
 
 function IdleView({
   features,
   onContact,
   onClose,
 }: {
-  features: string[];
+  features: readonly string[];
   onContact: () => void;
   onClose: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center text-center px-2 py-4">
-      {/* Icono */}
-      <div className="relative mb-5">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
-          <Crown className="w-8 h-8 text-white" />
-        </div>
-        <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-amber-300 to-yellow-400 flex items-center justify-center shadow">
-          <Lock className="w-3 h-3 text-amber-800" />
-        </div>
-      </div>
+    <div className="flex flex-col items-center text-center">
+      <IconWell tone="blue">
+        <Lock className="h-7 w-7" strokeWidth={2} aria-hidden />
+      </IconWell>
 
-      {/* Título */}
-      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+      <h3 className="mt-5 text-xl font-extrabold tracking-[-0.02em] text-[#1F2937] text-balance">
         Función Premium
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs">
-        Para crear Unidades de Aprendizaje necesitas un plan Premium.
-        ¡Desbloquea todo el poder de la IA para tu planificación docente!
+      <p className="mt-2 max-w-[28ch] text-base font-semibold leading-relaxed text-[#6B7280]">
+        Para crear Unidades de Aprendizaje necesitas el plan Premium.
       </p>
 
-      {/* Features list */}
-      <div className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 mb-6 text-left">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Con Premium obtienes:
-          </span>
-        </div>
+      <ModalWell tone="muted" className="mt-6 w-full">
+        <p className="mb-3 text-sm font-bold text-[#1F2937]">
+          Con Premium puedes:
+        </p>
         <ul className="space-y-2.5">
-          {features.map((feature, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+          {features.map((feature) => (
+            <li
+              key={feature}
+              className="flex items-start gap-2.5 text-left text-base font-semibold text-[#1F2937]"
+            >
+              <Check
+                className="mt-0.5 h-4 w-4 shrink-0 text-[#15803D]"
+                strokeWidth={2.5}
+                aria-hidden
+              />
               <span>{feature}</span>
             </li>
           ))}
         </ul>
-      </div>
+      </ModalWell>
 
-      {/* Botones */}
-      <div className="flex flex-col gap-2 w-full">
-        <Button
+      <div className="mt-6 flex w-full flex-col gap-3">
+        <button
+          type="button"
           onClick={onContact}
-          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold shadow-lg shadow-green-500/25 transition-all"
+          className={cn(dpCtaPrimary, "w-full gap-2")}
         >
-          <MessageCircle className="w-4 h-4 mr-2" />
-          Contactar por WhatsApp
-        </Button>
-        <Button
+          <MessageCircle className="h-5 w-5" strokeWidth={2} aria-hidden />
+          Continuar por WhatsApp
+        </button>
+        <button
+          type="button"
           onClick={onClose}
-          variant="ghost"
-          className="w-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+          className={cn(dpOutlineButtonClass, dpPressable, "w-full")}
         >
           Quizás después
-        </Button>
+        </button>
       </div>
     </div>
   );
 }
-
-// ─── Vista de espera: animación + escuchando socket ───
 
 function WaitingView({ onCancel }: { onCancel: () => void }) {
+  const reduced = usePrefersReducedMotion();
+
   return (
-    <div className="flex flex-col items-center text-center px-2 py-8">
-      {/* Animación de espera */}
-      <div className="relative mb-6">
-        {/* Pulse rings */}
-        <div className="absolute inset-0 w-24 h-24 -m-2 rounded-full bg-amber-400/20 animate-ping" />
-        <div className="absolute inset-0 w-20 h-20 rounded-full bg-amber-400/10 animate-pulse" />
-        <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-xl shadow-amber-500/30">
-          <Crown className="w-10 h-10 text-white animate-bounce" style={{ animationDuration: "2s" }} />
-        </div>
+    <div className="flex flex-col items-center text-center">
+      <div className="relative">
+        {!reduced && (
+          <div
+            className="absolute inset-0 -m-3 rounded-[22px] bg-[#6B9FE8]/15 motion-safe:animate-pulse"
+            aria-hidden
+          />
+        )}
+        <IconWell tone="blue">
+          <Loader2
+            className={cn("h-7 w-7", !reduced && "motion-safe:animate-spin")}
+            strokeWidth={2}
+            aria-hidden
+          />
+        </IconWell>
       </div>
 
-      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+      <h3 className="mt-5 text-xl font-extrabold tracking-[-0.02em] text-[#1F2937]">
         Esperando activación
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs">
-        Te hemos abierto WhatsApp en otra pestaña. Completa el proceso de pago
-        y tu plan se activará automáticamente aquí.
+      <p className="mt-2 max-w-[32ch] text-base font-semibold leading-relaxed text-[#6B7280]">
+        Abrimos WhatsApp en otra pestaña. Cuando completes el pago, tu plan se
+        activará aquí.
       </p>
 
-      {/* Indicador de conexión */}
-      <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 rounded-full px-4 py-2 mb-6">
-        <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
-        <span className="text-xs text-slate-600 dark:text-slate-400">
-          Escuchando confirmación de pago...
-        </span>
-      </div>
-
-      {/* Pasos */}
-      <div className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 mb-6 text-left">
+      <ModalWell tone="blue" className="mt-6 w-full">
         <ol className="space-y-3">
-          <WaitingStep number={1} text="Conversa con nuestro equipo en WhatsApp" done />
-          <WaitingStep number={2} text="Realiza el pago indicado" />
-          <WaitingStep number={3} text="Tu plan se activa al instante" />
+          <WaitingStep done text="Habla con nuestro equipo en WhatsApp" />
+          <WaitingStep text="Realiza el pago indicado" />
+          <WaitingStep text="Tu plan se activa al instante" />
         </ol>
-      </div>
+      </ModalWell>
 
-      <Button
+      <p className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-[#3B6CB5]">
+        {!reduced && (
+          <Loader2
+            className="h-4 w-4 motion-safe:animate-spin"
+            strokeWidth={2}
+            aria-hidden
+          />
+        )}
+        Escuchando confirmación de pago
+      </p>
+
+      <button
+        type="button"
         onClick={onCancel}
-        variant="ghost"
-        className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+        className={cn(
+          dpOutlineButtonClass,
+          dpPressable,
+          "mt-6 w-full",
+        )}
       >
         Cancelar y volver
-      </Button>
+      </button>
     </div>
   );
 }
 
-function WaitingStep({ number, text, done }: { number: number; text: string; done?: boolean }) {
+function WaitingStep({ text, done }: { text: string; done?: boolean }) {
   return (
     <li className="flex items-center gap-3">
-      <div
-        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+      <span
+        className={cn(
+          "grid h-7 w-7 shrink-0 place-items-center rounded-full",
           done
-            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400"
-            : "bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400"
-        }`}
+            ? "bg-[#E3F8EC] text-[#15803D]"
+            : "border-2 border-[#D6E6FA] bg-white/60",
+        )}
+        aria-hidden
       >
-        {done ? <Check className="w-3.5 h-3.5" /> : number}
-      </div>
-      <span className={`text-sm ${done ? "text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400"}`}>
+        {done && <Check className="h-3.5 w-3.5" strokeWidth={2.5} />}
+      </span>
+      <span
+        className={cn(
+          "text-left text-base font-semibold",
+          done ? "text-[#15803D]" : "text-[#1F2937]",
+        )}
+      >
         {text}
       </span>
     </li>
   );
 }
 
-// ─── Vista de éxito: plan activado ───
-
 function ActivatedView() {
-  return (
-    <div className="flex flex-col items-center text-center px-2 py-8">
-      {/* Icono de éxito */}
-      <div className="relative mb-6">
-        <div className="absolute inset-0 w-24 h-24 -m-2 rounded-full bg-emerald-400/20 animate-ping" style={{ animationDuration: "1.5s" }} />
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center shadow-xl shadow-emerald-500/30">
-          <PartyPopper className="w-10 h-10 text-white" />
-        </div>
-      </div>
+  const reduced = usePrefersReducedMotion();
 
-      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-        ¡Plan Premium activado!
+  return (
+    <div className="flex flex-col items-center py-2 text-center">
+      <IconWell tone="green">
+        <CircleCheck className="h-7 w-7" strokeWidth={2} aria-hidden />
+      </IconWell>
+
+      <h3 className="mt-5 text-xl font-extrabold tracking-[-0.02em] text-[#1F2937]">
+        Plan Premium activado
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs">
-        Tu suscripción Premium está activa. Ya puedes crear Unidades de
-        Aprendizaje con Inteligencia Artificial.
+      <p className="mt-2 max-w-[32ch] text-base font-semibold leading-relaxed text-[#6B7280]">
+        Ya puedes crear Unidades de Aprendizaje con Inteligencia Artificial.
       </p>
 
-      <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-full px-4 py-2">
-        <Rocket className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-        <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-          Redirigiendo al dashboard...
+      <div className="mt-6 flex items-center gap-2 rounded-full bg-[#E3F8EC] px-4 py-2.5">
+        {!reduced && (
+          <Loader2
+            className="h-4 w-4 text-[#15803D] motion-safe:animate-spin"
+            strokeWidth={2}
+            aria-hidden
+          />
+        )}
+        <span className="text-sm font-bold text-[#15803D]">
+          Preparando tu espacio...
         </span>
       </div>
     </div>
   );
 }
 
-// ─── Vista de carga: solicitando pago al backend ───
-
 function LoadingView() {
+  const reduced = usePrefersReducedMotion();
+
   return (
-    <div className="flex flex-col items-center text-center px-2 py-12">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30 mb-6">
-        <Loader2 className="w-8 h-8 text-white animate-spin" />
-      </div>
-      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-        Preparando tu solicitud...
+    <div className="flex flex-col items-center py-6 text-center">
+      <IconWell tone="blue">
+        <Loader2
+          className={cn("h-7 w-7", !reduced && "motion-safe:animate-spin")}
+          strokeWidth={2}
+          aria-hidden
+        />
+      </IconWell>
+      <h3 className="mt-5 text-lg font-extrabold tracking-[-0.02em] text-[#1F2937]">
+        Preparando tu solicitud
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">
-        Estamos generando tu enlace de pago. Un momento por favor.
+      <p className="mt-2 max-w-[28ch] text-base font-semibold text-[#6B7280]">
+        Generando tu enlace de pago. Un momento, por favor.
       </p>
     </div>
   );
 }
-
-// ─── Vista de error ───
 
 function ErrorView({
   message,
@@ -298,30 +375,33 @@ function ErrorView({
   onClose: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center text-center px-2 py-8">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30 mb-6">
-        <AlertCircle className="w-8 h-8 text-white" />
-      </div>
-      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-        Ocurrió un error
+    <div className="flex flex-col items-center text-center">
+      <IconWell tone="warning">
+        <AlertCircle className="h-7 w-7" strokeWidth={2} aria-hidden />
+      </IconWell>
+
+      <h3 className="mt-5 text-lg font-extrabold tracking-[-0.02em] text-[#1F2937]">
+        No pudimos continuar
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs">
-        {message || "No pudimos procesar tu solicitud. Intenta nuevamente."}
+      <p className="mt-2 max-w-[32ch] text-base font-semibold leading-relaxed text-[#6B7280]">
+        {message || "Hubo un problema al preparar tu solicitud. Intenta de nuevo."}
       </p>
-      <div className="flex flex-col gap-2 w-full">
-        <Button
+
+      <div className="mt-6 flex w-full flex-col gap-3">
+        <button
+          type="button"
           onClick={onRetry}
-          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold"
+          className={cn(dpCtaPrimary, "w-full")}
         >
           Reintentar
-        </Button>
-        <Button
+        </button>
+        <button
+          type="button"
           onClick={onClose}
-          variant="ghost"
-          className="w-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+          className={cn(dpOutlineButtonClass, dpPressable, "w-full")}
         >
           Cerrar
-        </Button>
+        </button>
       </div>
     </div>
   );

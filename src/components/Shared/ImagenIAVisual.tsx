@@ -24,7 +24,7 @@ const imageStyle: CSSProperties = {
   display: "block",
 };
 
-export function ImagenIAVisual({ imagen, children, crossOrigin = true }: Props) {
+export function ImagenIAVisual({ imagen, children, crossOrigin = false }: Props) {
   const img = (
     <div style={wrapperStyle}>
       <img

@@ -9,6 +9,7 @@ import {
   Shield,
   Menu,
   X,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -33,6 +34,11 @@ const sidebarLinks = [
     to: "/admin/usuarios",
     label: "Usuarios",
     icon: Users,
+  },
+  {
+    to: "/admin/consumo-ia",
+    label: "Consumo IA",
+    icon: Zap,
   },
 ];
 

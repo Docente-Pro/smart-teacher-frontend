@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
@@ -24,12 +22,9 @@ import {
   Eye,
   Trash2,
   Plus,
-  ArrowLeft,
   Loader2,
   RefreshCw,
   AlertTriangle,
-  Sparkles,
-  TrendingUp,
   X,
   Pencil,
   FolderOpen,
@@ -37,10 +32,36 @@ import {
   ChevronRight,
   ScanSearch,
 } from "lucide-react";
+import "@fontsource/nunito/600.css";
+import "@fontsource/nunito/700.css";
+import "@fontsource/nunito/800.css";
 import { AdobePdfEmbed } from "@/components/AdobePdfEmbed";
 import ReusableModal from "@/components/Shared/Modal/ReusableModal";
 import { useQuery } from "@tanstack/react-query";
 import { useUserUnidades } from "@/hooks/useUserUnidades";
+import { usePermissions } from "@/hooks/usePermissions";
+import TeacherAppShell from "@/components/layout/TeacherAppShell";
+import TeacherHubPage from "@/components/layout/TeacherHubPage";
+import TeacherHubPageHeader from "@/components/layout/TeacherHubPageHeader";
+import TeacherHubSearchRow from "@/components/layout/TeacherHubSearchRow";
+import {
+  DpEnter,
+  DpStaggerItem,
+  DpStaggerList,
+  DpViewTransition,
+} from "@/components/motion";
+import {
+  dpCardShadow,
+  dpCtaPrimary,
+  dpFocusRing,
+  dpLiftable,
+  dpPressable,
+} from "@/styles/dpTokens";
+
+const focusRing = dpFocusRing;
+const pressable = dpPressable;
+const liftable = dpLiftable;
+const cardShadow = dpCardShadow;
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -245,30 +266,34 @@ function Breadcrumb({
   }
 
   return (
-    <nav className="flex items-center gap-1 text-sm mb-5 flex-wrap">
+    <DpEnter as="nav" className="mb-5 flex flex-wrap items-center gap-1 text-sm font-semibold" aria-label="Ubicación en mis sesiones">
       {segments.map((seg, i) => {
         const isLast = i === segments.length - 1;
         return (
           <span key={i} className="flex items-center gap-1">
             {i > 0 && (
-              <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+              <ChevronRight
+                className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]"
+                aria-hidden="true"
+              />
             )}
             {seg.onClick && !isLast ? (
               <button
+                type="button"
                 onClick={seg.onClick}
-                className="text-dp-blue-600 dark:text-dp-blue-400 hover:underline font-medium truncate max-w-[200px]"
+                className={`${focusRing} ${pressable} truncate max-w-[200px] font-bold text-[#3B6CB5] hover:underline`}
               >
                 {seg.label}
               </button>
             ) : (
-              <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[200px]">
+              <span className="truncate max-w-[200px] font-extrabold text-[#1F2937]">
                 {seg.label}
               </span>
             )}
           </span>
         );
       })}
-    </nav>
+    </DpEnter>
   );
 }
 
@@ -279,46 +304,47 @@ function FolderCard({
   subtitle,
   count,
   icon,
-  accentGradient,
+  wellClass = "bg-[#EAF2FC] text-[#3B6CB5]",
   onClick,
 }: {
   title: string;
   subtitle?: string;
   count: number;
   icon: React.ReactNode;
-  accentGradient?: string;
+  wellClass?: string;
   onClick: () => void;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="group relative w-full text-left rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
+      className={`${focusRing} ${liftable} group w-full rounded-[20px] border border-[#E6EBF2] bg-white p-4 text-left sm:p-5 ${cardShadow}`}
     >
-      <div
-        className={`h-1.5 bg-gradient-to-r ${accentGradient || "from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-500"} opacity-60 group-hover:opacity-100 transition-opacity duration-300`}
-      />
-      <div className="p-4 sm:p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm">
-            {icon}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-slate-900 dark:text-white text-sm leading-snug truncate group-hover:text-dp-blue-600 dark:group-hover:text-dp-blue-400 transition-colors">
-              {title}
-            </h3>
-            {subtitle && (
-              <p className="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">
-                {subtitle}
-              </p>
-            )}
-          </div>
-          <div className="flex-shrink-0 flex items-center gap-1.5">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full">
-              {count}
+      <div className="flex items-center gap-3">
+        <span
+          className={`grid h-11 w-11 shrink-0 place-items-center rounded-[14px] ${wellClass}`}
+        >
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-base font-extrabold text-[#1F2937] group-hover:text-[#3B6CB5]">
+            {title}
+          </span>
+          {subtitle && (
+            <span className="mt-0.5 block truncate text-sm font-semibold text-[#6B7280]">
+              {subtitle}
             </span>
-            <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500 group-hover:text-dp-blue-500 group-hover:translate-x-0.5 transition-all" />
-          </div>
-        </div>
+          )}
+        </span>
+        <span className="flex shrink-0 items-center gap-1.5">
+          <span className="rounded-full bg-[#F5F7FA] px-2.5 py-0.5 text-xs font-bold tabular-nums text-[#6B7280]">
+            {count}
+          </span>
+          <ChevronRight
+            className="h-4 w-4 text-[#9CA3AF] transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
+        </span>
       </div>
     </button>
   );
@@ -362,123 +388,120 @@ function SessionCard({
 
   return (
     <div
-      className="group relative rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer"
+      role="button"
+      tabIndex={0}
+      className={`${liftable} group cursor-pointer rounded-[24px] border border-[#E6EBF2] bg-white ${cardShadow}`}
       onClick={onVer}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onVer();
+        }
+      }}
     >
-      <div
-        className={`h-1 bg-gradient-to-r ${areaTheme.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-300`}
-      />
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold text-slate-900 dark:text-white text-sm leading-snug line-clamp-2 flex-1 min-w-0">
+      <div className="p-4 sm:p-5">
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-extrabold leading-snug text-[#1F2937]">
             {sesion.titulo || "Sin título"}
           </h3>
           <span
-            className={`flex-shrink-0 px-2 py-0.5 rounded-md text-xs font-medium ${areaTheme.pill}`}
+            className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${areaTheme.pill}`}
           >
             {areaName}
           </span>
         </div>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" />
+        <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-[#6B7280]">
+          <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
           {formatFechaRelativa(sesion.createdAt)}
         </p>
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-3">
+        <p className="mb-4 text-sm font-semibold text-[#9CA3AF]">
           {sesion.nivel && <span>{sesion.nivel.nombre}</span>}
           {sesion.grado && <span> · {sesion.grado.nombre}</span>}
           <span> · {sesion.duracion} min</span>
-        </div>
-        <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+        </p>
+        <div
+          className="flex flex-wrap gap-2 border-t border-[#E6EBF2] pt-3"
+          onClick={(e) => e.stopPropagation()}
+        >
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 h-8 text-xs border-slate-200 dark:border-slate-700"
-            onClick={(e) => {
-              e.stopPropagation();
-              onVer();
-            }}
+            className={`${focusRing} h-10 min-h-10 flex-1 border-[#E6EBF2] text-sm font-bold`}
+            onClick={onVer}
           >
-            <Eye className="h-3 w-3 mr-1" />
+            <Eye className="mr-1.5 h-4 w-4" aria-hidden="true" />
             Ver
           </Button>
           {sesion.pdfUrl && (
             <Button
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPreview();
-              }}
+              className={`${focusRing} h-10 w-10 min-h-10 border-[#E6EBF2] p-0`}
+              onClick={onPreview}
               title="Vista previa PDF"
+              aria-label="Vista previa PDF"
             >
-              <ScanSearch className="h-3 w-3" />
+              <ScanSearch className="h-4 w-4" />
             </Button>
           )}
           <Button
             variant="outline"
             size="sm"
-            className="h-8 w-8 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDescargar();
-            }}
+            className={`${focusRing} h-10 w-10 min-h-10 border-[#E6EBF2] p-0`}
+            onClick={onDescargar}
             disabled={downloadingId === sesion.id}
-            title="PDF"
+            title="Descargar PDF"
+            aria-label="Descargar PDF"
           >
             {downloadingId === sesion.id ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Download className="h-3 w-3" />
+              <Download className="h-4 w-4" />
             )}
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className={`h-8 w-8 p-0 ${(sesion as any).wordUrl ? "border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-400" : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onWord();
-            }}
+            className={`${focusRing} h-10 w-10 min-h-10 border-[#E6EBF2] p-0 ${(sesion as any).wordUrl ? "border-[#BBF7D0] text-[#15803D]" : ""}`}
+            onClick={onWord}
             disabled={generatingWordId === sesion.id}
             title={(sesion as any).wordUrl ? "Ver Word" : "Generar Word"}
+            aria-label={(sesion as any).wordUrl ? "Ver Word" : "Generar Word"}
           >
             {generatingWordId === sesion.id ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <FileText className="h-3 w-3" />
+              <FileText className="h-4 w-4" />
             )}
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-8 w-8 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditar();
-            }}
+            className={`${focusRing} h-10 w-10 min-h-10 border-[#E6EBF2] p-0`}
+            onClick={onEditar}
             title="Editar"
+            aria-label="Editar sesión"
           >
-            <Pencil className="h-3 w-3" />
+            <Pencil className="h-4 w-4" />
           </Button>
           {isConfirming ? (
-            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-1">
               <Button
                 size="sm"
-                className="h-8 px-2 text-xs bg-red-100 text-red-700 hover:bg-red-200"
+                className="h-10 min-h-10 bg-[#FEE2E2] px-3 text-sm font-bold text-[#B91C1C] hover:bg-[#FECACA]"
                 onClick={onEliminar}
                 disabled={deletingId === sesion.id}
               >
                 {deletingId === sesion.id ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "Sí"
+                  "Sí, borrar"
                 )}
               </Button>
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 px-2 text-xs"
+                className={`${focusRing} h-10 min-h-10 border-[#E6EBF2] px-3 text-sm font-bold`}
                 onClick={onCancelDelete}
               >
                 No
@@ -488,13 +511,12 @@ function SessionCard({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
-              onClick={(e) => {
-                e.stopPropagation();
-                onConfirmDelete();
-              }}
+              className={`${focusRing} h-10 w-10 min-h-10 border-[#E6EBF2] p-0 text-[#DC2626] hover:bg-[#FEF2F2]`}
+              onClick={onConfirmDelete}
+              title="Eliminar"
+              aria-label="Eliminar sesión"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>
@@ -707,24 +729,18 @@ function MisSesiones() {
     }
   };
 
-  // ─── Stats ───
+  const { isPremium, sesionesRestantes } = usePermissions();
+
+  // ─── Meta ───
   const totalSesiones = sesiones.length;
-  const sesionesEsteMes = sesiones.filter((s) => {
-    const d = new Date(s.createdAt);
-    const now = new Date();
-    return (
-      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    );
-  }).length;
-  const sesionesRestantes = authUser?.sesionesRestantes ?? 0;
 
   // ─── Render helpers for session card grid ───
   const renderSessionCards = (sessions: ISesion[], areaName: string) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <DpStaggerList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {sessions.map((sesion) => (
-        <SessionCard
-          key={sesion.id}
-          sesion={sesion}
+        <DpStaggerItem key={sesion.id}>
+          <SessionCard
+            sesion={sesion}
           areaName={areaName}
           downloadingId={downloadingId}
           generatingWordId={generatingWordId}
@@ -739,8 +755,9 @@ function MisSesiones() {
           onCancelDelete={() => setConfirmDeleteId(null)}
           onEliminar={() => handleEliminar(sesion.id)}
         />
+        </DpStaggerItem>
       ))}
-    </div>
+    </DpStaggerList>
   );
 
   // ─── Resolve current view data ───
@@ -751,23 +768,25 @@ function MisSesiones() {
 
       if (!hasUnits && !hasIndividuales) {
         return (
-          <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
+          <DpEnter className="py-8 text-center text-sm font-semibold text-[#6B7280]">
             No hay sesiones que coincidan con la búsqueda.
-          </p>
+          </DpEnter>
         );
       }
 
       return (
         <div className="space-y-8">
           {hasUnits && (
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <FolderOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+            <DpEnter as="section" delayMs={60}>
+              <div className="mb-4 flex items-center gap-2">
+                <span className="grid h-9 w-9 place-items-center rounded-[12px] bg-[#E3F8EC] text-[#15803D]">
+                  <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <h2 className="text-lg font-extrabold text-[#1F2937]">
                   Unidades
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <DpStaggerList className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {porUnidad.map((folder) => {
                   const totalInUnit = folder.byArea.reduce(
                     (sum, a) => sum + a.sessions.length,
@@ -775,62 +794,66 @@ function MisSesiones() {
                   );
                   const label = `Unidad ${folder.numeroUnidad > 0 ? folder.numeroUnidad : ""}${folder.numeroUnidad > 0 ? ": " : ""}${folder.titulo}`;
                   return (
-                    <FolderCard
-                      key={folder.unidadId}
-                      title={label}
-                      subtitle={`${folder.byArea.length} área${folder.byArea.length === 1 ? "" : "s"}`}
-                      count={totalInUnit}
-                      icon={
-                        <Folder className="h-5 w-5 text-amber-500 dark:text-amber-400" />
-                      }
-                      accentGradient="from-amber-400 to-orange-500"
-                      onClick={() =>
-                        setCurrentPath({
-                          level: "unidad",
-                          unidadId: folder.unidadId,
-                          unidadLabel: label,
-                        })
-                      }
-                    />
+                    <DpStaggerItem key={folder.unidadId}>
+                      <FolderCard
+                        title={label}
+                        subtitle={`${folder.byArea.length} área${folder.byArea.length === 1 ? "" : "s"}`}
+                        count={totalInUnit}
+                        icon={
+                          <Folder className="h-5 w-5" aria-hidden="true" />
+                        }
+                        wellClass="bg-[#E3F8EC] text-[#15803D]"
+                        onClick={() =>
+                          setCurrentPath({
+                            level: "unidad",
+                            unidadId: folder.unidadId,
+                            unidadLabel: label,
+                          })
+                        }
+                      />
+                    </DpStaggerItem>
                   );
                 })}
-              </div>
-            </section>
+              </DpStaggerList>
+            </DpEnter>
           )}
 
           {hasIndividuales && (
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <Folder className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+            <DpEnter as="section" delayMs={100}>
+              <div className="mb-4 flex items-center gap-2">
+                <span className="grid h-9 w-9 place-items-center rounded-[12px] bg-[#EAF2FC] text-[#3B6CB5]">
+                  <Folder className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <h2 className="text-lg font-extrabold text-[#1F2937]">
                   Sesiones individuales
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <DpStaggerList className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {individuales.map(({ areaName, sessions }) => {
                   const areaTheme = getAreaColor(areaName);
                   return (
-                    <FolderCard
-                      key={areaName}
-                      title={areaName}
-                      count={sessions.length}
-                      icon={
-                        <span
-                          className={`w-3 h-3 rounded-full ${areaTheme.dot}`}
-                        />
-                      }
-                      accentGradient={areaTheme.gradient}
-                      onClick={() =>
-                        setCurrentPath({
-                          level: "individual-area",
-                          area: areaName,
-                        })
-                      }
-                    />
+                    <DpStaggerItem key={areaName}>
+                      <FolderCard
+                        title={areaName}
+                        count={sessions.length}
+                        icon={
+                          <span
+                            className={`h-3 w-3 rounded-full ${areaTheme.dot}`}
+                          />
+                        }
+                        wellClass="bg-[#EAF2FC] text-[#3B6CB5]"
+                        onClick={() =>
+                          setCurrentPath({
+                            level: "individual-area",
+                            area: areaName,
+                          })
+                        }
+                      />
+                    </DpStaggerItem>
                   );
                 })}
-              </div>
-            </section>
+              </DpStaggerList>
+            </DpEnter>
           )}
         </div>
       );
@@ -840,42 +863,46 @@ function MisSesiones() {
       const unit = porUnidad.find((u) => u.unidadId === currentPath.unidadId);
       if (!unit || unit.byArea.length === 0) {
         return (
-          <div className="text-center py-12">
-            <Folder className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+          <DpEnter className="py-12 text-center">
+            <Folder
+              className="mx-auto mb-3 h-12 w-12 text-[#D1D5DB]"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-semibold text-[#6B7280]">
               {searchTerm
                 ? "No hay sesiones que coincidan en esta unidad."
                 : "Esta unidad no tiene sesiones aún."}
             </p>
-          </div>
+          </DpEnter>
         );
       }
 
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <DpStaggerList className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {unit.byArea.map(({ areaName, sessions }) => {
             const areaTheme = getAreaColor(areaName);
             return (
-              <FolderCard
-                key={areaName}
-                title={areaName}
-                count={sessions.length}
-                icon={
-                  <span className={`w-3 h-3 rounded-full ${areaTheme.dot}`} />
-                }
-                accentGradient={areaTheme.gradient}
-                onClick={() =>
-                  setCurrentPath({
-                    level: "unidad-area",
-                    unidadId: currentPath.unidadId,
-                    unidadLabel: currentPath.unidadLabel,
-                    area: areaName,
-                  })
-                }
-              />
+              <DpStaggerItem key={areaName}>
+                <FolderCard
+                  title={areaName}
+                  count={sessions.length}
+                  icon={
+                    <span className={`h-3 w-3 rounded-full ${areaTheme.dot}`} />
+                  }
+                  wellClass="bg-[#EAF2FC] text-[#3B6CB5]"
+                  onClick={() =>
+                    setCurrentPath({
+                      level: "unidad-area",
+                      unidadId: currentPath.unidadId,
+                      unidadLabel: currentPath.unidadLabel,
+                      area: areaName,
+                    })
+                  }
+                />
+              </DpStaggerItem>
             );
           })}
-        </div>
+        </DpStaggerList>
       );
     }
 
@@ -886,14 +913,17 @@ function MisSesiones() {
       );
       if (!areaData || areaData.sessions.length === 0) {
         return (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+          <DpEnter className="py-12 text-center">
+            <FileText
+              className="mx-auto mb-3 h-12 w-12 text-[#D1D5DB]"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-semibold text-[#6B7280]">
               {searchTerm
                 ? "No hay sesiones que coincidan aquí."
                 : "No hay sesiones en esta área."}
             </p>
-          </div>
+          </DpEnter>
         );
       }
       return renderSessionCards(areaData.sessions, currentPath.area);
@@ -905,14 +935,17 @@ function MisSesiones() {
       );
       if (!areaData || areaData.sessions.length === 0) {
         return (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+          <DpEnter className="py-12 text-center">
+            <FileText
+              className="mx-auto mb-3 h-12 w-12 text-[#D1D5DB]"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-semibold text-[#6B7280]">
               {searchTerm
                 ? "No hay sesiones que coincidan aquí."
                 : "No hay sesiones en esta área."}
             </p>
-          </div>
+          </DpEnter>
         );
       }
       return renderSessionCards(areaData.sessions, currentPath.area);
@@ -921,147 +954,77 @@ function MisSesiones() {
     return null;
   };
 
+  const folderViewKey =
+    currentPath.level === "root"
+      ? "root"
+      : currentPath.level === "unidad"
+        ? `unidad-${currentPath.unidadId}`
+        : currentPath.level === "unidad-area"
+          ? `ua-${currentPath.unidadId}-${currentPath.area}`
+          : `ind-${currentPath.area}`;
+
   // ═══════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          {/* ─── Header ─── */}
-          <div className="mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                if (currentPath.level !== "root") {
-                  if (currentPath.level === "unidad-area") {
-                    setCurrentPath({
-                      level: "unidad",
-                      unidadId: currentPath.unidadId,
-                      unidadLabel: currentPath.unidadLabel,
-                    });
-                  } else {
-                    setCurrentPath({ level: "root" });
-                  }
-                } else {
-                  navigate("/dashboard");
-                }
-              }}
-              className="mb-4 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              {currentPath.level !== "root" ? "Atrás" : "Dashboard"}
-            </Button>
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                  Mis Sesiones
-                </h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">
+      <TeacherAppShell activeNav="sesiones">
+        <TeacherHubPage>
+          <TeacherHubPageHeader
+            title="Mis sesiones"
+            description={
+              <>
+                <span>
                   {totalSesiones === 0
                     ? "Aún no has creado sesiones"
                     : `${totalSesiones} sesion${totalSesiones === 1 ? "" : "es"} de aprendizaje`}
-                </p>
-              </div>
-              <Button
-                onClick={() => navigate("/crear-sesion")}
-                className="bg-gradient-to-r from-dp-blue-500 to-dp-orange-500 hover:from-dp-blue-600 hover:to-dp-orange-600 text-white shadow-lg shadow-dp-blue-500/20 hover:shadow-dp-blue-500/40 transition-all"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva Sesión
-              </Button>
-            </div>
-          </div>
+                </span>
+                {!isPremium && sesionesRestantes > 0 && (
+                  <span className="rounded-full bg-[#FFF0E8] px-2.5 py-0.5 text-xs font-bold text-[#EA580C]">
+                    {sesionesRestantes === 1
+                      ? "1 sesión gratis"
+                      : `${sesionesRestantes} sesiones gratis`}
+                  </span>
+                )}
+              </>
+            }
+            backAction={
+              currentPath.level !== "root"
+                ? {
+                    onClick: () => {
+                      if (currentPath.level === "unidad-area") {
+                        setCurrentPath({
+                          level: "unidad",
+                          unidadId: currentPath.unidadId,
+                          unidadLabel: currentPath.unidadLabel,
+                        });
+                      } else {
+                        setCurrentPath({ level: "root" });
+                      }
+                    },
+                  }
+                : undefined
+            }
+            primaryAction={{
+              label: "Crear sesión",
+              icon: <Plus className="mr-2 h-4 w-4" aria-hidden="true" />,
+              onClick: () => navigate("/crear-sesion"),
+              className: dpCtaPrimary,
+            }}
+          />
 
-          {/* ─── Stats Cards ─── */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-5 shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/5 to-transparent rounded-bl-full" />
-              <div className="flex items-center gap-3 relative">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-500/10 dark:to-blue-500/5 group-hover:scale-105 transition-transform">
-                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Total
-                  </p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {totalSesiones}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-5 shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/5 to-transparent rounded-bl-full" />
-              <div className="flex items-center gap-3 relative">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-500/10 dark:to-emerald-500/5 group-hover:scale-105 transition-transform">
-                  <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Este mes
-                  </p>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                    {sesionesEsteMes}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-5 shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/5 to-transparent rounded-bl-full" />
-              <div className="flex items-center gap-3 relative">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-500/10 dark:to-amber-500/5 group-hover:scale-105 transition-transform">
-                  <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Restantes
-                  </p>
-                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                    {sesionesRestantes}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ─── Search + Refresh ─── */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            <div className="flex-1 relative group/search">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within/search:text-dp-blue-500 transition-colors" />
-              <Input
-                type="text"
-                placeholder="Buscar por título, nivel, grado..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-11 bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:border-dp-blue-400 focus:ring-2 focus:ring-dp-blue-500/20 transition-all rounded-xl"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                refetchSessions();
-                refetchUnidades();
-              }}
-              disabled={loadingSessions || loadingUnidades}
-              className="h-11 px-5 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all"
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${loadingSessions || loadingUnidades ? "animate-spin" : ""}`}
-              />
-              Actualizar
-            </Button>
-          </div>
+          <TeacherHubSearchRow
+            value={searchTerm}
+            onChange={setSearchTerm}
+            onClear={() => setSearchTerm("")}
+            placeholder="Buscar por título, nivel, grado…"
+            onRefresh={() => {
+              refetchSessions();
+              refetchUnidades();
+            }}
+            refreshing={loadingSessions || loadingUnidades}
+          />
 
           {/* ─── Breadcrumb (only when not at root) ─── */}
           {currentPath.level !== "root" && (
@@ -1070,16 +1033,15 @@ function MisSesiones() {
 
           {/* ─── Content ─── */}
           {loadingSessions || loadingUnidades ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 overflow-hidden animate-pulse"
+                  className={`animate-pulse overflow-hidden rounded-[20px] border border-[#E6EBF2] bg-white ${cardShadow}`}
                 >
-                  <div className="h-1.5 bg-slate-200 dark:bg-slate-700" />
                   <div className="p-5">
                     <div className="flex items-center gap-3">
-                      <Skeleton className="h-11 w-11 rounded-xl" />
+                      <Skeleton className="h-11 w-11 rounded-[14px]" />
                       <div className="flex-1 space-y-2">
                         <Skeleton className="h-4 w-3/4 rounded-lg" />
                         <Skeleton className="h-3 w-1/3 rounded-lg" />
@@ -1091,79 +1053,86 @@ function MisSesiones() {
               ))}
             </div>
           ) : error ? (
-            <Card className="border-red-200/60 dark:border-red-800/30 bg-white dark:bg-slate-800/50 overflow-hidden">
-              <CardContent className="py-16 text-center relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-red-50/50 to-transparent dark:from-red-900/10 dark:to-transparent" />
-                <div className="relative">
-                  <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-red-50 to-red-100 dark:from-red-500/10 dark:to-red-500/5 flex items-center justify-center shadow-sm">
-                    <AlertTriangle className="h-10 w-10 text-red-400 dark:text-red-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-                    Error al cargar sesiones
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
-                    {error}
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      refetchSessions();
-                      refetchUnidades();
-                    }}
-                    className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 transition-all"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Reintentar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <DpEnter
+              delayMs={80}
+              className={`overflow-hidden rounded-[24px] border border-[#FECACA] bg-white py-16 text-center ${cardShadow}`}
+            >
+              <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-[20px] bg-[#FEE2E2]">
+                <AlertTriangle
+                  className="h-10 w-10 text-[#DC2626]"
+                  aria-hidden="true"
+                />
+              </div>
+              <h3 className="mb-2 text-xl font-extrabold text-[#1F2937]">
+                Error al cargar sesiones
+              </h3>
+              <p className="mx-auto mb-6 max-w-sm text-sm font-semibold text-[#6B7280]">
+                {error}
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  refetchSessions();
+                  refetchUnidades();
+                }}
+                className={`${focusRing} border-[#FECACA] text-sm font-bold text-[#DC2626] hover:bg-[#FEF2F2]`}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+                Reintentar
+              </Button>
+            </DpEnter>
           ) : filteredSesiones.length === 0 ? (
-            <Card className="border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800/30 overflow-hidden">
-              <CardContent className="py-20 text-center relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-50/50 to-transparent dark:from-slate-700/10 dark:to-transparent" />
-                <div className="relative">
-                  <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200/50 dark:from-slate-700/50 dark:to-slate-800/50 flex items-center justify-center shadow-inner">
-                    {searchTerm ? (
-                      <Search className="h-11 w-11 text-slate-300 dark:text-slate-600" />
-                    ) : (
-                      <FileText className="h-11 w-11 text-slate-300 dark:text-slate-600" />
-                    )}
-                  </div>
-                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-                    {searchTerm ? "Sin resultados" : "No tienes sesiones aún"}
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-sm mx-auto leading-relaxed">
-                    {searchTerm
-                      ? `No se encontraron sesiones para "${searchTerm}". Intenta con otro término.`
-                      : "Crea tu primera sesión de aprendizaje y aparecerá aquí."}
-                  </p>
-                  {searchTerm ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => setSearchTerm("")}
-                      className="border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Limpiar búsqueda
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => navigate("/crear-sesion")}
-                      className="bg-gradient-to-r from-dp-blue-500 to-dp-blue-600 hover:from-dp-blue-600 hover:to-dp-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Crear mi primera sesión
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <DpEnter
+              delayMs={80}
+              className={`overflow-hidden rounded-[24px] border border-[#E6EBF2] bg-white py-20 text-center ${cardShadow}`}
+            >
+              <div className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-[28px] bg-[#F5F7FA]">
+                {searchTerm ? (
+                  <Search
+                    className="h-11 w-11 text-[#D1D5DB]"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <FileText
+                    className="h-11 w-11 text-[#D1D5DB]"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+              <h3 className="mb-2 text-xl font-extrabold text-[#1F2937]">
+                {searchTerm ? "Sin resultados" : "No tienes sesiones aún"}
+              </h3>
+              <p className="mx-auto mb-8 max-w-sm text-sm font-semibold leading-relaxed text-[#6B7280]">
+                {searchTerm
+                  ? `No se encontraron sesiones para "${searchTerm}". Intenta con otro término.`
+                  : "Crea tu primera sesión de aprendizaje y aparecerá aquí."}
+              </p>
+              {searchTerm ? (
+                <Button
+                  variant="outline"
+                  onClick={() => setSearchTerm("")}
+                  className={`${focusRing} border-[#E6EBF2] text-sm font-bold text-[#6B7280] hover:bg-[#F5F7FA]`}
+                >
+                  <X className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Limpiar búsqueda
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => navigate("/crear-sesion")}
+                  className={`${focusRing} ${liftable} dp-cta-soft-pattern inline-flex min-h-12 items-center justify-center rounded-[18px] bg-[#FF8B5C] px-5 text-base font-extrabold text-white shadow-[0_12px_28px_rgba(255,139,92,0.24)] hover:bg-[#F97316]`}
+                >
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Crear mi primera sesión
+                </Button>
+              )}
+            </DpEnter>
           ) : (
-            renderFolderContent()
+            <DpViewTransition viewKey={folderViewKey}>
+              {renderFolderContent()}
+            </DpViewTransition>
           )}
-        </div>
-      </div>
+        </TeacherHubPage>
+      </TeacherAppShell>
 
       {/* Modal Vista previa PDF */}
       <ReusableModal
@@ -1178,20 +1147,24 @@ function MisSesiones() {
             : "Vista previa PDF"
         }
         size="full"
-        gradient="blue-orange"
+        gradient="amber-orange"
+        presentation="material"
         closeOnOverlayClick={true}
       >
         <div className="flex flex-col" style={{ height: "78vh" }}>
           {loadingPreviewPdf && (
-            <div className="flex flex-1 flex-col items-center justify-center py-20 gap-3">
-              <Loader2 className="h-10 w-10 text-dp-blue-500 animate-spin" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
+              <Loader2
+                className="h-10 w-10 animate-spin text-[#3B6CB5]"
+                aria-hidden="true"
+              />
+              <p className="text-sm font-semibold text-[#6B7280]">
                 Cargando PDF…
               </p>
             </div>
           )}
           {!loadingPreviewPdf && previewPdfUrl && (
-            <div className="w-full flex-1 min-h-0 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="min-h-0 w-full flex-1 overflow-hidden rounded-[16px] border border-[#E6EBF2]">
               <AdobePdfEmbed
                 pdfUrl={previewPdfUrl}
                 fileName={
@@ -1200,7 +1173,7 @@ function MisSesiones() {
                     : "sesion.pdf"
                 }
                 embedMode="SIZED_CONTAINER"
-                className="w-full h-full rounded-lg"
+                className="h-full w-full rounded-[16px]"
                 showFullScreen={true}
                 showDownloadPDF={true}
                 showPrintPDF={true}
@@ -1211,9 +1184,12 @@ function MisSesiones() {
             previewSesion &&
             !previewPdfUrl &&
             previewSesion.pdfUrl && (
-              <div className="flex flex-1 flex-col items-center justify-center py-20 gap-3">
-                <FileText className="h-12 w-12 text-slate-300 dark:text-slate-600" />
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
+                <FileText
+                  className="h-12 w-12 text-[#D1D5DB]"
+                  aria-hidden="true"
+                />
+                <p className="text-sm font-semibold text-[#6B7280]">
                   No se pudo cargar el PDF.
                 </p>
               </div>
