@@ -43,6 +43,7 @@ import type { IArea } from "@/interfaces/IArea";
 import type { ModoSecundaria, TipoUnidad } from "@/interfaces/IUnidad";
 import { useHorario } from "@/hooks/useHorario";
 import HorarioPanel from "./HorarioPanel";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   pagina: number;
@@ -108,6 +109,14 @@ function formatFechaLocal(fecha: string): string {
   return new Date(year, month - 1, day).toLocaleDateString("es-PE");
 }
 
+function getTodayLocalISO(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const duracionesUnidad = [
   { semanas: 2, label: "2 semanas", desc: "Unidad corta", gradient: "from-emerald-500 to-teal-500" },
   { semanas: 4, label: "4 semanas", desc: "Unidad estándar", gradient: "from-blue-500 to-cyan-500" },
@@ -115,6 +124,7 @@ const duracionesUnidad = [
 ];
 
 function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros }: Props) {
+  const queryClient = useQueryClient();
   const { unidadId: existingUnidadId, setUnidadId, setDatosBase, secundariaAreaElegida,
     horario: horarioStore, setHorario: setHorarioStore } =
     useUnidadStore();
@@ -153,6 +163,13 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     titulo: string;
     fechaFin: string;
     tipo: string;
+  } | null>(null);
+  // Cupo mensual de unidades agotado (error 403)
+  const [limiteMes, setLimiteMes] = useState<{
+    mensaje: string;
+    limite: number;
+    usadas: number;
+    renovacion: string;
   } | null>(null);
   const [isSavingUnidad, setIsSavingUnidad] = useState(false);
 
@@ -478,6 +495,12 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
     if (!titulo.trim()) return handleToaster("Ingresa el título de la unidad", "error");
     if (!isSecundaria && duracion <= 0) return handleToaster("Selecciona la duración", "error");
     if (!fechaInicio) return handleToaster("Selecciona la fecha de inicio", "error");
+    if (!fechaFin || fechaFin < getTodayLocalISO()) {
+      return handleToaster(
+        "La fecha de fin debe ser hoy o una fecha futura",
+        "error",
+      );
+    }
     if (areasSeleccionadas.length === 0) return handleToaster("Selecciona al menos un área", "error");
     if (!problematica) return handleToaster("Selecciona una problemática", "error");
     if (isSecundaria) {
@@ -572,6 +595,11 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         .map((a) => a.id);
       await seleccionarAreas(unidadResultId, { areaIds });
 
+      // La unidad se creó o actualizó: no reutilizar el listado anterior al navegar.
+      await queryClient.invalidateQueries({
+        queryKey: ["userUnidades", usuario.id],
+      });
+
       // Guardar en store
       setUnidadId(unidadResultId);
       setDatosBase({
@@ -629,6 +657,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
         "success"
       );
       setUnidadActiva(null);
+      setLimiteMes(null);
       setPagina(pagina + 1);
     } catch (error: any) {
       console.error("Error al crear unidad:", error);
@@ -643,6 +672,17 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
           handleToaster("Se usará tu unidad activa para continuar.", "success");
         }
         return; // no toast, se muestra la alerta en la UI
+      }
+
+      // HTTP 403 — agotó su cupo de unidades del mes
+      if (resData?.data?.accion === "LIMITE_UNIDADES_MES") {
+        setLimiteMes({
+          mensaje: resData.message,
+          limite: resData.data.limite,
+          usadas: resData.data.unidadesUsadas,
+          renovacion: resData.data.renovacion,
+        });
+        return; // se muestra la alerta en la UI, no un toast que se desvanece
       }
 
       const msg = resData?.message || "Error al crear la unidad";
@@ -724,6 +764,37 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Finaliza: <span className="font-medium">{formatFechaLocal(unidadActiva.fechaFin)}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Alerta: cupo mensual de unidades agotado ── */}
+        {limiteMes && (
+          <Card className="mb-8 border-2 border-amber-300 dark:border-amber-800 shadow-xl bg-amber-50 dark:bg-amber-950/30">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 p-2 bg-amber-100 dark:bg-amber-900/50 rounded-full">
+                  <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">
+                    Alcanzaste tu límite de unidades del mes
+                  </h3>
+                  <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
+                    {limiteMes.mensaje}
+                  </p>
+                  <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-slate-700 dark:text-slate-200">
+                      Has creado{" "}
+                      <span className="font-semibold">
+                        {limiteMes.usadas} de {limiteMes.limite}
+                      </span>{" "}
+                      unidades este mes. Tus unidades ya creadas siguen disponibles en{" "}
+                      <span className="font-medium">Mis Unidades</span>.
                     </p>
                   </div>
                 </div>
@@ -1324,6 +1395,7 @@ function Step1DatosUnidad({ pagina, setPagina, usuario, tipoUnidad, maxMiembros 
                   type="date"
                   value={fechaFin}
                   onChange={(e) => setFechaFin(e.target.value)}
+                  min={getTodayLocalISO()}
                   disabled={!fechaInicio || duracion <= 0}
                   className="h-12 text-base"
                 />

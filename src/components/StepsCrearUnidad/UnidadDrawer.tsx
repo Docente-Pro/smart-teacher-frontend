@@ -17,9 +17,13 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useUnidadStore } from "@/store/unidad.store";
+import { normalizeMateriales, normalizeReflexiones } from "@/utils/unidadContenido";
 
 export const UnidadDrawer = () => {
   const { datosBase, contenido } = useUnidadStore();
+
+  const materiales = normalizeMateriales(contenido.materiales);
+  const reflexiones = normalizeReflexiones(contenido.reflexiones);
 
   if (!datosBase) return null;
 
@@ -163,7 +167,7 @@ export const UnidadDrawer = () => {
           )}
 
           {/* Materiales */}
-          {contenido.materiales && contenido.materiales.length > 0 && (
+          {materiales.length > 0 && (
             <DrawerSection
               icon={<Package className="h-5 w-5 text-amber-600" />}
               title="Materiales y Recursos"
@@ -171,7 +175,7 @@ export const UnidadDrawer = () => {
               border="border-amber-200 dark:border-amber-800"
             >
               <ul className="list-disc list-inside text-sm space-y-1">
-                {contenido.materiales.map((m, i) => (
+                {materiales.map((m, i) => (
                   <li key={i}>{m}</li>
                 ))}
               </ul>
@@ -179,7 +183,7 @@ export const UnidadDrawer = () => {
           )}
 
           {/* Reflexiones */}
-          {contenido.reflexiones && contenido.reflexiones.length > 0 && (
+          {reflexiones.length > 0 && (
             <DrawerSection
               icon={<HelpCircle className="h-5 w-5 text-rose-600" />}
               title="Reflexiones"
@@ -187,7 +191,7 @@ export const UnidadDrawer = () => {
               border="border-rose-200 dark:border-rose-800"
             >
               <ul className="list-decimal list-inside text-sm space-y-1">
-                {contenido.reflexiones.map((r, i) => (
+                {reflexiones.map((r, i) => (
                   <li key={i}>{r.pregunta}</li>
                 ))}
               </ul>

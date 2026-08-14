@@ -18,5 +18,28 @@ export function isUnidadActiva(unidad: IUnidadListItem): boolean {
   return isUnidadFechaActiva(unidad.fechaFin);
 }
 
+/**
+ * Verifica si el usuario puede generar sesiones en una unidad.
+ * La membresía es la fuente de verdad para propietarios y suscriptores.
+ * No se restringe por fechaFin: el backend permite completar sesiones
+ * planificadas aunque el periodo de la unidad ya haya terminado.
+ */
+export function isUnidadDisponibleParaUsuario(
+  unidad: IUnidadListItem,
+  userId?: string,
+): boolean {
+  if (!userId) return false;
+
+  const miembro = unidad.miembros?.find((m) => m.usuarioId === userId);
+  const esPropietario =
+    unidad._rol === "PROPIETARIO" ||
+    unidad.usuarioId === userId ||
+    miembro?.rol === "PROPIETARIO";
+  const estadoPago =
+    miembro?.estadoPago ?? (esPropietario ? unidad.estadoPago : undefined);
+
+  return estadoPago === "CONFIRMADO";
+}
+
 /** @deprecated Usa isUnidadFechaActiva o isUnidadActiva de '@/utils/unidadUtils' */
 export const isUnidadListaActiva = isUnidadFechaActiva;
