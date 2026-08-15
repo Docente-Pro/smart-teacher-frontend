@@ -11,25 +11,33 @@ import { Input } from "@/components/ui/input";
 import {
   Users,
   Search,
-  Loader2,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  Eye,
-  Filter,
   UserCheck,
   UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import departamentosData from "@/utils/peru_ubigeo/1_ubigeo_departamentos.json";
+import {
+  adminCard,
+  adminCta,
+  adminBtnGhost,
+  adminInput,
+  adminSelect,
+  adminTh,
+} from "@/styles/adminUi";
+import { dpFocusRing, dpSectionGap } from "@/styles/dpTokens";
 
-const DEPARTAMENTOS = departamentosData.ubigeo_departamentos.map((d) => d.departamento);
+const DEPARTAMENTOS = departamentosData.ubigeo_departamentos.map(
+  (d) => d.departamento,
+);
 
 const PLANES = [
   { value: "", label: "Todos los planes" },
   { value: "free", label: "Free" },
-  { value: "premium_mensual", label: "Premium Mensual" },
-  { value: "premium_anual", label: "Premium Anual" },
+  { value: "premium_mensual", label: "Premium mensual" },
+  { value: "premium_anual", label: "Premium anual" },
 ] as const;
 
 const LIMIT = 15;
@@ -44,8 +52,8 @@ export default function AdminUsuarios() {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filtros
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("");
   const [deptoFilter, setDeptoFilter] = useState<string>("");
   const [page, setPage] = useState(1);
@@ -59,7 +67,7 @@ export default function AdminUsuarios() {
         orderBy: "createdAt",
         order: "desc",
       };
-      if (search.trim()) params.search = search.trim();
+      if (appliedSearch.trim()) params.search = appliedSearch.trim();
       if (planFilter) params.plan = planFilter as IListarUsuariosParams["plan"];
       if (deptoFilter) params.departamento = deptoFilter;
 
@@ -67,11 +75,11 @@ export default function AdminUsuarios() {
       setUsuarios(res.data.usuarios);
       setPagination(res.data.pagination);
     } catch {
-      toast.error("Error al cargar usuarios");
+      toast.error("No se pudieron cargar los usuarios. Intenta de nuevo.");
     } finally {
       setIsLoading(false);
     }
-  }, [page, search, planFilter, deptoFilter]);
+  }, [page, appliedSearch, planFilter, deptoFilter]);
 
   useEffect(() => {
     cargarUsuarios();
@@ -80,209 +88,229 @@ export default function AdminUsuarios() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setPage(1);
-    cargarUsuarios();
+    setAppliedSearch(search);
   }
 
   function handleClearFilters() {
     setSearch("");
+    setAppliedSearch("");
     setPlanFilter("");
     setDeptoFilter("");
     setPage(1);
   }
 
+  const hasFilters = appliedSearch || planFilter || deptoFilter;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="text-[#1F2937]">
+      <header
+        className={`${dpSectionGap} dp-enter flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between`}
+      >
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" />
+          <p className="mb-1 text-sm font-bold text-[#3B6CB5]">
+            Panel de administración
+          </p>
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.02em]">
             Usuarios
           </h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            {pagination.total} usuario{pagination.total !== 1 ? "s" : ""}{" "}
-            registrado{pagination.total !== 1 ? "s" : ""}
+          <p className="mt-2 text-base font-semibold text-[#6B7280]">
+            {isLoading
+              ? "Cargando docentes…"
+              : `${pagination.total} docente${pagination.total !== 1 ? "s" : ""} registrado${pagination.total !== 1 ? "s" : ""}`}
           </p>
         </div>
         <Button
           variant="outline"
-          size="sm"
           onClick={cargarUsuarios}
           disabled={isLoading}
-          className="border-gray-300 text-gray-600 hover:text-gray-900"
+          className={`${adminBtnGhost} border-0`}
         >
           <RefreshCw
-            className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            aria-hidden
           />
           Actualizar
         </Button>
-      </div>
+      </header>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Buscar por nombre o email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-gray-100 border-gray-300 text-gray-900 placeholder:text-gray-500 pl-10"
-            />
+      <form
+        onSubmit={handleSearch}
+        className={`${dpSectionGap} dp-enter dp-enter-delay-1 ${adminCard} p-4 sm:p-5`}
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+          <div className="min-w-0 flex-1">
+            <label
+              htmlFor="buscar-docente"
+              className="mb-1.5 block text-sm font-bold text-[#1F2937]"
+            >
+              Buscar por nombre o correo
+            </label>
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]"
+                aria-hidden
+              />
+              <Input
+                id="buscar-docente"
+                placeholder="Nombre o email"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={`${adminInput} pl-10`}
+              />
+            </div>
           </div>
-          <Button
-            type="submit"
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
+          <div>
+            <label htmlFor="filtro-plan" className="mb-1.5 block text-sm font-bold text-[#1F2937]">
+              Plan
+            </label>
+            <select
+              id="filtro-plan"
+              value={planFilter}
+              onChange={(e) => {
+                setPlanFilter(e.target.value);
+                setPage(1);
+              }}
+              className={adminSelect}
+            >
+              {PLANES.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="filtro-depto" className="mb-1.5 block text-sm font-bold text-[#1F2937]">
+              Departamento
+            </label>
+            <select
+              id="filtro-depto"
+              value={deptoFilter}
+              onChange={(e) => {
+                setDeptoFilter(e.target.value);
+                setPage(1);
+              }}
+              className={`${adminSelect} max-w-[220px]`}
+            >
+              <option value="">Todos</option>
+              {DEPARTAMENTOS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button type="submit" className={adminCta}>
+            <Search className="mr-2 h-4 w-4" aria-hidden />
             Buscar
           </Button>
-        </form>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="w-4 h-4 text-gray-500" />
-          <select
-            value={planFilter}
-            onChange={(e) => {
-              setPlanFilter(e.target.value);
-              setPage(1);
-            }}
-            className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md px-3 py-1.5"
-          >
-            {PLANES.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={deptoFilter}
-            onChange={(e) => {
-              setDeptoFilter(e.target.value);
-              setPage(1);
-            }}
-            className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md px-3 py-1.5"
-          >
-            <option value="">Todos los departamentos</option>
-            {DEPARTAMENTOS.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          {(search || planFilter || deptoFilter) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearFilters}
-              className="text-gray-500 hover:text-gray-900 text-xs"
-            >
-              Limpiar
-            </Button>
-          )}
         </div>
-      </div>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className={`${dpFocusRing} mt-3 text-base font-bold text-[#3B6CB5] hover:underline`}
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </form>
 
-      {/* Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+        <div className={`${adminCard} space-y-2 p-4`} aria-busy="true" aria-label="Cargando usuarios">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded-[20px] bg-[#EEF3F9]" />
+          ))}
         </div>
       ) : usuarios.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
-          <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No se encontraron usuarios</p>
+        <div className={`${adminCard} px-6 py-12 text-center`}>
+          <Users className="mx-auto mb-3 h-10 w-10 text-[#9CA3AF]" aria-hidden />
+          <p className="text-lg font-extrabold text-[#1F2937]">
+            No hay docentes con esos filtros
+          </p>
+          <p className="mt-1 text-base font-semibold text-[#6B7280]">
+            Prueba otro nombre, plan o departamento.
+          </p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className={`dp-enter dp-enter-delay-2 ${adminCard} overflow-hidden`}>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500 text-left">
-                  <th className="px-4 py-3 font-medium">Usuario</th>
-                  <th className="px-4 py-3 font-medium">Institución</th>
-                  <th className="px-4 py-3 font-medium">Ubicación</th>
-                  <th className="px-4 py-3 font-medium">Plan</th>
-                  <th className="px-4 py-3 font-medium">Perfil</th>
-                  <th className="px-4 py-3 font-medium">Contenido</th>
-                  <th className="px-4 py-3 font-medium">Registro</th>
-                  <th className="px-4 py-3 font-medium text-right">Acciones</th>
+                <tr className="border-b border-[#E6EBF2]">
+                  <th className={adminTh}>Docente</th>
+                  <th className={`${adminTh} hidden md:table-cell`}>Institución</th>
+                  <th className={`${adminTh} hidden lg:table-cell`}>Ubicación</th>
+                  <th className={adminTh}>Plan</th>
+                  <th className={`${adminTh} hidden sm:table-cell`}>Perfil</th>
+                  <th className={`${adminTh} hidden lg:table-cell`}>Contenido</th>
+                  <th className={`${adminTh} hidden xl:table-cell`}>Registro</th>
+                  <th className={`${adminTh} text-right`}> </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {usuarios.map((u) => (
                   <tr
                     key={u.id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="border-b border-[#E6EBF2] last:border-0 hover:bg-[#F5F7FA]"
                   >
-                    {/* Nombre + Email */}
-                    <td className="px-4 py-3">
-                      <p className="text-gray-900 font-medium truncate max-w-[180px]">
-                        {u.nombre || "—"}
+                    <td className="px-4 py-4">
+                      <p className="max-w-[220px] truncate text-base font-extrabold text-[#1F2937]">
+                        {u.nombre || "Sin nombre"}
                       </p>
-                      <p className="text-gray-400 text-xs truncate max-w-[180px]">
+                      <p className="max-w-[220px] truncate text-sm font-semibold text-[#6B7280]">
                         {u.email}
                       </p>
                     </td>
-
-                    {/* Institución */}
-                    <td className="px-4 py-3 text-gray-600 text-xs truncate max-w-[140px]">
+                    <td className="hidden max-w-[160px] truncate px-4 py-4 text-base font-semibold text-[#6B7280] md:table-cell">
                       {u.nombreInstitucion || "—"}
                     </td>
-
-                    {/* Ubicación */}
-                    <td className="px-4 py-3">
-                      <p className="text-gray-600 text-xs truncate max-w-[140px]">
+                    <td className="hidden px-4 py-4 lg:table-cell">
+                      <p className="max-w-[160px] truncate text-base font-semibold text-[#6B7280]">
                         {u.departamento || "—"}
                       </p>
                       {u.distrito && (
-                        <p className="text-gray-400 text-xs truncate max-w-[140px]">
+                        <p className="max-w-[160px] truncate text-sm font-semibold text-[#9CA3AF]">
                           {u.distrito}
                         </p>
                       )}
                     </td>
-
-                    {/* Plan */}
-                    <td className="px-4 py-3">
-                      <PlanBadge plan={u.suscripcion?.plan} activa={u.suscripcion?.activa} />
+                    <td className="px-4 py-4">
+                      <PlanBadge
+                        plan={u.suscripcion?.plan}
+                        activa={u.suscripcion?.activa}
+                      />
                     </td>
-
-                    {/* Perfil completo */}
-                    <td className="px-4 py-3">
+                    <td className="hidden px-4 py-4 sm:table-cell">
                       {u.perfilCompleto ? (
-                        <UserCheck className="w-4 h-4 text-green-600" />
+                        <span className="inline-flex items-center gap-1 text-sm font-bold text-[#15803D]">
+                          <UserCheck className="h-4 w-4" aria-hidden />
+                          Completo
+                        </span>
                       ) : (
-                        <UserX className="w-4 h-4 text-yellow-600" />
+                        <span className="inline-flex items-center gap-1 text-sm font-bold text-[#C2410C]">
+                          <UserX className="h-4 w-4" aria-hidden />
+                          Incompleto
+                        </span>
                       )}
                     </td>
-
-                    {/* Sesiones / Unidades */}
-                    <td className="px-4 py-3 text-gray-600 text-xs">
-                      <span>{u._count.sesiones} ses.</span>
-                      <span className="text-gray-300 mx-1">·</span>
-                      <span>{u._count.unidades} und.</span>
+                    <td className="hidden px-4 py-4 text-base font-semibold tabular-nums text-[#6B7280] lg:table-cell">
+                      {u._count.sesiones} ses. · {u._count.unidades} und.
                     </td>
-
-                    {/* Fecha registro */}
-                    <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                    <td className="hidden whitespace-nowrap px-4 py-4 text-sm font-semibold text-[#6B7280] xl:table-cell">
                       {new Date(u.createdAt).toLocaleDateString("es-PE", {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
                       })}
                     </td>
-
-                    {/* Acciones */}
-                    <td className="px-4 py-3 text-right">
-                      <Link to={`/admin/usuarios/${u.id}`}>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-8 text-xs"
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1" />
-                          Ver
-                        </Button>
+                    <td className="px-4 py-4 text-right">
+                      <Link
+                        to={`/admin/usuarios/${u.id}`}
+                        className={`${dpFocusRing} dp-press inline-flex h-11 items-center rounded-[16px] bg-[#EAF2FC] px-4 text-base font-bold text-[#3B6CB5] hover:bg-[#DCE9FA]`}
+                      >
+                        Ver
+                        <ChevronRight className="ml-1 h-4 w-4" aria-hidden />
                       </Link>
                     </td>
                   </tr>
@@ -291,30 +319,29 @@ export default function AdminUsuarios() {
             </table>
           </div>
 
-          {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-              <p className="text-gray-400 text-xs">
-                Página {pagination.page} de {pagination.totalPages} — {pagination.total} resultados
+            <div className="flex items-center justify-between border-t border-[#E6EBF2] px-4 py-3">
+              <p className="text-sm font-semibold text-[#6B7280]">
+                Página {pagination.page} de {pagination.totalPages}
               </p>
               <div className="flex gap-1">
                 <Button
                   variant="ghost"
-                  size="sm"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="text-gray-500 hover:text-gray-900 h-8"
+                  className={`${adminBtnGhost} h-11 w-11 p-0`}
+                  aria-label="Página anterior"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
-                  size="sm"
                   disabled={page >= pagination.totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="text-gray-500 hover:text-gray-900 h-8"
+                  className={`${adminBtnGhost} h-11 w-11 p-0`}
+                  aria-label="Página siguiente"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -325,12 +352,10 @@ export default function AdminUsuarios() {
   );
 }
 
-// ─── Sub-components ───
-
 function PlanBadge({ plan, activa }: { plan?: string; activa?: boolean }) {
   if (!plan || plan === "free") {
     return (
-      <span className="bg-gray-200 text-gray-500 text-xs font-medium px-2 py-1 rounded-full">
+      <span className="rounded-full bg-[#EEF3F9] px-3 py-1 text-sm font-bold text-[#6B7280]">
         Free
       </span>
     );
@@ -339,14 +364,14 @@ function PlanBadge({ plan, activa }: { plan?: string; activa?: boolean }) {
   const label = plan === "premium_anual" ? "Anual" : "Mensual";
   if (!activa) {
     return (
-      <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-1 rounded-full">
-        {label} (inactivo)
+      <span className="rounded-full bg-[#FFF7ED] px-3 py-1 text-sm font-bold text-[#C2410C]">
+        {label} inactivo
       </span>
     );
   }
 
   return (
-    <span className="bg-blue-100 text-blue-600 text-xs font-medium px-2 py-1 rounded-full">
+    <span className="rounded-full bg-[#EAF2FC] px-3 py-1 text-sm font-bold text-[#3B6CB5]">
       {label}
     </span>
   );

@@ -13,21 +13,22 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { dpFocusRing } from "@/styles/dpTokens";
 
 const sidebarLinks = [
   {
     to: "/admin/dashboard",
-    label: "Dashboard",
+    label: "Inicio",
     icon: LayoutDashboard,
   },
   {
     to: "/admin/pagos-suscripcion",
-    label: "Pagos Suscripción",
+    label: "Pagos de suscripción",
     icon: CreditCard,
   },
   {
     to: "/admin/pagos-unidad",
-    label: "Pagos Unidad",
+    label: "Pagos de unidad",
     icon: FolderOpen,
   },
   {
@@ -37,10 +38,22 @@ const sidebarLinks = [
   },
   {
     to: "/admin/consumo-ia",
-    label: "Consumo IA",
+    label: "Consumo de IA",
     icon: Zap,
   },
 ];
+
+const nunito = { fontFamily: '"Nunito", system-ui, sans-serif' } as const;
+
+function navClass(isActive: boolean) {
+  return [
+    "flex min-h-12 items-center gap-3 rounded-[20px] px-3 text-base font-bold transition-colors duration-200",
+    dpFocusRing,
+    isActive
+      ? "bg-[#6B9FE8] text-white shadow-[0_8px_20px_rgba(107,159,232,0.28)]"
+      : "text-[#6B7280] hover:bg-[#EAF2FC] hover:text-[#3B6CB5]",
+  ].join(" ");
+}
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -53,114 +66,111 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar — Desktop */}
-      <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r border-gray-200">
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200">
-          <Shield className="w-7 h-7 text-blue-600" />
+    <div
+      className="dp-canvas-dots flex min-h-[100dvh] text-[#1F2937]"
+      style={nunito}
+    >
+      <aside className="hidden border-r border-[#E6EBF2] bg-white/90 md:flex md:w-64 md:flex-col">
+        <div className="flex items-center gap-3 border-b border-[#E6EBF2] px-5 py-5">
+          <div className="grid h-11 w-11 place-items-center rounded-[16px] bg-[#6B9FE8] text-white shadow-[0_8px_20px_rgba(107,159,232,0.28)]">
+            <Shield className="h-5 w-5" aria-hidden />
+          </div>
           <div>
-            <h2 className="text-gray-900 font-bold text-lg leading-tight">
-              DocentePro
-            </h2>
-            <p className="text-gray-400 text-xs">Panel Admin</p>
+            <p className="text-lg font-extrabold leading-tight tracking-[-0.02em] text-[#1F2937]">
+              Docente Pro
+            </p>
+            <p className="text-sm font-semibold text-[#6B7280]">
+              Panel de administración
+            </p>
           </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Admin">
           {sidebarLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-blue-100 text-blue-600"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                }`
-              }
+              className={({ isActive }) => navClass(isActive)}
             >
-              <link.icon className="w-5 h-5" />
+              <link.icon className="h-5 w-5 shrink-0" aria-hidden />
               {link.label}
             </NavLink>
           ))}
         </nav>
 
-        {/* User Info + Logout */}
-        <div className="px-3 py-4 border-t border-gray-200">
-          <div className="px-3 py-2 mb-2">
-            <p className="text-gray-900 text-sm font-medium truncate">
+        <div className="border-t border-[#E6EBF2] px-3 py-4">
+          <div className="mb-2 rounded-[16px] bg-[#EAF2FC] px-3 py-2.5">
+            <p className="truncate text-base font-extrabold text-[#1F2937]">
               {admin?.nombre || "Admin"}
             </p>
-            <p className="text-gray-400 text-xs truncate">
+            <p className="truncate text-sm font-semibold text-[#3B6CB5]">
               {admin?.email || ""}
             </p>
           </div>
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-100"
+            className={`${dpFocusRing} h-12 w-full justify-start rounded-[16px] text-base font-bold text-[#C2410C] hover:bg-[#FFF7ED] hover:text-[#C2410C]`}
           >
-            <LogOut className="w-4 h-4 mr-2" />
+            <LogOut className="mr-2 h-4 w-4" aria-hidden />
             Cerrar sesión
           </Button>
         </div>
       </aside>
 
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <header className="fixed inset-x-0 top-0 z-50 flex items-center justify-between border-b border-[#E6EBF2] bg-white/90 px-4 py-3 backdrop-blur-md md:hidden">
         <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-blue-600" />
-          <span className="text-gray-900 font-bold">Admin</span>
+          <div className="grid h-9 w-9 place-items-center rounded-[14px] bg-[#6B9FE8] text-white">
+            <Shield className="h-4 w-4" aria-hidden />
+          </div>
+          <span className="text-base font-extrabold text-[#1F2937]">Admin</span>
         </div>
         <button
+          type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="text-gray-500 hover:text-gray-900"
+          className={`${dpFocusRing} dp-press grid h-11 w-11 place-items-center rounded-[14px] text-[#6B7280] hover:bg-[#EAF2FC] hover:text-[#3B6CB5]`}
+          aria-expanded={mobileMenuOpen}
+          aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
         >
           {mobileMenuOpen ? (
-            <X className="w-6 h-6" />
+            <X className="h-6 w-6" />
           ) : (
-            <Menu className="w-6 h-6" />
+            <Menu className="h-6 w-6" />
           )}
         </button>
-      </div>
+      </header>
 
-      {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/20">
-          <div className="absolute top-14 left-0 right-0 bg-white border-b border-gray-200 p-4 space-y-1">
+        <div className="fixed inset-0 z-40 bg-[#1F2937]/20 md:hidden">
+          <nav
+            className="absolute inset-x-0 top-14 space-y-1 border-b border-[#E6EBF2] bg-white p-4"
+            aria-label="Admin móvil"
+          >
             {sidebarLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-blue-100 text-blue-600"
-                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                  }`
-                }
+                className={({ isActive }) => navClass(isActive)}
               >
-                <link.icon className="w-5 h-5" />
+                <link.icon className="h-5 w-5 shrink-0" aria-hidden />
                 {link.label}
               </NavLink>
             ))}
             <button
+              type="button"
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-100 w-full"
+              className={`${dpFocusRing} flex min-h-12 w-full items-center gap-3 rounded-[20px] px-3 text-base font-bold text-[#C2410C] hover:bg-[#FFF7ED]`}
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="h-5 w-5" aria-hidden />
               Cerrar sesión
             </button>
-          </div>
+          </nav>
         </div>
       )}
 
-      {/* Main Content */}
-      <main className="flex-1 md:ml-0 mt-14 md:mt-0 overflow-auto">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <main className="mt-14 min-w-0 flex-1 overflow-auto md:mt-0">
+        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           <Outlet />
         </div>
       </main>
