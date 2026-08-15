@@ -64,9 +64,27 @@ import {
   ChevronUp,
   FlagOff,
   Zap,
+  AlertTriangle,
 } from "lucide-react";
 import { ConsumoIADocente } from "@/components/admin/ConsumoIADocente";
 import { toast } from "sonner";
+import {
+  adminCard,
+  adminCta,
+  adminBtnAtmosphere,
+  adminBtnGhost,
+  adminBtnDanger,
+  adminBtnDangerOutline,
+  adminBtnWarningOutline,
+  adminInput,
+  adminSelect,
+  adminRowWarning,
+  adminRowAtmosphere,
+  adminRowGreen,
+  adminRowPink,
+  adminRowBtn,
+} from "@/styles/adminUi";
+import { dpFocusRing, dpSectionGap } from "@/styles/dpTokens";
 
 import departamentosData from "@/utils/peru_ubigeo/1_ubigeo_departamentos.json";
 import provinciasData from "@/utils/peru_ubigeo/2_ubigeo_provincias.json";
@@ -92,7 +110,7 @@ export default function AdminUsuarioDetalle() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [upgradePlan, setUpgradePlan] = useState<"premium_mensual" | "premium_anual">("premium_mensual");
-  const   [rehaciendo, setRehaciendo] = useState<string | null>(null);
+  const [rehaciendo, setRehaciendo] = useState<string | null>(null);
   const [rehacerEstado, setRehacerEstado] = useState("");
   const [rellenandoLista, setRellenandoLista] = useState<string | null>(null);
   const [corrigiendoUnidad, setCorrigiendoUnidad] = useState<string | null>(null);
@@ -413,8 +431,10 @@ export default function AdminUsuarioDetalle() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+      <div className="space-y-4" aria-busy="true" aria-label="Cargando docente">
+        <div className="h-11 w-40 animate-pulse rounded-[16px] bg-[#EEF3F9]" />
+        <div className={`${adminCard} h-48 animate-pulse`} />
+        <div className={`${adminCard} h-32 animate-pulse`} />
       </div>
     );
   }
@@ -422,15 +442,18 @@ export default function AdminUsuarioDetalle() {
   if (!usuario) {
     return (
       <div className="space-y-4">
-        <Link to="/admin/usuarios">
-          <Button variant="ghost" className="text-gray-500 hover:text-gray-900">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver
-          </Button>
+        <Link to="/admin/usuarios" className={`${adminBtnGhost} inline-flex`}>
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden />
+          Volver
         </Link>
-        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
-          <User className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Usuario no encontrado</p>
+        <div className={`${adminCard} px-6 py-12 text-center`}>
+          <User className="mx-auto mb-3 h-10 w-10 text-[#9CA3AF]" aria-hidden />
+          <p className="text-lg font-extrabold text-[#1F2937]">
+            No encontramos a este docente
+          </p>
+          <p className="mt-1 text-base font-semibold text-[#6B7280]">
+            Vuelve a la lista e intenta de nuevo.
+          </p>
         </div>
       </div>
     );
@@ -440,109 +463,105 @@ export default function AdminUsuarioDetalle() {
   const isPremium = plan !== "free" && usuario.suscripcion?.activa;
 
   return (
-    <div className="space-y-6">
-      {/* Back + Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <Link to="/admin/usuarios">
-          <Button variant="ghost" className="text-gray-500 hover:text-gray-900">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver a usuarios
-          </Button>
+    <div className="text-[#1F2937]">
+      <div className={`${dpSectionGap} flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`}>
+        <Link to="/admin/usuarios" className={`${adminBtnGhost} inline-flex w-fit`}>
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden />
+          Volver a usuarios
         </Link>
         <div className="flex flex-wrap gap-2">
           {!isPremium && (
             <div className="flex items-center gap-2">
+              <label htmlFor="upgrade-plan-detalle" className="sr-only">
+                Plan Premium
+              </label>
               <select
+                id="upgrade-plan-detalle"
                 value={upgradePlan}
                 onChange={(e) =>
                   setUpgradePlan(
                     e.target.value as "premium_mensual" | "premium_anual"
                   )
                 }
-                className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md px-2 py-1.5"
+                className={adminSelect}
               >
                 <option value="premium_mensual">Mensual</option>
                 <option value="premium_anual">Anual</option>
               </select>
               <Button
-                size="sm"
                 onClick={handleUpgradePremium}
                 disabled={!!actionLoading}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                className={adminBtnAtmosphere}
               >
                 {actionLoading === "upgrade" ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                 ) : (
-                  <Crown className="w-4 h-4 mr-2" />
+                  <Crown className="mr-2 h-4 w-4" aria-hidden />
                 )}
-                Upgrade Premium
+                Subir a Premium
               </Button>
             </div>
           )}
           {isPremium && (
             <Button
-              size="sm"
               variant="outline"
               onClick={handleDowngrade}
               disabled={!!actionLoading}
-              className="border-yellow-600 text-yellow-600 hover:bg-yellow-100"
+              className={adminBtnWarningOutline}
             >
               {actionLoading === "downgrade" ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
               ) : (
-                <ArrowDownCircle className="w-4 h-4 mr-2" />
+                <ArrowDownCircle className="mr-2 h-4 w-4" aria-hidden />
               )}
-              Downgrade a Free
+              Bajar a Free
             </Button>
           )}
           <Button
-            size="sm"
-            variant="destructive"
             onClick={handleEliminar}
             disabled={!!actionLoading}
+            className={adminBtnDanger}
           >
             {actionLoading === "eliminar" ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
             ) : (
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="mr-2 h-4 w-4" aria-hidden />
             )}
             Eliminar usuario
           </Button>
         </div>
       </div>
 
-      {/* Header Card */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          {/* Avatar */}
-          <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-            <User className="w-7 h-7 text-blue-600" />
+      <section className={`${dpSectionGap} ${adminCard} p-5 sm:p-6`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-[#EAF2FC] text-[#3B6CB5]">
+            <User className="h-7 w-7" aria-hidden />
           </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-gray-900">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.02em] text-balance">
               {usuario.nombre || "Sin nombre"}
             </h1>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-base font-semibold text-[#6B7280]">
               <span className="flex items-center gap-1">
-                <Mail className="w-3.5 h-3.5" />
+                <Mail className="h-4 w-4" aria-hidden />
                 {usuario.email}
               </span>
               {usuario.nombreInstitucion && (
                 <span className="flex items-center gap-1">
-                  <Building2 className="w-3.5 h-3.5" />
+                  <Building2 className="h-4 w-4" aria-hidden />
                   {usuario.nombreInstitucion}
                 </span>
               )}
               {usuario.departamento && (
                 <span className="flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" />
+                  <MapPin className="h-4 w-4" aria-hidden />
                   {[usuario.departamento, usuario.provincia, usuario.distrito]
                     .filter(Boolean)
                     .join(", ")}
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="mt-3 flex flex-wrap gap-2">
               <PlanBadge plan={plan} activa={usuario.suscripcion?.activa} />
               <StatusBadge
                 label={usuario.perfilCompleto ? "Perfil completo" : "Perfil incompleto"}
@@ -560,22 +579,12 @@ export default function AdminUsuarioDetalle() {
           </div>
         </div>
 
-        {/* Info grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+        <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-[#E6EBF2] pt-6 sm:grid-cols-4">
           <InfoItem label="ID" value={usuario.id} mono />
           <InfoItem label="Auth0 ID" value={usuario.auth0UserId} mono />
-          <InfoItem
-            label="Nivel"
-            value={usuario.nivel?.nombre || "—"}
-          />
-          <InfoItem
-            label="Grado"
-            value={usuario.grado?.nombre || "—"}
-          />
-          <InfoItem
-            label="Problemática"
-            value={usuario.problematica?.nombre || "—"}
-          />
+          <InfoItem label="Nivel" value={usuario.nivel?.nombre || "—"} />
+          <InfoItem label="Grado" value={usuario.grado?.nombre || "—"} />
+          <InfoItem label="Problemática" value={usuario.problematica?.nombre || "—"} />
           <InfoItem
             label="Registrado"
             value={new Date(usuario.createdAt).toLocaleDateString("es-PE", {
@@ -588,67 +597,69 @@ export default function AdminUsuarioDetalle() {
           {usuario.seccion && <InfoItem label="Sección" value={usuario.seccion} />}
           {usuario.nombreDirectivo && <InfoItem label="Directivo" value={usuario.nombreDirectivo} />}
           {usuario.nombreSubdirectora && <InfoItem label="Subdirectora" value={usuario.nombreSubdirectora} />}
-        </div>
+        </dl>
 
-        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+        <div className="mt-4 flex justify-end border-t border-[#E6EBF2] pt-4">
           <Button
-            size="sm"
             variant="outline"
             onClick={() => (editOpen ? handleCancelEdit() : handleOpenEdit())}
-            className="gap-1.5 text-blue-600 border-blue-300 hover:bg-blue-50"
+            className={adminBtnGhost}
           >
-            {editOpen ? <ChevronUp className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
-            {editOpen ? "Cerrar edición" : "Editar Perfil"}
+            {editOpen ? <ChevronUp className="mr-1 h-4 w-4" /> : <Pencil className="mr-1 h-4 w-4" />}
+            {editOpen ? "Cerrar edición" : "Editar perfil"}
           </Button>
         </div>
-      </div>
+      </section>
 
       {/* Edit Profile Form */}
       {editOpen && (
-        <div className="bg-white border border-blue-200 rounded-xl p-6 space-y-5">
-          <h2 className="text-gray-900 font-semibold text-sm flex items-center gap-2">
-            <Pencil className="w-4 h-4 text-blue-500" />
-            Editar Perfil
+        <section className={`${dpSectionGap} ${adminCard} space-y-5 p-5 sm:p-6`}>
+          <h2 className="flex items-center gap-2 text-xl font-extrabold text-[#1F2937]">
+            <Pencil className="h-5 w-5 text-[#3B6CB5]" aria-hidden />
+            Editar perfil
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Nombre */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-nombre" className="text-xs text-gray-500">Nombre completo</Label>
+              <Label htmlFor="edit-nombre" className="text-sm font-bold text-[#1F2937]">Nombre completo</Label>
               <Input
                 id="edit-nombre"
                 value={editForm.nombre ?? ""}
                 onChange={(e) => updateField("nombre", e.target.value)}
                 placeholder="Nombre del docente"
+                className={adminInput}
               />
             </div>
 
             {/* Email */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-email" className="text-xs text-gray-500">Email</Label>
+              <Label htmlFor="edit-email" className="text-sm font-bold text-[#1F2937]">Email</Label>
               <Input
                 id="edit-email"
                 type="email"
                 value={editForm.email ?? ""}
                 onChange={(e) => updateField("email", e.target.value)}
                 placeholder="correo@ejemplo.com"
+                className={adminInput}
               />
             </div>
 
             {/* Institución */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-institucion" className="text-xs text-gray-500">Institución Educativa</Label>
+              <Label htmlFor="edit-institucion" className="text-sm font-bold text-[#1F2937]">Institución educativa</Label>
               <Input
                 id="edit-institucion"
                 value={editForm.nombreInstitucion ?? ""}
                 onChange={(e) => updateField("nombreInstitucion", e.target.value)}
                 placeholder="Nombre de la I.E."
+                className={adminInput}
               />
             </div>
 
             {/* Género */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Género</Label>
+              <Label className="text-sm font-bold text-[#1F2937]">Género</Label>
               <Select
                 value={editForm.genero ?? ""}
                 onValueChange={(v) => updateField("genero", v)}
@@ -663,7 +674,7 @@ export default function AdminUsuarioDetalle() {
 
             {/* Nivel */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Nivel</Label>
+              <Label className="text-sm font-bold text-[#1F2937]">Nivel</Label>
               <Select
                 value={editForm.nivelId ? String(editForm.nivelId) : ""}
                 onValueChange={(v) => {
@@ -686,7 +697,7 @@ export default function AdminUsuarioDetalle() {
 
             {/* Grado */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Grado</Label>
+              <Label className="text-sm font-bold text-[#1F2937]">Grado</Label>
               <Select
                 value={editForm.gradoId ? String(editForm.gradoId) : ""}
                 onValueChange={(v) => updateField("gradoId", Number(v))}
@@ -703,7 +714,7 @@ export default function AdminUsuarioDetalle() {
 
             {/* Problemática */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-500">Problemática</Label>
+              <Label className="text-sm font-bold text-[#1F2937]">Problemática</Label>
               <Select
                 value={editForm.problematicaId ? String(editForm.problematicaId) : ""}
                 onValueChange={(v) => updateField("problematicaId", Number(v))}
@@ -719,47 +730,50 @@ export default function AdminUsuarioDetalle() {
 
             {/* Sección */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-seccion" className="text-xs text-gray-500">Sección</Label>
+              <Label htmlFor="edit-seccion" className="text-sm font-bold text-[#1F2937]">Sección</Label>
               <Input
                 id="edit-seccion"
                 value={editForm.seccion ?? ""}
                 onChange={(e) => updateField("seccion", e.target.value)}
                 placeholder='Ej: "A"'
+                className={adminInput}
               />
             </div>
 
             {/* Directivo */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-directivo" className="text-xs text-gray-500">Nombre del Directivo</Label>
+              <Label htmlFor="edit-directivo" className="text-sm font-bold text-[#1F2937]">Nombre del directivo</Label>
               <Input
                 id="edit-directivo"
                 value={editForm.nombreDirectivo ?? ""}
                 onChange={(e) => updateField("nombreDirectivo", e.target.value)}
                 placeholder="Director/a"
+                className={adminInput}
               />
             </div>
 
             {/* Subdirectora */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-subdirectora" className="text-xs text-gray-500">Nombre Subdirectora</Label>
+              <Label htmlFor="edit-subdirectora" className="text-sm font-bold text-[#1F2937]">Nombre subdirectora</Label>
               <Input
                 id="edit-subdirectora"
                 value={editForm.nombreSubdirectora ?? ""}
                 onChange={(e) => updateField("nombreSubdirectora", e.target.value)}
                 placeholder="Subdirector/a"
+                className={adminInput}
               />
             </div>
           </div>
 
           {/* Ubicación */}
           <div>
-            <p className="text-xs text-gray-400 font-medium mb-2 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5" /> Ubicación
+            <p className="mb-2 flex items-center gap-1 text-sm font-bold text-[#6B7280]">
+              <MapPin className="h-4 w-4" aria-hidden /> Ubicación
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Departamento */}
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Departamento</Label>
+                <Label className="text-sm font-bold text-[#1F2937]">Departamento</Label>
                 <Select
                   value={editForm.departamento ?? ""}
                   onValueChange={(v) => {
@@ -779,7 +793,7 @@ export default function AdminUsuarioDetalle() {
 
               {/* Provincia */}
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Provincia</Label>
+                <Label className="text-sm font-bold text-[#1F2937]">Provincia</Label>
                 <Select
                   value={editForm.provincia ?? ""}
                   onValueChange={(v) => {
@@ -799,7 +813,7 @@ export default function AdminUsuarioDetalle() {
 
               {/* Distrito */}
               <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500">Distrito</Label>
+                <Label className="text-sm font-bold text-[#1F2937]">Distrito</Label>
                 <Select
                   value={editForm.distrito ?? ""}
                   onValueChange={(v) => updateField("distrito", v)}
@@ -819,21 +833,23 @@ export default function AdminUsuarioDetalle() {
           {/* Contexto de unidad */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="edit-titulo-unidad" className="text-xs text-gray-500">Título Unidad (contexto)</Label>
+              <Label htmlFor="edit-titulo-unidad" className="text-sm font-bold text-[#1F2937]">Título de unidad (contexto)</Label>
               <Input
                 id="edit-titulo-unidad"
                 value={editForm.tituloUnidadContexto ?? ""}
                 onChange={(e) => updateField("tituloUnidadContexto", e.target.value)}
                 placeholder="Título de la unidad didáctica"
+                className={adminInput}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-situacion" className="text-xs text-gray-500">Situación Significativa (contexto)</Label>
+              <Label htmlFor="edit-situacion" className="text-sm font-bold text-[#1F2937]">Situación significativa (contexto)</Label>
               <Input
                 id="edit-situacion"
                 value={editForm.situacionSignificativaContexto ?? ""}
                 onChange={(e) => updateField("situacionSignificativaContexto", e.target.value)}
                 placeholder="Situación significativa de la unidad"
+                className={adminInput}
               />
             </div>
           </div>
@@ -841,95 +857,87 @@ export default function AdminUsuarioDetalle() {
           {/* Save / Cancel */}
           <div className="flex justify-end gap-3 pt-2">
             <Button
-              size="sm"
               variant="ghost"
               onClick={handleCancelEdit}
               disabled={editSaving}
-              className="text-gray-500"
+              className={adminBtnGhost}
             >
-              <X className="w-4 h-4 mr-1" /> Cancelar
+              <X className="mr-1 h-4 w-4" /> Cancelar
             </Button>
             <Button
-              size="sm"
               onClick={handleSaveProfile}
               disabled={editSaving}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className={adminCta}
             >
-              {editSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+              {editSaving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
               Guardar cambios
             </Button>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Reset Actions */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
-        <h2 className="text-gray-900 font-semibold text-sm flex items-center gap-2 mb-4">
-          <RotateCcw className="w-4 h-4 text-gray-500" />
-          Acciones de Reset
+      <section className={`${dpSectionGap} ${adminCard} p-5 sm:p-6`}>
+        <h2 className="mb-4 flex items-center gap-2 text-xl font-extrabold text-[#1F2937]">
+          <RotateCcw className="h-5 w-5 text-[#6B7280]" aria-hidden />
+          Reset
         </h2>
         <div className="flex flex-wrap gap-3">
           <Button
-            size="sm"
             variant="outline"
             onClick={handleResetSesiones}
             disabled={!!actionLoading}
-            className="border-orange-600 text-orange-600 hover:bg-orange-100"
+            className={adminBtnWarningOutline}
           >
             {actionLoading === "reset-sesiones" ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <FileText className="w-4 h-4 mr-2" />
+              <FileText className="mr-2 h-4 w-4" />
             )}
-            Reset Sesiones ({usuario.stats.totalSesiones})
+            Reset sesiones ({usuario.stats.totalSesiones})
           </Button>
           <Button
-            size="sm"
             variant="outline"
             onClick={handleResetUnidades}
             disabled={!!actionLoading}
-            className="border-orange-600 text-orange-600 hover:bg-orange-100"
+            className={adminBtnWarningOutline}
           >
             {actionLoading === "reset-unidades" ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <FolderOpen className="w-4 h-4 mr-2" />
+              <FolderOpen className="mr-2 h-4 w-4" />
             )}
-            Reset Unidades ({usuario.stats.totalUnidades})
+            Reset unidades ({usuario.stats.totalUnidades})
           </Button>
           <Button
-            size="sm"
             variant="outline"
             onClick={handleResetPerfil}
             disabled={!!actionLoading}
-            className="border-purple-600 text-purple-600 hover:bg-purple-100"
+            className={adminBtnGhost}
           >
             {actionLoading === "reset-perfil" ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <RotateCcw className="w-4 h-4 mr-2" />
+              <RotateCcw className="mr-2 h-4 w-4" />
             )}
-            Reset Perfil
+            Reset perfil
           </Button>
           <Button
-            size="sm"
             variant="outline"
             onClick={handleResetTodo}
             disabled={!!actionLoading}
-            className="border-red-600 text-red-600 hover:bg-red-100"
+            className={adminBtnDangerOutline}
           >
             {actionLoading === "reset-todo" ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <RotateCcw className="w-4 h-4 mr-2" />
+              <RotateCcw className="mr-2 h-4 w-4" />
             )}
-            Reset Todo
+            Reset todo
           </Button>
         </div>
-      </div>
+      </section>
 
-      {/* Stats cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className={`${dpSectionGap} grid grid-cols-2 gap-3 sm:grid-cols-5`}>
         <StatCard label="Sesiones" value={usuario.stats.totalSesiones} icon={FileText} />
         <StatCard label="Unidades" value={usuario.stats.totalUnidades} icon={FolderOpen} />
         <StatCard label="Ses. esta semana" value={usuario.stats.sesionesEstaSemana} icon={Calendar} />
@@ -974,16 +982,16 @@ export default function AdminUsuarioDetalle() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 text-gray-500 text-left">
+                  <tr className="border-b border-[#E6EBF2] text-left">
                     <th className="px-3 py-2 font-medium">Estado</th>
                     <th className="px-3 py-2 font-medium">Monto</th>
                     <th className="px-3 py-2 font-medium">Método</th>
                     <th className="px-3 py-2 font-medium">Fecha</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-[#E6EBF2]">
                   {usuario.suscripcion.pagos.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50">
+                    <tr key={p.id} className="hover:bg-[#F5F7FA]">
                       <td className="px-3 py-2">
                         <EstadoBadge estado={p.estado} />
                       </td>
@@ -1013,14 +1021,14 @@ export default function AdminUsuarioDetalle() {
       {/* Sesiones */}
       <Section title={`Sesiones (${usuario.sesiones.length})`} icon={FileText}>
         {usuario.sesiones.length === 0 ? (
-          <p className="text-gray-400 text-sm py-4 text-center">
-            Sin sesiones creadas
+          <p className="py-6 text-center text-base font-semibold text-[#6B7280]">
+            Este docente aún no tiene sesiones.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500 text-left">
+                <tr className="border-b border-[#E6EBF2] text-left">
                   <th className="px-3 py-2 font-medium">Título</th>
                   <th className="px-3 py-2 font-medium">Fecha</th>
                   <th className="px-3 py-2 font-medium">PDF</th>
@@ -1028,9 +1036,9 @@ export default function AdminUsuarioDetalle() {
                   <th className="px-3 py-2 font-medium">Acción</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-[#E6EBF2]">
                 {usuario.sesiones.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50">
+                  <tr key={s.id} className="hover:bg-[#F5F7FA]">
                     <td className="px-3 py-2 text-gray-900 truncate max-w-[300px]">
                       {s.titulo || "—"}
                     </td>
@@ -1047,7 +1055,7 @@ export default function AdminUsuarioDetalle() {
                           href={s.pdfUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700"
+                          className={`${dpFocusRing} text-[#3B6CB5] hover:text-[#1F2937]`}
                         >
                           <ExternalLink className="w-4 h-4" />
                         </a>
@@ -1060,7 +1068,7 @@ export default function AdminUsuarioDetalle() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="gap-1 text-xs h-7 text-green-700 hover:text-green-800 hover:bg-green-50 p-1"
+                          className={`${adminRowGreen} p-1`}
                           disabled={downloadingWord === s.id}
                           onClick={async () => {
                             setDownloadingWord(s.id);
@@ -1084,7 +1092,7 @@ export default function AdminUsuarioDetalle() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
+                          className={adminRowAtmosphere}
                           disabled={generatingWord === s.id}
                           onClick={async () => {
                             setGeneratingWord(s.id);
@@ -1123,7 +1131,7 @@ export default function AdminUsuarioDetalle() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 text-xs h-7 border-amber-300 text-amber-700 hover:bg-amber-50"
+                          className={adminRowWarning}
                           disabled={rehaciendo === s.id || rellenandoLista === s.id}
                           onClick={async () => {
                             if (!confirm(`¿Rehacer la sesión "${s.titulo || s.id}"? Se regenerará el contenido y un PDF nuevo.`)) return;
@@ -1161,7 +1169,7 @@ export default function AdminUsuarioDetalle() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 text-xs h-7 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                          className={adminRowGreen}
                           disabled={rehaciendo === s.id || rellenandoLista === s.id}
                           onClick={async () => {
                             if (!confirm(`¿Rellenar lista de alumnos en "${s.titulo || s.id}"? Se usará la lista del aula u otra sesión del docente. Si había PDF, se invalidará para regenerarlo.`)) return;
@@ -1194,7 +1202,7 @@ export default function AdminUsuarioDetalle() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-50"
+                          className={adminRowPink}
                           disabled={generandoFicha === s.id || rehaciendo === s.id}
                           onClick={async () => {
                             setGenerandoFicha(s.id);
@@ -1245,14 +1253,14 @@ export default function AdminUsuarioDetalle() {
       {/* Unidades */}
       <Section title={`Unidades (${usuario.unidades.length})`} icon={FolderOpen}>
         {usuario.unidades.length === 0 ? (
-          <p className="text-gray-400 text-sm py-4 text-center">
-            Sin unidades creadas
+          <p className="py-6 text-center text-base font-semibold text-[#6B7280]">
+            Este docente aún no tiene unidades.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500 text-left">
+                <tr className="border-b border-[#E6EBF2] text-left">
                   <th className="px-3 py-2 font-medium">#</th>
                   <th className="px-3 py-2 font-medium">Título</th>
                   <th className="px-3 py-2 font-medium">Tipo</th>
@@ -1262,9 +1270,9 @@ export default function AdminUsuarioDetalle() {
                   <th className="px-3 py-2 font-medium">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-[#E6EBF2]">
                 {usuario.unidades.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50">
+                  <tr key={u.id} className="hover:bg-[#F5F7FA]">
                     <td className="px-3 py-2 text-gray-500 text-xs">
                       {u.numeroUnidad}
                     </td>
@@ -1287,7 +1295,7 @@ export default function AdminUsuarioDetalle() {
                           href={u.pdfUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700"
+                          className={`${dpFocusRing} text-[#3B6CB5] hover:text-[#1F2937]`}
                         >
                           <ExternalLink className="w-4 h-4" />
                         </a>
@@ -1300,7 +1308,7 @@ export default function AdminUsuarioDetalle() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="gap-1 text-xs h-7 text-green-700 hover:text-green-800 hover:bg-green-50 p-1"
+                          className={`${adminRowGreen} p-1`}
                           disabled={downloadingWord === u.id}
                           onClick={async () => {
                             setDownloadingWord(u.id);
@@ -1324,7 +1332,7 @@ export default function AdminUsuarioDetalle() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
+                          className={adminRowAtmosphere}
                           disabled={generatingWord === u.id}
                           onClick={async () => {
                             setGeneratingWord(u.id);
@@ -1363,7 +1371,7 @@ export default function AdminUsuarioDetalle() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1 text-xs h-7 border-amber-300 text-amber-700 hover:bg-amber-50"
+                        className={adminRowWarning}
                         disabled={corrigiendoUnidad === u.id}
                         onClick={async () => {
                           if (!confirm(`¿Corregir estándares de la unidad "${u.titulo || u.id}"? Se regenerará el PDF.`)) return;
@@ -1413,7 +1421,7 @@ export default function AdminUsuarioDetalle() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1 text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
+                        className={adminRowAtmosphere}
                         disabled={corrigiendoHorario === u.id}
                         onClick={async () => {
                           if (!confirm(`¿Arreglar horario de la unidad "${u.titulo || u.id}"? Se corregirá la secuencia y se regenerará el PDF.`)) return;
@@ -1515,7 +1523,7 @@ export default function AdminUsuarioDetalle() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-50"
+                        className={adminRowPink}
                         disabled={arreglandoActividades === u.id}
                         onClick={async () => {
                           if (!confirm(`¿Arreglar actividades de la unidad "${u.titulo || u.id}"?\n\nEsto auditará y reparará competencias, actividades, criterios, estándares y la secuencia.\n\nPuede tardar hasta 4 minutos.`)) return;
@@ -1577,7 +1585,7 @@ export default function AdminUsuarioDetalle() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1 text-xs h-7 border-orange-300 text-orange-700 hover:bg-orange-50"
+                        className={adminRowWarning}
                         disabled={reiniciandoUnidadId === u.id}
                         title="Reiniciar contenido IA de la unidad"
                         onClick={async () => {
@@ -1623,7 +1631,7 @@ export default function AdminUsuarioDetalle() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 text-xs h-7 border-red-300 text-red-700 hover:bg-red-50"
+                          className={`${adminRowBtn} bg-[#FFF7ED] text-[#C2410C] hover:bg-[#FFEDD5]`}
                           disabled={finalizandoUnidadId === u.id}
                           title="Finalizar unidad (admin)"
                           onClick={async () => {
@@ -1677,15 +1685,16 @@ export default function AdminUsuarioDetalle() {
 
             {/* ─── Resultado de Arreglar Actividades ─── */}
             {resultadoArreglo && (
-              <div className="mt-4 p-4 rounded-xl border border-violet-200 bg-violet-50/60">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-violet-800 flex items-center gap-1.5">
-                    <ListChecks className="w-4 h-4" />
-                    Resultado — Arreglar Actividades
+              <div className="mt-4 rounded-[20px] border border-[#E6EBF2] bg-[#EAF2FC] p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="flex items-center gap-1.5 text-base font-extrabold text-[#3B6CB5]">
+                    <ListChecks className="h-4 w-4" aria-hidden />
+                    Resultado: arreglar actividades
                   </h4>
                   <button
+                    type="button"
                     onClick={() => setResultadoArreglo(null)}
-                    className="text-xs text-violet-500 hover:underline"
+                    className={`${dpFocusRing} text-sm font-bold text-[#3B6CB5] hover:underline`}
                   >
                     Cerrar
                   </button>
@@ -1693,8 +1702,8 @@ export default function AdminUsuarioDetalle() {
 
                 {/* Advertencia PDF/Word invalidado */}
                 {(resultadoArreglo.res.pdfInvalidado || resultadoArreglo.res.wordInvalidado) && (
-                  <div className="mb-3 flex items-start gap-2 p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-800">
-                    <span className="text-base leading-none mt-0.5">⚠️</span>
+                  <div className="mb-3 flex items-start gap-2 rounded-[16px] border border-[#E6EBF2] bg-[#FFF7ED] p-3 text-[#C2410C]">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                     <div className="text-xs leading-relaxed">
                       {resultadoArreglo.res.advertencia
                         ? resultadoArreglo.res.advertencia
@@ -1722,36 +1731,36 @@ export default function AdminUsuarioDetalle() {
                       ["Feriados reprogramados", resultadoArreglo.res.resumen.feriadosDetectados],
                     ] as [string, number | string][]
                   ).map(([label, val]) => (
-                    <div key={label} className="bg-white rounded-lg px-3 py-2 border border-violet-100 text-center">
-                      <p className="text-lg font-bold text-violet-700">{val}</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
+                    <div key={label} className="rounded-[16px] border border-[#E6EBF2] bg-white px-3 py-2 text-center">
+                      <p className="text-lg font-extrabold tabular-nums text-[#3B6CB5]">{val}</p>
+                      <p className="mt-0.5 text-sm font-semibold text-[#6B7280]">{label}</p>
                     </div>
                   ))}
                 </div>
 
                 {/* Correcciones detalle */}
                 {resultadoArreglo.res.correcciones.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">No se aplicaron cambios; la unidad ya estaba correcta.</p>
+                  <p className="text-sm font-semibold italic text-[#6B7280]">No se aplicaron cambios. La unidad ya estaba correcta.</p>
                 ) : (
                   <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
                     {resultadoArreglo.res.correcciones.map((c, i) => (
-                      <div key={i} className="flex items-start gap-2 text-xs bg-white rounded-lg px-3 py-1.5 border border-violet-100">
-                        <span className="shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-violet-100 text-violet-700 capitalize">
+                      <div key={i} className="flex items-start gap-2 rounded-[16px] border border-[#E6EBF2] bg-white px-3 py-1.5 text-sm">
+                        <span className="mt-0.5 shrink-0 rounded-full bg-[#EAF2FC] px-1.5 py-0.5 text-sm font-bold capitalize text-[#3B6CB5]">
                           {c.fase}
                         </span>
                         {c.area && (
-                          <span className="shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+                          <span className="mt-0.5 shrink-0 rounded-full bg-[#EEF3F9] px-1.5 py-0.5 text-sm font-bold text-[#6B7280]">
                             {c.area}
                           </span>
                         )}
-                        <span className="text-slate-600 leading-relaxed">{c.descripcion}</span>
+                        <span className="leading-relaxed text-[#6B7280]">{c.descripcion}</span>
                       </div>
                     ))}
                   </div>
                 )}
 
                 {resultadoArreglo.res.duracion != null && (
-                  <p className="text-[10px] text-slate-400 mt-2 text-right">
+                  <p className="mt-2 text-right text-sm font-semibold text-[#9CA3AF]">
                     Duración: {resultadoArreglo.res.duracion.toFixed(1)} s
                     {resultadoArreglo.res.guardadoEnBD && " · Guardado en BD"}
                   </p>
@@ -1777,13 +1786,15 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <div className="px-5 py-3 border-b border-gray-200 flex items-center gap-2">
-        <Icon className="w-4 h-4 text-gray-500" />
-        <h2 className="text-gray-900 font-semibold text-sm">{title}</h2>
+    <section className={`${adminCard} mb-6 overflow-hidden`}>
+      <div className="flex items-center gap-2 border-b border-[#E6EBF2] px-5 py-4">
+        <span className="grid h-10 w-10 place-items-center rounded-[16px] bg-[#EAF2FC] text-[#3B6CB5]">
+          <Icon className="h-5 w-5" />
+        </span>
+        <h2 className="text-xl font-extrabold text-[#1F2937]">{title}</h2>
       </div>
-      <div className="p-4">{children}</div>
-    </div>
+      <div className="p-4 sm:p-5">{children}</div>
+    </section>
   );
 }
 
@@ -1797,12 +1808,14 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className="w-4 h-4 text-gray-400" />
-        <span className="text-gray-500 text-xs">{label}</span>
+    <div className={`${adminCard} px-4 py-3`}>
+      <div className="mb-1 flex items-center gap-2">
+        <Icon className="h-4 w-4 text-[#3B6CB5]" />
+        <span className="text-sm font-bold text-[#6B7280]">{label}</span>
       </div>
-      <p className="text-gray-900 text-xl font-bold">{value}</p>
+      <p className="text-[28px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[#1F2937]">
+        {value}
+      </p>
     </div>
   );
 }
@@ -1817,14 +1830,14 @@ function InfoItem({
   mono?: boolean;
 }) {
   return (
-    <div className="min-w-0">
-      <p className="text-gray-400 text-xs mb-0.5">{label}</p>
-      <p
-        className={`text-gray-700 text-sm truncate ${mono ? "font-mono text-xs" : ""}`}
+    <div className="min-w-0 rounded-[16px] bg-[#F5F7FA] px-3 py-3">
+      <dt className="text-sm font-bold text-[#6B7280]">{label}</dt>
+      <dd
+        className={`mt-0.5 truncate text-base font-extrabold text-[#1F2937] ${mono ? "font-mono text-sm" : ""}`}
         title={value}
       >
         {value}
-      </p>
+      </dd>
     </div>
   );
 }
@@ -1832,21 +1845,21 @@ function InfoItem({
 function PlanBadge({ plan, activa }: { plan: string; activa?: boolean }) {
   if (plan === "free") {
     return (
-      <span className="bg-gray-200 text-gray-500 text-xs font-medium px-2 py-1 rounded-full">
+      <span className="rounded-full bg-[#EEF3F9] px-3 py-1 text-sm font-bold text-[#6B7280]">
         Free
       </span>
     );
   }
-  const label = plan === "premium_anual" ? "Premium Anual" : "Premium Mensual";
+  const label = plan === "premium_anual" ? "Premium anual" : "Premium mensual";
   if (!activa) {
     return (
-      <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-1 rounded-full">
-        {label} (inactivo)
+      <span className="rounded-full bg-[#FFF7ED] px-3 py-1 text-sm font-bold text-[#C2410C]">
+        {label} inactivo
       </span>
     );
   }
   return (
-    <span className="bg-blue-100 text-blue-600 text-xs font-medium px-2 py-1 rounded-full">
+    <span className="rounded-full bg-[#EAF2FC] px-3 py-1 text-sm font-bold text-[#3B6CB5]">
       {label}
     </span>
   );
@@ -1855,16 +1868,14 @@ function PlanBadge({ plan, activa }: { plan: string; activa?: boolean }) {
 function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
   return (
     <span
-      className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
-        ok
-          ? "bg-green-100 text-green-600"
-          : "bg-yellow-100 text-yellow-600"
+      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-bold ${
+        ok ? "bg-[#E3F8EC] text-[#15803D]" : "bg-[#FFF7ED] text-[#C2410C]"
       }`}
     >
       {ok ? (
-        <CheckCircle2 className="w-3 h-3" />
+        <CheckCircle2 className="h-3.5 w-3.5" />
       ) : (
-        <Shield className="w-3 h-3" />
+        <Shield className="h-3.5 w-3.5" />
       )}
       {label}
     </span>
@@ -1872,14 +1883,14 @@ function StatusBadge({ label, ok }: { label: string; ok: boolean }) {
 }
 
 function EstadoBadge({ estado }: { estado: string }) {
-  const config: Record<string, { bg: string; text: string }> = {
-    PENDIENTE: { bg: "bg-yellow-100", text: "text-yellow-600" },
-    CONFIRMADO: { bg: "bg-green-100", text: "text-green-600" },
-    RECHAZADO: { bg: "bg-red-100", text: "text-red-600" },
+  const config: Record<string, string> = {
+    PENDIENTE: "bg-[#FFF7ED] text-[#C2410C]",
+    CONFIRMADO: "bg-[#E3F8EC] text-[#15803D]",
+    RECHAZADO: "bg-[#FEE2E2] text-[#B91C1C]",
   };
   const c = config[estado] || config.PENDIENTE;
   return (
-    <span className={`${c.bg} ${c.text} text-xs font-medium px-2 py-1 rounded-full`}>
+    <span className={`${c} rounded-full px-3 py-1 text-sm font-bold`}>
       {estado}
     </span>
   );
