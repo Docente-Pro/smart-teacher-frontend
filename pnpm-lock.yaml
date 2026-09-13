@@ -23,6 +23,9 @@ importers:
       '@formkit/drag-and-drop':
         specifier: ^0.5.3
         version: 0.5.3
+      '@gsap/react':
+        specifier: ^2.1.2
+        version: 2.1.2(gsap@3.15.0)(react@18.3.1)
       '@hookform/resolvers':
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.54.2(react@18.3.1))
@@ -32,6 +35,9 @@ importers:
       '@htmldocs/render':
         specifier: ^0.2.30
         version: 0.2.30(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@phosphor-icons/react':
+        specifier: ^2.1.10
+        version: 2.1.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -62,6 +68,39 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.1.7
         version: 1.1.7(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@syncfusion/ej2-base':
+        specifier: 30.1.37
+        version: 30.1.37
+      '@syncfusion/ej2-buttons':
+        specifier: 30.1.37
+        version: 30.1.37
+      '@syncfusion/ej2-documenteditor':
+        specifier: 30.1.37
+        version: 30.1.37
+      '@syncfusion/ej2-dropdowns':
+        specifier: 30.1.37
+        version: 30.1.37
+      '@syncfusion/ej2-inputs':
+        specifier: 30.1.37
+        version: 30.1.37
+      '@syncfusion/ej2-lists':
+        specifier: 30.1.37
+        version: 30.1.37
+      '@syncfusion/ej2-locale':
+        specifier: 34.1.29
+        version: 34.1.29
+      '@syncfusion/ej2-navigations':
+        specifier: 30.1.37
+        version: 30.1.37
+      '@syncfusion/ej2-popups':
+        specifier: 30.1.37
+        version: 30.1.37
+      '@syncfusion/ej2-react-documenteditor':
+        specifier: 30.1.37
+        version: 30.1.37
+      '@syncfusion/ej2-splitbuttons':
+        specifier: 30.1.37
+        version: 30.1.37
       '@tanstack/react-query':
         specifier: ^5.100.9
         version: 5.100.9(react@18.3.1)
@@ -83,6 +122,9 @@ importers:
       framer-motion:
         specifier: ^12.43.0
         version: 12.43.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      gsap:
+        specifier: ^3.15.0
+        version: 3.15.0
       html2pdf.js:
         specifier: ^0.14.0
         version: 0.14.0
@@ -92,6 +134,9 @@ importers:
       lucide-react:
         specifier: ^0.473.0
         version: 0.473.0(react@18.3.1)
+      motion:
+        specifier: ^12.42.2
+        version: 12.43.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -760,6 +805,12 @@ packages:
 
   '@formkit/drag-and-drop@0.5.3':
     resolution: {integrity: sha512-VGQsKYc350OOMbz7wYt69YqDbn49x7RJ32eqiJieNke54nGZYmx18XEqTw0lBiJmH3RaiH6V45gB1u+tvI/TNw==}
+
+  '@gsap/react@2.1.2':
+    resolution: {integrity: sha512-JqliybO1837UcgH2hVOM4VO+38APk3ECNrsuSM4MuXp+rbf+/2IG2K1YJiqfTcXQHH7XlA0m3ykniFYstfq0Iw==}
+    peerDependencies:
+      gsap: ^3.12.5
+      react: '>=17'
 
   '@hookform/resolvers@3.10.0':
     resolution: {integrity: sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag==}
@@ -2018,6 +2069,101 @@ packages:
   '@swc/helpers@0.5.5':
     resolution: {integrity: sha512-KGYxvIOXcceOAbEk4bi/dVLEK9z8sZ0uBB3Il5b1rhfClSpcX0yfRO0KmTkqR2cnQDymwLB+25ZyMzICg/cm/A==}
 
+  '@syncfusion/ej2-base@30.1.37':
+    resolution: {integrity: sha512-/RXLTid6XaKEyqBttyhO6FsGHhGitOzxPv64qo4AtE+33uU2usCRuBY4QZtGq5SBMQs7tIvjdtwff989jWHgzQ==}
+    hasBin: true
+
+  '@syncfusion/ej2-base@30.1.42':
+    resolution: {integrity: sha512-PQm14uiirN2vdlbygyYb960+ELRy/f92lxC4E9GWpVSnOt/18C5ZZJSMmC1sjE2axqhHWM8JS9gFQ7OXB5FHIw==}
+    hasBin: true
+
+  '@syncfusion/ej2-buttons@30.1.37':
+    resolution: {integrity: sha512-31dPIDSkraFlR8+sCz2NtM1tg9TSBN2YRHC7mBZGDWX6B26ie4zbe63S22l0ytaoMDt3XHqExsk7MLlnG3LR8g==}
+
+  '@syncfusion/ej2-calendars@30.1.37':
+    resolution: {integrity: sha512-9g41zBRizXilbRJWHJgqRYJPpX0WJF5qJwGNpgvsBnyYdolYQy///x6c3oYo9W6YG28N0QDavdbOaxwprj4ghg==}
+
+  '@syncfusion/ej2-charts@30.1.42':
+    resolution: {integrity: sha512-3jhBxBBXSKo+oQRj2+bYQnsqQ215mKJY2Y3fHMenAfHnPwJqt/LYYEEP2ju4sa1EC1LhKFag7K9DsLa9WGJgYg==}
+
+  '@syncfusion/ej2-compression@30.1.37':
+    resolution: {integrity: sha512-QA5oAJZDaAONO12zwVCc1IqYTmiwthSoWaMoE0jgQR+mpYR8XmlMi1VOvP8Jtu+HlfQMaEGcMQ++UM5UeZW4+g==}
+
+  '@syncfusion/ej2-data@30.1.40':
+    resolution: {integrity: sha512-jxQll5rn3yailAP/wcCnIw96ROfafwFzMJ6BIcI5FTn+/mk3hLQTp/GiZ/In7uDGgXQll2yQeolPJcOkILtWkw==}
+
+  '@syncfusion/ej2-documenteditor@30.1.37':
+    resolution: {integrity: sha512-Z89RreGHBf96HSld7Hfe8zjcO1uRfoTLo8FllE+mFgV9MmFhK7bWGKd52UVn7RFW5muZwhDACrobVbUlkzlQow==}
+
+  '@syncfusion/ej2-dropdowns@30.1.37':
+    resolution: {integrity: sha512-yk4Pous9P2Ccg/QoX+fmJatn5ypbWWTvptEd5h5p4Wb0qlvwJIPuJo/KkcyK2vUx7kRzN5dzmUX7cKP7Z1ZhPg==}
+
+  '@syncfusion/ej2-dropdowns@30.1.42':
+    resolution: {integrity: sha512-Ya4m6SVX2yrkcWaVsJ67Pe1DVmwO3d8za285xs+HU+dujjD2L/EjYzrbwxG2gcIcpKXY9GXaVujH7DABgPQ4Dw==}
+
+  '@syncfusion/ej2-excel-export@30.1.37':
+    resolution: {integrity: sha512-AMOTpy/uzb6QzKHgQdofA2P0Ec1KLmfT9vDXPzmF3npsPbqL0a+6K73MaZZKjW8rBrwohnbJV2R+acotpW/Seg==}
+
+  '@syncfusion/ej2-file-utils@30.1.37':
+    resolution: {integrity: sha512-1r0rWrXEsXsRJhG0yOs8Hp2nGARLsBCD4u602R4IxLDrockIPVJv4gz0rIw4dDtFW7bpAa8J+yWXtr6fW29Bhw==}
+
+  '@syncfusion/ej2-icons@30.1.37':
+    resolution: {integrity: sha512-bgPklX0jiaLESbWJDNx8f8PqVexwbRJHoz4kDgOJR4VN4JoOtC7Zw47Wb+eFwj13Ped1lTfuPfmU8sI1s5INeQ==}
+
+  '@syncfusion/ej2-inputs@30.1.37':
+    resolution: {integrity: sha512-6gOvtZO7ygdPnec8M7cr0TNBkENMmiW4YLnJTgGl5UgogQb+f8D8giE3SKqfWdmlJMBD1lzW96Ig4gW2n4JwMQ==}
+
+  '@syncfusion/ej2-inputs@30.1.40':
+    resolution: {integrity: sha512-qMbwX8x6s+pS4C9BKz6Dy9z7t+GYCSDvbJXVykvqmdpU54EjmIwb8l7LV9P2B4ooiXQ4QgkFf/CtGjP3z3H1yg==}
+
+  '@syncfusion/ej2-lists@30.1.37':
+    resolution: {integrity: sha512-Tot/4yjBoBlCPr49EKPL/yDHFoPhHlgp3bK6+LG5jgThQE+guB5sSlqlNl3Noui25oMTRcXlt29SHZwstdpsNg==}
+
+  '@syncfusion/ej2-lists@30.1.42':
+    resolution: {integrity: sha512-rGRU3d6duWGPZ5wNqNEbg5RXMPmLcFgS/1+DpElpHgDxJrwckPF+KJVbysCDQDAwknn6S28Dtaezd9ffFQrp7w==}
+
+  '@syncfusion/ej2-locale@34.1.29':
+    resolution: {integrity: sha512-j67mIV5iOJgs2VI2rMD//5sGv4Uc/tlLG0czFgTqj4oFpeW5CiYBmUDqA22QsuhrKPSHssLWi/OJJTSF8ANdLw==}
+
+  '@syncfusion/ej2-navigations@30.1.37':
+    resolution: {integrity: sha512-FD3hsT4a8fMdS3S7EFu9tnu741980HRK97fDAUgUtLGqDANC6Ee2HyeZZTjVeUpVAHfdomb/n7oYvtDUXZxwYw==}
+
+  '@syncfusion/ej2-navigations@30.1.42':
+    resolution: {integrity: sha512-vIOSsvvR1s1Wf2/7TPheqkhMekH2rvynS6L+OTmlQmsDvaUYdfeuht3wAY/0MPJHHDYrjq5gHLvqVehAY7UuqA==}
+
+  '@syncfusion/ej2-notifications@30.1.37':
+    resolution: {integrity: sha512-ksXk9lTf0Iw5+4EarYjxG1rKU+e9ZbCOaxvl/PN+MP1w1BAFwu4jRwpE9mbPF2FQUxcL1xNCxTnspSQaH36f4Q==}
+
+  '@syncfusion/ej2-office-chart@30.1.37':
+    resolution: {integrity: sha512-UDqVJMDDXvHxX3ZzCumYoG6mzn6XePCr5P8pD+7zfVWwQTMYg4fpmmtWebgYA0aEeATi8rgnQtWEXD7rGbJL1g==}
+
+  '@syncfusion/ej2-pdf-export@30.1.42':
+    resolution: {integrity: sha512-+mSVSOf1b3VKtZcl8DM6o6HKnkM7zG1lJb+b++NXR+8VcosODw3JKXiUXrn9v8pqXtY97ZubGKPCd7Uef5/ZOg==}
+
+  '@syncfusion/ej2-popups@30.1.37':
+    resolution: {integrity: sha512-royzgtNf2BE330yBySDvLcnMHfDq1xxFKK4YocQJt5PAdYrm5mxIAmxrbbAO0LElI4GN0yQU8Xy4ne7VjqPzJg==}
+
+  '@syncfusion/ej2-popups@30.1.42':
+    resolution: {integrity: sha512-lqaaaMfWH4gWy6aaEWHQx8NkGAN2VyYCu2BYxqox/PfaHIS1gI1zKOzNxAWZyF0OUvwG2dCGwvWOBdoWHNwAhg==}
+
+  '@syncfusion/ej2-react-base@30.1.37':
+    resolution: {integrity: sha512-9Mr+gGR9fb9ywlvXLU/sROH7qcQl/rnITR9wVndKtLP0kCULIAl0QVjaBP4krVIrV5rKIqpL4dEXOJhNVXwgNQ==}
+
+  '@syncfusion/ej2-react-documenteditor@30.1.37':
+    resolution: {integrity: sha512-ka+jOvNSa2AI7o5fJzn7FlBIfrhH92MHTAPx30HyoRh9pFkLBuO4+rwm1212ZwXSP4LjHcgXGRm6Z/khcfkjDA==}
+
+  '@syncfusion/ej2-ribbon@30.1.42':
+    resolution: {integrity: sha512-fZ+UHkmG5mhky3NV5RZxOBIKhfc12tX1I5deZz4gVBPQCfIuw3JeioEN/WzesVkWdNbm7EUH1Ryr+pJT++w8cA==}
+
+  '@syncfusion/ej2-splitbuttons@30.1.37':
+    resolution: {integrity: sha512-V4MNbw8qBNumd7B4AlbmndxXGqILcSUoCrA+wBfLt6KZArZnuK8Y2zaD7fN9xoR1c/hoxlgo9sXyIxdPfi9Lyg==}
+
+  '@syncfusion/ej2-splitbuttons@30.1.41':
+    resolution: {integrity: sha512-PV8oiXHUmTliEY3Lmr6+ecYc6JUhBYwxfA3VhQI750awlbtUDoesXM1mtzZ91uM+0a0Cogw1G3NNCsm3Q6l77g==}
+
+  '@syncfusion/ej2-svg-base@30.1.37':
+    resolution: {integrity: sha512-5T4XxwWqcqxEDelOvPArUCnoNu/LeTp9s4sy+5qnNvACNW7wYWV+0Qu1s0UEOx0/N9T5Lq1zFcggOckNR7hW4A==}
+
   '@tailwindcss/typography@0.5.9':
     resolution: {integrity: sha512-t8Sg3DyynFysV9f4JDOVISGsjazNb48AeIYQwcL+Bsq5uf4RYL75C1giZ43KISjeDGBaTN3Kxh7Xj/vRSMJUUg==}
     peerDependencies:
@@ -2900,6 +3046,9 @@ packages:
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
 
+  gsap@3.15.0:
+    resolution: {integrity: sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A==}
+
   gzip-size@6.0.0:
     resolution: {integrity: sha512-ax7ZYomf6jqPTQ4+XCpUGyXKHk5WweS+e05MBO4/y3WJ5RkmPXNKvX+bx1behVILVwr6JSQvZAku021CHPXG3Q==}
     engines: {node: '>=10'}
@@ -3200,6 +3349,20 @@ packages:
 
   motion-utils@12.39.0:
     resolution: {integrity: sha512-8nadJAJjTtqRkmRF36FoJTrywK9nnFmnPwnSMyxaOCU7GDjN9RTMJIxx9De8ErM+vpPhMccr/6fo5WciyQLnMQ==}
+
+  motion@12.43.0:
+    resolution: {integrity: sha512-BQgQbSa9Hn3/mtbib0MK53y6JSANa+YKUKlaYnWzAVDH424RYQ5LVpV3pNiWH00BA2z4ojsSdMzqT7g2FQwjuQ==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   mrmime@2.0.1:
     resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
@@ -4726,6 +4889,11 @@ snapshots:
 
   '@formkit/drag-and-drop@0.5.3': {}
 
+  '@gsap/react@2.1.2(gsap@3.15.0)(react@18.3.1)':
+    dependencies:
+      gsap: 3.15.0
+      react: 18.3.1
+
   '@hookform/resolvers@3.10.0(react-hook-form@7.54.2(react@18.3.1))':
     dependencies:
       react-hook-form: 7.54.2(react@18.3.1)
@@ -5864,6 +6032,194 @@ snapshots:
       '@swc/counter': 0.1.3
       tslib: 2.8.1
 
+  '@syncfusion/ej2-base@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-icons': 30.1.37
+
+  '@syncfusion/ej2-base@30.1.42':
+    dependencies:
+      '@syncfusion/ej2-icons': 30.1.37
+
+  '@syncfusion/ej2-buttons@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+
+  '@syncfusion/ej2-calendars@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-inputs': 30.1.37
+      '@syncfusion/ej2-lists': 30.1.37
+      '@syncfusion/ej2-popups': 30.1.37
+
+  '@syncfusion/ej2-charts@30.1.42':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.42
+      '@syncfusion/ej2-calendars': 30.1.37
+      '@syncfusion/ej2-data': 30.1.40
+      '@syncfusion/ej2-excel-export': 30.1.37
+      '@syncfusion/ej2-navigations': 30.1.42
+      '@syncfusion/ej2-pdf-export': 30.1.42
+      '@syncfusion/ej2-svg-base': 30.1.37
+
+  '@syncfusion/ej2-compression@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-file-utils': 30.1.37
+
+  '@syncfusion/ej2-data@30.1.40':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.42
+
+  '@syncfusion/ej2-documenteditor@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-calendars': 30.1.37
+      '@syncfusion/ej2-compression': 30.1.37
+      '@syncfusion/ej2-dropdowns': 30.1.37
+      '@syncfusion/ej2-file-utils': 30.1.37
+      '@syncfusion/ej2-inputs': 30.1.37
+      '@syncfusion/ej2-navigations': 30.1.37
+      '@syncfusion/ej2-office-chart': 30.1.37
+      '@syncfusion/ej2-popups': 30.1.37
+      '@syncfusion/ej2-ribbon': 30.1.42
+      '@syncfusion/ej2-splitbuttons': 30.1.37
+
+  '@syncfusion/ej2-dropdowns@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-data': 30.1.40
+      '@syncfusion/ej2-inputs': 30.1.37
+      '@syncfusion/ej2-lists': 30.1.37
+      '@syncfusion/ej2-navigations': 30.1.37
+      '@syncfusion/ej2-notifications': 30.1.37
+      '@syncfusion/ej2-popups': 30.1.37
+
+  '@syncfusion/ej2-dropdowns@30.1.42':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.42
+      '@syncfusion/ej2-data': 30.1.40
+      '@syncfusion/ej2-inputs': 30.1.40
+      '@syncfusion/ej2-lists': 30.1.42
+      '@syncfusion/ej2-navigations': 30.1.42
+      '@syncfusion/ej2-notifications': 30.1.37
+      '@syncfusion/ej2-popups': 30.1.42
+
+  '@syncfusion/ej2-excel-export@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-compression': 30.1.37
+
+  '@syncfusion/ej2-file-utils@30.1.37': {}
+
+  '@syncfusion/ej2-icons@30.1.37': {}
+
+  '@syncfusion/ej2-inputs@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-popups': 30.1.37
+      '@syncfusion/ej2-splitbuttons': 30.1.37
+
+  '@syncfusion/ej2-inputs@30.1.40':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.42
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-popups': 30.1.42
+      '@syncfusion/ej2-splitbuttons': 30.1.41
+
+  '@syncfusion/ej2-lists@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-data': 30.1.40
+      '@syncfusion/ej2-popups': 30.1.37
+
+  '@syncfusion/ej2-lists@30.1.42':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.42
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-data': 30.1.40
+      '@syncfusion/ej2-popups': 30.1.42
+
+  '@syncfusion/ej2-locale@34.1.29': {}
+
+  '@syncfusion/ej2-navigations@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-data': 30.1.40
+      '@syncfusion/ej2-inputs': 30.1.37
+      '@syncfusion/ej2-lists': 30.1.37
+      '@syncfusion/ej2-popups': 30.1.37
+
+  '@syncfusion/ej2-navigations@30.1.42':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.42
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-data': 30.1.40
+      '@syncfusion/ej2-inputs': 30.1.40
+      '@syncfusion/ej2-lists': 30.1.42
+      '@syncfusion/ej2-popups': 30.1.42
+
+  '@syncfusion/ej2-notifications@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-popups': 30.1.37
+
+  '@syncfusion/ej2-office-chart@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-charts': 30.1.42
+
+  '@syncfusion/ej2-pdf-export@30.1.42':
+    dependencies:
+      '@syncfusion/ej2-compression': 30.1.37
+
+  '@syncfusion/ej2-popups@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-buttons': 30.1.37
+
+  '@syncfusion/ej2-popups@30.1.42':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.42
+      '@syncfusion/ej2-buttons': 30.1.37
+
+  '@syncfusion/ej2-react-base@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+
+  '@syncfusion/ej2-react-documenteditor@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-documenteditor': 30.1.37
+      '@syncfusion/ej2-react-base': 30.1.37
+
+  '@syncfusion/ej2-ribbon@30.1.42':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.42
+      '@syncfusion/ej2-buttons': 30.1.37
+      '@syncfusion/ej2-dropdowns': 30.1.42
+      '@syncfusion/ej2-lists': 30.1.42
+      '@syncfusion/ej2-navigations': 30.1.42
+      '@syncfusion/ej2-popups': 30.1.42
+      '@syncfusion/ej2-splitbuttons': 30.1.41
+
+  '@syncfusion/ej2-splitbuttons@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+      '@syncfusion/ej2-popups': 30.1.37
+
+  '@syncfusion/ej2-splitbuttons@30.1.41':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.42
+      '@syncfusion/ej2-popups': 30.1.37
+
+  '@syncfusion/ej2-svg-base@30.1.37':
+    dependencies:
+      '@syncfusion/ej2-base': 30.1.37
+
   '@tailwindcss/typography@0.5.9(tailwindcss@3.4.17)':
     dependencies:
       lodash.castarray: 4.4.0
@@ -6793,6 +7149,8 @@ snapshots:
 
   graphemer@1.4.0: {}
 
+  gsap@3.15.0: {}
+
   gzip-size@6.0.0:
     dependencies:
       duplexer: 0.1.2
@@ -7129,6 +7487,14 @@ snapshots:
   motion-utils@11.18.1: {}
 
   motion-utils@12.39.0: {}
+
+  motion@12.43.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      framer-motion: 12.43.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   mrmime@2.0.1: {}
 

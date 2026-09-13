@@ -10,7 +10,7 @@ import {
   ClipboardList,
   FilePlus2,
   Shield,
-  Sparkles,
+  FileType,
 } from "lucide-react";
 import DashboardTutorialsTeaser from "@/components/dashboard/DashboardTutorialsTeaser";
 import TeacherAppShell from "@/components/layout/TeacherAppShell";
@@ -413,7 +413,7 @@ function DashboardView() {
         navigate("/mis-unidades");
       },
     },
-    ...(permissions.isPremium
+        ...(permissions.isPremium
       ? [
           {
             icon: ClipboardList,
@@ -427,6 +427,15 @@ function DashboardView() {
           },
         ]
       : []),
+    {
+      icon: FileType,
+      title: "Mi formato de sesión",
+      description: "Sube y edita tu plantilla Word",
+      well: "bg-[#EEF3F9] text-[#6B7280]",
+      action: () => {
+        navigate("/mi-formato");
+      },
+    },
   ];
 
   const focusRing = dpFocusRing;

@@ -39,7 +39,13 @@ function SesionPremiumResult() {
   const premiumData = stateData?.premiumData ?? null;
   const instrumento = stateData?.instrumento ?? null;
 
-  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, handleGenerateWord, handleVerWord, isGeneratingWord, wordUrl } = useSesionPremiumPDF(documentRef, premiumData);
+  const { isGenerating, isSaving, isSaved, handleDownloadPDF, handlePrint, handleGenerateWord, handleVerWord, isGeneratingWord, wordUrl, formatoPropio } = useSesionPremiumPDF(documentRef, premiumData);
+
+  // ── Qué formato se está viendo ───────────────────────────────────────
+  const hayFormatoPropio =
+    formatoPropio.estado === "generando" || formatoPropio.estado === "listo";
+  const [vista, setVista] = useState<"propio" | "estandar">("propio");
+  const viendoFormatoPropio = hayFormatoPropio && vista === "propio";
 
   // ── Fecha de la sesión (editable, alineada a Perú) ───────────────────
   const sesionDateRaw = premiumData?.sesion
@@ -374,9 +380,91 @@ function SesionPremiumResult() {
           </div>
         </div>
 
-        {/* Documento para captura PDF */}
-        <div id="print-content" ref={documentRef}>
-          <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumentoFinal} insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)} />
+        {/* Selector de formato: el de la docente vs el de Docente Pro */}
+        {hayFormatoPropio && (
+          <div className="no-print mb-4 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/70 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-900/60">
+            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <Sparkles className="h-4 w-4 flex-shrink-0 text-blue-600" />
+              <span>
+                Tu sesión está armada en{" "}
+                <strong className="font-semibold text-slate-800 dark:text-slate-100">
+                  {formatoPropio.nombre || "tu formato"}
+                </strong>
+                , el formato que aprobaste.
+              </span>
+            </div>
+            {viendoFormatoPropio && formatoPropio.anexos.length > 0 && (
+              <p className="order-last text-xs text-slate-500 sm:order-none sm:max-w-xs dark:text-slate-400">
+                Al final se agregó el instrumento de evaluación:{" "}
+                {formatoPropio.anexos.join(", ").toLowerCase()}.
+              </p>
+            )}
+            <div className="flex flex-shrink-0 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+              <button
+                type="button"
+                onClick={() => setVista("propio")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                  vista === "propio"
+                    ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                }`}
+              >
+                Mi formato
+              </button>
+              <button
+                type="button"
+                onClick={() => setVista("estandar")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                  vista === "estandar"
+                    ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                }`}
+              >
+                Formato Docente Pro
+              </button>
+            </div>
+          </div>
+        )}
+
+        {formatoPropio.estado === "error" && (
+          <div className="no-print mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+            No pudimos armar esta sesión en tu formato, así que te mostramos el
+            formato de Docente Pro. Revisa tu formato en <strong>Mi formato</strong>.
+          </div>
+        )}
+
+        {/* Tu propio formato: PDF ya rellenado en el servidor */}
+        {viendoFormatoPropio && (
+          <div className="no-print mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            {formatoPropio.estado === "listo" && formatoPropio.pdfUrl ? (
+              <iframe
+                src={`${formatoPropio.pdfUrl}#view=FitH`}
+                title="Tu sesión en tu propio formato"
+                className="h-[85dvh] min-h-[520px] w-full border-0 bg-white"
+              />
+            ) : (
+              <div className="flex h-[60dvh] min-h-[360px] flex-col items-center justify-center gap-3 px-6 text-center">
+                <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Escribiendo tu sesión dentro de tu formato
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Toma unos segundos. Mientras tanto puedes ver el formato de
+                  Docente Pro.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Documento para captura PDF (se mantiene montado: alimenta PDF/Word/impresión) */}
+        <div
+          className={viendoFormatoPropio ? "h-0 overflow-hidden" : ""}
+          aria-hidden={viendoFormatoPropio}
+        >
+          <div id="print-content" ref={documentRef}>
+            <SesionPremiumDoc data={displayData ?? premiumData} instrumento={instrumentoFinal} insigniaUrl={getInsigniaDataUrl(user?.insigniaUrl)} />
+          </div>
         </div>
       </div>
     </div>

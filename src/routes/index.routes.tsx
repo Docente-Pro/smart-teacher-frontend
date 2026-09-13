@@ -47,6 +47,7 @@ const FichaAplicacionResult = lazy(
   () => import("@/pages/FichaAplicacionResult"),
 );
 const MisFichas = lazy(() => import("@/pages/MisFichas"));
+const MiFormato = lazy(() => import("@/pages/MiFormato"));
 const UnidadDetail = lazy(() => import("@/pages/UnidadDetail"));
 const EditarSesionPremium = lazy(() => import("@/pages/EditarSesionPremium"));
 const EditarUnidad = lazy(() => import("@/pages/EditarUnidad"));
@@ -129,6 +130,14 @@ export const routes: IRouteToCreate[] = [
     element: (
       <ProtectedRoute>
         <DashboardTutoriales />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/mi-formato",
+    element: (
+      <ProtectedRoute>
+        <MiFormato />
       </ProtectedRoute>
     ),
   },

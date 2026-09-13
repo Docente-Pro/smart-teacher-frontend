@@ -7,7 +7,25 @@ import {
   confirmarUploadPDF,
 } from "@/services/sesiones.service";
 import { useAuthStore } from "@/store/auth.store";
+import { getSavedAlumnos } from "@/utils/alumnosStorage";
 import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
+
+/**
+ * Estado del formato propio de la docente para esta sesión.
+ *
+ *  verificando → preguntando si hay plantilla activa
+ *  generando   → el sidecar está rellenando su Word y pasándolo a PDF
+ *  listo       → `pdfUrl` es la sesión dentro de su propio formato
+ *  ninguno     → no hay plantilla aprobada, va el formato estándar
+ *  error       → hubo plantilla pero no se pudo aplicar
+ */
+export type FormatoPropio = {
+  estado: "verificando" | "generando" | "listo" | "ninguno" | "error";
+  nombre: string | null;
+  pdfUrl: string | null;
+  /** Lo que se agregó al final porque su formato no lo contempla. */
+  anexos: string[];
+};
 
 /**
  * Hook para generar y subir el PDF de una sesión PREMIUM.
@@ -18,6 +36,10 @@ import type { ISesionPremiumResponse } from "@/interfaces/ISesionPremium";
  *      1. solicitarUploadPDF  → obtener URL pre-firmada
  *      2. subirPDFaS3         → PUT directo a S3
  *      3. confirmarUploadPDF  → registrar key/pdfUrl en BD
+ *
+ * Si la docente tiene un formato propio aprobado, ese flujo HTML se salta:
+ * `aplicar-a-sesion` escribe el mismo key de S3 con su formato, así que
+ * subir además la captura del HTML sobreescribiría lo que ella aprobó.
  *
  * @param documentRef  Ref al div que envuelve el <Document> del PDF
  * @param premiumData  Respuesta completa del backend (ISesionPremiumResponse)
@@ -34,6 +56,24 @@ export function useSesionPremiumPDF(
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(yaSePersistio);
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
+  const [wordUrl, setWordUrl] = useState<string | null>(
+    (premiumData?.sesion as any)?.wordUrl ?? null,
+  );
+  const [formatoPropio, setFormatoPropio] = useState<FormatoPropio>({
+    estado: sesionId ? "verificando" : "ninguno",
+    nombre: null,
+    pdfUrl: null,
+    anexos: [],
+  });
+
+  // La lista del aula está en este navegador; el backend la necesita para
+  // llenar la lista de cotejo que se anexa al final del formato propio.
+  const sesion = premiumData?.sesion as Record<string, any> | undefined;
+  const gradoId =
+    sesion?.gradoId ??
+    (typeof sesion?.grado === "object" && sesion?.grado ? sesion.grado.id : undefined);
+  const alumnosDelAula = () => getSavedAlumnos(gradoId);
   const guardadoIniciado = useRef(yaSePersistio);
   const mountedRef = useRef(true);
   const { user } = useAuthStore();
@@ -100,9 +140,99 @@ export function useSesionPremiumPDF(
   }, [documentRef, premiumData, user?.id]);
 
   // ────────────────────────────────────────────────────────────────────────
+  // Formato propio: si la docente ya aprobó su plantilla, la sesión se
+  // arma dentro de ese Word y el PDF resultante es lo que ve en pantalla.
+  // ────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!sesionId) {
+      setFormatoPropio({ estado: "ninguno", nombre: null, pdfUrl: null, anexos: [] });
+      return;
+    }
+
+    let cancelado = false;
+
+    (async () => {
+      try {
+        const { getMiPlantillaActiva, esMapeoV2, aplicarPlantillaASesion } =
+          await import("@/services/plantillaFormato.service");
+
+        const plantilla = (await getMiPlantillaActiva())?.data ?? null;
+        const utilizable =
+          !!plantilla && plantilla.activa && esMapeoV2(plantilla.mapeo ?? null);
+
+        if (!utilizable) {
+          if (!cancelado) {
+            setFormatoPropio({
+              estado: "ninguno",
+              nombre: null,
+              pdfUrl: null,
+              anexos: [],
+            });
+          }
+          return;
+        }
+        if (cancelado) return;
+
+        setFormatoPropio({
+          estado: "generando",
+          nombre: plantilla!.nombre,
+          pdfUrl: null,
+          anexos: [],
+        });
+
+        const aplicado = await aplicarPlantillaASesion(sesionId, alumnosDelAula());
+        if (cancelado) return;
+
+        if (aplicado.success && aplicado.data?.pdfDownloadUrl) {
+          setFormatoPropio({
+            estado: "listo",
+            nombre: plantilla!.nombre,
+            pdfUrl: aplicado.data.pdfDownloadUrl,
+            anexos: aplicado.data.anexos ?? [],
+          });
+          if (aplicado.data.wordUrl) setWordUrl(aplicado.data.wordUrl);
+          // `aplicar-a-sesion` ya dejó el PDF y el Word en S3.
+          guardadoIniciado.current = true;
+          setIsSaved(true);
+          if (storageKey) sessionStorage.setItem(storageKey, "1");
+          return;
+        }
+
+        setFormatoPropio({
+          estado: "error",
+          nombre: plantilla!.nombre,
+          pdfUrl: null,
+          anexos: [],
+        });
+      } catch (error: any) {
+        if (cancelado) return;
+        const code = error?.response?.data?.code;
+        if (code === "NO_PLANTILLA") {
+          setFormatoPropio({
+            estado: "ninguno",
+            nombre: null,
+            pdfUrl: null,
+            anexos: [],
+          });
+          return;
+        }
+        console.warn("No se pudo aplicar el formato propio:", error);
+        setFormatoPropio((prev) => ({ ...prev, estado: "error", pdfUrl: null }));
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [sesionId, storageKey]);
+
+  // ────────────────────────────────────────────────────────────────────────
   // Auto-guardar al montar (igual que el flujo FREE)
   // ────────────────────────────────────────────────────────────────────────
   useEffect(() => {
+    // Con formato propio el PDF ya lo escribe el backend en el mismo key.
+    if (formatoPropio.estado !== "ninguno") return;
+
     mountedRef.current = true;
 
     // Limpiar cualquier contenedor huérfano de html2pdf.js (evita "doble render")
@@ -157,17 +287,23 @@ export function useSesionPremiumPDF(
       });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [formatoPropio.estado]);
 
   // ────────────────────────────────────────────────────────────────────────
   // Descargar PDF manualmente
   // ────────────────────────────────────────────────────────────────────────
-  const handleDownloadPDF = async () => {
-    if (!documentRef.current) {
-      handleToaster("No se pudo acceder al documento", "error");
-      return;
-    }
+  const descargarUrl = (url: string, nombreArchivo: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombreArchivo;
+    a.target = "_blank";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
 
+  const handleDownloadPDF = async () => {
     const rawArea = premiumData?.sesion?.area;
     const area =
       typeof rawArea === "string"
@@ -179,8 +315,44 @@ export function useSesionPremiumPDF(
     const timestamp = Date.now().toString().slice(-8);
     const nombreArchivo = `sesion-${areaLimpia}-${timestamp}.pdf`;
 
+    // El PDF con su formato ya está armado por la vista previa.
+    if (formatoPropio.estado === "listo" && formatoPropio.pdfUrl) {
+      descargarUrl(formatoPropio.pdfUrl, nombreArchivo);
+      handleToaster("PDF con tu formato", "success");
+      return;
+    }
+
     setIsGenerating(true);
     try {
+      // Si hay plantilla activa: fill + convert en sidecar (formato personal)
+      if (sesionId && formatoPropio.estado !== "ninguno") {
+        try {
+          const { aplicarPlantillaASesion } = await import(
+            "@/services/plantillaFormato.service"
+          );
+          const res = await aplicarPlantillaASesion(sesionId, alumnosDelAula());
+          if (res.success && res.data?.pdfDownloadUrl) {
+            descargarUrl(res.data.pdfDownloadUrl, nombreArchivo);
+            if (res.data.wordUrl) setWordUrl(res.data.wordUrl);
+            handleToaster("PDF con tu formato personal", "success");
+            setIsSaved(true);
+            if (storageKey) sessionStorage.setItem(storageKey, "1");
+            return;
+          }
+        } catch (plantillaErr: any) {
+          const code = plantillaErr?.response?.data?.code;
+          // Sin plantilla → formato HTML/MINEDU estándar
+          if (code !== "NO_PLANTILLA") {
+            console.warn("Plantilla personal no disponible, usando estándar:", plantillaErr);
+          }
+        }
+      }
+
+      if (!documentRef.current) {
+        handleToaster("No se pudo acceder al documento", "error");
+        return;
+      }
+
       await generateAndDownloadPDF(documentRef.current, nombreArchivo, {
         size: "A4",
         orientation: "portrait",
@@ -205,17 +377,17 @@ export function useSesionPremiumPDF(
   };
 
   const handlePrint = () => {
+    // El formato propio vive en un PDF de S3: el visor del navegador lo imprime.
+    if (formatoPropio.estado === "listo" && formatoPropio.pdfUrl) {
+      window.open(formatoPropio.pdfUrl, "_blank", "noopener");
+      return;
+    }
     window.print();
   };
 
   // ────────────────────────────────────────────────────────────────────────
   // Word: generar → S3 / ver desde S3
   // ────────────────────────────────────────────────────────────────────────
-  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
-  const [wordUrl, setWordUrl] = useState<string | null>(
-    (premiumData?.sesion as any)?.wordUrl ?? null,
-  );
-
   const handleGenerateWord = async () => {
     if (!sesionId) {
       handleToaster("No se pudo acceder al documento", "error");
@@ -224,6 +396,28 @@ export function useSesionPremiumPDF(
 
     setIsGeneratingWord(true);
     try {
+      // Preferir plantilla personal si existe
+      if (formatoPropio.estado !== "ninguno") {
+        try {
+          const { aplicarPlantillaASesion } = await import(
+            "@/services/plantillaFormato.service"
+          );
+          const res = await aplicarPlantillaASesion(sesionId, alumnosDelAula());
+          if (res.success && res.data?.wordUrl) {
+            setWordUrl(res.data.wordUrl);
+            if (res.data.wordDownloadUrl) {
+              window.open(res.data.wordDownloadUrl, "_blank");
+            }
+            handleToaster("Word con tu formato personal", "success");
+            return;
+          }
+        } catch (plantillaErr: any) {
+          if (plantillaErr?.response?.data?.code !== "NO_PLANTILLA") {
+            console.warn("Plantilla Word omitida:", plantillaErr);
+          }
+        }
+      }
+
       // Prefer server-side conversion from existing S3 PDF (avoids upload size issues)
       const pdfUrl = (premiumData?.sesion as any)?.pdfUrl;
       if (pdfUrl) {
@@ -277,5 +471,6 @@ export function useSesionPremiumPDF(
     isGeneratingWord,
     wordUrl,
     guardarEnNube,
+    formatoPropio,
   };
 }
