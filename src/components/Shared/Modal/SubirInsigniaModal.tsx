@@ -16,13 +16,14 @@ import {
   subirInsigniaAS3,
   confirmarInsignia,
 } from "@/services/insignia.service";
-import { setInsigniaDataUrl, clearInsigniaDataUrl } from "@/utils/insigniaCache";
+import { cacheInsignia, clearInsigniaDataUrl } from "@/utils/insigniaCache";
 
 interface SubirInsigniaModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentInsigniaUrl?: string | null;
-  onUploaded?: (url: string) => void;
+  /** displayUrl: base64 comprimido (o URL remota); remoteUrl: URL de S3 para persistir */
+  onUploaded?: (displayUrl: string, remoteUrl?: string) => void;
   onRemoved?: () => void;
 }
 
@@ -85,9 +86,12 @@ function SubirInsigniaModal({
       setStatus("success");
       toast.success("Insignia subida correctamente");
 
-      if (preview) setInsigniaDataUrl(preview);
+      const compressed = preview ? await cacheInsignia(preview) : null;
 
-      onUploaded?.(preview || confirmRes.data.insigniaUrl);
+      onUploaded?.(
+        compressed || confirmRes.data.insigniaUrl,
+        confirmRes.data.insigniaUrl,
+      );
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||

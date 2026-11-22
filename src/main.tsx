@@ -1,5 +1,6 @@
 // ⚠️ Este import DEBE ir PRIMERO — parchea Node.prototype antes de React
 import "./utils/patchDomForReact";
+import "./utils/cleanupStorage";
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

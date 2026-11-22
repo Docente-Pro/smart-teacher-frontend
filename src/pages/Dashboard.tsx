@@ -53,7 +53,7 @@ import {
 } from "@/utils/landingPlan";
 import { hasUploadedAlumnos } from "@/utils/alumnosStorage";
 import { getUsuarioById } from "@/services/usuarios.service";
-import { getInsigniaDataUrl } from "@/utils/insigniaCache";
+import { getInsigniaDataUrl, cacheInsignia } from "@/utils/insigniaCache";
 import { useUserStore } from "@/store/user.store";
 import { useQuery } from "@tanstack/react-query";
 import { useUserUnidades } from "@/hooks/useUserUnidades";
@@ -64,26 +64,8 @@ import { isUnidadActiva } from "@/utils/unidadUtils";
  * Fails silently if CORS blocks the operation.
  */
 function convertUrlToBase64(url: string) {
-  const img = new Image();
-  img.crossOrigin = "anonymous";
-  img.onload = () => {
-    try {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0);
-      const dataUrl = canvas.toDataURL("image/png");
-      localStorage.setItem("insignia_base64", dataUrl);
-    } catch {
-      /* CORS tainted canvas — ignore */
-    }
-  };
-  img.onerror = () => {
-    /* CORS blocked load — ignore */
-  };
-  img.src = url;
+  // Comprime a 400px antes de cachear para no llenar el localStorage
+  void cacheInsignia(url);
 }
 
 function DashboardView() {
@@ -194,7 +176,8 @@ function DashboardView() {
           if (freshUser.insigniaUrl) {
             const effectiveUrl = getInsigniaDataUrl(freshUser.insigniaUrl);
             setInsigniaUrl(effectiveUrl);
-            updatePayload.insigniaUrl = effectiveUrl;
+            // Guardar solo la URL remota en el store (el base64 vive en su propia clave)
+            updatePayload.insigniaUrl = freshUser.insigniaUrl;
 
             // If no cached base64 yet, try to convert the S3 URL
             if (!effectiveUrl?.startsWith("data:")) {
@@ -916,9 +899,9 @@ function DashboardView() {
         isOpen={showInsigniaModal}
         onClose={() => setShowInsigniaModal(false)}
         currentInsigniaUrl={insigniaUrl}
-        onUploaded={(url) => {
+        onUploaded={(url, remoteUrl) => {
           setInsigniaUrl(url);
-          useAuthStore.getState().updateUser({ insigniaUrl: url });
+          useAuthStore.getState().updateUser({ insigniaUrl: remoteUrl ?? null });
         }}
         onRemoved={() => {
           setInsigniaUrl(null);
