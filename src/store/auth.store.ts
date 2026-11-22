@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { safeJSONStorage } from "@/utils/safeStorage";
 import { 
   EnrichedUser, 
   LoginResponse,
@@ -216,13 +217,18 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
+      storage: safeJSONStorage,
       partialize: (state) => ({
         // Persistir todos los datos necesarios para restaurar la sesión
         refreshToken: state.refreshToken,
         accessToken: state.accessToken,
         idToken: state.idToken,
         expiresAt: state.expiresAt,
-        user: state.user,
+        // La insignia en base64 puede pesar varios MB: nunca persistirla aquí
+        // (ya vive comprimida en la clave "insignia_base64").
+        user: state.user?.insigniaUrl?.startsWith("data:")
+          ? { ...state.user, insigniaUrl: null }
+          : state.user,
         isAuthenticated: state.isAuthenticated,
         _integrity: state._integrity,
       }),

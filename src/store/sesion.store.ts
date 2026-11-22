@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { safeJSONStorage } from "@/utils/safeStorage";
 import { ISesionAprendizaje } from '@/interfaces/ISesionAprendizaje';
 
 interface SesionState {
@@ -38,6 +39,7 @@ export const useSesionStore = create<SesionState>()(
     }),
     {
       name: 'sesion-storage',
+      storage: safeJSONStorage,
     }
   )
 );

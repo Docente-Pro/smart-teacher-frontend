@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { IUsuario } from "@/interfaces/IUsuario";
 import { getUsuarioById } from "@/services/usuarios.service";
+import { safeJSONStorage } from "@/utils/safeStorage";
 
 /**
  * Estado inicial del usuario (vacío hasta que se cargue del backend)
@@ -110,10 +111,22 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: "user-storage", // Nombre en localStorage
-      partialize: (state) => ({ 
-        user: state.user,
-        lastFetched: state.lastFetched
-      }), // Solo persistir user y lastFetched
+      storage: safeJSONStorage,
+      partialize: (state) => {
+        // No persistir campos pesados: las sesiones crecen con la antigüedad del docente
+        // y la insignia puede venir como base64.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { sesiones, ...userLigero } = state.user;
+        return {
+          user: {
+            ...userLigero,
+            insigniaUrl: userLigero.insigniaUrl?.startsWith("data:")
+              ? null
+              : userLigero.insigniaUrl,
+          },
+          lastFetched: state.lastFetched,
+        };
+      }, // Solo persistir user (sin campos pesados) y lastFetched
     }
   )
 );
