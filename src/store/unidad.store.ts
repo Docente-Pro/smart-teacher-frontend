@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { safeJSONStorage } from "@/utils/safeStorage";
 import type { IUnidadContenido } from "@/interfaces/IUnidadIA";
 import type { HorarioEscolar } from "@/interfaces/IHorario";
 import type { ModoSecundaria } from "@/interfaces/IUnidad";
@@ -197,6 +198,7 @@ export const useUnidadStore = create<UnidadWizardState>()(
     }),
     {
       name: "unidad-wizard-storage",
+      storage: safeJSONStorage,
       version: 3, // v3: secundariaAreaElegida + fase select-area-secundaria
       // Excluir generandoPaso de la persistencia (es estado transitorio)
       partialize: (state) => ({
